@@ -1,5 +1,8 @@
 @* Render mode by path (ADR-0002): /admin* is Interactive Server with MudBlazor; everything else, account pages
-   included, is static server rendering with hand-written CSS. MudBlazor assets are only loaded under /admin. *@
+   included, is static server rendering with hand-written CSS. MudBlazor assets are only loaded under /admin.
+   Static pages use classic navigation (data-enhance-nav="false" on body): enhanced navigation would only scroll on
+   same-page links (skip links would not move the focus), would not let the browser announce the new page, and a
+   language change reloads the page so lang/dir apply. The interactive router of /admin ignores this attribute. *@
 <!DOCTYPE html>
 <html lang="@_language" dir="@_direction">
 
@@ -20,7 +23,7 @@
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
-<body>
+<body data-enhance-nav="false">
     <Routes @rendermode="PageRenderMode" />
     @if (_isAdmin)
     {

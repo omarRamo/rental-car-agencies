@@ -8,7 +8,7 @@
 
 <header class="site-header">
     <div class="container site-header__inner">
-        <a class="site-brand" href="/" data-enhance-nav="false">@Site.Value.AgencyName — @L["Layout.Title"]</a>
+        <a class="site-brand" href="/">@Site.Value.AgencyName — @L["Layout.Title"]</a>
         <nav class="site-nav" aria-label="@L["LanguageNav"]">
             <ul class="language-switcher">
                 @foreach (var culture in Cultures.Enabled)
@@ -20,7 +20,7 @@
                         }
                         else
                         {
-                            <a href="@CultureLink(culture)" lang="@culture" hreflang="@culture" data-enhance-nav="false">@CultureCatalog.NativeName(culture)</a>
+                            <a href="@CultureLink(culture)" lang="@culture" hreflang="@culture">@CultureCatalog.NativeName(culture)</a>
                         }
                     </li>
                 }

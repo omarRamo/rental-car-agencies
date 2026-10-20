@@ -7,7 +7,8 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<a class="skip-link" href="#admin-main">@L["SkipToContent"]</a>
+@* The interactive router only scrolls to same-page links: once interactive, the skip link moves the focus itself. *@
+<a class="skip-link" href="#admin-main" @onclick="SkipToMainAsync" @onclick:preventDefault>@L["SkipToContent"]</a>
 
 <MudLayout>
     <MudAppBar Elevation="1">
@@ -21,7 +22,7 @@
         <AdminNavMenu />
     </MudDrawer>
     <MudMainContent>
-        <main id="admin-main" tabindex="-1">
+        <main id="admin-main" tabindex="-1" @ref="_main">
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
                 @Body
             </MudContainer>
@@ -31,6 +32,9 @@
 
 @code {
     private bool _drawerOpen = true;
+    private ElementReference _main;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task SkipToMainAsync() => await _main.FocusAsync();
 }

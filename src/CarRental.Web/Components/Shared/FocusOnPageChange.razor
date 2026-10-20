@@ -1,0 +1,26 @@
+@* Moves the keyboard focus to the page heading after an in-app navigation to another page, never on the first page of a
+   load: the browser then starts at the top of the document, so the skip link stays the first tab stop (the framework
+   FocusOnNavigate alone also focuses the heading on load, even on static pages). Only interactive routing (/admin) can
+   navigate in-app: static pages use classic navigation (see App.razor), so they render nothing here. *@
+@if (_navigated)
+{
+    <FocusOnNavigate RouteData="RouteData" Selector="@Selector" />
+}
+
+@code {
+    private Type? _firstPageType;
+    private bool _navigated;
+
+    [Parameter, EditorRequired]
+    public RouteData RouteData { get; set; } = null!;
+
+    /// <summary>CSS selector of the element to focus; made programmatically focusable if needed.</summary>
+    [Parameter]
+    public string Selector { get; set; } = "h1";
+
+    protected override void OnParametersSet()
+    {
+        _firstPageType ??= RouteData.PageType;
+        _navigated |= RouteData.PageType != _firstPageType;
+    }
+}
