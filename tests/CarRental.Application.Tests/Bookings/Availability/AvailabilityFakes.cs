@@ -8,6 +8,7 @@ using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Bookings.Availability;
 using CarRental.Domain.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 
 namespace CarRental.Application.Tests.Bookings.Availability;
@@ -48,6 +49,9 @@ internal sealed class FakeFleetQueries(CallJournal journal) : IFleetQueries
 
     /// <summary>When set, reading a category waits for it (to hold a cache load in flight).</summary>
     public TaskCompletionSource? Gate { get; set; }
+
+    /// <summary>Completed when a category read starts.</summary>
+    public TaskCompletionSource CategoryReadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>When set, the next availability read throws it.</summary>
     public Exception? NextAvailabilityFailure { get; set; }
@@ -142,6 +146,7 @@ internal sealed class FakeFleetQueries(CallJournal journal) : IFleetQueries
     {
         journal.Add("fleet.category");
         Interlocked.Increment(ref _categoryReads);
+        CategoryReadStarted.TrySetResult();
         if (Gate is { } gate)
         {
             await gate.Task.WaitAsync(cancellationToken);
@@ -218,6 +223,12 @@ internal sealed class FakeOccupancyReader(CallJournal journal) : IOccupancyReade
 
     public int Reads => Volatile.Read(ref _reads);
 
+    /// <summary>When set, a read takes its data at once but only returns once it completes (a load in flight across a commit).</summary>
+    public TaskCompletionSource? Gate { get; set; }
+
+    /// <summary>Completed when a read has taken its data.</summary>
+    public TaskCompletionSource ReadTaken { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public OccupancyBasis? LastBasis { get; private set; }
 
     public Guid? LastExcludedBookingId { get; private set; }
@@ -238,7 +249,7 @@ internal sealed class FakeOccupancyReader(CallJournal journal) : IOccupancyReade
         }
     }
 
-    public Task<IReadOnlyList<OccupancyInterval>> GetOccupancyAsync(
+    public async Task<IReadOnlyList<OccupancyInterval>> GetOccupancyAsync(
         Guid categoryId,
         Period range,
         Guid? excludedBookingId,
@@ -247,21 +258,30 @@ internal sealed class FakeOccupancyReader(CallJournal journal) : IOccupancyReade
     {
         journal.Add("occupancy");
         Interlocked.Increment(ref _reads);
+        IReadOnlyList<OccupancyInterval> intervals;
         lock (_gate)
         {
             LastBasis = basis;
             LastExcludedBookingId = excludedBookingId;
             LastRange = range;
             var bookings = _bookings.GetValueOrDefault(categoryId) ?? [];
-            return Task.FromResult<IReadOnlyList<OccupancyInterval>>(
+            intervals =
             [
                 .. bookings
                     .Where(b => b.BookingId != excludedBookingId)
                     .Select(basis.IntervalOf)
                     .OfType<OccupancyInterval>()
                     .Where(i => i.Period.Overlaps(range)),
-            ]);
+            ];
         }
+
+        ReadTaken.TrySetResult();
+        if (Gate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken);
+        }
+
+        return intervals;
     }
 }
 
@@ -384,4 +404,20 @@ internal sealed class AvailabilityWorld
     public AvailabilitySnapshotLoader Loader() => new(Fleet, Occupancy, Channels, Settings, Clock);
 
     public AvailabilityGuard Guard() => new(UnitOfWork, Lock, Loader(), Fleet);
+
+    /// <summary>The real registration (<c>AddBookingAvailability</c>) over the fakes.</summary>
+    public ServiceProvider Services(Action<IServiceCollection>? configure = null)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton<IFleetQueries>(Fleet);
+        services.AddSingleton<IOccupancyReader>(Occupancy);
+        services.AddSingleton<ISettingsReader>(Settings);
+        services.AddSingleton<IChannelAvailabilityPolicy>(Channels);
+        services.AddSingleton<IUnitOfWork>(UnitOfWork);
+        services.AddSingleton<IAvailabilityLock>(Lock);
+        configure?.Invoke(services);
+        services.AddBookingAvailability();
+        return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+    }
 }
