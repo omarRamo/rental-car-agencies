@@ -5,6 +5,7 @@ using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Tests.Customers.Fakes;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Referential;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CarRental.Application.Tests.Referential;
 
@@ -31,7 +32,14 @@ public sealed class SettingsAdministrationServiceTests
     private static string PreparationBuffer => WellKnownSettings.PreparationBuffer.Key;
 
     private SettingsAdministrationService AsRole(string role) =>
-        new(_db, _unitOfWork, _catalog, TestUsers.ContextFor(Guid.CreateVersion7(), $"{role}@demo.local", role), _audit, _availability);
+        new(
+            _db,
+            _unitOfWork,
+            _catalog,
+            TestUsers.ContextFor(Guid.CreateVersion7(), $"{role}@demo.local", role),
+            _audit,
+            _availability,
+            NullLogger<SettingsAdministrationService>.Instance);
 
     private SettingsAdministrationService AsManager() => AsRole(Roles.Manager);
 
@@ -165,6 +173,21 @@ public sealed class SettingsAdministrationServiceTests
         audit.Action.ShouldBe(ReferentialAuditActions.SettingReset);
         audit.Details.ShouldBe("fleet.preparation_buffer [Agence Sousse]: 04:00:00 → — (platform)");
         _availability.AllChangedCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_platform_only_setting_takes_no_agency_value()
+    {
+        var retention = WellKnownSettings.OutboxProcessedRetention;
+        _db.Rows<Setting>().Add(Setting.Create(retention.Key, "7.00:00:00", _agency.Id).Value);
+
+        (await AsManager().SetAgencyValueAsync(retention.Key, _agency.Id, "5.00:00:00", Ct)).Error.ShouldBe(SettingErrors.PlatformOnly);
+
+        var item = (await AsManager().GetOverviewAsync(Ct)).Value.Settings.Single(s => s.Key == retention.Key);
+        item.Scope.ShouldBe(SettingScope.Platform);
+        item.AgencyOverridable.ShouldBeFalse();
+        item.EffectiveFor(_agency.Id).ShouldBe("30.00:00:00", "a stray agency row never applies");
+        (await AsManager().RemoveAgencyValueAsync(retention.Key, _agency.Id, Ct)).IsSuccess.ShouldBeTrue("a stray row can still be removed");
     }
 
     [Fact]

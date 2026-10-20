@@ -13,6 +13,7 @@ public sealed record SettingItem(
     string Key,
     string Group,
     SettingEditor Editor,
+    SettingScope Scope,
     string DefaultValue,
     string? PlatformValue,
     IReadOnlyDictionary<Guid, string> AgencyValues)
@@ -20,7 +21,13 @@ public sealed record SettingItem(
     /// <summary>The platform value, or the default while none is stored.</summary>
     public string PlatformOrDefault => PlatformValue ?? DefaultValue;
 
-    /// <summary>The value read for <paramref name="agencyId"/>: its own value, otherwise the platform value, otherwise the default.</summary>
+    /// <summary>Whether an agency may have its own value.</summary>
+    public bool AgencyOverridable => Scope == SettingScope.Agency;
+
+    /// <summary>
+    /// The value read for <paramref name="agencyId"/> (same precedence as <see cref="ISettingsReader"/>): its own value,
+    /// otherwise the platform value, otherwise the default.
+    /// </summary>
     public string EffectiveFor(Guid? agencyId) =>
-        agencyId is { } id && AgencyValues.TryGetValue(id, out var value) ? value : PlatformOrDefault;
+        AgencyOverridable && agencyId is { } id && AgencyValues.TryGetValue(id, out var value) ? value : PlatformOrDefault;
 }

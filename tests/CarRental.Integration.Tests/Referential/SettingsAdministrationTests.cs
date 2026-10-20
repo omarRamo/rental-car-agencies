@@ -10,6 +10,7 @@ using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Support;
 using CarRental.Testing;
+using CarRental.Web.Components.Admin.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -93,6 +94,40 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
             .ToListAsync(Ct);
         values.ShouldContain("03:15:00");
         values.ShouldContain("02:00:00");
+    }
+
+    [Fact]
+    public async Task A_platform_only_setting_ignores_agency_rows_and_refuses_new_ones()
+    {
+        var agencyId = await NewAgencyAsync();
+        var retention = WellKnownSettings.OutboxProcessedRetention;
+        await using (var scope = host.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(retention.Key, "2.00:00:00", agencyId).Value);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await ReadAsync(retention, agencyId)).ShouldBe(TimeSpan.FromDays(30));
+
+        await using var check = host.CreateScope(await ManagerAsync());
+        (await check.ServiceProvider.GetRequiredService<SettingsAdministrationService>().SetAgencyValueAsync(retention.Key, agencyId, "3.00:00:00", Ct))
+            .Error.ShouldBe(SettingErrors.PlatformOnly);
+    }
+
+    [Fact]
+    public void Duration_editors_convert_to_their_largest_exact_unit_without_overflow()
+    {
+        DurationUnits.Split(TimeSpan.FromHours(2)).ShouldBe((2, DurationUnit.Hours));
+        DurationUnits.Split(TimeSpan.FromHours(36)).ShouldBe((36, DurationUnit.Hours));
+        DurationUnits.Split(TimeSpan.FromDays(30)).ShouldBe((30, DurationUnit.Days));
+        DurationUnits.Split(TimeSpan.FromMinutes(59)).ShouldBe((59, DurationUnit.Minutes));
+        DurationUnits.Split(TimeSpan.Zero).ShouldBe((0, DurationUnit.Minutes));
+        DurationUnits.Combine(3, DurationUnit.Hours).ShouldBe(TimeSpan.FromHours(3));
+        DurationUnits.Combine(int.MaxValue, DurationUnit.Days).ShouldBe(TimeSpan.MaxValue);
+        DurationUnits.MaximumAmount(DurationUnit.Days).ShouldBe(365);
+        DurationUnits.MaximumAmount(DurationUnit.Hours).ShouldBe(365 * 24);
+        WellKnownSettings.PreparationBuffer.Validate(SettingValues.FormatDuration(DurationUnits.Combine(int.MaxValue, DurationUnit.Days))).IsFailure.ShouldBeTrue();
     }
 
     [Fact]

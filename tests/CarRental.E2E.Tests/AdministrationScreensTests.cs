@@ -91,6 +91,11 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
         await Expect(hours.Locator("[data-setting-scope='platform']")).ToContainTextAsync("09:00 – 19:30");
 
+        // A platform-only setting offers no agency value.
+        var retention = SettingRow("outbox.processed_retention");
+        await Expect(retention.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Même valeur pour toutes les agences");
+        await Expect(retention.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { NameRegex = AgencyValueLabel() })).ToHaveCountAsync(0);
+
         // The preparation buffer of the agency: an own value, then back to the platform value.
         var buffer = SettingRow("fleet.preparation_buffer");
         await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Valeur de la plateforme");
@@ -139,6 +144,9 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
 
     [GeneratedRegex("^Relancer le message E2eUnhandledMessage")]
     private static partial Regex RetryLabel();
+
+    [GeneratedRegex("valeur de l'agence")]
+    private static partial Regex AgencyValueLabel();
 
     /// <summary>The table row of a setting, found by its key.</summary>
     private ILocator SettingRow(string key) =>

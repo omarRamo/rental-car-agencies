@@ -81,7 +81,11 @@
                     {
                         var hasOwnValue = context.AgencyValues.TryGetValue(agency.Id, out var own);
                         <MudTd DataLabel="@L["Settings.Column.Agency"]" data-setting-scope="agency">
-                            @if (hasOwnValue)
+                            @if (!context.AgencyOverridable)
+                            {
+                                <MudText Typo="Typo.body2" Class="settings-inherited">@L["Settings.PlatformOnly"]</MudText>
+                            }
+                            else if (hasOwnValue)
                             {
                                 <span class="settings-value">@SettingText.Display(L, context.Editor.Kind, own!)</span>
                             }
@@ -90,8 +94,11 @@
                                 <MudText Typo="Typo.body2" Class="settings-inherited">@L["Settings.Inherited"]</MudText>
                             }
                             <div class="settings-actions">
-                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Store"
-                                           OnClick="() => EditAsync(context, agency)" aria-label="@L["Settings.Edit.Agency.Label", label]">@(hasOwnValue ? L["Settings.Edit"] : L["Settings.SetForAgency"])</MudButton>
+                                @if (context.AgencyOverridable)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Store"
+                                               OnClick="() => EditAsync(context, agency)" aria-label="@L["Settings.Edit.Agency.Label", label]">@(hasOwnValue ? L["Settings.Edit"] : L["Settings.SetForAgency"])</MudButton>
+                                }
                                 @if (hasOwnValue)
                                 {
                                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Clear"

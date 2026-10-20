@@ -165,4 +165,7 @@
   <data name="Settings.Value.TimeRange" xml:space="preserve">
     <value>{0} – {1}</value>
   </data>
+  <data name="Settings.PlatformOnly" xml:space="preserve">
+    <value>Same value for every agency</value>
+  </data>
 </root>

@@ -20,11 +20,13 @@ public abstract partial class SettingDefinition
     /// <summary>Same limit as the stored setting (<c>referential.Settings.Key</c>).</summary>
     public const int KeyMaxLength = 100;
 
-    protected SettingDefinition(string key, string defaultValue, SettingEditor editor)
+    protected SettingDefinition(string key, string defaultValue, SettingEditor editor, SettingScope scope = SettingScope.Agency)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(defaultValue);
         ArgumentNullException.ThrowIfNull(editor);
+
+        // Same rule as the stored setting (Setting.Create): the contracts may not use the domain types (test).
         if (key.Length > KeyMaxLength || !KeyPattern().IsMatch(key))
         {
             throw new ArgumentException($"'{key}' is not a setting key: lower-case dotted segments such as bookings.hold_duration.", nameof(key));
@@ -33,6 +35,7 @@ public abstract partial class SettingDefinition
         Key = key;
         DefaultValue = defaultValue;
         Editor = editor;
+        Scope = scope;
     }
 
     /// <summary>Dotted lower-case key, e.g. <c>bookings.hold_duration</c>; its first segment groups it on the settings screen.</summary>
@@ -43,6 +46,9 @@ public abstract partial class SettingDefinition
 
     /// <summary>How the settings screen edits the value.</summary>
     public SettingEditor Editor { get; }
+
+    /// <summary>Whether an agency may have its own value (default), or the platform value applies everywhere.</summary>
+    public SettingScope Scope { get; }
 
     /// <summary>The group of the setting on the settings screen: the first segment of its key (<c>bookings</c>).</summary>
     public string Group => Key[..Key.IndexOf('.', StringComparison.Ordinal)];
@@ -67,8 +73,15 @@ public sealed class SettingDefinition<T> : SettingDefinition
     /// <param name="parse">Parses and validates a stored value.</param>
     /// <param name="format">Formats a value to its invariant storage text.</param>
     /// <param name="editor">The editor of the settings screen; inferred from <typeparamref name="T"/> when omitted.</param>
-    public SettingDefinition(string key, T defaultValue, Func<string, Result<T>> parse, Func<T, string> format, SettingEditor? editor = null)
-        : base(key, (format ?? throw new ArgumentNullException(nameof(format)))(defaultValue), editor ?? SettingEditor.For(typeof(T)))
+    /// <param name="scope">Whether an agency may override the platform value.</param>
+    public SettingDefinition(
+        string key,
+        T defaultValue,
+        Func<string, Result<T>> parse,
+        Func<T, string> format,
+        SettingEditor? editor = null,
+        SettingScope scope = SettingScope.Agency)
+        : base(key, (format ?? throw new ArgumentNullException(nameof(format)))(defaultValue), editor ?? SettingEditor.For(typeof(T)), scope)
     {
         ArgumentNullException.ThrowIfNull(parse);
         Default = defaultValue;
@@ -77,6 +90,9 @@ public sealed class SettingDefinition<T> : SettingDefinition
     }
 
     public T Default { get; }
+
+    /// <summary>The same setting with a single value for the whole platform (read without agency; no agency value).</summary>
+    public SettingDefinition<T> PlatformOnly() => new(Key, Default, _parse, _format, Editor, SettingScope.Platform);
 
     public Result<T> Parse(string? value) =>
         value is null ? SettingErrors.InvalidValue(Key) : _parse(value);
@@ -88,6 +104,16 @@ public sealed class SettingDefinition<T> : SettingDefinition
         var parsed = Parse(value);
         return parsed.IsSuccess ? Result.Success() : parsed.Error;
     }
+}
+
+/// <summary>Where a setting takes its value.</summary>
+public enum SettingScope
+{
+    /// <summary>The platform value, which an agency may replace by its own (read with the agency).</summary>
+    Agency = 0,
+
+    /// <summary>One value for the whole platform (technical or national rules, read without agency).</summary>
+    Platform = 1,
 }
 
 /// <summary>Kind of editor of a setting on the settings screen.</summary>
@@ -329,6 +355,10 @@ public static class SettingErrors
     public static readonly Error Forbidden = Error.Forbidden("referential.forbidden", "The current user may not manage the settings.");
 
     public static readonly Error AgencyNotFound = Error.NotFound("referential.agency_not_found", "The agency does not exist.");
+
+    public static readonly Error PlatformOnly = Error.Validation(
+        "referential.setting_platform_only",
+        "This setting has a single value for the whole platform: an agency cannot have its own.");
 
     public static readonly Error ConcurrentUpdate = Error.Conflict(
         "referential.setting_concurrent_update",

@@ -363,4 +363,7 @@
   <data name="Error.identity.cannot_change_own_permissions" xml:space="preserve">
     <value>Vous ne pouvez pas modifier vos propres permissions.</value>
   </data>
+  <data name="Error.referential.setting_platform_only" xml:space="preserve">
+    <value>Ce paramètre a une seule valeur pour toute la plateforme : une agence ne peut pas avoir la sienne.</value>
+  </data>
 </root>

@@ -76,6 +76,51 @@ public sealed class SettingDefinitionTests
         Should.Throw<ArgumentException>(() => SettingDefinitions.Boolean(key, false));
     }
 
+    [Theory]
+    [InlineData("bookings.hold_duration")]
+    [InlineData("a.b")]
+    [InlineData("tests.opening_hours")]
+    [InlineData("x1.y_2.z")]
+    [InlineData("nodot")]
+    [InlineData("Upper.case")]
+    [InlineData("trailing.")]
+    [InlineData(".leading")]
+    [InlineData("1digit.first")]
+    [InlineData("dash-ed.key")]
+    public void Definitions_accept_exactly_the_keys_that_can_be_stored(string key)
+    {
+        // The contracts cannot use the domain, so the key rule of the definition repeats the one of Setting.
+        var storable = Setting.Create(key, "x").IsSuccess;
+        var declarable = true;
+        try
+        {
+            SettingDefinitions.Boolean(key, false);
+        }
+        catch (ArgumentException)
+        {
+            declarable = false;
+        }
+
+        declarable.ShouldBe(storable, key);
+        SettingDefinition.KeyMaxLength.ShouldBe(Setting.KeyMaxLength);
+    }
+
+    [Fact]
+    public void A_platform_only_definition_keeps_everything_but_its_scope()
+    {
+        var shared = SettingDefinitions.Duration("test.delay", TimeSpan.FromHours(2));
+        var platformOnly = shared.PlatformOnly();
+
+        shared.Scope.ShouldBe(SettingScope.Agency);
+        platformOnly.Scope.ShouldBe(SettingScope.Platform);
+        platformOnly.Key.ShouldBe(shared.Key);
+        platformOnly.Default.ShouldBe(shared.Default);
+        platformOnly.Editor.ShouldBe(shared.Editor);
+        platformOnly.Parse("03:00:00").Value.ShouldBe(TimeSpan.FromHours(3));
+        WellKnownSettings.OutboxProcessedRetention.Scope.ShouldBe(SettingScope.Platform);
+        WellKnownSettings.PreparationBuffer.Scope.ShouldBe(SettingScope.Agency);
+    }
+
     [Fact]
     public void A_default_value_outside_its_bounds_is_a_declaration_bug()
     {

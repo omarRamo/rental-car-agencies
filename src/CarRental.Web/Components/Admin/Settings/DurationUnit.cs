@@ -1,3 +1,5 @@
+using CarRental.Application.Referential.Contracts;
+
 namespace CarRental.Web.Components.Admin.Settings;
 
 /// <summary>Unit in which a duration setting is edited.</summary>
@@ -15,20 +17,33 @@ public static class DurationUnits
     public static (int Amount, DurationUnit Unit) Split(TimeSpan duration)
     {
         var minutes = (long)duration.TotalMinutes;
-        if (minutes != 0 && minutes % (24 * 60) == 0)
+        if (minutes != 0 && minutes % MinutesPer(DurationUnit.Days) == 0)
         {
-            return ((int)(minutes / (24 * 60)), DurationUnit.Days);
+            return ((int)(minutes / MinutesPer(DurationUnit.Days)), DurationUnit.Days);
         }
 
-        return minutes != 0 && minutes % 60 == 0
-            ? ((int)(minutes / 60), DurationUnit.Hours)
+        return minutes != 0 && minutes % MinutesPer(DurationUnit.Hours) == 0
+            ? ((int)(minutes / MinutesPer(DurationUnit.Hours)), DurationUnit.Hours)
             : ((int)minutes, DurationUnit.Minutes);
     }
 
-    public static TimeSpan Combine(int amount, DurationUnit unit) => unit switch
+    /// <summary>
+    /// The duration of <paramref name="amount"/> units; an amount beyond the longest duration setting gives
+    /// <see cref="TimeSpan.MaxValue"/>, which the definition rejects (never an overflow).
+    /// </summary>
+    public static TimeSpan Combine(int amount, DurationUnit unit)
     {
-        DurationUnit.Days => TimeSpan.FromDays(amount),
-        DurationUnit.Hours => TimeSpan.FromHours(amount),
-        _ => TimeSpan.FromMinutes(amount),
+        var minutes = (long)amount * MinutesPer(unit);
+        return minutes > (long)SettingDefinitions.MaximumDuration.TotalMinutes ? TimeSpan.MaxValue : TimeSpan.FromMinutes(minutes);
+    }
+
+    /// <summary>The largest amount of <paramref name="unit"/> a duration setting can hold (365 days).</summary>
+    public static int MaximumAmount(DurationUnit unit) => (int)((long)SettingDefinitions.MaximumDuration.TotalMinutes / MinutesPer(unit));
+
+    private static long MinutesPer(DurationUnit unit) => unit switch
+    {
+        DurationUnit.Days => 24 * 60,
+        DurationUnit.Hours => 60,
+        _ => 1,
     };
 }

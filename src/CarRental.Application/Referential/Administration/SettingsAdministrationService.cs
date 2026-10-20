@@ -7,6 +7,7 @@ using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Referential.Administration;
 
@@ -27,7 +28,8 @@ public sealed class SettingsAdministrationService(
     ISettingDefinitionCatalog catalog,
     IUserContext userContext,
     IAuditTrail auditTrail,
-    IAvailabilityChangeNotifier availability)
+    IAvailabilityChangeNotifier availability,
+    ILogger<SettingsAdministrationService> logger)
 {
     private const string EntityType = "Setting";
     private const string PlatformScope = "platform";
@@ -56,6 +58,7 @@ public sealed class SettingsAdministrationService(
                 definition.Key,
                 definition.Group,
                 definition.Editor,
+                definition.Scope,
                 definition.DefaultValue,
                 stored[definition.Key].FirstOrDefault(s => s.AgencyId is null)?.Value,
                 stored[definition.Key].Where(s => s.AgencyId is not null).ToDictionary(s => s.AgencyId!.Value, s => s.Value)))
@@ -126,6 +129,11 @@ public sealed class SettingsAdministrationService(
             return SettingErrors.Unknown(key);
         }
 
+        if (agencyId is not null && definition.Scope == SettingScope.Platform)
+        {
+            return SettingErrors.PlatformOnly;
+        }
+
         var newValue = reset ? definition.DefaultValue : value;
         var validation = definition.Validate(newValue);
         if (validation.IsFailure)
@@ -187,7 +195,8 @@ public sealed class SettingsAdministrationService(
 
     /// <summary>
     /// Runs a change in a unit of work; <paramref name="change"/> answers whether something changed. A concurrent change of
-    /// the same row becomes a business conflict; after a commit that changed something, the availability cache is dropped.
+    /// the same row (row version) or a concurrent first value of the same setting and scope (unique index) becomes a
+    /// business conflict; after a commit that changed something, the availability cache is dropped.
     /// </summary>
     private async Task<Result> ChangeAsync(Func<CancellationToken, Task<Result<bool>>> change, CancellationToken cancellationToken)
     {
@@ -196,8 +205,9 @@ public sealed class SettingsAdministrationService(
         {
             outcome = await unitOfWork.ExecuteAsync(change, cancellationToken: cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateException exception)
         {
+            logger.LogWarning(exception, "A setting change conflicted with a concurrent change.");
             return SettingErrors.ConcurrentUpdate;
         }
 

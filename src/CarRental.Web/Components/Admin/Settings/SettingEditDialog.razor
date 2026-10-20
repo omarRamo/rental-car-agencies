@@ -24,7 +24,8 @@
             {
                 case SettingKind.Duration:
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
-                        <MudNumericField T="int" @bind-Value="_durationAmount" Label="@L["Settings.Field.Duration"]" Min="0" HelperText="@BoundsHint" Class="flex-grow-1" />
+                        <MudNumericField T="int" @bind-Value="_durationAmount" Label="@L["Settings.Field.Duration"]" Min="0" Max="@DurationUnits.MaximumAmount(_durationUnit)"
+                                         HelperText="@BoundsHint" Class="flex-grow-1" />
                         <MudSelect T="DurationUnit" @bind-Value="_durationUnit" Label="@L["Settings.Field.Unit"]" Class="settings-unit">
                             @foreach (var unit in Enum.GetValues<DurationUnit>())
                             {
@@ -107,7 +108,7 @@
 
     protected override void OnInitialized()
     {
-        var current = Agency is { } agency && Item.AgencyValues.TryGetValue(agency.Id, out var own) ? own : Item.PlatformOrDefault;
+        var current = Item.EffectiveFor(Agency?.Id);
         switch (Item.Editor.Kind)
         {
             case SettingKind.Duration when SettingValues.TryParseDuration(current, out var duration):
