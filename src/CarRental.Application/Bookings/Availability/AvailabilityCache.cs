@@ -69,12 +69,29 @@ internal sealed class AvailabilityCache : IAvailabilityChangeNotifier
     public long CategoryListLoads => Interlocked.Read(ref _categoryListLoads);
 
     /// <summary>The cached snapshot of a category (loading it when needed), or <see langword="null"/> when the category does not exist.</summary>
-    public Task<CategorySnapshot?> GetSnapshotAsync(Guid categoryId, CancellationToken cancellationToken) =>
-        GetOrLoadAsync(_snapshots, categoryId, LoadSnapshotAsync, cancellationToken);
+    public async Task<CategorySnapshot?> GetSnapshotAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        var snapshot = await GetOrLoadAsync(_snapshots, categoryId, LoadSnapshotAsync, cancellationToken);
+        if (snapshot is null)
+        {
+            // Unknown ids are not kept, so arbitrary ids cannot grow the cache (dropping an entry only costs a reload).
+            _snapshots.TryRemove(categoryId, out _);
+        }
+
+        return snapshot;
+    }
 
     /// <summary>The active categories of an agency, in display order.</summary>
-    public Task<IReadOnlyList<VehicleCategoryInfo>> GetAgencyCategoriesAsync(Guid agencyId, CancellationToken cancellationToken) =>
-        GetOrLoadAsync(_agencyCategories, agencyId, LoadAgencyCategoriesAsync, cancellationToken);
+    public async Task<IReadOnlyList<VehicleCategoryInfo>> GetAgencyCategoriesAsync(Guid agencyId, CancellationToken cancellationToken)
+    {
+        var categories = await GetOrLoadAsync(_agencyCategories, agencyId, LoadAgencyCategoriesAsync, cancellationToken);
+        if (categories.Count == 0)
+        {
+            _agencyCategories.TryRemove(agencyId, out _);
+        }
+
+        return categories;
+    }
 
     /// <summary>A fresh snapshot over <paramref name="coverage"/>, not kept (periods beyond the cached horizon).</summary>
     public async Task<CategorySnapshot?> LoadUncachedAsync(

@@ -325,6 +325,28 @@ public sealed class AvailabilityCacheTests
     }
 
     [Fact]
+    public async Task Unknown_ids_are_not_kept_in_the_cache()
+    {
+        // Arbitrary ids reaching the read side must not grow the cache: each one is read again, never stored.
+        var world = new AvailabilityWorld();
+        await using var services = world.Services();
+        var cache = services.GetRequiredService<AvailabilityCache>();
+        var unknownCategory = Guid.CreateVersion7();
+        var unknownAgency = Guid.CreateVersion7();
+
+        for (var i = 0; i < 2; i++)
+        {
+            await using var scope = services.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<IAvailabilityQueries>();
+            (await queries.GetCategoryAvailabilityAsync(unknownCategory, P(10, 20), SalesChannel.Web, cancellationToken: Ct)).ShouldBeNull();
+            (await queries.GetAvailableCategoriesAsync(unknownAgency, P(10, 20), SalesChannel.Web, Ct)).ShouldBeEmpty();
+        }
+
+        cache.SnapshotLoads.ShouldBe(2);
+        cache.CategoryListLoads.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Unknown_categories_are_reported_as_missing()
     {
         var world = new AvailabilityWorld();
