@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Use cases per module (Application/<Module>), ports implemented by Infrastructure.
+    Data access goes through IAppDbContext (EF Core abstractions only, never a provider: see ADR-0012).
+  -->
+  <PropertyGroup>
+    <RootNamespace>CarRental.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CarRental.Domain\CarRental.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CarRental.Application.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -7,10 +7,12 @@
     <File Path="docker-compose.yml" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/CarRental.Application/CarRental.Application.csproj" />
     <Project Path="src/CarRental.Domain/CarRental.Domain.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/CarRental.Application.Tests/CarRental.Application.Tests.csproj" />
     <Project Path="tests/CarRental.Domain.Tests/CarRental.Domain.Tests.csproj" />
   </Folder>
 </Solution>

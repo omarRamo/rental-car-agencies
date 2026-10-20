@@ -1,0 +1,160 @@
+using CarRental.Application.Common.Paging;
+using CarRental.Application.Common.Security;
+using CarRental.Application.Identity;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Identity.Users;
+using CarRental.Application.Tests.Fakes;
+using CarRental.Domain.Identity;
+
+namespace CarRental.Application.Tests.Identity;
+
+public sealed class UserAdministrationServiceTests
+{
+    private readonly FakeUserDirectory _directory = new();
+    private readonly RecordingInvitationSender _invitations = new();
+    private readonly RecordingAuditTrail _audit = new();
+    private readonly InlineUnitOfWork _unitOfWork = new();
+    private readonly Guid _managerId;
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    public UserAdministrationServiceTests()
+    {
+        _managerId = _directory.Add("gerant@demo.local", Roles.Manager).Id;
+    }
+
+    private UserAdministrationService ServiceFor(IUserContext context) => new(_directory, _invitations, _audit, context, _unitOfWork);
+
+    private UserAdministrationService AsManager() => ServiceFor(TestUsers.ContextFor(_managerId, "gerant@demo.local", Roles.Manager));
+
+    private UserAdministrationService AsAccountant() =>
+        ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "comptable@demo.local", Roles.Accountant));
+
+    [Fact]
+    public async Task Only_users_with_users_manage_can_administer()
+    {
+        var service = AsAccountant();
+
+        (await service.ListAsync(null, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await service.CreateUserAsync(new CreateUserRequest("x@demo.local", "X", Roles.Agent), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await service.LockAsync(_managerId, Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await service.UnlockAsync(_managerId, Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await ServiceFor(new ScopedUserContext([])).ListAsync(null, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        _audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task List_returns_the_directory_page()
+    {
+        _directory.Add("agent@demo.local", Roles.Agent);
+
+        var page = (await AsManager().ListAsync("  agent ", new PageRequest(1, 10), Ct)).Value;
+
+        page.TotalCount.ShouldBe(1);
+        page.Items.ShouldHaveSingleItem().Email.ShouldBe("agent@demo.local");
+    }
+
+    [Fact]
+    public async Task Create_user_assigns_the_role_sends_an_invitation_and_audits()
+    {
+        var result = await AsManager().CreateUserAsync(new CreateUserRequest(" agent2@demo.local ", " Agent Deux ", Roles.Agent), Ct);
+
+        result.IsSuccess.ShouldBeTrue();
+        _directory.Created.ShouldHaveSingleItem().ShouldBe(new NewUser("agent2@demo.local", "Agent Deux", Roles.Agent));
+        _invitations.Invited.ShouldBe([result.Value]);
+        var audit = _audit.Events.ShouldHaveSingleItem();
+        audit.Action.ShouldBe(AuditActions.UserCreated);
+        audit.EntityType.ShouldBe("User");
+        audit.EntityId.ShouldBe(result.Value.ToString());
+        audit.Details.ShouldBe("agent2@demo.local (Agent)");
+        _unitOfWork.Executions.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData("not-an-email", "Name", Roles.Agent, "identity.email_invalid")]
+    [InlineData("John <john@demo.local>", "Name", Roles.Agent, "identity.email_invalid")]
+    [InlineData("", "Name", Roles.Agent, "identity.email_invalid")]
+    [InlineData("new@demo.local", " ", Roles.Agent, "identity.display_name_invalid")]
+    [InlineData("new@demo.local", "Name", "Owner", "identity.role_unknown")]
+    [InlineData("GERANT@demo.local", "Name", Roles.Agent, "identity.email_taken")]
+    public async Task Create_user_validates_its_input(string email, string displayName, string role, string expectedError)
+    {
+        var result = await AsManager().CreateUserAsync(new CreateUserRequest(email, displayName, role), Ct);
+
+        result.Error.Code.ShouldBe(expectedError);
+        _directory.Created.ShouldBeEmpty();
+        _invitations.Invited.ShouldBeEmpty();
+        _audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Display_name_is_limited()
+    {
+        var result = await AsManager().CreateUserAsync(
+            new CreateUserRequest("new@demo.local", new string('a', UserAdministrationService.DisplayNameMaxLength + 1), Roles.Agent),
+            Ct);
+
+        result.Error.ShouldBe(IdentityErrors.DisplayNameInvalid);
+    }
+
+    [Fact]
+    public async Task Lock_and_unlock_are_audited()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent);
+        var service = AsManager();
+
+        (await service.LockAsync(agent.Id, Ct)).IsSuccess.ShouldBeTrue();
+        (await service.UnlockAsync(agent.Id, Ct)).IsSuccess.ShouldBeTrue();
+
+        _directory.LockChanges.ShouldBe([(agent.Id, true), (agent.Id, false)]);
+        _audit.Events.Select(e => e.Action).ShouldBe([AuditActions.UserLocked, AuditActions.UserUnlocked]);
+        _audit.Events.ShouldAllBe(e => e.EntityId == agent.Id.ToString() && e.Details == "agent@demo.local");
+    }
+
+    [Fact]
+    public async Task Locking_an_already_locked_user_changes_nothing()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent, locked: true);
+
+        (await AsManager().LockAsync(agent.Id, Ct)).IsSuccess.ShouldBeTrue();
+
+        _directory.LockChanges.ShouldBeEmpty();
+        _audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_manager_cannot_lock_their_own_account()
+    {
+        (await AsManager().LockAsync(_managerId, Ct)).Error.ShouldBe(IdentityErrors.CannotLockSelf);
+        _directory.LockChanges.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_last_active_manager_cannot_be_locked()
+    {
+        var otherManager = _directory.Add("gerant2@demo.local", Roles.Manager);
+        var service = AsManager();
+        _directory.Users[0] = _directory.Users[0] with { IsLockedOut = true };
+
+        (await service.LockAsync(otherManager.Id, Ct)).Error.ShouldBe(IdentityErrors.LastManager);
+
+        _directory.Users[0] = _directory.Users[0] with { IsLockedOut = false };
+        (await service.LockAsync(otherManager.Id, Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Unknown_users_are_reported()
+    {
+        (await AsManager().LockAsync(Guid.CreateVersion7(), Ct)).Error.ShouldBe(IdentityErrors.UserNotFound);
+    }
+
+    [Fact]
+    public async Task Identity_queries_return_display_names()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent);
+        var queries = new IdentityQueries(_directory);
+
+        (await queries.GetDisplayNamesAsync([agent.Id, Guid.CreateVersion7()], Ct)).ShouldBe(new Dictionary<Guid, string> { [agent.Id] = "agent@demo.local" });
+        (await queries.GetDisplayNamesAsync([], Ct)).ShouldBeEmpty();
+    }
+}
