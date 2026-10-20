@@ -10,7 +10,7 @@
     <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Consents.Title"]</MudText>
     @if (CanManage)
     {
-        <MudSelect T="ConsentChannelInfo" @bind-Value="_channel" Label="@L["Consents.Channel"]" Class="mb-2" Dense="true">
+        <MudSelect T="ConsentChannelInfo" @bind-Value="_channel" Label="@L["Consents.Channel"]" Class="mb-2" Dense="true" aria-label="@L["Consents.Channel"]">
             @foreach (var channel in Enum.GetValues<ConsentChannelInfo>())
             {
                 <MudSelectItem T="ConsentChannelInfo" Value="channel">@CustomerLabels.Channel(L, channel)</MudSelectItem>

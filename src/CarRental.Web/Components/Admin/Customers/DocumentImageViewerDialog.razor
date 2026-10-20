@@ -9,7 +9,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">@L["Viewer.Notice"]</MudAlert>
+        <Notice Class="mb-3">@L["Viewer.Notice"]</Notice>
         <MudSelect T="string" @bind-Value="_purpose" Label="@L["Viewer.Purpose"]" Disabled="_shown">
             @foreach (var purpose in DocumentAccessPurposes.All)
             {
@@ -26,15 +26,15 @@
 
         @if (_link is not null)
         {
-            <MudAlert Severity="Severity.Success" Class="mt-4">
+            <Notice Kind="NoticeKind.Success" Class="mt-4">
                 <MudLink Href="@_link.Uri.ToString()" Target="_blank" rel="noopener noreferrer">@L["Viewer.OpenLink"]</MudLink>
                 <MudText Typo="Typo.caption" Class="d-block">@L["Viewer.LinkExpires", CustomerLabels.Instant(_link.ExpiresAtUtc)]</MudText>
-            </MudAlert>
+            </Notice>
         }
 
         @if (_error is not null)
         {
-            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+            <Notice Kind="NoticeKind.Error" Class="mt-3" Role="alert">@_error</Notice>
         }
     </DialogContent>
     <DialogActions>

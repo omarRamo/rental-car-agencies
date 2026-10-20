@@ -76,7 +76,7 @@
         </MudGrid>
         @if (_error is not null)
         {
-            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+            <Notice Kind="NoticeKind.Error" Class="mt-3" Role="alert">@_error</Notice>
         }
     </DialogContent>
     <DialogActions>

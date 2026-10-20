@@ -29,7 +29,7 @@
             </AuthorizeView>
         </MudStack>
 
-        <MudTable @ref="_persons" T="PersonListItem" ServerData="LoadPersonsAsync" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+        <MudTable @ref="_persons" T="PersonListItem" ServerData="LoadPersonsAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
                   TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Customers.Tab.Persons"].Value })">
             <HeaderContent>
                 <MudTh>@L["Customers.Column.Name"]</MudTh>
@@ -50,7 +50,7 @@
                 <MudTd DataLabel="@L["Customers.Column.Status"]">
                     @if (context.IsBlacklisted)
                     {
-                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.Block">@L["Blacklist.Badge"]</MudChip>
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Block" IconColor="Color.Error">@L["Blacklist.Badge"]</MudChip>
                     }
                 </MudTd>
             </RowTemplate>
@@ -58,7 +58,7 @@
                 <MudText>@L["Customers.Empty"]</MudText>
             </NoRecordsContent>
             <PagerContent>
-                <MudTablePager PageSizeOptions="PageSizes" RowsPerPageString="@L["Pager.RowsPerPage"]" InfoFormat="@L["Pager.Info"]" />
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
             </PagerContent>
         </MudTable>
     </MudTabPanel>
@@ -75,7 +75,7 @@
             </AuthorizeView>
         </MudStack>
 
-        <MudTable @ref="_companies" T="CompanyListItem" ServerData="LoadCompaniesAsync" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+        <MudTable @ref="_companies" T="CompanyListItem" ServerData="LoadCompaniesAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
                   TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Customers.Tab.Companies"].Value })">
             <HeaderContent>
                 <MudTh>@L["Companies.Column.LegalName"]</MudTh>
@@ -102,14 +102,13 @@
                 <MudText>@L["Companies.Empty"]</MudText>
             </NoRecordsContent>
             <PagerContent>
-                <MudTablePager PageSizeOptions="PageSizes" RowsPerPageString="@L["Pager.RowsPerPage"]" InfoFormat="@L["Pager.Info"]" />
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
             </PagerContent>
         </MudTable>
     </MudTabPanel>
 </MudTabs>
 
 @code {
-    private static readonly int[] PageSizes = [25, 50, 100];
     private MudTable<PersonListItem>? _persons;
     private MudTable<CompanyListItem>? _companies;
     private string? _personSearch;

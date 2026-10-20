@@ -5,14 +5,14 @@
     <DialogContent>
         @if (!string.IsNullOrEmpty(Message))
         {
-            <MudAlert Severity="@(Danger ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined" Class="mb-3">@Message</MudAlert>
+            <Notice Kind="@(Danger ? NoticeKind.Warning : NoticeKind.Info)" Class="mb-3">@Message</Notice>
         }
         <MudTextField T="string" @bind-Value="_reason" Label="@Label" Lines="3" MaxLength="MaxLength" Counter="MaxLength"
                       Required="true" RequiredError="@Shared["Validation.Required"]" HelperText="@HelperText" Immediate="true" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
-        <MudButton Variant="Variant.Filled" Color="@(Danger ? Color.Error : Color.Primary)" OnClick="Submit"
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit"
                    Disabled="@(string.IsNullOrWhiteSpace(_reason))">@SubmitText</MudButton>
     </DialogActions>
 </MudDialog>

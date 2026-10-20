@@ -55,16 +55,28 @@ public static class CustomerLabels
         return $"{CountryName(code)} ({code})";
     }
 
+    /// <summary>
+    /// The country name in the current UI language: ICU names a region in the language of the culture it is built
+    /// from ("fr-TN" gives "Tunisie"), whereas a bare region code gives its native name. English, then the code, as
+    /// fallbacks.
+    /// </summary>
     public static string CountryName(string code)
     {
         ArgumentException.ThrowIfNullOrEmpty(code);
         try
         {
-            return new RegionInfo(code).DisplayName;
+            return new RegionInfo($"{CultureInfo.CurrentUICulture.TwoLetterISOLanguageName}-{code}").DisplayName;
         }
         catch (ArgumentException)
         {
-            return code;
+            try
+            {
+                return new RegionInfo(code).EnglishName;
+            }
+            catch (ArgumentException)
+            {
+                return code;
+            }
         }
     }
 

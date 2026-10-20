@@ -1,0 +1,47 @@
+@* A message block whose text keeps the primary text colour (WCAG contrast); the kind is shown by a decorative icon and
+   a coloured edge. Used instead of MudAlert, whose default palette text colours are below 4.5:1. *@
+
+<MudPaper Outlined="true" Class="@($"pa-3 d-flex align-start gap-2 {Class}")" role="@Role"
+          Style="@($"border-inline-start: 4px solid var(--mud-palette-{Palette});")">
+    <MudIcon Icon="@IconName" Color="@IconColor" Size="Size.Small" Class="mt-1 flex-shrink-0" aria-hidden="true" />
+    <div class="flex-grow-1">@ChildContent</div>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public NoticeKind Kind { get; set; } = NoticeKind.Info;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>ARIA role, e.g. <c>alert</c> for an error to announce; none by default.</summary>
+    [Parameter]
+    public string? Role { get; set; }
+
+    private string IconName => Kind switch
+    {
+        NoticeKind.Success => Icons.Material.Filled.CheckCircle,
+        NoticeKind.Warning => Icons.Material.Filled.WarningAmber,
+        NoticeKind.Error => Icons.Material.Filled.ErrorOutline,
+        _ => Icons.Material.Outlined.Info,
+    };
+
+    private Color IconColor => Kind switch
+    {
+        NoticeKind.Success => Color.Success,
+        NoticeKind.Warning => Color.Warning,
+        NoticeKind.Error => Color.Error,
+        _ => Color.Info,
+    };
+
+    private string Palette => Kind switch
+    {
+        NoticeKind.Success => "success",
+        NoticeKind.Warning => "warning",
+        NoticeKind.Error => "error",
+        _ => "info",
+    };
+}

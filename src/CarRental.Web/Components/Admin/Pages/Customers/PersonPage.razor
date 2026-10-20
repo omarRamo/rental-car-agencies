@@ -32,7 +32,7 @@
 else if (_file is null)
 {
     <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Person.NotFound.Title"]</MudText>
-    <MudAlert Severity="Severity.Warning">@_error</MudAlert>
+    <Notice Kind="NoticeKind.Warning">@_error</Notice>
 }
 else
 {
@@ -43,7 +43,7 @@ else
             <MudStack Row="true" Spacing="1" Class="mt-1" Wrap="Wrap.Wrap">
                 @if (file.IsBlacklisted)
                 {
-                    <MudChip T="string" Color="Color.Error" Icon="@Icons.Material.Filled.Block" Size="Size.Small">@L["Blacklist.Badge"]</MudChip>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Block" IconColor="Color.Error" Size="Size.Small">@L["Blacklist.Badge"]</MudChip>
                 }
                 @if (file.IsAnonymized)
                 {
@@ -63,7 +63,7 @@ else
                 </MudButton>
                 @if (!file.IsAnonymized)
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.PersonOff" OnClick="AnonymizeAsync">@L["Privacy.Anonymize"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonOff" IconColor="Color.Error" OnClick="AnonymizeAsync">@L["Privacy.Anonymize"]</MudButton>
                 }
             }
         </MudStack>
@@ -71,7 +71,7 @@ else
 
     @if (file.IsAnonymized)
     {
-        <MudAlert Severity="Severity.Info" Class="mb-4">@L["Person.Anonymized.Message", CustomerLabels.Instant(file.AnonymizedAtUtc)]</MudAlert>
+        <Notice Class="mb-4">@L["Person.Anonymized.Message", CustomerLabels.Instant(file.AnonymizedAtUtc)]</Notice>
     }
 
     <MudGrid Spacing="3">
@@ -139,7 +139,7 @@ else
             </MudStack>
             @if (!file.CurrentDocuments.Any())
             {
-                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">@L["Documents.Empty"]</MudAlert>
+                <Notice>@L["Documents.Empty"]</Notice>
             }
             <MudGrid Spacing="2">
                 @foreach (var document in file.CurrentDocuments)
@@ -154,11 +154,11 @@ else
                                 <CardHeaderActions>
                                     @if (document.IsVerified)
                                     {
-                                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Verified">@L["Document.Verified"]</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Verified" IconColor="Color.Success">@L["Document.Verified"]</MudChip>
                                     }
                                     else
                                     {
-                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.HelpOutline">@L["Document.NotVerified"]</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.HelpOutline" IconColor="Color.Warning">@L["Document.NotVerified"]</MudChip>
                                     }
                                 </CardHeaderActions>
                             </MudCardHeader>
@@ -168,7 +168,7 @@ else
                                     @(document.ExpiresOn is null ? L["Document.NoExpiry"] : L["Document.ExpiresOn", CustomerLabels.Date(document.ExpiresOn)])
                                     @if (!document.IsValidUntil(TunisTime.Today(Clock)))
                                     {
-                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ms-2">@L["Document.Expired"]</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.EventBusy" IconColor="Color.Error" Class="ms-2">@L["Document.Expired"]</MudChip>
                                     }
                                 </MudText>
                                 @if (document.Type == IdentityDocumentTypeInfo.DrivingLicense)
@@ -205,14 +205,14 @@ else
                                 <MudCardActions Class="d-flex flex-wrap gap-2">
                                     @if (!document.IsVerified)
                                     {
-                                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Verified"
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Verified"
                                                    OnClick="@(() => VerifyAsync(document))">@L["Document.Verify"]</MudButton>
                                     }
                                     @if (file.Permissions.CanViewDocumentImages)
                                     {
                                         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => CorrectDocumentAsync(document))">@L["Document.Correct"]</MudButton>
                                     }
-                                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="@(() => RemoveDocumentAsync(document))">@L["Document.Remove"]</MudButton>
+                                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => RemoveDocumentAsync(document))">@L["Document.Remove"]</MudButton>
                                 </MudCardActions>
                             }
                         </MudCard>
@@ -256,7 +256,7 @@ else
                     <MudText Typo="Typo.caption" Class="d-block mb-2">@L["Blacklist.Internal"]</MudText>
                     @if (file.Blacklist.FirstOrDefault(entry => entry.IsActive) is { } active)
                     {
-                        <MudAlert Severity="Severity.Error" Class="mb-2">@L["Blacklist.Active", active.Reason, active.AddedBy ?? "—", CustomerLabels.Instant(active.AddedAtUtc)]</MudAlert>
+                        <Notice Kind="NoticeKind.Error" Class="mb-2">@L["Blacklist.Active", active.Reason, active.AddedBy ?? "—", CustomerLabels.Instant(active.AddedAtUtc)]</Notice>
                         @if (file.Permissions.CanManage)
                         {
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="LiftBlacklistAsync">@L["Blacklist.Lift"]</MudButton>
@@ -267,7 +267,7 @@ else
                         <MudText Typo="Typo.body2" Class="mb-2">@L["Blacklist.None"]</MudText>
                         @if (file.Permissions.CanManage)
                         {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Block" OnClick="BlacklistAsync">@L["Blacklist.Add"]</MudButton>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Block" IconColor="Color.Error" OnClick="BlacklistAsync">@L["Blacklist.Add"]</MudButton>
                         }
                     }
                     @foreach (var entry in file.Blacklist.Where(entry => !entry.IsActive))
