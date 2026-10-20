@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace CarRental.Architecture.Tests;
 
 /// <summary>
@@ -49,4 +51,24 @@ public sealed class LocalizationConventionTests
 
         missing.ShouldBeEmpty("Add these keys to Resources/SharedResources.resx (French) and SharedResources.en.resx (English)");
     }
+
+    [Fact]
+    public void Every_built_in_text_of_mudblazor_has_a_french_translation()
+    {
+        var languageResource = typeof(MudBlazor.MudLocalizer).Assembly.GetType("MudBlazor.Resources.LanguageResource");
+        languageResource.ShouldNotBeNull("MudBlazor no longer exposes MudBlazor.Resources.LanguageResource: review MudBlazorLocalizer.");
+        var keys = languageResource
+            .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .Select(f => (string)f.GetValue(null)!)
+            .ToList();
+        var french = ResourceCatalog.Entries(MudBlazorResources, ResourceCatalog.French);
+
+        keys.Count.ShouldBeGreaterThan(100);
+        keys.Where(k => !french.ContainsKey(k)).ShouldBeEmpty(
+            "MudBlazor texts without translation: add them to Resources/Admin/MudBlazor/MudBlazorResources.resx (French) and .en.resx (MudBlazor's English)");
+        french.Keys.Except(keys, StringComparer.Ordinal).ShouldBeEmpty("Keys that MudBlazor no longer uses");
+    }
+
+    private const string MudBlazorResources = "CarRental.Web.Resources.Admin.MudBlazor.MudBlazorResources";
 }

@@ -33,6 +33,9 @@ internal static class WebServiceCollectionExtensions
             options.SnackbarConfiguration.VisibleStateDuration = 5000;
         });
 
+        // MudBlazor's own texts (pager, pickers, dialogs…) in the user interface language.
+        services.AddTransient<MudLocalizer, MudBlazorLocalizer>();
+
         AddLocalization(services);
         AddAuthentication(services, environment);
         AddAuthorization(services);
