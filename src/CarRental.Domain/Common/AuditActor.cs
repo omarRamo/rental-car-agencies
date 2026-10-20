@@ -1,4 +1,4 @@
-namespace CarRental.Domain.Identity;
+namespace CarRental.Domain.Common;
 
 /// <summary>Who performed an action, from where, within which correlated request or job.</summary>
 /// <param name="UserId">Authenticated user, or <see langword="null"/> for anonymous visitors and system jobs.</param>

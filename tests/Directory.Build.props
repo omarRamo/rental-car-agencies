@@ -3,22 +3,22 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <!--
-    Test projects: xUnit.net v3 on Microsoft.Testing.Platform v2 (see global.json "test.runner").
-    Each test project is a self-contained executable; `dotnet test` at the repository root runs them all.
+    Test projects: xUnit.net v3 run through VSTest (xunit.v3.mtp-off + xunit.runner.visualstudio).
+    `dotnet test` at the repository root runs every test project; CI passes VSTest options
+    (`- -logger trx`, `- -collect "XPlat Code Coverage"` with coverlet.collector, `- -blame-hang-timeout`).
   -->
   <PropertyGroup>
+    <!-- xUnit.net v3 test projects are executables. -->
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
-    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-    <!-- Test assemblies are not documented APIs. -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" />
     <PackageReference Include="Shouldly" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 
 namespace CarRental.Domain.Tests.Identity;

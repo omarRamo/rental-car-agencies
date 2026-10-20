@@ -1,3 +1,5 @@
+using CarRental.Domain.Common;
+
 namespace CarRental.Domain.Identity;
 
 /// <summary>
