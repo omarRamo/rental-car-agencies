@@ -193,7 +193,7 @@ public sealed class BookingAdministrationQueries
             booking.StatusReason,
             booking.Channel,
             booking.ChannelReference,
-            booking.Attribution is { } attribution
+            booking.Attribution is { IsEmpty: false } attribution
                 ? new AttributionView(attribution.Source, attribution.UtmSource, attribution.UtmMedium, attribution.UtmCampaign, attribution.UtmTerm, attribution.UtmContent)
                 : null,
             category,

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using CarRental.Domain.Common;
 
@@ -35,6 +36,8 @@ public sealed record BookingActor
 }
 
 /// <summary>Where a request came from (SPEC §5 "src et les paramètres UTM attribuent la vente à son canal").</summary>
+// [ComplexType] (BCL annotation): a value stored in the columns of the file, never a table of its own.
+[ComplexType]
 public sealed record BookingAttribution
 {
     public const int FieldMaxLength = 100;
@@ -50,20 +53,25 @@ public sealed record BookingAttribution
     }
 
     /// <summary>The <c>src</c> parameter of a deep link (e.g. <c>whatsapp</c>), or the referrer chosen by an agent.</summary>
-    public string? Source { get; }
+    public string? Source { get; private init; }
 
-    public string? UtmSource { get; }
+    public string? UtmSource { get; private init; }
 
-    public string? UtmMedium { get; }
+    public string? UtmMedium { get; private init; }
 
-    public string? UtmCampaign { get; }
+    public string? UtmCampaign { get; private init; }
 
-    public string? UtmTerm { get; }
+    public string? UtmTerm { get; private init; }
 
-    public string? UtmContent { get; }
+    public string? UtmContent { get; private init; }
 
-    /// <summary>Trims the fields; <see langword="null"/> when every field is empty.</summary>
-    public static Result<BookingAttribution?> Create(
+    /// <summary>No attribution (an agent's booking without a declared source).</summary>
+    public static BookingAttribution None { get; } = new(null, null, null, null, null, null);
+
+    public bool IsEmpty => Source is null && UtmSource is null && UtmMedium is null && UtmCampaign is null && UtmTerm is null && UtmContent is null;
+
+    /// <summary>Trims the fields; <see cref="None"/> when every field is empty.</summary>
+    public static Result<BookingAttribution> Create(
         string? source,
         string? utmSource = null,
         string? utmMedium = null,
@@ -78,7 +86,7 @@ public sealed record BookingAttribution
         }
 
         return fields.All(field => field is null)
-            ? Result.Success<BookingAttribution?>(null)
+            ? None
             : new BookingAttribution(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
     }
 
@@ -89,6 +97,7 @@ public sealed record BookingAttribution
 /// The traced decision of a manager to let a vehicle whose mandatory documents expire before the return carry this
 /// rental file (PROMPT §6 invariant 3). It applies to <see cref="VehicleId"/> only and never waives an overlap.
 /// </summary>
+[ComplexType]
 public sealed record ComplianceWaiver
 {
     public ComplianceWaiver(Guid vehicleId, Guid? byUserId, string byName, DateTimeOffset atUtc, string reason)
@@ -100,18 +109,20 @@ public sealed record ComplianceWaiver
         Reason = reason;
     }
 
-    public Guid VehicleId { get; }
+    public Guid VehicleId { get; private init; }
 
-    public Guid? ByUserId { get; }
+    public Guid? ByUserId { get; private init; }
 
-    public string ByName { get; }
+    public string ByName { get; private init; }
 
-    public DateTimeOffset AtUtc { get; }
+    public DateTimeOffset AtUtc { get; private init; }
 
-    public string Reason { get; }
+    public string Reason { get; private init; }
 }
 
 /// <summary>A selectable extra chosen for the rental (code of the rate plan catalogue) and its quantity.</summary>
+// [NotMapped] (BCL annotation): a value of the domain, stored by the file in its own text form, never an entity.
+[NotMapped]
 public sealed record ExtraChoice
 {
     public const int CodeMaxLength = 32;
@@ -189,6 +200,7 @@ public sealed record ExtraChoice
 }
 
 /// <summary>The persons and payer of a rental file: drivers are persons, the payer a customer (Customers module ids).</summary>
+[NotMapped]
 public sealed record BookingParties(Guid? MainDriverId, Guid? SecondaryDriverId, Guid? PayerCustomerId)
 {
     public static BookingParties None { get; } = new(null, null, null);

@@ -41,7 +41,7 @@ public sealed class Booking : AggregateRoot
         Number = number;
         Channel = details.Channel;
         ChannelReference = Clean(details.ChannelReference);
-        Attribution = details.Attribution;
+        Attribution = details.Attribution ?? BookingAttribution.None;
         Status = status;
         CategoryId = details.CategoryId;
         GuaranteedVehicleId = details.GuaranteedVehicleId;
@@ -69,7 +69,7 @@ public sealed class Booking : AggregateRoot
     /// <summary>Reference of the booking in its channel (e.g. Booking.com), unique per channel.</summary>
     public string? ChannelReference { get; private set; }
 
-    public BookingAttribution? Attribution { get; private set; }
+    public BookingAttribution Attribution { get; private set; } = BookingAttribution.None;
 
     public BookingStatus Status { get; private set; }
 

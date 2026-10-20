@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using CarRental.Domain.Common;
 
 namespace CarRental.Domain.Bookings;
@@ -24,6 +25,7 @@ public sealed record BookingDetails(
 /// The new state of the amendable fields of a rental file (start from <see cref="Booking.CurrentChanges"/> and change
 /// what is amended). <see cref="ReleaseVehicle"/> unassigns the vehicle in the same command (dates it cannot carry).
 /// </summary>
+[NotMapped]
 public sealed record BookingChanges(
     Guid CategoryId,
     Guid PickupLocationId,

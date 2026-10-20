@@ -351,8 +351,9 @@ public sealed class BookingTests
     [Fact]
     public void Attribution_fields_are_trimmed_and_bounded()
     {
-        BookingAttribution.Create(" whatsapp ", "facebook", null, "ete2027").Value!.Source.ShouldBe("whatsapp");
-        BookingAttribution.Create(null, " ", "").Value.ShouldBeNull();
+        BookingAttribution.Create(" whatsapp ", "facebook", null, "ete2027").Value.Source.ShouldBe("whatsapp");
+        BookingAttribution.Create(null, " ", "").Value.ShouldBeSameAs(BookingAttribution.None);
+        BookingAttribution.None.IsEmpty.ShouldBeTrue();
         BookingAttribution.Create(new string('s', 101)).Error.ShouldBe(BookingErrors.AttributionInvalid);
     }
 }

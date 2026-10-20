@@ -57,7 +57,7 @@ public sealed class BookingRequestServiceTests
         submitted.Value.HoldExpiresAt.ShouldBe(BookingsHarness.Start.AddHours(24));
         var booking = harness.Db.Rows<Booking>().ShouldHaveSingleItem();
         booking.Channel.ShouldBe(SalesChannel.Web);
-        booking.Attribution!.UtmCampaign.ShouldBe("ete2027");
+        booking.Attribution.UtmCampaign.ShouldBe("ete2027");
         booking.PayerCustomerId.ShouldBe(harness.Customers.IndividualCustomers[harness.MainDriverId]);
         booking.SecondaryDriverId.ShouldBe(harness.SecondDriverId);
         booking.Extras.ShouldHaveSingleItem().Code.ShouldBe("CHILD_SEAT");

@@ -219,7 +219,7 @@ internal sealed class BookingRequestService(
 
         var attribution = draft.Attribution is { } source
             ? BookingAttribution.Create(source.Source, source.UtmSource, source.UtmMedium, source.UtmCampaign, source.UtmTerm, source.UtmContent)
-            : Result.Success<BookingAttribution?>(null);
+            : Result.Success(BookingAttribution.None);
         if (attribution.IsFailure)
         {
             return attribution.Error;
@@ -379,5 +379,5 @@ internal sealed class BookingRequestService(
         Guid? SourceQuoteId,
         IReadOnlyList<ExtraChoice> Extras,
         Guid? GuaranteedVehicleId,
-        BookingAttribution? Attribution);
+        BookingAttribution Attribution);
 }
