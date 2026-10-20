@@ -24,8 +24,9 @@ public interface IOccupancyReader
     /// Using <paramref name="basis"/> keeps the bookings and the request measured with the same instant and buffer.</item>
     /// <item>Read fresh data through the scoped <c>IAppDbContext</c> (inside the caller's transaction when there is
     /// one), never from a cache: the authoritative write check relies on it.</item>
-    /// <item>Filter in SQL on a superset (pick-up before the range end, and planned or actual return after
-    /// <c>range.Start − buffer</c>, or still <c>InProgress</c>), then compute and filter the exact intervals in memory.</item>
+    /// <item>Filter in SQL on a superset — actual or planned pick-up before the range end (an early hand-over starts
+    /// before the planned pick-up), and planned or actual return after <c>range.Start − buffer</c> or still
+    /// <c>InProgress</c> (an overdue rental runs until now) — then compute and filter the exact intervals in memory.</item>
     /// </list>
     /// </remarks>
     Task<IReadOnlyList<OccupancyInterval>> GetOccupancyAsync(

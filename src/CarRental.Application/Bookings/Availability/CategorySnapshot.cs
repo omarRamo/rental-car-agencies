@@ -1,4 +1,3 @@
-using CarRental.Application.Fleet.Contracts;
 using CarRental.Domain.Bookings.Availability;
 using CarRental.Domain.Common;
 
@@ -33,8 +32,6 @@ internal sealed class CategorySnapshot
     }
 
     public CategoryContext Context { get; }
-
-    public VehicleCategoryInfo Category => Context.Category;
 
     public OccupancyBasis Basis => Context.Basis;
 
