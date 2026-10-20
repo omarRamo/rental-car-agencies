@@ -1,0 +1,221 @@
+@* Seasons (per level, never overlapping) and priority events of a plan, with the year calendar. *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["Seasons.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Seasons.Hint"]</MudText>
+@foreach (var (row, index) in _seasons.Select((row, index) => (row, index + 1)))
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-2">
+        <fieldset class="editor-row">
+        <legend class="editor-row-title">@L["Seasons.Row", index]</legend>
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="SeasonLevel" @bind-Value="row.Level" Label="@L["Seasons.Level"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var level in Enum.GetValues<SeasonLevel>())
+                    {
+                        <MudSelectItem T="SeasonLevel" Value="@level">@L[$"Level.{level}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="3">
+                <MudTextField T="string" @bind-Value="row.Start" Label="@L["Seasons.Start"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3" md="3">
+                <MudTextField T="string" @bind-Value="row.End" Label="@L["Seasons.End"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="8" sm="6" md="2">
+                <MudNumericField T="int" @bind-Value="row.MinimumDays" Label="@L["Seasons.MinimumDays"]" Min="0" Max="365"
+                                 Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" sm="6" md="1" Class="d-flex justify-end">
+                @if (CanEdit)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Class="pricing-danger" aria-label="@L["Seasons.Remove", index]"
+                                   OnClick="() => _seasons.Remove(row)" />
+                }
+            </MudItem>
+        </MudGrid>
+        </fieldset>
+    </MudPaper>
+}
+@if (_seasons.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Seasons.Empty"]</MudText>
+}
+<SectionActions CanEdit="CanEdit" Error="@_seasonsError" Busy="_busy" AddText="@L["Seasons.Add"]" SaveText="@L["Seasons.Save"]"
+                OnAdd="AddSeason" OnSave="SaveSeasonsAsync" />
+
+<MudDivider Class="my-6" />
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["Events.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Events.Hint"]</MudText>
+@foreach (var (row, index) in _events.Select((row, index) => (row, index + 1)))
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-2">
+        <fieldset class="editor-row">
+        <legend class="editor-row-title">@L["Events.Row", index]@NameSuffix(row.Name)</legend>
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" md="3">
+                <MudTextField T="string" @bind-Value="row.Name" Label="@L["Events.Name"]" MaxLength="PriorityEvent.NameMaxLength"
+                              Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudTextField T="string" @bind-Value="row.Start" Label="@L["Events.Start"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudTextField T="string" @bind-Value="row.End" Label="@L["Events.End"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudNumericField T="int" @bind-Value="row.Priority" Label="@L["Events.Priority"]" Min="1" Max="PriorityEvent.MaximumPriority"
+                                 Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" sm="2" md="2">
+                <MudNumericField T="int" @bind-Value="row.MinimumDays" Label="@L["Events.MinimumDays"]" Min="0" Max="365"
+                                 Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="2" sm="1" md="1" Class="d-flex justify-end">
+                @if (CanEdit)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Class="pricing-danger" aria-label="@L["Events.Remove", index]"
+                                   OnClick="() => _events.Remove(row)" />
+                }
+            </MudItem>
+        </MudGrid>
+        </fieldset>
+    </MudPaper>
+}
+@if (_events.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Events.Empty"]</MudText>
+}
+<SectionActions CanEdit="CanEdit" Error="@_eventsError" Busy="_busy" AddText="@L["Events.Add"]" SaveText="@L["Events.Save"]"
+                OnAdd="AddEvent" OnSave="SaveEventsAsync" />
+
+<MudDivider Class="my-6" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Calendar.Title"]</MudText>
+    <MudSelect T="int" @bind-Value="_year" Label="@L["Calendar.Year"]" Variant="Variant.Outlined" Dense="true" Style="max-inline-size: 10rem">
+        @foreach (var year in Years())
+        {
+            <MudSelectItem T="int" Value="@year">@year</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>
+<SeasonCalendar Year="_year" Seasons="Detail.Seasons" Events="Detail.Events" />
+
+@code {
+    private readonly List<SeasonRow> _seasons = [];
+    private readonly List<EventRow> _events = [];
+    private RatePlanDetail? _source;
+    private string? _seasonsError;
+    private string? _eventsError;
+    private bool _busy;
+    private int _year;
+
+    [Parameter, EditorRequired]
+    public RatePlanDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<RatePlanDetail> OnSaved { get; set; }
+
+    [Parameter]
+    public int InitialYear { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Detail, _source))
+        {
+            return;
+        }
+
+        _source = Detail;
+        _seasons.Clear();
+        _seasons.AddRange(Detail.Seasons.Select(SeasonRow.From));
+        _events.Clear();
+        _events.AddRange(Detail.Events.Select(EventRow.From));
+        if (_year == 0)
+        {
+            _year = InitialYear;
+        }
+    }
+
+    private IEnumerable<int> Years()
+    {
+        var years = Detail.Seasons.SelectMany(s => new[] { s.StartDate.Year, s.EndDate.Year })
+            .Concat(Detail.Events.SelectMany(e => new[] { e.StartDate.Year, e.EndDate.Year }))
+            .Append(InitialYear)
+            .Append(_year)
+            .ToList();
+        return Enumerable.Range(years.Min(), years.Max() - years.Min() + 1);
+    }
+
+    private void AddSeason()
+    {
+        var after = _seasons.Select(s => EditorValues.ParseDate(s.End)).OfType<DateOnly>().DefaultIfEmpty().Max();
+        var start = after == default ? new DateOnly(InitialYear, 1, 1) : after.AddDays(1);
+        _seasons.Add(new SeasonRow { Start = EditorValues.Text(start), End = EditorValues.Text(start.AddMonths(1).AddDays(-1)) });
+    }
+
+    private void AddEvent() => _events.Add(new EventRow());
+
+    private async Task SaveSeasonsAsync()
+    {
+        _seasonsError = null;
+        var definitions = _seasons.Select(s => s.ToDefinition()).ToList();
+        if (definitions.Exists(d => d is null))
+        {
+            _seasonsError = L["Editor.DatesRequired"];
+            return;
+        }
+
+        var (planId, revision) = (Detail.Plan.Id, Detail.Plan.Revision);
+        _seasonsError = await SaveAsync((s, ct) => s.UpdateSeasonsAsync(planId, revision, [.. definitions.OfType<SeasonDefinition>()], ct));
+    }
+
+    private async Task SaveEventsAsync()
+    {
+        _eventsError = null;
+        var definitions = _events.Select(e => e.ToDefinition()).ToList();
+        if (definitions.Exists(d => d is null))
+        {
+            _eventsError = L["Editor.DatesRequired"];
+            return;
+        }
+
+        var (planId, revision) = (Detail.Plan.Id, Detail.Plan.Revision);
+        _eventsError = await SaveAsync((s, ct) => s.UpdateEventsAsync(planId, revision, [.. definitions.OfType<PriorityEventDefinition>()], ct));
+    }
+
+    /// <summary>Runs the change; returns the error text, or null after notifying the page of the new plan.</summary>
+    private async Task<string?> SaveAsync(Func<RatePlanAdministrationService, CancellationToken, Task<Result<RatePlanDetail>>> save)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync(save);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            return ErrorMessages.For(Shared, result.Error);
+        }
+
+        // Normal (dark) snackbars keep a 4.5:1 contrast; the default success colour does not.
+        Snackbar.Add(L["Editor.Saved"], Severity.Normal);
+        await OnSaved.InvokeAsync(result.Value);
+        return null;
+    }
+
+    private static string NameSuffix(string? name) => string.IsNullOrWhiteSpace(name) ? string.Empty : $" — {name.Trim()}";
+}

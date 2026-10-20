@@ -1,0 +1,42 @@
+@* Version history of an agency and channel: drafts, the published version and the archived ones. *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<PricingAdminResources> L
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["History.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["History.Hint"]</MudText>
+<MudTable T="RatePlanListItem" Items="Versions" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["History.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Plans.Column.Version"]</MudTh>
+        <MudTh>@L["Plans.Column.Name"]</MudTh>
+        <MudTh>@L["Plans.Column.Status"]</MudTh>
+        <MudTh>@L["Plans.Column.Published"]</MudTh>
+        <MudTh>@L["History.Archived"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Plans.Column.Version"]">@(context.Version is { } version ? L["Plans.Version", version] : "—")</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Name"]">
+            @if (context.Id == CurrentPlanId)
+            {
+                <strong>@context.Name</strong> <span class="visually-hidden">@L["History.Current"]</span>
+            }
+            else
+            {
+                <MudLink Href="@($"/admin/pricing/plans/{context.Id}")">@context.Name</MudLink>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Status"]"><PlanStatusChip Status="context.Status" /></MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Published"]">@(context.PublishedAtUtc is { } published ? PricingDisplay.Instant(published) : "—")</MudTd>
+        <MudTd DataLabel="@L["History.Archived"]">@(context.ArchivedAtUtc is { } archived ? PricingDisplay.Instant(archived) : "—")</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RatePlanListItem> Versions { get; set; } = [];
+
+    [Parameter]
+    public Guid CurrentPlanId { get; set; }
+}

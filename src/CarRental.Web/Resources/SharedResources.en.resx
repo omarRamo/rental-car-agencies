@@ -102,4 +102,130 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>This field is required.</value>
   </data>
+  <data name="Error.pricing.agency_not_found" xml:space="preserve">
+    <value>Agency not found.</value>
+  </data>
+  <data name="Error.pricing.amount_invalid" xml:space="preserve">
+    <value>An amount has more than three decimals (millimes).</value>
+  </data>
+  <data name="Error.pricing.base_price_missing" xml:space="preserve">
+    <value>Every priced category needs a base price.</value>
+  </data>
+  <data name="Error.pricing.category_not_found" xml:space="preserve">
+    <value>Vehicle category not found or inactive.</value>
+  </data>
+  <data name="Error.pricing.category_not_priced" xml:space="preserve">
+    <value>The rate plan has no price for this category on these dates.</value>
+  </data>
+  <data name="Error.pricing.channel_plan_missing" xml:space="preserve">
+    <value>This channel is priced with its own grid, which is not published.</value>
+  </data>
+  <data name="Error.pricing.channel_rule_invalid" xml:space="preserve">
+    <value>Invalid channel rule: one rule per channel, markup above 0 and up to 100%.</value>
+  </data>
+  <data name="Error.pricing.channel_rules_on_channel_plan" xml:space="preserve">
+    <value>Channel rules are set in the default plan.</value>
+  </data>
+  <data name="Error.pricing.draft_already_exists" xml:space="preserve">
+    <value>A draft already exists for this agency and channel.</value>
+  </data>
+  <data name="Error.pricing.drivers_invalid" xml:space="preserve">
+    <value>Invalid drivers: five at most, born before the pick-up date.</value>
+  </data>
+  <data name="Error.pricing.event_invalid" xml:space="preserve">
+    <value>Invalid event: name, dates in order, priority from 1 to 1000 and minimum duration from 0 to 365 days.</value>
+  </data>
+  <data name="Error.pricing.event_priority_conflict" xml:space="preserve">
+    <value>Two overlapping events have the same priority.</value>
+  </data>
+  <data name="Error.pricing.extra_code_duplicate" xml:space="preserve">
+    <value>Two extras have the same code.</value>
+  </data>
+  <data name="Error.pricing.extra_invalid" xml:space="preserve">
+    <value>Invalid extra: check the code, name, price, cap (per-day extras), location (deliveries) and charging mode.</value>
+  </data>
+  <data name="Error.pricing.extra_kind_duplicate" xml:space="preserve">
+    <value>Only one active extra per automatic kind (and one delivery per location).</value>
+  </data>
+  <data name="Error.pricing.extra_not_selectable" xml:space="preserve">
+    <value>This extra is added automatically: it cannot be chosen.</value>
+  </data>
+  <data name="Error.pricing.extra_quantity_invalid" xml:space="preserve">
+    <value>Invalid extra quantity (1 to 10, 1 for the franchise waiver).</value>
+  </data>
+  <data name="Error.pricing.extra_unknown" xml:space="preserve">
+    <value>Unknown or inactive extra.</value>
+  </data>
+  <data name="Error.pricing.forbidden" xml:space="preserve">
+    <value>You lack the required pricing permission.</value>
+  </data>
+  <data name="Error.pricing.guaranteed_model_not_offered" xml:space="preserve">
+    <value>This vehicle is not offered as a guaranteed model.</value>
+  </data>
+  <data name="Error.pricing.guaranteed_vehicle_category_mismatch" xml:space="preserve">
+    <value>The guaranteed vehicle does not belong to the requested category.</value>
+  </data>
+  <data name="Error.pricing.location_not_found" xml:space="preserve">
+    <value>Unknown pick-up or return location for this agency.</value>
+  </data>
+  <data name="Error.pricing.minimum_duration_not_met" xml:space="preserve">
+    <value>The minimum rental duration is not met for these dates.</value>
+  </data>
+  <data name="Error.pricing.no_published_plan" xml:space="preserve">
+    <value>No published rate plan for this agency.</value>
+  </data>
+  <data name="Error.pricing.period_invalid" xml:space="preserve">
+    <value>The return must be after the pick-up.</value>
+  </data>
+  <data name="Error.pricing.plan_already_archived" xml:space="preserve">
+    <value>This plan is already archived.</value>
+  </data>
+  <data name="Error.pricing.plan_invalid" xml:space="preserve">
+    <value>The plan has blocking issues: it cannot be published.</value>
+  </data>
+  <data name="Error.pricing.plan_modified_concurrently" xml:space="preserve">
+    <value>The plan was changed in the meantime: reload the page.</value>
+  </data>
+  <data name="Error.pricing.plan_name_invalid" xml:space="preserve">
+    <value>The plan name is required (120 characters max).</value>
+  </data>
+  <data name="Error.pricing.plan_not_editable" xml:space="preserve">
+    <value>Only a draft can be edited or published.</value>
+  </data>
+  <data name="Error.pricing.plan_not_found" xml:space="preserve">
+    <value>Rate plan not found.</value>
+  </data>
+  <data name="Error.pricing.price_duplicate" xml:space="preserve">
+    <value>A category has two prices for the same period.</value>
+  </data>
+  <data name="Error.pricing.price_invalid" xml:space="preserve">
+    <value>Invalid price: positive TND amount for an existing category and period.</value>
+  </data>
+  <data name="Error.pricing.promotion_code_duplicate" xml:space="preserve">
+    <value>Two promotions have the same code.</value>
+  </data>
+  <data name="Error.pricing.promotion_invalid" xml:space="preserve">
+    <value>Invalid promotion: check the name, code or number of days, discount and date order.</value>
+  </data>
+  <data name="Error.pricing.rental_too_long" xml:space="preserve">
+    <value>A rental cannot exceed 365 days.</value>
+  </data>
+  <data name="Error.pricing.season_invalid" xml:space="preserve">
+    <value>Invalid season: level, start before end and minimum duration from 0 to 365 days.</value>
+  </data>
+  <data name="Error.pricing.seasons_overlap" xml:space="preserve">
+    <value>Two seasons cover the same date.</value>
+  </data>
+  <data name="Error.pricing.simulation_channel_mismatch" xml:space="preserve">
+    <value>An own grid can only be simulated for its channel.</value>
+  </data>
+  <data name="Error.pricing.tier_invalid" xml:space="preserve">
+    <value>Invalid tiers: the first starts at day 1, starts increase and discounts range from 0 to 99.99%.</value>
+  </data>
+  <data name="Error.pricing.tier_override_invalid" xml:space="preserve">
+    <value>Invalid category discount: existing tier, once per category, from 0 to 99.99%.</value>
+  </data>
+  <data name="Error.pricing.vehicle_not_found" xml:space="preserve">
+    <value>Vehicle not found or sold.</value>
+  </data>
 </root>

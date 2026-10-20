@@ -1,0 +1,147 @@
+@* Full breakdown of a quote computed by the pricing engine: lines (label, quantity, unit price, HT, VAT, TTC),
+   totals, deposit (outside the total), promotions and the price of each day; or the error explaining why there is none. *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Application.Pricing.Contracts
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<QuoteResources> Q
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@Title</MudText>
+
+    @if (Outcome?.Error is { } error)
+    {
+        <PricingNotice Kind="NoticeKind.Warning" Class="mt-3">@ErrorText(error)</PricingNotice>
+    }
+    else if (Outcome?.Quote is { } quote)
+    {
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="mt-2">
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.CalendarMonth">@L["Quote.Days", quote.Days]</MudChip>
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Sell">@PlanText(quote)</MudChip>
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Hub">@ChannelPricingText(quote.Inputs)</MudChip>
+            @if (quote.PromoCodeOutcome != PromoCodeOutcome.None)
+            {
+                <MudChip T="string" Size="Size.Small" Color="@(quote.PromoCodeOutcome == PromoCodeOutcome.Applied ? Color.Primary : Color.Default)">
+                    @L[$"PromoCode.{quote.PromoCodeOutcome}"]
+                </MudChip>
+            }
+        </MudStack>
+
+        <div class="quote-scroll mt-3" tabindex="0" role="region" aria-label="@L["Quote.Caption", Title]">
+            <MudSimpleTable Dense="true" Hover="true" Class="quote-lines">
+                <caption class="visually-hidden">@L["Quote.Caption", Title]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Quote.Column.Label"]</th>
+                        <th scope="col" class="quote-number">@L["Quote.Column.Quantity"]</th>
+                        <th scope="col" class="quote-number">@L["Quote.Column.UnitPrice"]</th>
+                        <th scope="col" class="quote-number">@L["Quote.Column.ExclVat"]</th>
+                        <th scope="col" class="quote-number">@L["Quote.Column.Vat"]</th>
+                        <th scope="col" class="quote-number">@L["Quote.Column.InclVat"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in quote.Lines)
+                    {
+                        <tr>
+                            <th scope="row" class="quote-label">@PricingDisplay.QuoteLabel(Q, line.LabelKey, line.LabelArguments)</th>
+                            <td class="quote-number">@line.Quantity</td>
+                            <td class="quote-number">@PricingDisplay.Amount(line.UnitPrice)</td>
+                            <td class="quote-number">@PricingDisplay.Amount(line.ExclVat)</td>
+                            <td class="quote-number">@PricingDisplay.Amount(line.Vat)</td>
+                            <td class="quote-number">@PricingDisplay.Amount(line.InclVat)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="row" colspan="3" class="quote-label">@L["Quote.Total"]</th>
+                        <td class="quote-number">@PricingDisplay.Amount(quote.TotalExclVat)</td>
+                        <td class="quote-number">@PricingDisplay.Amount(quote.TotalVat)</td>
+                        <td class="quote-number quote-total" data-testid="quote-total">@PricingDisplay.Amount(quote.TotalInclVat)</td>
+                    </tr>
+                </tfoot>
+            </MudSimpleTable>
+        </div>
+
+        <dl class="quote-summary mt-3">
+            <dt>@L["Quote.TotalInclVat"]</dt>
+            <dd><strong>@PricingDisplay.Amount(quote.TotalInclVat)</strong></dd>
+            <dt>@L["Quote.TotalExclVat"]</dt>
+            <dd>@PricingDisplay.Amount(quote.TotalExclVat)</dd>
+            <dt>@L["Quote.TotalVat"]</dt>
+            <dd>@PricingDisplay.Amount(quote.TotalVat)</dd>
+            <dt>@L["Quote.Deposit"]</dt>
+            <dd>
+                @PricingDisplay.Amount(quote.Deposit)
+                <span class="quote-hint">@(quote.IncludesFranchiseWaiver ? L["Quote.Deposit.Reduced"] : L["Quote.Deposit.NotIncluded"])</span>
+            </dd>
+        </dl>
+
+        @if (quote.AppliedPromotions.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3" Class="mt-3">@L["Quote.Promotions"]</MudText>
+            <ul class="quote-promotions">
+                @foreach (var promotion in quote.AppliedPromotions)
+                {
+                    <li>@promotion.Name — @PricingDisplay.Amount(promotion.Amount)@(promotion.IsCombinable ? $" ({L["Quote.Promotion.Combinable"]})" : string.Empty)</li>
+                }
+            </ul>
+        }
+
+        <MudExpansionPanels Class="mt-3" Elevation="0" Outlined="true">
+            <MudExpansionPanel Text="@L["Quote.DailyRates", quote.DailyRates.Count]">
+                <div class="quote-scroll" tabindex="0" role="region" aria-label="@L["Quote.DailyRates", quote.DailyRates.Count]">
+                <MudSimpleTable Dense="true">
+                    <caption class="visually-hidden">@L["Quote.DailyRates", quote.DailyRates.Count]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Quote.Column.Date"]</th>
+                            <th scope="col">@L["Quote.Column.Period"]</th>
+                            <th scope="col" class="quote-number">@L["Quote.Column.GridPrice"]</th>
+                            <th scope="col" class="quote-number">@L["Quote.Column.DailyPrice"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rate in quote.DailyRates)
+                        {
+                            <tr>
+                                <th scope="row">@PricingDisplay.Date(rate.Date)</th>
+                                <td>@L[$"Period.{rate.Period}"]</td>
+                                <td class="quote-number">@PricingDisplay.Amount(rate.GridPrice)</td>
+                                <td class="quote-number">@PricingDisplay.Amount(rate.Price)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                </div>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+</MudPaper>
+
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    [Parameter]
+    public QuoteOutcome? Outcome { get; set; }
+
+    private string ErrorText(CarRental.Domain.Common.Error error) =>
+        PricingErrorCodes.TryGetRequiredMinimumDays(error, out var days)
+            ? L["Error.MinimumDuration", days]
+            : ErrorMessages.For(Shared, error);
+
+    private string PlanText(PriceQuote quote) =>
+        quote.RatePlanVersion is { } version ? L["Quote.PlanVersion", version] : L["Quote.PlanDraft"];
+
+    private string ChannelPricingText(PriceQuoteInputs inputs) => inputs.ChannelPricingMode switch
+    {
+        ChannelPricingModeInfo.Markup => L["ChannelPricing.MarkupValue", PricingDisplay.Percent(inputs.MarkupPercent)],
+        ChannelPricingModeInfo.OwnGrid => L["ChannelPricing.OwnGrid"],
+        _ => L["ChannelPricing.Parity"],
+    };
+}

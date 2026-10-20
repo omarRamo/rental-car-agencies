@@ -1,0 +1,39 @@
+@* Footer of an editor section: its error, the "add" and "save" buttons (only when the plan is editable). *@
+
+@if (Error is not null)
+{
+    <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mt-2">@Error</PricingNotice>
+}
+@if (CanEdit)
+{
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mt-3">
+        @if (AddText is not null)
+        {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">@AddText</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="OnSave" Disabled="Busy">@SaveText</MudButton>
+    </MudStack>
+}
+
+@code {
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public bool Busy { get; set; }
+
+    [Parameter]
+    public string? AddText { get; set; }
+
+    [Parameter, EditorRequired]
+    public string SaveText { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+}

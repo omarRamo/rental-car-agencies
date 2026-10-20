@@ -1,0 +1,86 @@
+@* Year view of a plan: each day coloured by its season level, priority events on top (as the engine prices it). *@
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<PricingAdminResources> L
+
+<div class="season-legend" aria-hidden="true">
+    <span class="season-swatch season-low"></span>@L["Level.Low"]
+    <span class="season-swatch season-mid"></span>@L["Level.Mid"]
+    <span class="season-swatch season-high"></span>@L["Level.High"]
+    <span class="season-swatch season-event"></span>@L["Calendar.Event"]
+    <span class="season-swatch season-base"></span>@L["Calendar.Base"]
+</div>
+
+<div class="season-months">
+    @for (var month = 1; month <= 12; month++)
+    {
+        var first = new DateOnly(Year, month, 1);
+        var offset = ((int)first.DayOfWeek - (int)FirstDay + 7) % 7;
+        var days = DateTime.DaysInMonth(Year, month);
+        <table class="season-month">
+            <caption>@first.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</caption>
+            <thead>
+                <tr>
+                    @for (var d = 0; d < 7; d++)
+                    {
+                        var weekday = (DayOfWeek)(((int)FirstDay + d) % 7);
+                        <th scope="col" abbr="@CultureInfo.CurrentCulture.DateTimeFormat.GetDayName(weekday)">@CultureInfo.CurrentCulture.DateTimeFormat.GetShortestDayName(weekday)</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @for (var week = 0; week * 7 < offset + days; week++)
+                {
+                    <tr>
+                        @for (var d = 0; d < 7; d++)
+                        {
+                            var day = (week * 7) + d - offset + 1;
+                            if (day < 1 || day > days)
+                            {
+                                <td></td>
+                                continue;
+                            }
+
+                            var date = new DateOnly(Year, month, day);
+                            var (css, text) = Describe(date);
+                            <td class="season-day @css" title="@text">@day<span class="visually-hidden"> @text</span></td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+
+@code {
+    [Parameter, EditorRequired]
+    public int Year { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SeasonDefinition> Seasons { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PriorityEventDefinition> Events { get; set; } = [];
+
+    private static DayOfWeek FirstDay => CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+
+    private (string Css, string Text) Describe(DateOnly date)
+    {
+        var events = Events.Where(e => e.StartDate <= date && date <= e.EndDate).OrderByDescending(e => e.Priority).ToList();
+        var season = Seasons.FirstOrDefault(s => s.StartDate <= date && date <= s.EndDate);
+        var seasonText = season is null ? L["Calendar.Base"].Value : L[$"Level.{season.Level}"].Value;
+        if (events.Count > 0)
+        {
+            return ("season-event", $"{string.Join(", ", events.Select(e => e.Name))} ({seasonText})");
+        }
+
+        return season?.Level switch
+        {
+            SeasonLevel.Low => ("season-low", seasonText),
+            SeasonLevel.Mid => ("season-mid", seasonText),
+            SeasonLevel.High => ("season-high", seasonText),
+            _ => ("season-base", seasonText),
+        };
+    }
+}

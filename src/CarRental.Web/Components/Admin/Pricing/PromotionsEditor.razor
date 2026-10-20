@@ -1,0 +1,189 @@
+@* Promotions of a plan: a code, an early booking or a long stay discount on the rental subtotal after the tier, with
+   optional booking and pick-up windows, categories and channels. The best non-combinable one plus the combinable ones apply. *@
+@using CarRental.Application.Fleet.Contracts
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["Promotions.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Promotions.Hint"]</MudText>
+@foreach (var (row, index) in _promotions.Select((row, index) => (row, index + 1)))
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-2">
+        <fieldset class="editor-row">
+        <legend class="editor-row-title">@L["Promotions.Row", index]@NameSuffix(row.Name)</legend>
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField T="string" @bind-Value="row.Name" Label="@L["Promotions.Name"]" MaxLength="Promotion.NameMaxLength"
+                              Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="PromotionKind" @bind-Value="row.Kind" Label="@L["Promotions.Kind"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var kind in Enum.GetValues<PromotionKind>())
+                    {
+                        <MudSelectItem T="PromotionKind" Value="@kind">@L[$"PromotionKind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                @if (row.Kind == PromotionKind.Code)
+                {
+                    <MudTextField T="string" @bind-Value="row.Code" Label="@L["Promotions.Code"]" MaxLength="Promotion.CodeMaxLength"
+                                  Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+                }
+                else
+                {
+                    <MudNumericField T="int?" @bind-Value="row.MinimumDays" Label="@L[$"Promotions.MinimumDays.{row.Kind}"]" Min="1" Max="365"
+                                     Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+                }
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="PromotionDiscountType" @bind-Value="row.DiscountType" Label="@L["Promotions.DiscountType"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var type in Enum.GetValues<PromotionDiscountType>())
+                    {
+                        <MudSelectItem T="PromotionDiscountType" Value="@type">@L[$"DiscountType.{type}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudNumericField T="decimal?" @bind-Value="row.DiscountValue" Label="@L["Promotions.DiscountValue"]" Min="0m" HideSpinButtons="true"
+                                 Adornment="Adornment.End" AdornmentText="@(row.DiscountType == PromotionDiscountType.Percentage ? "%" : "TND")" ShrinkLabel="true"
+                                 Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudSwitch T="bool" @bind-Value="row.IsCombinable" Color="Color.Primary" Label="@L["Promotions.Combinable"]" Disabled="!CanEdit" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudSwitch T="bool" @bind-Value="row.IsActive" Color="Color.Primary" Label="@L["Promotions.Active"]" Disabled="!CanEdit" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField T="string" @bind-Value="row.BookableFrom" Label="@L["Promotions.BookableFrom"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField T="string" @bind-Value="row.BookableUntil" Label="@L["Promotions.BookableUntil"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField T="string" @bind-Value="row.PickupFrom" Label="@L["Promotions.PickupFrom"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField T="string" @bind-Value="row.PickupUntil" Label="@L["Promotions.PickupUntil"]" InputType="InputType.Date"
+                              ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid" MultiSelection="true" SelectedValues="row.CategoryIds" SelectedValuesChanged="@(values => row.CategoryIds = values ?? [])"
+                           Label="@L["Promotions.Categories"]" HelperText="@L["Promotions.AllWhenEmpty"]" Variant="Variant.Outlined" Disabled="!CanEdit"
+                           MultiSelectionTextFunc="@(values => CategoriesText(values))">
+                    @foreach (var category in Categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">@category.AcrissCode — @category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="SalesChannel" MultiSelection="true" SelectedValues="row.Channels" SelectedValuesChanged="@(values => row.Channels = values ?? [])"
+                           Label="@L["Promotions.Channels"]" HelperText="@L["Promotions.AllWhenEmpty"]" Variant="Variant.Outlined" Disabled="!CanEdit"
+                           MultiSelectionTextFunc="@(values => ChannelsText(values))">
+                    @foreach (var channel in Enum.GetValues<SalesChannel>())
+                    {
+                        <MudSelectItem T="SalesChannel" Value="@channel">@L[$"Channel.{channel}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (CanEdit)
+            {
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Text" Class="pricing-danger" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => _promotions.Remove(row)">
+                        @L["Promotions.Remove", index]
+                    </MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+        </fieldset>
+    </MudPaper>
+}
+@if (_promotions.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Promotions.Empty"]</MudText>
+}
+<SectionActions CanEdit="CanEdit" Error="@_error" Busy="_busy" AddText="@L["Promotions.Add"]" SaveText="@L["Promotions.Save"]" OnAdd="Add" OnSave="SaveAsync" />
+
+@code {
+    private readonly List<PromotionRow> _promotions = [];
+    private RatePlanDetail? _source;
+    private string? _error;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public RatePlanDetail Detail { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<VehicleCategoryInfo> Categories { get; set; } = [];
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<RatePlanDetail> OnSaved { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Detail, _source))
+        {
+            return;
+        }
+
+        _source = Detail;
+        _promotions.Clear();
+        _promotions.AddRange(Detail.Promotions.Select(PromotionRow.From));
+    }
+
+    private void Add() => _promotions.Add(new PromotionRow());
+
+    private string CategoriesText(IReadOnlyList<string> values) =>
+        values.Count == 0 ? L["Promotions.AllCategories"] : string.Join(", ", values.Select(v =>
+            Guid.TryParse(v, out var id) ? Categories.FirstOrDefault(c => c.Id == id)?.AcrissCode ?? v : v));
+
+    private string ChannelsText(IReadOnlyList<string> values) =>
+        values.Count == 0 ? L["Promotions.AllChannels"] : string.Join(", ", values.Select(v => (string)L[$"Channel.{v}"]));
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        var definitions = new List<PromotionDefinition>();
+        foreach (var row in _promotions)
+        {
+            var definition = row.ToDefinition();
+            if (definition.IsFailure)
+            {
+                _error = ErrorMessages.For(Shared, definition.Error);
+                return;
+            }
+
+            definitions.Add(definition.Value);
+        }
+
+        var (planId, revision) = (Detail.Plan.Id, Detail.Plan.Revision);
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>(
+            (service, ct) => service.UpdatePromotionsAsync(planId, revision, definitions, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        // Normal (dark) snackbars keep a 4.5:1 contrast; the default success colour does not.
+        Snackbar.Add(L["Editor.Saved"], Severity.Normal);
+        await OnSaved.InvokeAsync(result.Value);
+    }
+
+    private static string NameSuffix(string? name) => string.IsNullOrWhiteSpace(name) ? string.Empty : $" — {name.Trim()}";
+}

@@ -102,4 +102,130 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>Ce champ est obligatoire.</value>
   </data>
+  <data name="Error.pricing.agency_not_found" xml:space="preserve">
+    <value>Agence introuvable.</value>
+  </data>
+  <data name="Error.pricing.amount_invalid" xml:space="preserve">
+    <value>Un montant a plus de trois décimales (millimes).</value>
+  </data>
+  <data name="Error.pricing.base_price_missing" xml:space="preserve">
+    <value>Chaque catégorie tarifée doit avoir un prix de base.</value>
+  </data>
+  <data name="Error.pricing.category_not_found" xml:space="preserve">
+    <value>Catégorie de véhicule introuvable ou inactive.</value>
+  </data>
+  <data name="Error.pricing.category_not_priced" xml:space="preserve">
+    <value>La grille n'a pas de prix pour cette catégorie à ces dates.</value>
+  </data>
+  <data name="Error.pricing.channel_plan_missing" xml:space="preserve">
+    <value>Ce canal est tarifé avec sa grille propre, qui n'est pas publiée.</value>
+  </data>
+  <data name="Error.pricing.channel_rule_invalid" xml:space="preserve">
+    <value>Règle de canal invalide : une règle par canal, majoration de plus de 0 à 100 %.</value>
+  </data>
+  <data name="Error.pricing.channel_rules_on_channel_plan" xml:space="preserve">
+    <value>Les règles par canal se définissent dans la grille par défaut.</value>
+  </data>
+  <data name="Error.pricing.draft_already_exists" xml:space="preserve">
+    <value>Un brouillon existe déjà pour cette agence et ce canal.</value>
+  </data>
+  <data name="Error.pricing.drivers_invalid" xml:space="preserve">
+    <value>Conducteurs invalides : cinq au plus, nés avant la date de départ.</value>
+  </data>
+  <data name="Error.pricing.event_invalid" xml:space="preserve">
+    <value>Événement invalide : nom, dates dans l'ordre, priorité de 1 à 1000 et durée minimale de 0 à 365 jours.</value>
+  </data>
+  <data name="Error.pricing.event_priority_conflict" xml:space="preserve">
+    <value>Deux événements qui se chevauchent ont la même priorité.</value>
+  </data>
+  <data name="Error.pricing.extra_code_duplicate" xml:space="preserve">
+    <value>Deux options ont le même code.</value>
+  </data>
+  <data name="Error.pricing.extra_invalid" xml:space="preserve">
+    <value>Option invalide : vérifiez le code, le nom, le prix, le plafond (options par jour), le lieu (livraisons) et la facturation.</value>
+  </data>
+  <data name="Error.pricing.extra_kind_duplicate" xml:space="preserve">
+    <value>Une seule option active par type automatique (et une livraison par lieu).</value>
+  </data>
+  <data name="Error.pricing.extra_not_selectable" xml:space="preserve">
+    <value>Cette option s'ajoute automatiquement : elle ne se choisit pas.</value>
+  </data>
+  <data name="Error.pricing.extra_quantity_invalid" xml:space="preserve">
+    <value>Quantité d'option invalide (1 à 10, 1 pour le rachat de franchise).</value>
+  </data>
+  <data name="Error.pricing.extra_unknown" xml:space="preserve">
+    <value>Option inconnue ou inactive.</value>
+  </data>
+  <data name="Error.pricing.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission nécessaire sur les tarifs.</value>
+  </data>
+  <data name="Error.pricing.guaranteed_model_not_offered" xml:space="preserve">
+    <value>Ce véhicule n'est pas proposé en modèle garanti.</value>
+  </data>
+  <data name="Error.pricing.guaranteed_vehicle_category_mismatch" xml:space="preserve">
+    <value>Le véhicule garanti n'appartient pas à la catégorie demandée.</value>
+  </data>
+  <data name="Error.pricing.location_not_found" xml:space="preserve">
+    <value>Lieu de départ ou de retour inconnu pour cette agence.</value>
+  </data>
+  <data name="Error.pricing.minimum_duration_not_met" xml:space="preserve">
+    <value>La durée minimale de location n'est pas atteinte pour ces dates.</value>
+  </data>
+  <data name="Error.pricing.no_published_plan" xml:space="preserve">
+    <value>Aucune grille tarifaire publiée pour cette agence.</value>
+  </data>
+  <data name="Error.pricing.period_invalid" xml:space="preserve">
+    <value>Le retour doit être postérieur au départ.</value>
+  </data>
+  <data name="Error.pricing.plan_already_archived" xml:space="preserve">
+    <value>Cette grille est déjà archivée.</value>
+  </data>
+  <data name="Error.pricing.plan_invalid" xml:space="preserve">
+    <value>La grille a des problèmes bloquants : elle ne peut pas être publiée.</value>
+  </data>
+  <data name="Error.pricing.plan_modified_concurrently" xml:space="preserve">
+    <value>La grille a été modifiée entre-temps : rechargez la page.</value>
+  </data>
+  <data name="Error.pricing.plan_name_invalid" xml:space="preserve">
+    <value>Le nom de la grille est obligatoire (120 caractères au plus).</value>
+  </data>
+  <data name="Error.pricing.plan_not_editable" xml:space="preserve">
+    <value>Seul un brouillon peut être modifié ou publié.</value>
+  </data>
+  <data name="Error.pricing.plan_not_found" xml:space="preserve">
+    <value>Grille tarifaire introuvable.</value>
+  </data>
+  <data name="Error.pricing.price_duplicate" xml:space="preserve">
+    <value>Une catégorie a deux prix pour la même période.</value>
+  </data>
+  <data name="Error.pricing.price_invalid" xml:space="preserve">
+    <value>Prix invalide : montant positif en TND pour une catégorie et une période existantes.</value>
+  </data>
+  <data name="Error.pricing.promotion_code_duplicate" xml:space="preserve">
+    <value>Deux promotions ont le même code.</value>
+  </data>
+  <data name="Error.pricing.promotion_invalid" xml:space="preserve">
+    <value>Promotion invalide : vérifiez le nom, le code ou le nombre de jours, la remise et l'ordre des dates.</value>
+  </data>
+  <data name="Error.pricing.rental_too_long" xml:space="preserve">
+    <value>Une location ne peut pas dépasser 365 jours.</value>
+  </data>
+  <data name="Error.pricing.season_invalid" xml:space="preserve">
+    <value>Saison invalide : niveau, début avant la fin et durée minimale de 0 à 365 jours.</value>
+  </data>
+  <data name="Error.pricing.seasons_overlap" xml:space="preserve">
+    <value>Deux saisons couvrent une même date.</value>
+  </data>
+  <data name="Error.pricing.simulation_channel_mismatch" xml:space="preserve">
+    <value>Une grille propre ne se simule que pour son canal.</value>
+  </data>
+  <data name="Error.pricing.tier_invalid" xml:space="preserve">
+    <value>Paliers invalides : le premier commence au jour 1, les débuts augmentent et les remises vont de 0 à 99,99 %.</value>
+  </data>
+  <data name="Error.pricing.tier_override_invalid" xml:space="preserve">
+    <value>Remise de catégorie invalide : palier existant, une fois par catégorie, de 0 à 99,99 %.</value>
+  </data>
+  <data name="Error.pricing.vehicle_not_found" xml:space="preserve">
+    <value>Véhicule introuvable ou vendu.</value>
+  </data>
 </root>

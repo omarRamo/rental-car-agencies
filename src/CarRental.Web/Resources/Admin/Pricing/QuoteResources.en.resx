@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Quote.Line.DailyContribution" xml:space="preserve">
+    <value>Daily contribution ({0} excl. VAT per day)</value>
+  </data>
+  <data name="Quote.Line.DurationDiscount" xml:space="preserve">
+    <value>{0}–{1} day tier discount −{2}%</value>
+  </data>
+  <data name="Quote.Line.DurationDiscount.Open" xml:space="preserve">
+    <value>{0}+ day tier discount −{1}%</value>
+  </data>
+  <data name="Quote.Line.Extra" xml:space="preserve">
+    <value>{1}</value>
+  </data>
+  <data name="Quote.Line.Extra.Capped" xml:space="preserve">
+    <value>{1} ({2} cap reached)</value>
+  </data>
+  <data name="Quote.Line.GuaranteedModel" xml:space="preserve">
+    <value>Guaranteed model: {0}</value>
+  </data>
+  <data name="Quote.Line.Promotion.Code.Amount" xml:space="preserve">
+    <value>Promo code {0}</value>
+  </data>
+  <data name="Quote.Line.Promotion.Code.Percent" xml:space="preserve">
+    <value>Promo code {0} −{1}%</value>
+  </data>
+  <data name="Quote.Line.Promotion.EarlyBooking.Amount" xml:space="preserve">
+    <value>Early booking ({0}+ days ahead)</value>
+  </data>
+  <data name="Quote.Line.Promotion.EarlyBooking.Percent" xml:space="preserve">
+    <value>Early booking ({0}+ days ahead) −{1}%</value>
+  </data>
+  <data name="Quote.Line.Promotion.LongStay.Amount" xml:space="preserve">
+    <value>Long stay ({0}+ days)</value>
+  </data>
+  <data name="Quote.Line.Promotion.LongStay.Percent" xml:space="preserve">
+    <value>Long stay ({0}+ days) −{1}%</value>
+  </data>
+  <data name="Quote.Line.Rental.Base" xml:space="preserve">
+    <value>Days at the base rate</value>
+  </data>
+  <data name="Quote.Line.Rental.Event" xml:space="preserve">
+    <value>Days — {0}</value>
+  </data>
+  <data name="Quote.Line.Rental.HighSeason" xml:space="preserve">
+    <value>High season days</value>
+  </data>
+  <data name="Quote.Line.Rental.LowSeason" xml:space="preserve">
+    <value>Low season days</value>
+  </data>
+  <data name="Quote.Line.Rental.MidSeason" xml:space="preserve">
+    <value>Mid season days</value>
+  </data>
+</root>
