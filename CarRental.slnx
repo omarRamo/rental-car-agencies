@@ -16,5 +16,6 @@
     <File Path="tests/Directory.Build.props" />
     <Project Path="tests/CarRental.Application.Tests/CarRental.Application.Tests.csproj" />
     <Project Path="tests/CarRental.Domain.Tests/CarRental.Domain.Tests.csproj" />
+    <Project Path="tests/CarRental.Integration.Tests/CarRental.Integration.Tests.csproj" />
   </Folder>
 </Solution>

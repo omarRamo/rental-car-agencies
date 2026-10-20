@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Hosts/inspects the ASP.NET Core app: use the shared framework (also prunes framework-provided packages at restore). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Real SQL Server and Azurite in containers (Testcontainers), one shared host per test run. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CarRental.Web\CarRental.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Testcontainers.Azurite" />
+  </ItemGroup>
+
+  <!-- Shared test infrastructure (containers, host factory, TOTP), also linked into the E2E tests. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
+  </ItemGroup>
+
+</Project>
