@@ -33,6 +33,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0025](0025-moteur-de-disponibilite-cache-et-ecriture-sous-verrou.md) | Moteur de disponibilité : balayage des bornes, cache mémoire invalidé par événement, écriture sous verrou | Acceptée |
 | [0026](0026-pieces-identite-stockage-et-acces-journalise.md) | Pièces d'identité : stockage privé, accès autorisé et journalisé, rétention désactivée | Acceptée |
 | [0027](0027-personnes-dedoublonnage-et-anonymisation.md) | Personnes : dédoublonnage par clés normalisées, export et anonymisation réservés au gérant | Acceptée |
+| [0034](0034-paiements-et-cautions.md) | Paiements et cautions : mouvements typés, caution comme dette, statut Clic to Pay venu de la banque seulement | Acceptée |
+| [0035](0035-sessions-de-caisse.md) | Sessions de caisse : une par agent et par jour, espèces de recette et cautions comptées à part, verrouillage définitif | Acceptée |
 
 ## Modèle
 

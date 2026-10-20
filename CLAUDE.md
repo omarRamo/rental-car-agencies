@@ -61,7 +61,7 @@
 ## Environnement local
 - `docker compose up -d` : SQL Server (`localhost,14333`, compte `sa`, mot de passe de développement dans `docker-compose.yml`) et Azurite. `appsettings.Development.json` pointe dessus.
 - Utilisateurs de démonstration (développement, recette et tests seulement) : `gerant@demo.local` (gérant), `agent@demo.local` (agent), `comptable@demo.local` (comptable). Mot de passe et clé TOTP commune : `Seed:DemoUserPassword` et `Seed:DemoAuthenticatorKey` dans `src/CarRental.Web/appsettings.Development.json` ; saisir la clé à la main dans une application d'authentification (TOTP, 6 chiffres, 30 s).
-- Adresses : `/fr` et `/en` (vitrine), `/account/login`, `/admin`, `/admin/audit`, `/admin/users`, `/admin/jobs` (Hangfire), `/health` et `/health/ready`.
+- Adresses : `/fr` et `/en` (vitrine), `/account/login`, `/admin` (tableau du jour), `/admin/fleet` (flotte, catégories, échéances), `/admin/pricing` (plans tarifaires, simulateur `/admin/pricing/simulator`), `/admin/customers`, `/admin/payments`, `/admin/cash`, `/admin/audit`, `/admin/users`, `/admin/jobs` (Hangfire), `/media/categories/{id}` (photo publique d'une catégorie), `/health` et `/health/ready`.
 - E-mails de développement : fichiers `.eml` dans `src/CarRental.Web/App_Data/mail`.
 - Clés Data Protection de développement : `%LOCALAPPDATA%/CarRental/DataProtection-Keys`.
 
