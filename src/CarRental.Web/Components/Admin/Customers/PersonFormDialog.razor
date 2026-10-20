@@ -1,0 +1,193 @@
+@* Creates a person (found again without duplicate by document, phone or e-mail) or edits its details. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_firstName" Label="@L["Person.Field.FirstName"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="100" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_lastName" Label="@L["Person.Field.LastName"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="100" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <CountryField @bind-Value="_nationality" Label="@L["Person.Field.Nationality"]" HelperText="@L["Person.Field.Nationality.Help"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_birthDate" Label="@L["Person.Field.BirthDate"]" Editable="true" OpenTo="OpenTo.Year" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_phone" Label="@L["Person.Field.Phone"]" HelperText="@L["Person.Field.Phone.Help"]"
+                              InputType="InputType.Telephone" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_email" Label="@L["Person.Field.Email"]" InputType="InputType.Email" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2">@L["Person.Field.Address"]</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_line1" Label="@L["Address.Line1"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_postalCode" Label="@L["Address.PostalCode"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_line2" Label="@L["Address.Line2"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_city" Label="@L["Address.City"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <CountryField @bind-Value="_country" Label="@L["Address.Country"]" />
+            </MudItem>
+
+            @if (PersonId is null)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">@L["Person.Field.Document"]</MudText>
+                    <MudText Typo="Typo.body2">@L["Person.Field.Document.Help"]</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="IdentityDocumentTypeInfo" @bind-Value="_documentType" Label="@L["Document.Field.Type"]">
+                        <MudSelectItem T="IdentityDocumentTypeInfo" Value="IdentityDocumentTypeInfo.NationalId">@CustomerLabels.DocumentType(L, IdentityDocumentTypeInfo.NationalId)</MudSelectItem>
+                        <MudSelectItem T="IdentityDocumentTypeInfo" Value="IdentityDocumentTypeInfo.Passport">@CustomerLabels.DocumentType(L, IdentityDocumentTypeInfo.Passport)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" @bind-Value="_documentNumber" Label="@L["Document.Field.Number"]" autocomplete="off" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <CountryField @bind-Value="_documentCountry" Label="@L["Document.Field.Country"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_documentIssuedOn" Label="@L["Document.Field.IssuedOn"]" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_documentExpiresOn" Label="@L["Document.Field.ExpiresOn"]" Editable="true" />
+                </MudItem>
+            }
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Class="mt-3" Role="alert">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">
+            @(PersonId is null ? L["Person.Create.Submit"] : L["Person.Edit.Submit"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _firstName;
+    private string? _lastName;
+    private string? _nationality = "TN";
+    private DateTime? _birthDate;
+    private string? _phone;
+    private string? _email;
+    private string? _line1;
+    private string? _line2;
+    private string? _postalCode;
+    private string? _city;
+    private string? _country;
+    private IdentityDocumentTypeInfo _documentType = IdentityDocumentTypeInfo.NationalId;
+    private string? _documentNumber;
+    private string? _documentCountry;
+    private DateTime? _documentIssuedOn;
+    private DateTime? _documentExpiresOn;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The person to edit; null to create one.</summary>
+    [Parameter]
+    public Guid? PersonId { get; set; }
+
+    [Parameter]
+    public PersonFile? Initial { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Initial is { } person)
+        {
+            _firstName = person.FirstName;
+            _lastName = person.LastName;
+            _nationality = person.Nationality;
+            _birthDate = person.BirthDate?.ToDateTime(TimeOnly.MinValue);
+            _phone = person.Phone;
+            _email = person.Email;
+            _line1 = person.Address?.Line1;
+            _line2 = person.Address?.Line2;
+            _postalCode = person.Address?.PostalCode;
+            _city = person.Address?.City;
+            _country = person.Address?.Country;
+        }
+    }
+
+    private PostalAddressInfo? Address() =>
+        string.IsNullOrWhiteSpace(_line1) && string.IsNullOrWhiteSpace(_city)
+            ? null
+            : new PostalAddressInfo(_line1 ?? string.Empty, _line2, _postalCode, _city ?? string.Empty, _country ?? _nationality ?? string.Empty);
+
+    private IdentityDocumentInput? Document()
+    {
+        if (string.IsNullOrWhiteSpace(_documentNumber))
+        {
+            return null;
+        }
+
+        var country = _documentCountry ?? (_documentType == IdentityDocumentTypeInfo.NationalId ? "TN" : _nationality) ?? string.Empty;
+        return new IdentityDocumentInput(
+            _documentType,
+            _documentNumber,
+            country,
+            _documentIssuedOn is { } issued ? DateOnly.FromDateTime(issued) : null,
+            _documentExpiresOn is { } expires ? DateOnly.FromDateTime(expires) : null);
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var birthDate = _birthDate is { } date ? DateOnly.FromDateTime(date) : (DateOnly?)null;
+
+        if (PersonId is { } personId)
+        {
+            var form = new PersonDetailsForm(_firstName ?? string.Empty, _lastName ?? string.Empty, _nationality, birthDate, _phone, _email, Address());
+            var updated = await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.UpdateAsync(personId, form, ct));
+            Complete(updated, updated.IsSuccess ? personId : null);
+        }
+        else
+        {
+            var request = new PersonRegistrationRequest(_firstName ?? string.Empty, _lastName ?? string.Empty, _nationality, birthDate, _phone, _email, Address(), Document());
+            var registered = await Runner.RunAsync<PersonAdministrationService, Result<PersonRegistrationResult>>((service, ct) => service.RegisterAsync(request, ct));
+            Complete(registered, registered.IsSuccess ? registered.Value : null);
+        }
+    }
+
+    private void Complete(Result result, object? data)
+    {
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(data));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

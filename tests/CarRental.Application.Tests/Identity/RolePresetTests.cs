@@ -83,6 +83,12 @@ public sealed class RolePresetTests
         { Roles.Agent, Permissions.CustomersManage, true },
         { Roles.Accountant, Permissions.CustomersRead, true },
         { Roles.Accountant, Permissions.CustomersManage, false },
+
+        // Data subject rights (export, anonymization): manager only.
+        { Roles.Manager, Permissions.CustomersPrivacy, true },
+        { Roles.Agent, Permissions.CustomersPrivacy, false },
+        { Roles.Accountant, Permissions.CustomersPrivacy, false },
+        { Roles.Preparer, Permissions.CustomersPrivacy, false },
     };
 
     [Theory]

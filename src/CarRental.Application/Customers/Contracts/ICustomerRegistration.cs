@@ -1,0 +1,53 @@
+using CarRental.Domain.Common;
+
+namespace CarRental.Application.Customers.Contracts;
+
+/// <summary>
+/// Write API of the Customers module for other modules: quick creation of a booking (phone, counter), and later the
+/// web funnel and "compléter mon dossier". Every method requires <c>customers.manage</c> (the system actor has it),
+/// except <see cref="RecordRentalClosedAsync"/>, a technical signal of the Bookings module.
+/// </summary>
+public interface ICustomerRegistration
+{
+    /// <summary>
+    /// Finds the person again — same current document (type, country, number) first, then same phone or same e-mail
+    /// with the same name — or creates it (ADR-0027). A found person only gets its missing details filled in (never
+    /// overwritten) and the document added when it had none of that type.
+    /// </summary>
+    Task<Result<PersonRegistrationResult>> FindOrCreatePersonAsync(PersonRegistrationRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>The individual payer of a person, created on first use. Returns the customer id.</summary>
+    Task<Result<Guid>> GetOrCreateIndividualCustomerAsync(Guid personId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a document to a person (a new number supersedes the current document of the same type, the same number
+    /// corrects it), with optional front and back images (JPEG, PNG or PDF, 10 MB max, checked on their content).
+    /// Returns the document id.
+    /// </summary>
+    Task<Result<Guid>> AddOrReplaceDocumentAsync(
+        Guid personId,
+        IdentityDocumentInput document,
+        Stream? frontImage = null,
+        Stream? backImage = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Stores (or replaces) the image of one side of a current document. The previous file is deleted after the commit.</summary>
+    Task<Result> UploadDocumentImageAsync(Guid documentId, DocumentImageSideInfo side, Stream content, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a company payer; a company with the same tax identifier is a conflict. Returns the customer id.</summary>
+    Task<Result<Guid>> CreateCompanyCustomerAsync(CompanyCustomerRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Gives (<paramref name="given"/>) or withdraws a consent, through <paramref name="channel"/>.</summary>
+    Task<Result> SetConsentAsync(
+        Guid personId,
+        ConsentPurposeInfo purpose,
+        ConsentChannelInfo channel,
+        bool given,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A rental of the person was closed at <paramref name="closedAtUtc"/>: the retention period of its document images
+    /// restarts from there. Called by Bookings when a rental is closed; no permission required.
+    /// </summary>
+    Task<Result> RecordRentalClosedAsync(Guid personId, DateTimeOffset closedAtUtc, CancellationToken cancellationToken = default);
+}

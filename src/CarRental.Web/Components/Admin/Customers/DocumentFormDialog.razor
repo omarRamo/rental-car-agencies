@@ -1,0 +1,137 @@
+@* Adds an identity document to a person (a new number supersedes the current one of the same type) or corrects one. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="IdentityDocumentTypeInfo" Value="_type" ValueChanged="TypeChanged" Label="@L["Document.Field.Type"]" Disabled="@(Document is not null)">
+                    @foreach (var type in Enum.GetValues<IdentityDocumentTypeInfo>())
+                    {
+                        <MudSelectItem T="IdentityDocumentTypeInfo" Value="type">@CustomerLabels.DocumentType(L, type)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_number" Label="@L["Document.Field.Number"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="32" autocomplete="off"
+                              HelperText="@(_type == IdentityDocumentTypeInfo.NationalId ? L["Document.Field.Number.CinHelp"].Value : null)" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <CountryField @bind-Value="_country" Label="@L["Document.Field.Country"]" Required="true" />
+            </MudItem>
+            @if (_type == IdentityDocumentTypeInfo.DrivingLicense)
+            {
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_latinScript" Color="Color.Primary" Label="@L["Document.Field.LatinScript"]" />
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_issuedOn" Label="@L["Document.Field.IssuedOn"]" Editable="true"
+                               HelperText="@(_type == IdentityDocumentTypeInfo.DrivingLicense ? L["Document.Field.IssuedOn.LicenseHelp"].Value : null)" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_expiresOn" Label="@L["Document.Field.ExpiresOn"]" Editable="true"
+                               HelperText="@L["Document.Field.ExpiresOn.Help"]" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Class="mt-3" Role="alert">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Document.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IdentityDocumentTypeInfo _type = IdentityDocumentTypeInfo.NationalId;
+    private string? _number;
+    private string? _country;
+    private bool _latinScript = true;
+    private DateTime? _issuedOn;
+    private DateTime? _expiresOn;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    /// <summary>The nationality of the person: default issuing country of a passport.</summary>
+    [Parameter]
+    public string? Nationality { get; set; }
+
+    /// <summary>The document to correct; null to add one.</summary>
+    [Parameter]
+    public DocumentFileItem? Document { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Document is { } document)
+        {
+            _type = document.Type;
+            _number = document.Number;
+            _country = document.IssuingCountry;
+            _latinScript = document.IsLatinScript;
+            _issuedOn = document.IssuedOn?.ToDateTime(TimeOnly.MinValue);
+            _expiresOn = document.ExpiresOn?.ToDateTime(TimeOnly.MinValue);
+        }
+        else
+        {
+            _country = DefaultCountry(_type);
+        }
+    }
+
+    private void TypeChanged(IdentityDocumentTypeInfo type)
+    {
+        _type = type;
+        _country = DefaultCountry(type);
+    }
+
+    private string? DefaultCountry(IdentityDocumentTypeInfo type) =>
+        type == IdentityDocumentTypeInfo.NationalId ? Nationality ?? "TN" : Nationality;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var input = new IdentityDocumentInput(
+            _type,
+            _number ?? string.Empty,
+            _country ?? string.Empty,
+            _issuedOn is { } issued ? DateOnly.FromDateTime(issued) : null,
+            _expiresOn is { } expires ? DateOnly.FromDateTime(expires) : null,
+            _type != IdentityDocumentTypeInfo.DrivingLicense || _latinScript);
+
+        Result result;
+        if (Document is { } document)
+        {
+            result = await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.CorrectDocumentAsync(PersonId, document.Id, input, ct));
+        }
+        else
+        {
+            result = await Runner.RunAsync<PersonAdministrationService, Result<Guid>>((service, ct) => service.AddDocumentAsync(PersonId, input, ct));
+        }
+
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

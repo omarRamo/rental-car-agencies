@@ -27,6 +27,9 @@ public static class Permissions
     public const string CustomersRead = "customers.read";
     public const string CustomersManage = "customers.manage";
     public const string IdentityDocumentsRead = "customers.documents.read";
+
+    /// <summary>Data subject rights: export and anonymization of a person (manager only, audited).</summary>
+    public const string CustomersPrivacy = "customers.privacy";
     public const string FleetRead = "fleet.read";
     public const string FleetManage = "fleet.manage";
     public const string FleetMaintenance = "fleet.maintenance";
@@ -71,6 +74,7 @@ public static class Permissions
             new(CustomersRead, PermissionArea.Operations),
             new(CustomersManage, PermissionArea.Operations),
             new(IdentityDocumentsRead, PermissionArea.Operations),
+            new(CustomersPrivacy, PermissionArea.Operations),
             new(FleetRead, PermissionArea.Operations),
             new(FleetManage, PermissionArea.Operations),
             new(FleetMaintenance, PermissionArea.Operations),

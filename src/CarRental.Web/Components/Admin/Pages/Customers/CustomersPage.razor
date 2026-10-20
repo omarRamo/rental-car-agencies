@@ -1,0 +1,191 @@
+@page "/admin/customers"
+@attribute [HasPermission(Permissions.CustomersRead)]
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Web.Components.Admin.Customers
+@using CarRental.Web.Resources.Admin.Customers
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Customers.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Customers.Title"]</MudText>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="@L["Customers.Tab.Persons"]">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+            <MudTextField T="string" @bind-Value="_personSearch" Label="@L["Customers.Search"]" HelperText="@L["Customers.Search.Help"]"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                          OnDebounceIntervalElapsed="SearchPersonsAsync" Clearable="true" Class="flex-grow-1" autocomplete="off" />
+            <AuthorizeView Policy="@PermissionPolicy.For(Permissions.CustomersManage)">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreatePersonAsync">
+                    @L["Customers.NewPerson"]
+                </MudButton>
+            </AuthorizeView>
+        </MudStack>
+
+        <MudTable @ref="_persons" T="PersonListItem" ServerData="LoadPersonsAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Customers.Tab.Persons"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Customers.Column.Name"]</MudTh>
+                <MudTh>@L["Customers.Column.Phone"]</MudTh>
+                <MudTh>@L["Customers.Column.Email"]</MudTh>
+                <MudTh>@L["Customers.Column.Nationality"]</MudTh>
+                <MudTh>@L["Customers.Column.Documents"]</MudTh>
+                <MudTh>@L["Customers.Column.Status"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Customers.Column.Name"]">
+                    <MudLink Href="@($"/admin/customers/persons/{context.Id}")">@context.FullName</MudLink>
+                </MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Phone"]">@CustomerLabels.Phone(context.Phone)</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Email"]">@(context.Email ?? "—")</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Nationality"]">@(context.Nationality ?? "—")</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Documents"]">@context.CurrentDocumentCount</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Status"]">
+                    @if (context.IsBlacklisted)
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Block" IconColor="Color.Error">@L["Blacklist.Badge"]</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Customers.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Customers.Tab.Companies"]">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+            <MudTextField T="string" @bind-Value="_companySearch" Label="@L["Companies.Search"]" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350" OnDebounceIntervalElapsed="SearchCompaniesAsync"
+                          Clearable="true" Class="flex-grow-1" autocomplete="off" />
+            <AuthorizeView Policy="@PermissionPolicy.For(Permissions.CustomersManage)">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddBusiness" OnClick="CreateCompanyAsync">
+                    @L["Companies.New"]
+                </MudButton>
+            </AuthorizeView>
+        </MudStack>
+
+        <MudTable @ref="_companies" T="CompanyListItem" ServerData="LoadCompaniesAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Customers.Tab.Companies"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Companies.Column.LegalName"]</MudTh>
+                <MudTh>@L["Companies.Column.TaxIdentifier"]</MudTh>
+                <MudTh>@L["Companies.Column.City"]</MudTh>
+                <MudTh>@L["Customers.Column.Email"]</MudTh>
+                <MudTh>@L["Customers.Column.Phone"]</MudTh>
+                <MudTh><span class="visually-hidden">@L["Companies.Column.Actions"]</span></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Companies.Column.LegalName"]">@context.LegalName</MudTd>
+                <MudTd DataLabel="@L["Companies.Column.TaxIdentifier"]">@context.TaxIdentifier</MudTd>
+                <MudTd DataLabel="@L["Companies.Column.City"]">@context.City</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Email"]">@(context.Email ?? "—")</MudTd>
+                <MudTd DataLabel="@L["Customers.Column.Phone"]">@CustomerLabels.Phone(context.Phone)</MudTd>
+                <MudTd>
+                    <AuthorizeView Policy="@PermissionPolicy.For(Permissions.CustomersManage)" Context="auth">
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCompanyAsync(context.Id))"
+                                   aria-label="@L["Companies.Edit.Label", context.LegalName]">@L["Companies.Edit"]</MudButton>
+                    </AuthorizeView>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Companies.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<PersonListItem>? _persons;
+    private MudTable<CompanyListItem>? _companies;
+    private string? _personSearch;
+    private string? _companySearch;
+    private int _tab;
+
+    private async Task<TableData<PersonListItem>> LoadPersonsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var term = _personSearch;
+        var result = await Runner.RunAsync<CustomerAdministrationQueries, Result<PagedResult<PersonListItem>>>(
+            (queries, ct) => queries.SearchPersonsAsync(term, page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<PersonListItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<PersonListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task<TableData<CompanyListItem>> LoadCompaniesAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var term = _companySearch;
+        var result = await Runner.RunAsync<CustomerAdministrationQueries, Result<PagedResult<CompanyListItem>>>(
+            (queries, ct) => queries.SearchCompaniesAsync(term, page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<CompanyListItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<CompanyListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private Task SearchPersonsAsync() => _persons?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task SearchCompaniesAsync() => _companies?.ReloadServerData() ?? Task.CompletedTask;
+
+    private async Task CreatePersonAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<PersonFormDialog>(L["Customers.NewPerson"], new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false, Data: PersonRegistrationResult registration })
+        {
+            Snackbar.Add(registration.Created ? L["Person.Created"] : L[$"Person.Found.{registration.Match}"], registration.Created ? Severity.Success : Severity.Info);
+            Navigation.NavigateTo($"/admin/customers/persons/{registration.PersonId}");
+        }
+    }
+
+    private async Task CreateCompanyAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CompanyFormDialog>(L["Companies.New"], new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Companies.Saved"], Severity.Success);
+            await SearchCompaniesAsync();
+        }
+    }
+
+    private async Task EditCompanyAsync(Guid companyId)
+    {
+        var company = await Runner.RunAsync<CustomerAdministrationQueries, Result<CompanyFile>>((queries, ct) => queries.GetCompanyAsync(companyId, ct));
+        if (company.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, company.Error), Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<CompanyFormDialog> { { d => d.Company, company.Value } };
+        var dialog = await Dialogs.ShowAsync<CompanyFormDialog>(L["Companies.Edit"], parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Companies.Saved"], Severity.Success);
+            await SearchCompaniesAsync();
+        }
+    }
+}

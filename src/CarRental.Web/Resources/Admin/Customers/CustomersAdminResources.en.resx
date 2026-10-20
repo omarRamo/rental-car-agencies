@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Address.City" xml:space="preserve">
+    <value>City</value>
+  </data>
+  <data name="Address.Country" xml:space="preserve">
+    <value>Country</value>
+  </data>
+  <data name="Address.Line1" xml:space="preserve">
+    <value>Address (street, number)</value>
+  </data>
+  <data name="Address.Line2" xml:space="preserve">
+    <value>Address line 2</value>
+  </data>
+  <data name="Address.PostalCode" xml:space="preserve">
+    <value>Postal code</value>
+  </data>
+  <data name="Blacklist.Active" xml:space="preserve">
+    <value>Blacklisted: "{0}" (by {1}, on {2}).</value>
+  </data>
+  <data name="Blacklist.Add" xml:space="preserve">
+    <value>Add to the blacklist</value>
+  </data>
+  <data name="Blacklist.Add.Message" xml:space="preserve">
+    <value>The blacklist is internal: it is never disclosed to the person. The reason is mandatory and recorded.</value>
+  </data>
+  <data name="Blacklist.Added" xml:space="preserve">
+    <value>Person added to the blacklist.</value>
+  </data>
+  <data name="Blacklist.Badge" xml:space="preserve">
+    <value>Blacklisted</value>
+  </data>
+  <data name="Blacklist.HistoryItem" xml:space="preserve">
+    <value>Added on {0} ("{1}"), lifted on {2} ("{3}").</value>
+  </data>
+  <data name="Blacklist.Internal" xml:space="preserve">
+    <value>Internal information, never disclosed to the person.</value>
+  </data>
+  <data name="Blacklist.Lift" xml:space="preserve">
+    <value>Lift the blacklist</value>
+  </data>
+  <data name="Blacklist.Lifted" xml:space="preserve">
+    <value>Blacklist lifted.</value>
+  </data>
+  <data name="Blacklist.LiftReason" xml:space="preserve">
+    <value>Reason for lifting</value>
+  </data>
+  <data name="Blacklist.None" xml:space="preserve">
+    <value>This person is not blacklisted.</value>
+  </data>
+  <data name="Blacklist.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Blacklist.Title" xml:space="preserve">
+    <value>Blacklist</value>
+  </data>
+  <data name="Bookings.ComingSoon" xml:space="preserve">
+    <value>The rental files where this person is a driver or the payer will appear here with the Bookings module.</value>
+  </data>
+  <data name="Bookings.Title" xml:space="preserve">
+    <value>Rental files</value>
+  </data>
+  <data name="Companies.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Companies.Column.City" xml:space="preserve">
+    <value>City</value>
+  </data>
+  <data name="Companies.Column.LegalName" xml:space="preserve">
+    <value>Legal name</value>
+  </data>
+  <data name="Companies.Column.TaxIdentifier" xml:space="preserve">
+    <value>Tax identifier</value>
+  </data>
+  <data name="Companies.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Companies.Edit.Label" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="Companies.Empty" xml:space="preserve">
+    <value>No company.</value>
+  </data>
+  <data name="Companies.New" xml:space="preserve">
+    <value>New company</value>
+  </data>
+  <data name="Companies.Saved" xml:space="preserve">
+    <value>Company saved.</value>
+  </data>
+  <data name="Companies.Search" xml:space="preserve">
+    <value>Search (legal name, tax identifier)</value>
+  </data>
+  <data name="Company.Field.ContactName" xml:space="preserve">
+    <value>Contact</value>
+  </data>
+  <data name="Company.Field.LegalName" xml:space="preserve">
+    <value>Legal name</value>
+  </data>
+  <data name="Company.Field.TaxIdentifier" xml:space="preserve">
+    <value>Tax identifier</value>
+  </data>
+  <data name="Company.Field.TaxIdentifier.Help" xml:space="preserve">
+    <value>Example: 1234567/A/M/000</value>
+  </data>
+  <data name="Company.Submit" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Consent.Channel.Counter" xml:space="preserve">
+    <value>Counter</value>
+  </data>
+  <data name="Consent.Channel.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Consent.Channel.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Consent.Channel.Web" xml:space="preserve">
+    <value>Website</value>
+  </data>
+  <data name="Consent.Channel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Consent.Purpose.IdentityDocumentProcessing" xml:space="preserve">
+    <value>Processing of the uploaded identity documents</value>
+  </data>
+  <data name="Consent.Purpose.MarketingEmail" xml:space="preserve">
+    <value>Offers by e-mail</value>
+  </data>
+  <data name="Consent.Purpose.MarketingWhatsApp" xml:space="preserve">
+    <value>Offers by WhatsApp</value>
+  </data>
+  <data name="Consent.Purpose.WhatsAppNotifications" xml:space="preserve">
+    <value>WhatsApp notifications (confirmation, reminders, payment link)</value>
+  </data>
+  <data name="Consents.Channel" xml:space="preserve">
+    <value>Collected through</value>
+  </data>
+  <data name="Consents.Given" xml:space="preserve">
+    <value>Given</value>
+  </data>
+  <data name="Consents.GivenOn" xml:space="preserve">
+    <value>Given on {0} ({1})</value>
+  </data>
+  <data name="Consents.Never" xml:space="preserve">
+    <value>Never asked</value>
+  </data>
+  <data name="Consents.NotGiven" xml:space="preserve">
+    <value>Not given</value>
+  </data>
+  <data name="Consents.Recorded" xml:space="preserve">
+    <value>Consent recorded.</value>
+  </data>
+  <data name="Consents.Title" xml:space="preserve">
+    <value>Consents</value>
+  </data>
+  <data name="Consents.Withdrawn" xml:space="preserve">
+    <value>Consent withdrawn.</value>
+  </data>
+  <data name="Consents.WithdrawnOn" xml:space="preserve">
+    <value>Withdrawn on {0} ({1})</value>
+  </data>
+  <data name="Customers.Column.Documents" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="Customers.Column.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Customers.Column.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Customers.Column.Nationality" xml:space="preserve">
+    <value>Nationality</value>
+  </data>
+  <data name="Customers.Column.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Customers.Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Customers.Empty" xml:space="preserve">
+    <value>No person found.</value>
+  </data>
+  <data name="Customers.NewPerson" xml:space="preserve">
+    <value>New person</value>
+  </data>
+  <data name="Customers.Search" xml:space="preserve">
+    <value>Search a person</value>
+  </data>
+  <data name="Customers.Search.Help" xml:space="preserve">
+    <value>Name, phone, national ID, passport or licence number, e-mail</value>
+  </data>
+  <data name="Customers.Tab.Companies" xml:space="preserve">
+    <value>Companies</value>
+  </data>
+  <data name="Customers.Tab.Persons" xml:space="preserve">
+    <value>Persons</value>
+  </data>
+  <data name="Customers.Title" xml:space="preserve">
+    <value>Customers and drivers</value>
+  </data>
+  <data name="Document.Correct" xml:space="preserve">
+    <value>Correct</value>
+  </data>
+  <data name="Document.Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Document.ExpiresOn" xml:space="preserve">
+    <value>Expires on {0}</value>
+  </data>
+  <data name="Document.Field.Country" xml:space="preserve">
+    <value>Issuing country</value>
+  </data>
+  <data name="Document.Field.ExpiresOn" xml:space="preserve">
+    <value>Expiry date</value>
+  </data>
+  <data name="Document.Field.ExpiresOn.Help" xml:space="preserve">
+    <value>Required for a passport or an international permit</value>
+  </data>
+  <data name="Document.Field.IssuedOn" xml:space="preserve">
+    <value>Issue date</value>
+  </data>
+  <data name="Document.Field.IssuedOn.LicenseHelp" xml:space="preserve">
+    <value>Required: used for the licence seniority</value>
+  </data>
+  <data name="Document.Field.LatinScript" xml:space="preserve">
+    <value>Licence written in latin script</value>
+  </data>
+  <data name="Document.Field.Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="Document.Field.Number.CinHelp" xml:space="preserve">
+    <value>Tunisian national ID: 8 digits</value>
+  </data>
+  <data name="Document.Field.Type" xml:space="preserve">
+    <value>Document type</value>
+  </data>
+  <data name="Document.IssuedOn" xml:space="preserve">
+    <value>Issued on {0}</value>
+  </data>
+  <data name="Document.LatinScript" xml:space="preserve">
+    <value>Latin script</value>
+  </data>
+  <data name="Document.NoExpiry" xml:space="preserve">
+    <value>No expiry date</value>
+  </data>
+  <data name="Document.NonLatinScript" xml:space="preserve">
+    <value>Not latin: international permit required</value>
+  </data>
+  <data name="Document.NotVerified" xml:space="preserve">
+    <value>To verify</value>
+  </data>
+  <data name="Document.NumberAndCountry" xml:space="preserve">
+    <value>No. {0} · {1}</value>
+  </data>
+  <data name="Document.Remove" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Document.Remove.Message" xml:space="preserve">
+    <value>Delete this document ({0}) entered by mistake? Its images will be erased.</value>
+  </data>
+  <data name="Document.Remove.Title" xml:space="preserve">
+    <value>Delete the document</value>
+  </data>
+  <data name="Document.Removed" xml:space="preserve">
+    <value>Document deleted.</value>
+  </data>
+  <data name="Document.Saved" xml:space="preserve">
+    <value>Document saved.</value>
+  </data>
+  <data name="Document.Submit" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Document.Verified" xml:space="preserve">
+    <value>Verified</value>
+  </data>
+  <data name="Document.VerifiedBy" xml:space="preserve">
+    <value>Verified by {0} on {1}</value>
+  </data>
+  <data name="Document.VerifiedNow" xml:space="preserve">
+    <value>Document marked as verified.</value>
+  </data>
+  <data name="Document.Verify" xml:space="preserve">
+    <value>Mark as verified</value>
+  </data>
+  <data name="Documents.Add" xml:space="preserve">
+    <value>Add a document</value>
+  </data>
+  <data name="Documents.Empty" xml:space="preserve">
+    <value>No document on file.</value>
+  </data>
+  <data name="Documents.Superseded" xml:space="preserve">
+    <value>Replaced documents ({0})</value>
+  </data>
+  <data name="Documents.SupersededItem" xml:space="preserve">
+    <value>{0} no. {1}, replaced on {2}</value>
+  </data>
+  <data name="Documents.Title" xml:space="preserve">
+    <value>Identity documents and licences</value>
+  </data>
+  <data name="DocumentType.DrivingLicense" xml:space="preserve">
+    <value>Driving licence</value>
+  </data>
+  <data name="DocumentType.InternationalDrivingPermit" xml:space="preserve">
+    <value>International driving permit</value>
+  </data>
+  <data name="DocumentType.NationalId" xml:space="preserve">
+    <value>National identity card (CIN)</value>
+  </data>
+  <data name="DocumentType.Passport" xml:space="preserve">
+    <value>Passport</value>
+  </data>
+  <data name="Eligibility.Check" xml:space="preserve">
+    <value>Check eligibility</value>
+  </data>
+  <data name="Eligibility.Eligible" xml:space="preserve">
+    <value>Eligible driver for these dates (minimum age {0}, licence held for {1} year(s) at least).</value>
+  </data>
+  <data name="Eligibility.Issue.BirthDateMissing" xml:space="preserve">
+    <value>Unknown birth date: the age cannot be checked.</value>
+  </data>
+  <data name="Eligibility.Issue.DocumentExpiresBeforeReturn" xml:space="preserve">
+    <value>{0}: expires on {1}, before the return date.</value>
+  </data>
+  <data name="Eligibility.Issue.DrivingLicenseMissing" xml:space="preserve">
+    <value>Driving licence missing.</value>
+  </data>
+  <data name="Eligibility.Issue.IdentityDocumentMissing" xml:space="preserve">
+    <value>Document required by the nationality missing: {0}.</value>
+  </data>
+  <data name="Eligibility.Issue.InternationalPermitMissing" xml:space="preserve">
+    <value>Licence not written in latin script: international driving permit required.</value>
+  </data>
+  <data name="Eligibility.Issue.LicenseHeldTooShort" xml:space="preserve">
+    <value>Licence held for {3} year(s) at pick-up, minimum {2}.</value>
+  </data>
+  <data name="Eligibility.Issue.NationalityMissing" xml:space="preserve">
+    <value>Unknown nationality: the required identity document cannot be determined.</value>
+  </data>
+  <data name="Eligibility.Issue.UnderMinimumAge" xml:space="preserve">
+    <value>Age at pick-up: {3}, minimum {2}.</value>
+  </data>
+  <data name="Eligibility.NotEligible" xml:space="preserve">
+    <value>Driver not eligible for these dates:</value>
+  </data>
+  <data name="Eligibility.PickupDate" xml:space="preserve">
+    <value>Pick-up date</value>
+  </data>
+  <data name="Eligibility.PickupTime" xml:space="preserve">
+    <value>Pick-up time</value>
+  </data>
+  <data name="Eligibility.ReturnDate" xml:space="preserve">
+    <value>Return date</value>
+  </data>
+  <data name="Eligibility.ReturnTime" xml:space="preserve">
+    <value>Return time</value>
+  </data>
+  <data name="Eligibility.Title" xml:space="preserve">
+    <value>Driver eligibility</value>
+  </data>
+  <data name="FileSize.Kilobytes" xml:space="preserve">
+    <value>{0} KB</value>
+  </data>
+  <data name="FileSize.Megabytes" xml:space="preserve">
+    <value>{0} MB</value>
+  </data>
+  <data name="Image.None" xml:space="preserve">
+    <value>no image</value>
+  </data>
+  <data name="Image.Stored" xml:space="preserve">
+    <value>{0}, {1}, uploaded on {2}</value>
+  </data>
+  <data name="Image.View.Back" xml:space="preserve">
+    <value>View the back</value>
+  </data>
+  <data name="Image.View.Front" xml:space="preserve">
+    <value>View the front</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} of {all_items}</value>
+  </data>
+  <data name="Pager.RowsPerPage" xml:space="preserve">
+    <value>Rows per page</value>
+  </data>
+  <data name="Person.Anonymized.Badge" xml:space="preserve">
+    <value>Anonymized</value>
+  </data>
+  <data name="Person.Anonymized.Message" xml:space="preserve">
+    <value>The personal data was anonymized on {0}. Only the identifier is kept for the rental files and the accounting.</value>
+  </data>
+  <data name="Person.Anonymized.Title" xml:space="preserve">
+    <value>Anonymized person</value>
+  </data>
+  <data name="Person.Back" xml:space="preserve">
+    <value>Customers and drivers</value>
+  </data>
+  <data name="Person.BirthDateAndAge" xml:space="preserve">
+    <value>{0} ({1} years old)</value>
+  </data>
+  <data name="Person.Create.Submit" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Person.Created" xml:space="preserve">
+    <value>Person created.</value>
+  </data>
+  <data name="Person.CreatedAt" xml:space="preserve">
+    <value>Created on</value>
+  </data>
+  <data name="Person.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Person.Edit.Submit" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Person.Field.Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Person.Field.BirthDate" xml:space="preserve">
+    <value>Birth date</value>
+  </data>
+  <data name="Person.Field.Document" xml:space="preserve">
+    <value>Identity document (optional)</value>
+  </data>
+  <data name="Person.Field.Document.Help" xml:space="preserve">
+    <value>With the national ID or the passport, the person is found again without duplicate.</value>
+  </data>
+  <data name="Person.Field.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Person.Field.FirstName" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Person.Field.LastName" xml:space="preserve">
+    <value>Last name</value>
+  </data>
+  <data name="Person.Field.Nationality" xml:space="preserve">
+    <value>Nationality</value>
+  </data>
+  <data name="Person.Field.Nationality.Help" xml:space="preserve">
+    <value>Tunisian: national ID required; other: passport required</value>
+  </data>
+  <data name="Person.Field.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Person.Field.Phone.Help" xml:space="preserve">
+    <value>8 digits for Tunisia, otherwise +country code (e.g. +33 6 12 34 56 78)</value>
+  </data>
+  <data name="Person.Found.Document" xml:space="preserve">
+    <value>Existing person found by the identity document.</value>
+  </data>
+  <data name="Person.Found.Email" xml:space="preserve">
+    <value>Existing person found by the e-mail.</value>
+  </data>
+  <data name="Person.Found.Phone" xml:space="preserve">
+    <value>Existing person found by the phone.</value>
+  </data>
+  <data name="Person.Identity" xml:space="preserve">
+    <value>Identity and contact</value>
+  </data>
+  <data name="Person.NotFound.Title" xml:space="preserve">
+    <value>Person not found</value>
+  </data>
+  <data name="Person.Saved" xml:space="preserve">
+    <value>Record saved.</value>
+  </data>
+  <data name="Person.Title" xml:space="preserve">
+    <value>Person record</value>
+  </data>
+  <data name="Privacy.Anonymize" xml:space="preserve">
+    <value>Anonymize</value>
+  </data>
+  <data name="Privacy.Anonymize.Help" xml:space="preserve">
+    <value>For example "written request of 12/10/2027". Do not type personal data: the reason is kept in the audit log.</value>
+  </data>
+  <data name="Privacy.Anonymize.Message" xml:space="preserve">
+    <value>Irreversible: name, birth date, nationality, contact details, address, documents and their images, consents and blacklist history will be erased. The identifier stays for the rental files and the accounting.</value>
+  </data>
+  <data name="Privacy.Anonymize.Reason" xml:space="preserve">
+    <value>Reason of the anonymization</value>
+  </data>
+  <data name="Privacy.Anonymized" xml:space="preserve">
+    <value>Personal data anonymized.</value>
+  </data>
+  <data name="Privacy.Export" xml:space="preserve">
+    <value>Export the data (JSON)</value>
+  </data>
+  <data name="Side.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Side.Front" xml:space="preserve">
+    <value>Front</value>
+  </data>
+  <data name="Upload.Busy" xml:space="preserve">
+    <value>Uploading</value>
+  </data>
+  <data name="Upload.Camera" xml:space="preserve">
+    <value>Take a photo ({0})</value>
+  </data>
+  <data name="Upload.Done" xml:space="preserve">
+    <value>{0} saved.</value>
+  </data>
+  <data name="Upload.File" xml:space="preserve">
+    <value>File ({0})</value>
+  </data>
+  <data name="Viewer.LinkExpires" xml:space="preserve">
+    <value>Link valid until {0}.</value>
+  </data>
+  <data name="Viewer.Notice" xml:space="preserve">
+    <value>Every display of an identity document is logged (who, when, which document, why).</value>
+  </data>
+  <data name="Viewer.OpenLink" xml:space="preserve">
+    <value>Open in a new tab</value>
+  </data>
+  <data name="Viewer.Purpose" xml:space="preserve">
+    <value>Purpose of the viewing</value>
+  </data>
+  <data name="Viewer.Purpose.booking_check" xml:space="preserve">
+    <value>Check of a rental file</value>
+  </data>
+  <data name="Viewer.Purpose.customer_file" xml:space="preserve">
+    <value>Customer record consultation</value>
+  </data>
+  <data name="Viewer.Purpose.data_subject_request" xml:space="preserve">
+    <value>Request of the person</value>
+  </data>
+  <data name="Viewer.Purpose.dispute" xml:space="preserve">
+    <value>Dispute, claim or fine</value>
+  </data>
+  <data name="Viewer.Purpose.verification" xml:space="preserve">
+    <value>Document verification</value>
+  </data>
+  <data name="Viewer.Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Viewer.TemporaryLink" xml:space="preserve">
+    <value>Temporary link (5 min)</value>
+  </data>
+  <data name="Viewer.Title" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+</root>

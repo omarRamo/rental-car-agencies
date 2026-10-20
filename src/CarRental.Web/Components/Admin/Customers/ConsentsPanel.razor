@@ -1,0 +1,84 @@
+@* Consents of a person, one per purpose, given or withdrawn separately with the channel through which it happens. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Consents.Title"]</MudText>
+    @if (CanManage)
+    {
+        <MudSelect T="ConsentChannelInfo" @bind-Value="_channel" Label="@L["Consents.Channel"]" Class="mb-2" Dense="true" aria-label="@L["Consents.Channel"]">
+            @foreach (var channel in Enum.GetValues<ConsentChannelInfo>())
+            {
+                <MudSelectItem T="ConsentChannelInfo" Value="channel">@CustomerLabels.Channel(L, channel)</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    @foreach (var purpose in Enum.GetValues<ConsentPurposeInfo>())
+    {
+        var current = Consents.Where(c => c.Purpose == purpose).OrderByDescending(c => c.GivenAtUtc).FirstOrDefault();
+        var given = current is { IsActive: true };
+        <div class="d-flex flex-wrap align-center justify-space-between gap-2 py-2">
+            <div>
+                <MudText Typo="Typo.body1">@CustomerLabels.Purpose(L, purpose)</MudText>
+                <MudText Typo="Typo.caption">
+                    @if (current is null)
+                    {
+                        @L["Consents.Never"]
+                    }
+                    else if (given)
+                    {
+                        @L["Consents.GivenOn", CustomerLabels.Instant(current.GivenAtUtc), CustomerLabels.Channel(L, current.GivenThrough)]
+                    }
+                    else
+                    {
+                        @L["Consents.WithdrawnOn", CustomerLabels.Instant(current.WithdrawnAtUtc), CustomerLabels.Channel(L, current.WithdrawnThrough ?? current.GivenThrough)]
+                    }
+                </MudText>
+            </div>
+            <MudSwitch T="bool" Value="given" ValueChanged="@(value => SetAsync(purpose, value))" Color="Color.Success"
+                       Disabled="@(!CanManage || _busy)" Label="@(given ? L["Consents.Given"] : L["Consents.NotGiven"])"
+                       AriaLabel="@CustomerLabels.Purpose(L, purpose)" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private ConsentChannelInfo _channel = ConsentChannelInfo.Counter;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ConsentItem> Consents { get; set; } = [];
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private async Task SetAsync(ConsentPurposeInfo purpose, bool given)
+    {
+        _busy = true;
+        var personId = PersonId;
+        var channel = _channel;
+        var result = await Runner.RunAsync<PersonAdministrationService, Result>(
+            (service, ct) => service.SetConsentAsync(personId, purpose, channel, given, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(given ? L["Consents.Recorded"] : L["Consents.Withdrawn"], Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

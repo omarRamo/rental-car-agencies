@@ -1,0 +1,100 @@
+@* Upload of one side of a document from the tablet camera (accept image/*, capture) or from a file (JPEG, PNG, PDF).
+   Photos are reduced in the browser to about 1600 px before upload; the server checks the real format and the size. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Domain.Customers
+@using Microsoft.JSInterop
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<span class="document-upload d-inline-flex flex-wrap align-center gap-2">
+    <InputFile id="@_cameraId" class="visually-hidden" accept="image/*" capture="environment" OnChange="UploadAsync" disabled="@_busy" />
+    <MudButton HtmlTag="label" for="@_cameraId" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.PhotoCamera">@L["Upload.Camera", SideLabel]</MudButton>
+    <InputFile id="@_fileId" class="visually-hidden" accept="image/jpeg,image/png,application/pdf" OnChange="UploadAsync" disabled="@_busy" />
+    <MudButton HtmlTag="label" for="@_fileId" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.UploadFile">@L["Upload.File", SideLabel]</MudButton>
+    @if (_busy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true" aria-label="@L["Upload.Busy"]" />
+    }
+</span>
+
+@code {
+    /// <summary>Maximum side of a photo after reduction in the browser.</summary>
+    private const int MaxPhotoSide = 1600;
+
+    private readonly string _cameraId = $"camera-{Guid.NewGuid():N}";
+    private readonly string _fileId = $"file-{Guid.NewGuid():N}";
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public Guid DocumentId { get; set; }
+
+    [Parameter, EditorRequired]
+    public DocumentImageSideInfo Side { get; set; }
+
+    [Parameter]
+    public EventCallback OnUploaded { get; set; }
+
+    private string SideLabel => L[$"Side.{Side}"];
+
+    private async Task UploadAsync(InputFileChangeEventArgs args)
+    {
+        _busy = true;
+        try
+        {
+            var file = await ReduceAsync(args.File);
+            using var buffer = new MemoryStream();
+            try
+            {
+                await using var stream = file.OpenReadStream(DocumentImage.MaxLength);
+                await stream.CopyToAsync(buffer);
+            }
+            catch (IOException)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, CustomersErrors.ImageTooLarge), Severity.Error);
+                return;
+            }
+
+            buffer.Position = 0;
+            var documentId = DocumentId;
+            var side = Side;
+            var result = await Runner.RunAsync<PersonAdministrationService, Result>(
+                (service, ct) => service.UploadDocumentImageAsync(documentId, side, buffer, ct));
+            if (result.IsSuccess)
+            {
+                Snackbar.Add(L["Upload.Done", SideLabel], Severity.Success);
+                await OnUploaded.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>A photo reduced to about 1600 px (JPEG) by the browser; PDFs and undecodable images are sent as they are.</summary>
+    private static async Task<IBrowserFile> ReduceAsync(IBrowserFile file)
+    {
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return file;
+        }
+
+        try
+        {
+            return await file.RequestImageFileAsync("image/jpeg", MaxPhotoSide, MaxPhotoSide);
+        }
+        catch (JSException)
+        {
+            return file;
+        }
+    }
+}

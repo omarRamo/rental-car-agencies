@@ -1,0 +1,39 @@
+@* A country picker (ISO 3166-1 alpha-2 code) searching the localized names; frequent countries first. *@
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudAutocomplete T="string" Value="Value" ValueChanged="ValueChanged" Label="@Label" SearchFunc="SearchAsync"
+                 ToStringFunc="@(code => string.IsNullOrEmpty(code) ? string.Empty : CustomerLabels.Country(code))"
+                 Clearable="true" ResetValueOnEmptyText="true" CoerceValue="false" MaxItems="300" Strict="true"
+                 Required="Required" RequiredError="@Shared["Validation.Required"]" HelperText="@HelperText" />
+
+@code {
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    private static Task<IEnumerable<string>> SearchAsync(string? text, CancellationToken cancellationToken)
+    {
+        var countries = CustomerLabels.Countries();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Task.FromResult<IEnumerable<string>>(countries);
+        }
+
+        var term = text.Trim();
+        return Task.FromResult(countries.Where(code =>
+            code.Equals(term, StringComparison.OrdinalIgnoreCase)
+            || CustomerLabels.CountryName(code).Contains(term, StringComparison.CurrentCultureIgnoreCase)
+            || CustomerLabels.Country(code).Equals(term, StringComparison.CurrentCultureIgnoreCase)));
+    }
+}
