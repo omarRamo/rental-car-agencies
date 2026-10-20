@@ -104,11 +104,17 @@ public sealed partial class FleetPhotoService(
             return file.Error;
         }
 
-        if (!await db.Set<VehicleCategory>().AnyAsync(c => c.Id == categoryId, cancellationToken))
+        var current = await db.Set<VehicleCategory>()
+            .AsNoTracking()
+            .Where(c => c.Id == categoryId)
+            .Select(c => new { c.PhotoPath })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (current is null)
         {
             return FleetErrors.CategoryNotFound;
         }
 
+        // The path derives from the content: uploading the current photo again writes the same blob.
         var path = FleetMedia.CategoryPhotoPath(categoryId, file.Value.ContentHash, file.Value.ContentType);
         await StoreAsync(path, file.Value, cancellationToken);
 
@@ -124,7 +130,11 @@ public sealed partial class FleetPhotoService(
             cancellationToken);
         if (replaced.IsFailure)
         {
-            await TryDeleteAsync(path);
+            if (!string.Equals(current.PhotoPath, path, StringComparison.Ordinal))
+            {
+                await TryDeleteAsync(path);
+            }
+
             return replaced.Error;
         }
 
