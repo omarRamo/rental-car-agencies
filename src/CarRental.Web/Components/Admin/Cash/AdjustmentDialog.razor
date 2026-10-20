@@ -1,0 +1,83 @@
+@* Correction of an error of an earlier session (closed or locked) through a signed adjustment in this open session
+   (cash.manage): a locked session never changes. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CashResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Adjustment.Hint"]</MudText>
+        <MudRadioGroup T="CashPocketInfo" @bind-Value="_pocket" Class="mb-2" aria-label="@L["Field.Pocket"]">
+            <MudRadio T="CashPocketInfo" Value="CashPocketInfo.Revenue" Color="Color.Primary">@L["Pocket.Revenue"]</MudRadio>
+            <MudRadio T="CashPocketInfo" Value="CashPocketInfo.Deposit" Color="Color.Primary">@L["Pocket.Deposit"]</MudRadio>
+        </MudRadioGroup>
+        <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.SignedAmount"]" Format="N3" Adornment="Adornment.End" AdornmentText="TND"
+                         Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" HelperText="@L["Field.SignedAmount.Help"]" />
+        <MudSelect T="Guid?" @bind-Value="_corrected" Label="@L["Field.CorrectedSession"]" Clearable="true" Class="mt-2" ToStringFunc="SessionLabel">
+            @foreach (var session in _candidates)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)session.Id)">@SessionLabel(session.Id)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.Reason"]" Lines="2" MaxLength="500" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" Class="mt-2" Immediate="true" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_reason))">@L["Adjustment.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private CashPocketInfo _pocket = CashPocketInfo.Revenue;
+    private decimal? _amount;
+    private Guid? _corrected;
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+    private IReadOnlyList<CashSessionSummary> _candidates = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The open session that receives the adjustment.</summary>
+    [Parameter, EditorRequired]
+    public CashSessionDetails Session { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filter = new CashSessionFilter(CashierId: Session.CashierId);
+        var result = await Runner.RunAsync<ICashSessions, Result<CashSessionList>>((sessions, ct) => sessions.ListAsync(filter, new PageRequest(1, 50), ct));
+        _candidates = result.IsSuccess
+            ? [.. result.Value.Page.Items.Where(s => s.Id != Session.Id && s.Status != CashSessionStatusInfo.Open)]
+            : [];
+    }
+
+    private string SessionLabel(Guid? id) =>
+        _candidates.FirstOrDefault(s => s.Id == id) is { } session
+            ? $"{PaymentsFormat.Date(session.BusinessDate)} — {session.CashierName} ({L[$"Status.{session.Status}"]})"
+            : string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CashAdjustmentRequest(_pocket, PaymentsFormat.Value(_amount), _reason ?? string.Empty, _corrected);
+        var result = await Runner.RunAsync<ICashSessions, Result<Guid>>((sessions, ct) => sessions.AddAdjustmentAsync(Session.Id, request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

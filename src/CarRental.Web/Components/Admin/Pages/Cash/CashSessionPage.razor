@@ -1,0 +1,66 @@
+@page "/admin/cash/sessions/{SessionId:guid}"
+@attribute [HasPermission(Permissions.CashOwn)]
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CashResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+    <MudLink Href="/admin/cash">@L["Session.Back"]</MudLink>
+</MudStack>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _session is not null ? "true" : "false")">@Title</MudText>
+
+@if (_error is not null)
+{
+    <FinanceNotice Tone="FinanceTone.Danger" Role="alert">@_error</FinanceNotice>
+}
+else if (_session is { } session)
+{
+    <CashSessionView Session="session" IsOwner="@(session.CashierId == _userId)" CanManage="_canManage" OnChanged="LoadAsync" />
+}
+else
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Cash.Loading"]" />
+}
+
+@code {
+    private CashSessionDetails? _session;
+    private string? _error;
+    private bool _canManage;
+    private Guid? _userId;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    [Parameter]
+    public Guid SessionId { get; set; }
+
+    private string Title => _session is { } session
+        ? L["Session.Title", PaymentsFormat.Date(session.BusinessDate), session.CashierName]
+        : L["Session.TitleLoading"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        _canManage = user.HasPermission(Permissions.CashManage);
+        _userId = user.GetUserId();
+    }
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var sessionId = SessionId;
+        var result = await Runner.RunAsync<ICashSessions, Result<CashSessionDetails>>((sessions, ct) => sessions.GetAsync(sessionId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            _session = null;
+            return;
+        }
+
+        _error = null;
+        _session = result.Value;
+    }
+}

@@ -1,0 +1,18 @@
+@page "/admin/payments/bookings/{BookingId:guid}"
+@attribute [HasPermission(Permissions.PaymentsRead)]
+@inject IStringLocalizer<PaymentsResources> L
+
+<PageTitle>@L["Booking.Title", PaymentsFormat.ShortId(BookingId)]</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-1">
+    <MudLink Href="/admin/payments">@L["Booking.Back"]</MudLink>
+</MudStack>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@L["Booking.Title", PaymentsFormat.ShortId(BookingId)]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Booking.Subtitle", BookingId]</MudText>
+
+<BookingPaymentsPanel BookingId="BookingId" />
+
+@code {
+    [Parameter]
+    public Guid BookingId { get; set; }
+}

@@ -1,0 +1,92 @@
+@* Closing count of a session: counted revenue cash and deposit cash, live variances, justification when they differ. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CashResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <FinanceNotice Tone="FinanceTone.Warning" Class="mb-3">@L["Close.Warning"]</FinanceNotice>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_revenue" Label="@L["Field.CountedRevenue"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                 AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" Immediate="true"
+                                 HelperText="@L["Close.Expected", PaymentsFormat.Amount(Session.ExpectedRevenueCash)]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_deposit" Label="@L["Field.CountedDeposit"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                 AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" Immediate="true"
+                                 HelperText="@L["Close.Expected", PaymentsFormat.Amount(Session.ExpectedDepositCash)]" />
+            </MudItem>
+        </MudGrid>
+        <div role="status" aria-live="polite" class="mt-3" data-testid="close-variances">
+            @if (Variances is { } variances)
+            {
+                <MudText Typo="Typo.body1">@L["Close.RevenueVariance", PaymentsFormat.WithSign(variances.Revenue)]</MudText>
+                <MudText Typo="Typo.body1">@L["Close.DepositVariance", PaymentsFormat.WithSign(variances.Deposit)]</MudText>
+            }
+        </div>
+        <MudTextField T="string" @bind-Value="_justification" Label="@L["Field.Justification"]" Lines="3" MaxLength="500" Class="mt-2"
+                      Required="@HasVariance" RequiredError="@Shared["Validation.Required"]" Immediate="true"
+                      HelperText="@(HasVariance ? L["Field.Justification.Required"].Value : L["Field.Justification.Optional"].Value)" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(!CanSubmit)">@L["Close.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private decimal? _revenue;
+    private decimal? _deposit;
+    private string? _justification;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public CashSessionDetails Session { get; set; } = default!;
+
+    /// <summary>Counted minus expected cash of each pocket, once both amounts are typed.</summary>
+    private (Money Revenue, Money Deposit)? Variances =>
+        _revenue is { } revenue && _deposit is { } deposit
+            ? (Money.Tnd(revenue) - Session.ExpectedRevenueCash, Money.Tnd(deposit) - Session.ExpectedDepositCash)
+            : null;
+
+    private bool HasVariance => Variances is { } variances && (!variances.Revenue.IsZero || !variances.Deposit.IsZero);
+
+    private bool CanSubmit => !_busy && Variances is not null && (!HasVariance || !string.IsNullOrWhiteSpace(_justification));
+
+    protected override void OnInitialized()
+    {
+        // Nothing to count in the deposit cash: a zero is proposed, the revenue cash is always counted.
+        if (Session.ExpectedDepositCash.IsZero)
+        {
+            _deposit = 0m;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CloseCashSessionRequest(PaymentsFormat.Value(_revenue), PaymentsFormat.Value(_deposit), _justification);
+        var result = await Runner.RunAsync<ICashSessions, Result<CashSessionClosing>>((sessions, ct) => sessions.CloseAsync(Session.Id, request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

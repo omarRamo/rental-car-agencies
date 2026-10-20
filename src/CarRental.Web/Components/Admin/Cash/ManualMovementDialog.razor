@@ -1,0 +1,58 @@
+@* Other cash put in or taken from the revenue cash of an open session, with a mandatory reason. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CashResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudRadioGroup T="CashFlowDirectionInfo" @bind-Value="_direction" Class="mb-2" aria-label="@L["Field.Direction"]">
+            <MudRadio T="CashFlowDirectionInfo" Value="CashFlowDirectionInfo.In" Color="Color.Primary">@L["Direction.In"]</MudRadio>
+            <MudRadio T="CashFlowDirectionInfo" Value="CashFlowDirectionInfo.Out" Color="Color.Primary">@L["Direction.Out"]</MudRadio>
+        </MudRadioGroup>
+        <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND"
+                         Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.Reason"]" Lines="2" MaxLength="500" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.Reason.Help"]" Class="mt-2" Immediate="true" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_reason))">@L["Manual.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private CashFlowDirectionInfo _direction = CashFlowDirectionInfo.Out;
+    private decimal? _amount;
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid SessionId { get; set; }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new ManualCashMovementRequest(_direction, PaymentsFormat.Value(_amount), _reason ?? string.Empty);
+        var result = await Runner.RunAsync<ICashSessions, Result<Guid>>((sessions, ct) => sessions.AddManualMovementAsync(SessionId, request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

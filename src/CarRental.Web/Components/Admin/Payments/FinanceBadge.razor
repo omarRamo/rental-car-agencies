@@ -1,0 +1,24 @@
+@* A small status pill with white text on colours that reach a 4.5:1 contrast (WCAG 2.2 AA), which the default MudBlazor
+   success and warning palettes do not; the text always carries the meaning, the colour only helps. *@
+
+<span class="finance-badge" style="@Style">@ChildContent</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public FinanceTone Tone { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Style =>
+        $"display:inline-block;padding:0.125rem 0.625rem;border-radius:1rem;font-size:0.8125rem;font-weight:500;line-height:1.5;white-space:nowrap;color:#ffffff;background-color:{Background}";
+
+    private string Background => Tone switch
+    {
+        FinanceTone.Success => "#15803d",
+        FinanceTone.Warning => "#b45309",
+        FinanceTone.Danger => "#b91c1c",
+        FinanceTone.Info => "#1d4ed8",
+        _ => "#4b5563",
+    };
+}
