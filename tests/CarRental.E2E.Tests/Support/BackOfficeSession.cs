@@ -69,6 +69,14 @@ internal static class BackOfficeSession
             "() => { const open = [...document.querySelectorAll('.mud-popover-open')]; return open.length > 0 && open.every(p => getComputedStyle(p).opacity === '1'); }");
     }
 
+    /// <summary>Waits until the open dialog has finished its opening animation (same reason as <see cref="WaitForOpenPopoverAsync"/>).</summary>
+    public static async Task WaitForOpenDialogAsync(IPage page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        await page.WaitForFunctionAsync(
+            "() => { const dialogs = [...document.querySelectorAll('.mud-dialog')]; return dialogs.length > 0 && dialogs.every(d => getComputedStyle(d).opacity === '1' && d.getAnimations().every(a => a.playState === 'finished')); }");
+    }
+
     /// <summary>No critical or serious axe violation on the page as it is now.</summary>
     public static async Task AssertNoSeriousAxeViolationAsync(IPage page)
     {

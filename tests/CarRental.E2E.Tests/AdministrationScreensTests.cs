@@ -61,8 +61,57 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
     }
 
+    [Fact]
+    public async Task A_manager_edits_settings_of_every_kind_and_overrides_one_for_the_agency()
+    {
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), "/admin/settings");
+        await BackOfficeSession.WaitUntilInteractiveAsync(Page);
+        await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Flotte", Level = 2 })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Agence" })).ToHaveTextAsync("Agence Démo Tunis");
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+
+        // A setting without label resources shows its key; a text is edited in a text field.
+        var motto = SettingRow("tests.motto");
+        await motto.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.motto" }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog);
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+        await dialog.GetByLabel("Valeur").FillAsync("Bonjour E2E");
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(Page.GetByText("Paramètre enregistré.")).ToBeVisibleAsync();
+        await Expect(motto.Locator("[data-setting-scope='platform']")).ToContainTextAsync("Bonjour E2E");
+
+        // A time range, typed in its two time fields.
+        var hours = SettingRow("tests.opening_hours");
+        await hours.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.opening_hours" }).ClickAsync();
+        await dialog.GetByLabel("Début").FillAsync("09:00");
+        await dialog.GetByLabel("Début").PressAsync("Tab");
+        await dialog.GetByLabel("Fin").FillAsync("19:30");
+        await dialog.GetByLabel("Fin").PressAsync("Tab");
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(hours.Locator("[data-setting-scope='platform']")).ToContainTextAsync("09:00 – 19:30");
+
+        // The preparation buffer of the agency: an own value, then back to the platform value.
+        var buffer = SettingRow("fleet.preparation_buffer");
+        await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Valeur de la plateforme");
+        await buffer.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Définir la valeur de l'agence : Tampon de préparation" }).ClickAsync();
+        await dialog.GetByLabel("Durée").FillAsync("3");
+        await dialog.GetByLabel("Durée").PressAsync("Tab");
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("3 h");
+
+        await buffer.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retirer la valeur de l'agence : Tampon de préparation" }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retirer", Exact = true }).ClickAsync();
+        await Expect(Page.GetByText("Valeur de l'agence retirée")).ToBeVisibleAsync();
+        await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Valeur de la plateforme");
+    }
+
     [GeneratedRegex("^Relancer le message E2eUnhandledMessage")]
     private static partial Regex RetryLabel();
+
+    /// <summary>The table row of a setting, found by its key.</summary>
+    private ILocator SettingRow(string key) =>
+        Page.Locator("tr", new PageLocatorOptions { Has = Page.Locator($"[data-setting-key='{key}']") });
 
     /// <summary>A message without handler that failed for good (written in one insert: the processor never sees it half-made).</summary>
     private async Task<Guid> InsertFailedMessageAsync()

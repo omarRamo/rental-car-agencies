@@ -1,0 +1,182 @@
+@* Edits one value of a setting (platform, or one agency) with the editor of its kind; the value is stored in its
+   invariant format and validated by the setting definition (SettingsAdministrationService). *@
+@using CarRental.Application.Referential.Administration
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Web.Resources.Admin.Settings
+@inject IOperationRunner Runner
+@inject IStringLocalizer<SettingsAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Help))
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@Help</MudText>
+        }
+        <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Default", SettingText.Display(L, Item.Editor.Kind, Item.DefaultValue)]</MudText>
+        @if (Agency is not null)
+        {
+            <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Platform.Current", SettingText.Display(L, Item.Editor.Kind, Item.PlatformOrDefault)]</MudText>
+        }
+
+        <div class="mt-4" data-setting-editor="@Item.Editor.Kind">
+            @switch (Item.Editor.Kind)
+            {
+                case SettingKind.Duration:
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+                        <MudNumericField T="int" @bind-Value="_durationAmount" Label="@L["Settings.Field.Duration"]" Min="0" HelperText="@BoundsHint" Class="flex-grow-1" />
+                        <MudSelect T="DurationUnit" @bind-Value="_durationUnit" Label="@L["Settings.Field.Unit"]" Class="settings-unit">
+                            @foreach (var unit in Enum.GetValues<DurationUnit>())
+                            {
+                                <MudSelectItem T="DurationUnit" Value="unit">@L[$"Settings.Unit.{unit}"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudStack>
+                    break;
+                case SettingKind.Number:
+                    <MudNumericField T="decimal" @bind-Value="_number" Label="@L["Settings.Field.Value"]" Min="@DecimalBound(Item.Editor.Minimum, decimal.MinValue)"
+                                     Max="@DecimalBound(Item.Editor.Maximum, decimal.MaxValue)" Step="0.01m" HelperText="@BoundsHint" />
+                    break;
+                case SettingKind.WholeNumber:
+                    <MudNumericField T="int" @bind-Value="_whole" Label="@L["Settings.Field.Value"]" Min="@IntBound(Item.Editor.Minimum, int.MinValue)"
+                                     Max="@IntBound(Item.Editor.Maximum, int.MaxValue)" HelperText="@BoundsHint" />
+                    break;
+                case SettingKind.Amount:
+                    <MudNumericField T="decimal" @bind-Value="_number" Label="@L["Settings.Field.Amount"]" Min="0m" Step="0.5m" Format="N3"
+                                     Adornment="Adornment.End" AdornmentText="TND" HelperText="@BoundsHint" />
+                    break;
+                case SettingKind.Boolean:
+                    <MudSwitch T="bool" @bind-Value="_flag" Label="@L["Settings.Field.Enabled"]" Color="Color.Primary" />
+                    break;
+                case SettingKind.TimeRange:
+                    <MudStack Row="true" Spacing="2">
+                        <MudTimePicker @bind-Time="_start" Label="@L["Settings.Field.Start"]" Editable="true" Class="flex-grow-1" />
+                        <MudTimePicker @bind-Time="_end" Label="@L["Settings.Field.End"]" Editable="true" Class="flex-grow-1" />
+                    </MudStack>
+                    break;
+                default:
+                    <MudTextField T="string" @bind-Value="_text" Label="@L["Settings.Field.Value"]" MaxLength="@(Item.Editor.MaxLength ?? 524288)"
+                                  Counter="@Item.Editor.MaxLength" HelperText="@BoundsHint" />
+                    break;
+            }
+        </div>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@L["Settings.Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _text = string.Empty;
+    private decimal _number;
+    private int _whole;
+    private bool _flag;
+    private int _durationAmount;
+    private DurationUnit _durationUnit = DurationUnit.Minutes;
+    private TimeSpan? _start;
+    private TimeSpan? _end;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public SettingItem Item { get; set; } = default!;
+
+    /// <summary>The agency whose value is edited; the platform value when null.</summary>
+    [Parameter]
+    public SettingsAgency? Agency { get; set; }
+
+    [Parameter]
+    public string? Help { get; set; }
+
+    private string? BoundsHint => (Item.Editor.Minimum, Item.Editor.Maximum, Item.Editor.MaxLength) switch
+    {
+        ({ } minimum, { } maximum, _) => L["Settings.Range", Display(minimum), Display(maximum)].Value,
+        ({ } minimum, null, _) => L["Settings.Minimum", Display(minimum)].Value,
+        (null, null, { } maxLength) => L["Settings.MaxLength", maxLength].Value,
+        _ => null,
+    };
+
+    protected override void OnInitialized()
+    {
+        var current = Agency is { } agency && Item.AgencyValues.TryGetValue(agency.Id, out var own) ? own : Item.PlatformOrDefault;
+        switch (Item.Editor.Kind)
+        {
+            case SettingKind.Duration when SettingValues.TryParseDuration(current, out var duration):
+                (_durationAmount, _durationUnit) = DurationUnits.Split(duration);
+                break;
+            case SettingKind.Number or SettingKind.Amount when SettingValues.TryParseNumber(current, out var number):
+                _number = number;
+                break;
+            case SettingKind.WholeNumber when SettingValues.TryParseWholeNumber(current, out var whole):
+                _whole = whole;
+                break;
+            case SettingKind.Boolean when SettingValues.TryParseBoolean(current, out var flag):
+                _flag = flag;
+                break;
+            case SettingKind.TimeRange when SettingValues.TryParseTimeRange(current, out var range):
+                _start = range.Start.ToTimeSpan();
+                _end = range.End.ToTimeSpan();
+                break;
+            default:
+                _text = current;
+                break;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        var key = Item.Key;
+        var value = StoredValue();
+        var agencyId = Agency?.Id;
+        var result = await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => agencyId is { } id
+            ? service.SetAgencyValueAsync(key, id, value, ct)
+            : service.SetPlatformValueAsync(key, value, ct));
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    /// <summary>The edited value in the invariant storage format of its kind.</summary>
+    private string StoredValue() => Item.Editor.Kind switch
+    {
+        SettingKind.Duration => SettingValues.FormatDuration(DurationUnits.Combine(_durationAmount, _durationUnit)),
+        SettingKind.Number => SettingValues.FormatNumber(_number),
+        SettingKind.WholeNumber => SettingValues.FormatWholeNumber(_whole),
+
+        // Three decimals at most: other amounts reach the definition as typed, which rejects them.
+        SettingKind.Amount => decimal.Round(_number, 3) == _number ? SettingValues.FormatAmount(_number) : SettingValues.FormatNumber(_number),
+        SettingKind.Boolean => SettingValues.FormatBoolean(_flag),
+        SettingKind.TimeRange when _start is { } start && _end is { } end =>
+            SettingValues.FormatTimeRange(new DailyTimeRange(TimeOnly.FromTimeSpan(start), TimeOnly.FromTimeSpan(end))),
+        SettingKind.TimeRange => string.Empty,
+        _ => _text,
+    };
+
+    private string Display(string storedValue) => SettingText.Display(L, Item.Editor.Kind, storedValue);
+
+    private static decimal DecimalBound(string? bound, decimal fallback) =>
+        SettingValues.TryParseNumber(bound, out var value) ? value : fallback;
+
+    private static int IntBound(string? bound, int fallback) =>
+        SettingValues.TryParseWholeNumber(bound, out var value) ? value : fallback;
+
+    private void Cancel() => Dialog.Cancel();
+}

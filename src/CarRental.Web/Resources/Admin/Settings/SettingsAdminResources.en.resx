@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings.Intro" xml:space="preserve">
+    <value>The platform value applies to every agency; an agency may have its own value, which replaces it. Every change is recorded in the audit log.</value>
+  </data>
+  <data name="Settings.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Settings.NoAgency" xml:space="preserve">
+    <value>No agency is registered: only the platform values can be changed.</value>
+  </data>
+  <data name="Settings.Column.Setting" xml:space="preserve">
+    <value>Setting</value>
+  </data>
+  <data name="Settings.Column.Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Settings.Column.Platform" xml:space="preserve">
+    <value>Platform</value>
+  </data>
+  <data name="Settings.Column.Agency" xml:space="preserve">
+    <value>Agency value</value>
+  </data>
+  <data name="Settings.Key" xml:space="preserve">
+    <value>Key: {0}</value>
+  </data>
+  <data name="Settings.Inherited" xml:space="preserve">
+    <value>Platform value</value>
+  </data>
+  <data name="Settings.IsDefault" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="Settings.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Settings.Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings.SetForAgency" xml:space="preserve">
+    <value>Set</value>
+  </data>
+  <data name="Settings.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Settings.Edit.Platform.Label" xml:space="preserve">
+    <value>Edit the platform value: {0}</value>
+  </data>
+  <data name="Settings.Reset.Platform.Label" xml:space="preserve">
+    <value>Reset to the default value: {0}</value>
+  </data>
+  <data name="Settings.Edit.Agency.Label" xml:space="preserve">
+    <value>Set the agency value: {0}</value>
+  </data>
+  <data name="Settings.Remove.Agency.Label" xml:space="preserve">
+    <value>Remove the agency value: {0}</value>
+  </data>
+  <data name="Settings.Reset.Confirm.Title" xml:space="preserve">
+    <value>Reset to the default value</value>
+  </data>
+  <data name="Settings.Reset.Confirm.Message" xml:space="preserve">
+    <value>"{0}" goes back to its default value ({1}) for the whole platform.</value>
+  </data>
+  <data name="Settings.Remove.Confirm.Title" xml:space="preserve">
+    <value>Remove the agency value</value>
+  </data>
+  <data name="Settings.Remove.Confirm.Message" xml:space="preserve">
+    <value>"{0}" goes back to the platform value ({1}) for {2}.</value>
+  </data>
+  <data name="Settings.Saved" xml:space="preserve">
+    <value>Setting saved.</value>
+  </data>
+  <data name="Settings.ResetDone" xml:space="preserve">
+    <value>Default value restored.</value>
+  </data>
+  <data name="Settings.Removed" xml:space="preserve">
+    <value>Agency value removed: the platform value applies.</value>
+  </data>
+  <data name="Settings.Dialog.Platform" xml:space="preserve">
+    <value>{0} — platform</value>
+  </data>
+  <data name="Settings.Dialog.Agency" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Settings.Dialog.Default" xml:space="preserve">
+    <value>Default value: {0}</value>
+  </data>
+  <data name="Settings.Dialog.Platform.Current" xml:space="preserve">
+    <value>Platform value: {0}</value>
+  </data>
+  <data name="Settings.Dialog.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Settings.Field.Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Settings.Field.Amount" xml:space="preserve">
+    <value>Amount (TND)</value>
+  </data>
+  <data name="Settings.Field.Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Settings.Field.Unit" xml:space="preserve">
+    <value>Unit</value>
+  </data>
+  <data name="Settings.Field.Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Settings.Field.Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Settings.Field.End" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="Settings.Unit.Minutes" xml:space="preserve">
+    <value>minutes</value>
+  </data>
+  <data name="Settings.Unit.Hours" xml:space="preserve">
+    <value>hours</value>
+  </data>
+  <data name="Settings.Unit.Days" xml:space="preserve">
+    <value>days</value>
+  </data>
+  <data name="Settings.Range" xml:space="preserve">
+    <value>Between {0} and {1}.</value>
+  </data>
+  <data name="Settings.Minimum" xml:space="preserve">
+    <value>{0} at least.</value>
+  </data>
+  <data name="Settings.MaxLength" xml:space="preserve">
+    <value>{0} characters at most.</value>
+  </data>
+  <data name="Settings.Value.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Settings.Value.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Settings.Value.Empty" xml:space="preserve">
+    <value>(empty)</value>
+  </data>
+  <data name="Settings.Value.Days" xml:space="preserve">
+    <value>{0} d</value>
+  </data>
+  <data name="Settings.Value.Hours" xml:space="preserve">
+    <value>{0} h</value>
+  </data>
+  <data name="Settings.Value.Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Settings.Value.TimeRange" xml:space="preserve">
+    <value>{0} – {1}</value>
+  </data>
+</root>

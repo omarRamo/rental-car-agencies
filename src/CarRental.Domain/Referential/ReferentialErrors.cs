@@ -37,4 +37,8 @@ public static class ReferentialErrors
     public static readonly Error SettingValueInvalid = Error.Validation(
         "referential.setting_value_invalid",
         $"A setting value is required ({Setting.ValueMaxLength} characters max).");
+
+    public static readonly Error PlatformSettingRequired = Error.Validation(
+        "referential.platform_setting_required",
+        "The platform value of a setting cannot be removed: set it back to its default instead.");
 }

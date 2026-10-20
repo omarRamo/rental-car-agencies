@@ -1,4 +1,5 @@
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Referential.Administration;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Referential.Seeding;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ public static class ReferentialModule
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IReferentialQueries, ReferentialQueries>();
         services.AddScoped<ISettingsReader, SettingsReader>();
+        services.AddScoped<SettingsAdministrationService>();
         services.AddSettingDefinitions(WellKnownSettings.All);
         services.AddDataSeeder<ReferentialSettingsSeeder>();
         services.AddDataSeeder<ReferentialDemoSeeder>();

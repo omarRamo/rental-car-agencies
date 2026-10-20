@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Group.billing" xml:space="preserve">
+    <value>Billing</value>
+  </data>
+  <data name="Group.bookings" xml:space="preserve">
+    <value>Bookings</value>
+  </data>
+  <data name="Group.customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Group.drivers" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Group.fleet" xml:space="preserve">
+    <value>Fleet</value>
+  </data>
+  <data name="Group.outbox" xml:space="preserve">
+    <value>Background messages</value>
+  </data>
+  <data name="Group.pricing" xml:space="preserve">
+    <value>Pricing</value>
+  </data>
+  <data name="Setting.billing.vat_rate.Label" xml:space="preserve">
+    <value>VAT rate</value>
+  </data>
+  <data name="Setting.billing.vat_rate.Help" xml:space="preserve">
+    <value>Decimal rate: 0.19 for 19%. To be confirmed by the chartered accountant.</value>
+  </data>
+  <data name="Setting.billing.daily_contribution_excl_vat.Label" xml:space="preserve">
+    <value>Daily contribution excluding VAT</value>
+  </data>
+  <data name="Setting.billing.daily_contribution_excl_vat.Help" xml:space="preserve">
+    <value>Amount per day and per rented vehicle (2026 finance law), part of the VAT base.</value>
+  </data>
+  <data name="Setting.billing.stamp_duty.Label" xml:space="preserve">
+    <value>Stamp duty</value>
+  </data>
+  <data name="Setting.billing.stamp_duty.Help" xml:space="preserve">
+    <value>Amount added to each invoice. Value to be provided by the chartered accountant (0.000 meanwhile).</value>
+  </data>
+  <data name="Setting.bookings.hold_duration.Label" xml:space="preserve">
+    <value>Hold time of a web request</value>
+  </data>
+  <data name="Setting.bookings.hold_duration.Help" xml:space="preserve">
+    <value>How long a web request keeps a vehicle of its category before it expires if no agent validates it (24 h by default).</value>
+  </data>
+  <data name="Setting.customers.document_image_retention_enabled.Label" xml:space="preserve">
+    <value>Purge of identity document images</value>
+  </data>
+  <data name="Setting.customers.document_image_retention_enabled.Help" xml:space="preserve">
+    <value>Keep it off until the legal destruction procedure is validated (official report, law 2004-63).</value>
+  </data>
+  <data name="Setting.customers.document_image_retention_days.Label" xml:space="preserve">
+    <value>Retention of document images (days)</value>
+  </data>
+  <data name="Setting.customers.document_image_retention_days.Help" xml:space="preserve">
+    <value>Days kept after the person's last closed rental, or after the upload (400 by default).</value>
+  </data>
+  <data name="Setting.drivers.minimum_age.Label" xml:space="preserve">
+    <value>Minimum driver age</value>
+  </data>
+  <data name="Setting.drivers.minimum_age.Help" xml:space="preserve">
+    <value>Age on the pick-up date, in years (21 by default).</value>
+  </data>
+  <data name="Setting.drivers.minimum_license_years.Label" xml:space="preserve">
+    <value>Minimum licence seniority</value>
+  </data>
+  <data name="Setting.drivers.minimum_license_years.Help" xml:space="preserve">
+    <value>Years since the licence was issued, on the pick-up date (2 by default).</value>
+  </data>
+  <data name="Setting.fleet.preparation_buffer.Label" xml:space="preserve">
+    <value>Preparation buffer</value>
+  </data>
+  <data name="Setting.fleet.preparation_buffer.Help" xml:space="preserve">
+    <value>Time added after each return before the vehicle can leave again (2 h by default). Availability takes it into account at once.</value>
+  </data>
+  <data name="Setting.outbox.processed_retention.Label" xml:space="preserve">
+    <value>Retention of processed messages</value>
+  </data>
+  <data name="Setting.outbox.processed_retention.Help" xml:space="preserve">
+    <value>Processed background messages are deleted every night beyond this duration (30 days by default); failed messages are kept.</value>
+  </data>
+  <data name="Setting.pricing.late_return_tolerance.Label" xml:space="preserve">
+    <value>Late return tolerance</value>
+  </data>
+  <data name="Setting.pricing.late_return_tolerance.Help" xml:space="preserve">
+    <value>Delay allowed before one more rental day is counted (59 min by default).</value>
+  </data>
+</root>

@@ -47,8 +47,25 @@
   inline-size: 10rem;
 }
 
-.outbox-filter {
+.outbox-filter,
+.settings-agency {
   max-inline-size: 22rem;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-block-start: 0.25rem;
+}
+
+.settings-key,
+.settings-inherited {
+  color: var(--mud-palette-text-secondary);
+}
+
+.settings-unit {
+  max-inline-size: 10rem;
 }
 
 .outbox-error {
