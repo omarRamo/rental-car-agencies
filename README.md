@@ -2,7 +2,7 @@
 
 Plateforme de location de voitures pour une agence tunisienne de 30 véhicules. Elle centralise toutes les locations (site, téléphone, comptoir, WhatsApp et Booking.com) dans une seule application, avec une traçabilité complète et un hébergement Azure à coût minimal.
 
-> **Statut : lot 0 (socle technique) terminé.** Solution .NET 10, comptes avec double authentification obligatoire, rôles et permissions, journal d'audit, outbox, santé, localisation français et anglais, mises en page publique et back office, données de démonstration, CI et infrastructure Azure décrites en Bicep. Le déploiement de la recette attend l'abonnement Azure ([points ouverts](docs/points-ouverts.md), écart n° 7). Prochaine étape : lot 1 (exploitation).
+> **Statut : lot 0 (socle technique) terminé.** Solution .NET 10, comptes avec double authentification obligatoire, rôles et permissions, journal d'audit, outbox, santé, localisation français et anglais, mises en page publique et back office, données de démonstration, intégration continue (GitHub Actions) et infrastructure Azure (Bicep). Le déploiement de la recette attend l'abonnement Azure ([points ouverts](docs/points-ouverts.md), écart n° 7). Prochaine étape : lot 1 (exploitation).
 
 ## Ce que couvre la plateforme
 
