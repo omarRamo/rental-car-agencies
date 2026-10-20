@@ -499,3 +499,6 @@ TestResults/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Git worktrees of parallel agents (Claude Code)
+.claude/worktrees/
