@@ -1,0 +1,70 @@
+@* An other cost of a vehicle (registration fees, accessories, GPS tracker…). *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_label" Label="@L["Cost.Field.Label"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="VehicleCost.LabelMaxLength" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_incurredOn" Label="@L["Cost.Field.Date"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="decimal" @bind-Value="_amount" Label="@L["Cost.Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _label;
+    private DateTime? _incurredOn;
+    private decimal _amount;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    protected override void OnInitialized() => _incurredOn = TunisTime.Today(Time).ToDateTime(TimeOnly.MinValue);
+
+    private async Task SubmitAsync()
+    {
+        if (_incurredOn is not { } incurredOn)
+        {
+            _error = Shared["Validation.Required"];
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var form = new CostForm(DateOnly.FromDateTime(incurredOn), _label ?? string.Empty, _amount);
+        var result = await Runner.RunAsync<VehicleService, Result<Guid>>((service, ct) => service.AddCostAsync(VehicleId, form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

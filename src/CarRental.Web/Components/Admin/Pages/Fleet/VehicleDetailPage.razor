@@ -1,0 +1,163 @@
+@page "/admin/fleet/vehicles/{VehicleId:guid}"
+@attribute [HasPermission(Permissions.FleetRead)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@(_vehicle?.PlateNumber ?? L["Vehicle.Title"])</PageTitle>
+
+<MudLink Href="/admin/fleet" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mb-2 d-inline-flex">@L["Vehicle.Back"]</MudLink>
+
+@if (_vehicle is null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Vehicle.Title"]</MudText>
+    @if (_notFound)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-4">@L["Vehicle.NotFound"]</MudAlert>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" Class="mt-4" />
+    }
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+        <div>
+            <MudText Typo="Typo.h4" HtmlTag="h1">@_vehicle.PlateNumber</MudText>
+            <MudText Typo="Typo.subtitle1">@_vehicle.Make @_vehicle.Model (@_vehicle.Year) · @_vehicle.CategoryCode — @_vehicle.CategoryName</MudText>
+            <MudStack Row="true" Spacing="2" Class="mt-1" Wrap="Wrap.Wrap">
+                <FleetBadge Tone="FleetFormat.ToneOf(_vehicle.Status)">@L[$"Status.{_vehicle.Status}"]</FleetBadge>
+                <DeadlineBadge Deadline="_vehicle.Deadline" />
+            </MudStack>
+        </div>
+        @if (_vehicle.Status != VehicleStatus.Sold)
+        {
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                @if (_canManage)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">@L["Vehicle.Edit"]</MudButton>
+                }
+                @if (_canMaintain)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ChangeStatusAsync">@L["Vehicle.ChangeStatus"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Speed" OnClick="() => MileageAsync(false)">@L["Vehicle.RecordMileage"]</MudButton>
+                }
+                @if (_canManage)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => MileageAsync(true)">@L["Vehicle.CorrectMileage"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sell" OnClick="SellAsync">@L["Vehicle.Sell"]</MudButton>
+                }
+            </MudStack>
+        }
+    </MudStack>
+
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4" Class="mt-4">
+        <MudTabPanel Text="@L["Tab.Identity"]">
+            <VehicleIdentityTab Detail="_vehicle" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Documents"]">
+            <VehicleDocumentsTab Detail="_vehicle" CanManage="_canManage" Changed="ReloadAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Maintenance"]">
+            <VehicleMaintenanceTab Detail="_vehicle" CanMaintain="_canMaintain" Changed="ReloadAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Economics"]">
+            <VehicleEconomicsTab Detail="_vehicle" CanManage="_canManage" Changed="ReloadAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Photos"]">
+            <VehiclePhotosTab Detail="_vehicle" CanManage="_canManage" Changed="ReloadAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.History"]">
+            <VehicleHistoryTab Detail="_vehicle" Categories="_categories" />
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private VehicleDetail? _vehicle;
+    private IReadOnlyList<CategoryAdminItem> _categories = [];
+    private bool _notFound;
+    private bool _canManage;
+    private bool _canMaintain;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        _canManage = user.HasPermission(Permissions.FleetManage);
+        _canMaintain = _canManage || user.HasPermission(Permissions.FleetMaintenance);
+        var categories = await Runner.RunAsync<FleetAdminQueries, Result<IReadOnlyList<CategoryAdminItem>>>((queries, ct) => queries.ListCategoriesAsync(true, ct));
+        _categories = categories.IsSuccess ? categories.Value : [];
+    }
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var id = VehicleId;
+        var result = await Runner.RunAsync<FleetAdminQueries, Result<VehicleDetail>>((queries, ct) => queries.GetVehicleAsync(id, ct));
+        if (result.IsSuccess)
+        {
+            _vehicle = result.Value;
+            _notFound = false;
+        }
+        else
+        {
+            _vehicle = null;
+            _notFound = result.Error.Kind == ErrorKind.NotFound;
+            if (!_notFound)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            }
+        }
+    }
+
+    private Task EditAsync() => OpenAsync<VehicleFormDialog>(
+        L["Vehicle.Edit"],
+        new DialogParameters
+        {
+            [nameof(VehicleFormDialog.Categories)] = _categories,
+            [nameof(VehicleFormDialog.VehicleId)] = (Guid?)VehicleId,
+            [nameof(VehicleFormDialog.Existing)] = _vehicle,
+        },
+        MaxWidth.Medium);
+
+    private Task ChangeStatusAsync() => OpenAsync<StatusDialog>(
+        L["Vehicle.ChangeStatus"],
+        new DialogParameters
+        {
+            [nameof(StatusDialog.VehicleId)] = VehicleId,
+            [nameof(StatusDialog.Current)] = _vehicle!.Status,
+            [nameof(StatusDialog.CanManage)] = _canManage,
+        });
+
+    private Task MileageAsync(bool correction) => OpenAsync<MileageDialog>(
+        correction ? L["Vehicle.CorrectMileage"] : L["Vehicle.RecordMileage"],
+        new DialogParameters
+        {
+            [nameof(MileageDialog.VehicleId)] = VehicleId,
+            [nameof(MileageDialog.CurrentMileage)] = _vehicle!.Mileage,
+            [nameof(MileageDialog.Correction)] = correction,
+        });
+
+    private Task SellAsync() => OpenAsync<SaleDialog>(L["Vehicle.Sell"], new DialogParameters { [nameof(SaleDialog.VehicleId)] = VehicleId });
+
+    private async Task OpenAsync<TDialog>(string title, DialogParameters parameters, MaxWidth maxWidth = MaxWidth.Small)
+        where TDialog : ComponentBase
+    {
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, FleetFormat.Dialog(maxWidth));
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+}

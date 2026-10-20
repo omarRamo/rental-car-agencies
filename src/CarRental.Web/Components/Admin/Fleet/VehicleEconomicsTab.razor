@@ -1,0 +1,141 @@
+@* Purchase, financing and straight-line depreciation (monthly schedule of the current year), and other costs. *@
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Economics.Heading"]</MudText>
+    @if (CanManage)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">@L["Action.Edit"]</MudButton>
+    }
+</MudStack>
+
+@if (Detail.Economics is { } economics)
+{
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" md="6">
+            <MudSimpleTable Dense="true" Elevation="0">
+                <tbody>
+                    <tr><th scope="row">@L["Economics.Field.PurchasePrice"]</th><td>@FleetFormat.Amount(economics.PurchasePrice)</td></tr>
+                    <tr><th scope="row">@L["Economics.Field.PurchasedOn"]</th><td>@FleetFormat.Date(economics.PurchasedOn)</td></tr>
+                    <tr><th scope="row">@L["Economics.Field.Financing"]</th><td>@L[$"Financing.{economics.Financing}"]</td></tr>
+                    @if (economics.MonthlyPayment is { } payment)
+                    {
+                        <tr><th scope="row">@L["Economics.Field.MonthlyPayment"]</th><td>@L["Economics.Payment", FleetFormat.Amount(payment), economics.FinancingMonths ?? 0]</td></tr>
+                    }
+                    <tr><th scope="row">@L["Economics.Field.DepreciationYears"]</th><td>@L["Economics.Years", economics.DepreciationYears, FleetFormat.Date(economics.DepreciationEndsOn)]</td></tr>
+                    <tr><th scope="row">@L["Economics.Field.ResidualValue"]</th><td>@FleetFormat.Amount(economics.ResidualValue)</td></tr>
+                    <tr><th scope="row">@L["Economics.Depreciable"]</th><td>@FleetFormat.Amount(economics.DepreciableAmount)</td></tr>
+                    <tr><th scope="row">@L["Economics.Accumulated"]</th><td>@FleetFormat.Amount(economics.AccumulatedDepreciation)</td></tr>
+                    <tr><th scope="row">@L["Economics.BookValue"]</th><td><strong>@FleetFormat.Amount(economics.BookValue)</strong></td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTable T="MonthlyEconomics" Items="economics.Schedule" Dense="true" Elevation="0" Breakpoint="Breakpoint.None"
+                      TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Economics.Schedule"].Value })">
+                <ToolBarContent>
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Economics.Schedule"]</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>@L["Economics.Column.Month"]</MudTh>
+                    <MudTh>@L["Economics.Column.Depreciation"]</MudTh>
+                    <MudTh>@L["Economics.Column.Financing"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@MonthName(context)</MudTd>
+                    <MudTd>@FleetFormat.Amount(context.Depreciation)</MudTd>
+                    <MudTd>@FleetFormat.Amount(context.Financing)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+    <MudText Class="mt-2">@L["Economics.Empty"]</MudText>
+}
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mt-6">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Costs.Heading"]</MudText>
+    @if (CanManage)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddCostAsync">@L["Costs.Add"]</MudButton>
+    }
+</MudStack>
+<MudTable T="VehicleCostItem" Items="Detail.Costs" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="mt-2"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Costs.Heading"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Cost.Field.Date"]</MudTh>
+        <MudTh>@L["Cost.Field.Label"]</MudTh>
+        <MudTh>@L["Cost.Field.Amount"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Cost.Field.Date"]">@FleetFormat.Date(context.IncurredOn)</MudTd>
+        <MudTd DataLabel="@L["Cost.Field.Label"]">@context.Label</MudTd>
+        <MudTd DataLabel="@L["Cost.Field.Amount"]">@FleetFormat.Amount(context.Amount)</MudTd>
+        <MudTd>
+            @if (CanManage)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" OnClick="() => RemoveCostAsync(context)">@L["Action.Remove"]</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Costs.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private static string MonthName(MonthlyEconomics month) =>
+        new DateOnly(month.Year, month.Month, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.CurrentCulture);
+
+    private Task EditAsync() => OpenAsync<EconomicsDialog>(
+        L["Economics.Heading"],
+        new DialogParameters
+        {
+            [nameof(EconomicsDialog.VehicleId)] = Detail.Id,
+            [nameof(EconomicsDialog.InServiceOn)] = Detail.InServiceOn,
+            [nameof(EconomicsDialog.Existing)] = Detail.Economics,
+        });
+
+    private Task AddCostAsync() => OpenAsync<CostDialog>(L["Costs.Add"], new DialogParameters { [nameof(CostDialog.VehicleId)] = Detail.Id });
+
+    private async Task RemoveCostAsync(VehicleCostItem cost)
+    {
+        var (vehicleId, costId) = (Detail.Id, cost.Id);
+        var result = await Runner.RunAsync<VehicleService, Result>((service, ct) => service.RemoveCostAsync(vehicleId, costId, ct));
+        if (result.IsSuccess)
+        {
+            await Changed.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+
+    private async Task OpenAsync<TDialog>(string title, DialogParameters parameters)
+        where TDialog : ComponentBase
+    {
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, FleetFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await Changed.InvokeAsync();
+        }
+    }
+}

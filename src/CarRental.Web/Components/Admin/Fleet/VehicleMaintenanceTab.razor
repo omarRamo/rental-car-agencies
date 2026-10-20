@@ -1,0 +1,217 @@
+@* Recurring maintenance plans with their due state, and the dated maintenance blocks (schedule, start, complete, cancel). *@
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Plans.Heading"]</MudText>
+    @if (CanEdit)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => EditPlanAsync(null)">@L["Plans.Add"]</MudButton>
+    }
+</MudStack>
+<MudTable T="MaintenancePlanItem" Items="Detail.MaintenancePlans" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="mt-2"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Plans.Heading"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Maintenance.Field.Type"]</MudTh>
+        <MudTh>@L["Plans.Column.Interval"]</MudTh>
+        <MudTh>@L["Plans.Column.LastDone"]</MudTh>
+        <MudTh>@L["Plans.Column.NextDue"]</MudTh>
+        <MudTh>@L["Documents.Column.State"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Maintenance.Field.Type"]">@(context.Label ?? L[$"MaintenanceType.{context.Type}"])</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Interval"]">@Interval(context)</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.LastDone"]">@FleetFormat.Date(context.LastDoneOn) · @FleetFormat.Kilometres(context.LastDoneMileage)</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.NextDue"]">@NextDue(context.Due)</MudTd>
+        <MudTd DataLabel="@L["Documents.Column.State"]"><FleetBadge Tone="FleetFormat.ToneOf(context.Due.State)">@L[$"Due.{context.Due.State}"]</FleetBadge></MudTd>
+        <MudTd>
+            @if (CanEdit)
+            {
+                <MudStack Row="true" Spacing="1">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => EditPlanAsync(context)">@L["Action.Edit"]</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" OnClick="() => RemovePlanAsync(context)">@L["Action.Remove"]</MudButton>
+                </MudStack>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Plans.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mt-6">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Maintenances.Heading"]</MudText>
+    @if (CanEdit)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.EventAvailable" OnClick="ScheduleAsync">@L["Maintenances.Schedule"]</MudButton>
+    }
+</MudStack>
+<MudTable T="MaintenanceItem" Items="Detail.Maintenances" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm" Class="mt-2"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Maintenances.Heading"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Maintenance.Field.Type"]</MudTh>
+        <MudTh>@L["Maintenances.Column.Block"]</MudTh>
+        <MudTh>@L["Documents.Column.State"]</MudTh>
+        <MudTh>@L["Maintenance.Field.Provider"]</MudTh>
+        <MudTh>@L["Maintenances.Column.Cost"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Maintenance.Field.Type"]">
+            @L[$"MaintenanceType.{context.Type}"]
+            @if (!string.IsNullOrEmpty(context.Description))
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@context.Description</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Maintenances.Column.Block"]">@L["Identity.Window", FleetFormat.Instant(context.StartsAtUtc), FleetFormat.Instant(context.CompletedAtUtc ?? context.EndsAtUtc)]</MudTd>
+        <MudTd DataLabel="@L["Documents.Column.State"]">
+            <FleetBadge Tone="FleetFormat.ToneOf(context.Status)">@L[$"MaintenanceStatus.{context.Status}"]</FleetBadge>
+            @if (context.CancellationReason is { } reason)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@(reason == Vehicle.CancelledBySaleReason ? L["Maintenances.CancelledBySale"] : reason)</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Maintenance.Field.Provider"]">@(context.Provider ?? "—")</MudTd>
+        <MudTd DataLabel="@L["Maintenances.Column.Cost"]">@FleetFormat.Amount(context.Cost)</MudTd>
+        <MudTd>
+            @if (CanEdit)
+            {
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @if (context.Status == MaintenanceStatus.Planned)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => StartAsync(context)">@L["Maintenances.Start"]</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => RescheduleAsync(context)">@L["Maintenances.Reschedule"]</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" OnClick="() => CancelAsync(context)">@L["Maintenances.Cancel"]</MudButton>
+                    }
+                    @if (context.Status is MaintenanceStatus.Planned or MaintenanceStatus.InProgress)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => CompleteAsync(context)">@L["Maintenance.Complete"]</MudButton>
+                    }
+                </MudStack>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Maintenances.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanMaintain { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private bool CanEdit => CanMaintain && Detail.Status != VehicleStatus.Sold;
+
+    private string Interval(MaintenancePlanItem plan) => (plan.IntervalKm, plan.IntervalMonths) switch
+    {
+        ({ } km, { } months) => L["Plans.Interval.Both", FleetFormat.Kilometres(km), months],
+        ({ } km, null) => L["Plans.Interval.Km", FleetFormat.Kilometres(km)],
+        (null, { } months) => L["Plans.Interval.Months", months],
+        _ => "—",
+    };
+
+    private string NextDue(MaintenanceDue due) => (due.NextDueMileage, due.NextDueOn) switch
+    {
+        ({ } km, { } date) => $"{FleetFormat.Kilometres(km)} · {FleetFormat.Date(date)}",
+        ({ } km, null) => FleetFormat.Kilometres(km),
+        (null, { } date) => FleetFormat.Date(date),
+        _ => "—",
+    };
+
+    private Task EditPlanAsync(MaintenancePlanItem? plan) => OpenAsync<MaintenancePlanDialog>(
+        plan is null ? L["Plans.Add"] : L["Action.Edit"],
+        new DialogParameters
+        {
+            [nameof(MaintenancePlanDialog.VehicleId)] = Detail.Id,
+            [nameof(MaintenancePlanDialog.CurrentMileage)] = Detail.Mileage,
+            [nameof(MaintenancePlanDialog.Existing)] = plan,
+        });
+
+    private Task ScheduleAsync() => OpenAsync<MaintenanceDialog>(
+        L["Maintenances.Schedule"],
+        new DialogParameters { [nameof(MaintenanceDialog.VehicleId)] = Detail.Id });
+
+    private Task RescheduleAsync(MaintenanceItem maintenance) => OpenAsync<MaintenanceDialog>(
+        L["Maintenances.Reschedule"],
+        new DialogParameters
+        {
+            [nameof(MaintenanceDialog.VehicleId)] = Detail.Id,
+            [nameof(MaintenanceDialog.MaintenanceId)] = (Guid?)maintenance.Id,
+            [nameof(MaintenanceDialog.Existing)] = maintenance,
+        });
+
+    private Task CompleteAsync(MaintenanceItem maintenance) => OpenAsync<CompleteMaintenanceDialog>(
+        L["Maintenance.Complete"],
+        new DialogParameters
+        {
+            [nameof(CompleteMaintenanceDialog.VehicleId)] = Detail.Id,
+            [nameof(CompleteMaintenanceDialog.MaintenanceId)] = maintenance.Id,
+            [nameof(CompleteMaintenanceDialog.CurrentMileage)] = Detail.Mileage,
+            [nameof(CompleteMaintenanceDialog.EstimatedCost)] = maintenance.Cost?.Amount,
+        });
+
+    private async Task StartAsync(MaintenanceItem maintenance)
+    {
+        var (vehicleId, maintenanceId) = (Detail.Id, maintenance.Id);
+        var result = await Runner.RunAsync<VehicleMaintenanceService, Result>((service, ct) => service.StartAsync(vehicleId, maintenanceId, null, ct));
+        await NotifyAsync(result);
+    }
+
+    private async Task CancelAsync(MaintenanceItem maintenance)
+    {
+        var dialog = await Dialogs.ShowAsync<ReasonDialog>(
+            L["Maintenances.Cancel"],
+            new DialogParameters { [nameof(ReasonDialog.ConfirmText)] = L["Maintenances.Cancel"].Value },
+            FleetFormat.Dialog());
+        if (await dialog.Result is not { Canceled: false, Data: string reason })
+        {
+            return;
+        }
+
+        var (vehicleId, maintenanceId) = (Detail.Id, maintenance.Id);
+        var result = await Runner.RunAsync<VehicleMaintenanceService, Result>((service, ct) => service.CancelAsync(vehicleId, maintenanceId, reason, ct));
+        await NotifyAsync(result);
+    }
+
+    private async Task RemovePlanAsync(MaintenancePlanItem plan)
+    {
+        var (vehicleId, planId) = (Detail.Id, plan.Id);
+        var result = await Runner.RunAsync<VehicleMaintenanceService, Result>((service, ct) => service.RemovePlanAsync(vehicleId, planId, ct));
+        await NotifyAsync(result);
+    }
+
+    private async Task OpenAsync<TDialog>(string title, DialogParameters parameters)
+        where TDialog : ComponentBase
+    {
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, FleetFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await Changed.InvokeAsync();
+        }
+    }
+
+    private async Task NotifyAsync(Result result)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await Changed.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

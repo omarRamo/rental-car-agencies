@@ -1,0 +1,161 @@
+@page "/admin/fleet"
+@attribute [HasPermission(Permissions.FleetRead)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Fleet.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Fleet.Title"]</MudText>
+    @if (_canManage)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">@L["Vehicles.Create"]</MudButton>
+    }
+</MudStack>
+
+<FleetSubNav Current="FleetSection.Vehicles" />
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Guid?" Value="_categoryId" ValueChanged="OnCategoryChangedAsync" Label="@L["Vehicles.Filter.Category"]" Clearable="true"
+                       ToStringFunc="CategoryLabel">
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@($"{category.Code} — {category.Name}")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="VehicleStatus?" Value="_status" ValueChanged="OnStatusChangedAsync" Label="@L["Vehicles.Filter.Status"]" Clearable="true"
+                       ToStringFunc="@(s => s is { } status ? L[$"Status.{status}"] : string.Empty)">
+                @foreach (var status in Enum.GetValues<VehicleStatus>())
+                {
+                    <MudSelectItem T="VehicleStatus?" Value="@((VehicleStatus?)status)">@L[$"Status.{status}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="DeadlineState?" Value="_deadline" ValueChanged="OnDeadlineChangedAsync" Label="@L["Vehicles.Filter.Deadline"]" Clearable="true"
+                       ToStringFunc="@(d => d is { } state ? L[$"Deadline.{state}"] : string.Empty)">
+                @foreach (var state in Enum.GetValues<DeadlineState>())
+                {
+                    <MudSelectItem T="DeadlineState?" Value="@((DeadlineState?)state)">@L[$"Deadline.{state}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" @bind-Value="_search" Label="@L["Vehicles.Filter.Search"]" Placeholder="@L["Vehicles.Filter.Search.Placeholder"]"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          DebounceInterval="400" OnDebounceIntervalElapsed="LoadAsync" Clearable="true" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable T="VehicleListItem" Items="_vehicles" Loading="_loading" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Vehicles.Table"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Vehicle.Field.Plate"]</MudTh>
+        <MudTh>@L["Vehicles.Column.Vehicle"]</MudTh>
+        <MudTh>@L["Vehicle.Field.Category"]</MudTh>
+        <MudTh>@L["Vehicles.Column.Status"]</MudTh>
+        <MudTh>@L["Vehicle.Field.Mileage"]</MudTh>
+        <MudTh>@L["Vehicles.Column.Deadline"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Vehicle.Field.Plate"]">
+            <MudLink Href="@($"/admin/fleet/vehicles/{context.Id}")" Typo="Typo.body1">@context.PlateNumber</MudLink>
+        </MudTd>
+        <MudTd DataLabel="@L["Vehicles.Column.Vehicle"]">@context.Make @context.Model (@context.Year)</MudTd>
+        <MudTd DataLabel="@L["Vehicle.Field.Category"]">@context.CategoryCode</MudTd>
+        <MudTd DataLabel="@L["Vehicles.Column.Status"]">
+            <FleetBadge Tone="FleetFormat.ToneOf(context.Status)">@L[$"Status.{context.Status}"]</FleetBadge>
+            @if (context.MaintenanceDue)
+            {
+                <FleetBadge Tone="BadgeTone.Warning">@L["Vehicles.MaintenanceDue"]</FleetBadge>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Vehicle.Field.Mileage"]">@FleetFormat.Kilometres(context.Mileage)</MudTd>
+        <MudTd DataLabel="@L["Vehicles.Column.Deadline"]">
+            <DeadlineBadge Deadline="context.Deadline" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Vehicles.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<CategoryAdminItem> _categories = [];
+    private IReadOnlyList<VehicleListItem> _vehicles = [];
+    private Guid? _categoryId;
+    private VehicleStatus? _status;
+    private DeadlineState? _deadline;
+    private string? _search;
+    private bool _loading = true;
+    private bool _canManage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.FleetManage);
+        var categories = await Runner.RunAsync<FleetAdminQueries, Result<IReadOnlyList<CategoryAdminItem>>>((queries, ct) => queries.ListCategoriesAsync(true, ct));
+        _categories = categories.IsSuccess ? categories.Value : [];
+        await LoadAsync();
+    }
+
+    private string CategoryLabel(Guid? id) =>
+        _categories.FirstOrDefault(c => c.Id == id) is { } category ? $"{category.Code} — {category.Name}" : string.Empty;
+
+    private Task OnCategoryChangedAsync(Guid? value)
+    {
+        _categoryId = value;
+        return LoadAsync();
+    }
+
+    private Task OnStatusChangedAsync(VehicleStatus? value)
+    {
+        _status = value;
+        return LoadAsync();
+    }
+
+    private Task OnDeadlineChangedAsync(DeadlineState? value)
+    {
+        _deadline = value;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var filter = new VehicleListFilter { CategoryId = _categoryId, Status = _status, Deadline = _deadline, Search = _search };
+        var result = await Runner.RunAsync<FleetAdminQueries, Result<IReadOnlyList<VehicleListItem>>>((queries, ct) => queries.ListVehiclesAsync(filter, ct));
+        _loading = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            _vehicles = [];
+            return;
+        }
+
+        _vehicles = result.Value;
+    }
+
+    private async Task CreateAsync()
+    {
+        var parameters = new DialogParameters { [nameof(VehicleFormDialog.Categories)] = _categories };
+        var dialog = await Dialogs.ShowAsync<VehicleFormDialog>(L["Vehicles.Create"], parameters, FleetFormat.Dialog(MaxWidth.Medium));
+        var outcome = await dialog.Result;
+        if (outcome is { Canceled: false })
+        {
+            Snackbar.Add(L["Vehicles.Created"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

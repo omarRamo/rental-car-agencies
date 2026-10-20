@@ -1,0 +1,134 @@
+@* Schedules a maintenance block, or reschedules a planned one (MaintenanceId set). Times are Tunis local times. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="MaintenanceType" @bind-Value="_type" Label="@L["Maintenance.Field.Type"]" Disabled="@(MaintenanceId is not null)"
+                           ToStringFunc="@(t => L[$"MaintenanceType.{t}"])">
+                    @foreach (var type in Enum.GetValues<MaintenanceType>())
+                    {
+                        <MudSelectItem T="MaintenanceType" Value="@type">@L[$"MaintenanceType.{type}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="7">
+                <MudDatePicker @bind-Date="_startDate" Label="@L["Maintenance.Field.StartDate"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="5">
+                <MudTimePicker @bind-Time="_startTime" Label="@L["Maintenance.Field.StartTime"]" Editable="true" />
+            </MudItem>
+            <MudItem xs="7">
+                <MudDatePicker @bind-Date="_endDate" Label="@L["Maintenance.Field.EndDate"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="5">
+                <MudTimePicker @bind-Time="_endTime" Label="@L["Maintenance.Field.EndTime"]" Editable="true" />
+            </MudItem>
+            @if (MaintenanceId is null)
+            {
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_description" Label="@L["Maintenance.Field.Description"]" Lines="2" MaxLength="MaintenanceEvent.DescriptionMaxLength" />
+                </MudItem>
+                <MudItem xs="12" sm="7">
+                    <MudTextField T="string" @bind-Value="_provider" Label="@L["Maintenance.Field.Provider"]" MaxLength="MaintenanceEvent.ProviderMaxLength" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudNumericField T="decimal?" @bind-Value="_cost" Label="@L["Maintenance.Field.EstimatedCost"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" Clearable="true" />
+                </MudItem>
+            }
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Maintenance.Block.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MaintenanceType _type = MaintenanceType.OilChange;
+    private DateTime? _startDate;
+    private TimeSpan? _startTime = new(8, 0, 0);
+    private DateTime? _endDate;
+    private TimeSpan? _endTime = new(18, 0, 0);
+    private string? _description;
+    private string? _provider;
+    private decimal? _cost;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    /// <summary>The planned maintenance to move; a new one is scheduled when null.</summary>
+    [Parameter]
+    public Guid? MaintenanceId { get; set; }
+
+    [Parameter]
+    public MaintenanceItem? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } maintenance)
+        {
+            _type = maintenance.Type;
+            _startDate = FleetFormat.ToPickerDate(maintenance.StartsAtUtc);
+            _startTime = FleetFormat.ToPickerTime(maintenance.StartsAtUtc);
+            _endDate = FleetFormat.ToPickerDate(maintenance.EndsAtUtc);
+            _endTime = FleetFormat.ToPickerTime(maintenance.EndsAtUtc);
+        }
+        else
+        {
+            var tomorrow = TunisTime.Today(Time).AddDays(1).ToDateTime(TimeOnly.MinValue);
+            _startDate = tomorrow;
+            _endDate = tomorrow;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_startDate is not { } startDate || _endDate is not { } endDate)
+        {
+            _error = Shared["Validation.Required"];
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var start = FleetFormat.ToInstant(startDate, _startTime);
+        var end = FleetFormat.ToInstant(endDate, _endTime);
+        Result result;
+        if (MaintenanceId is { } maintenanceId)
+        {
+            result = await Runner.RunAsync<VehicleMaintenanceService, Result>((service, ct) => service.RescheduleAsync(VehicleId, maintenanceId, start, end, ct));
+        }
+        else
+        {
+            var form = new MaintenanceForm(_type, start, end, _description, _provider, _cost);
+            result = await Runner.RunAsync<VehicleMaintenanceService, Result<Guid>>((service, ct) => service.ScheduleAsync(VehicleId, form, ct));
+        }
+
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

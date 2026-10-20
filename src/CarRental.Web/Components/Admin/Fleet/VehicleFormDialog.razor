@@ -1,0 +1,214 @@
+@* Registration (no VehicleId) or edition of the identity of a vehicle. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid" Value="_categoryId" ValueChanged="OnCategoryChanged" Label="@L["Vehicle.Field.Category"]"
+                           ToStringFunc="CategoryLabel" Required="true" RequiredError="@Shared["Validation.Required"]">
+                    @foreach (var category in Categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">@CategoryLabel(category.Id)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_plate" Label="@L["Vehicle.Field.Plate"]" HelperText="@L["Vehicle.Field.Plate.Help"]"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="Vehicle.PlateNumberMaxLength" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_make" Label="@L["Vehicle.Field.Make"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="Vehicle.MakeMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_model" Label="@L["Vehicle.Field.Model"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="Vehicle.ModelMaxLength" />
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudNumericField T="int" @bind-Value="_year" Label="@L["Vehicle.Field.Year"]" Min="Vehicle.MinYear" Max="Vehicle.MaxYear" />
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudTextField T="string" @bind-Value="_color" Label="@L["Vehicle.Field.Color"]" MaxLength="Vehicle.ColorMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Transmission" @bind-Value="_transmission" Label="@L["Vehicle.Field.Transmission"]" ToStringFunc="@(t => L[$"Transmission.{t}"])">
+                    @foreach (var transmission in Enum.GetValues<Transmission>())
+                    {
+                        <MudSelectItem T="Transmission" Value="@transmission">@L[$"Transmission.{transmission}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="FuelType" @bind-Value="_fuel" Label="@L["Vehicle.Field.Fuel"]" ToStringFunc="@(f => L[$"Fuel.{f}"])">
+                    @foreach (var fuel in Enum.GetValues<FuelType>())
+                    {
+                        <MudSelectItem T="FuelType" Value="@fuel">@L[$"Fuel.{fuel}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="4">
+                <MudNumericField T="int" @bind-Value="_seats" Label="@L["Vehicle.Field.Seats"]" Min="1" Max="Vehicle.MaxSeats" />
+            </MudItem>
+            <MudItem xs="4">
+                <MudNumericField T="int" @bind-Value="_largeBags" Label="@L["Vehicle.Field.LargeBags"]" Min="0" Max="Vehicle.MaxBags" />
+            </MudItem>
+            <MudItem xs="4">
+                <MudNumericField T="int" @bind-Value="_smallBags" Label="@L["Vehicle.Field.SmallBags"]" Min="0" Max="Vehicle.MaxBags" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_inServiceOn" Label="@L["Vehicle.Field.InService"]" HelperText="@L["Vehicle.Field.InService.Help"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_firstRegistrationOn" Label="@L["Vehicle.Field.FirstRegistration"]" Editable="true" Clearable="true" />
+            </MudItem>
+            @if (VehicleId is null)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="_mileage" Label="@L["Vehicle.Field.Mileage"]" Min="0" Max="Vehicle.MaxMileage" Adornment="Adornment.End" AdornmentText="km" />
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_supplement" Label="@L["Vehicle.Field.Supplement"]" HelperText="@L["Vehicle.Field.Supplement.Help"]"
+                                 Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" Clearable="true" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Guid _categoryId;
+    private string? _plate;
+    private string? _make;
+    private string? _model;
+    private int _year;
+    private string? _color;
+    private Transmission _transmission = Transmission.Manual;
+    private FuelType _fuel = FuelType.Petrol;
+    private int _seats = 5;
+    private int _largeBags = 1;
+    private int _smallBags = 1;
+    private DateTime? _inServiceOn;
+    private DateTime? _firstRegistrationOn;
+    private int _mileage;
+    private decimal? _supplement;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryAdminItem> Categories { get; set; } = [];
+
+    /// <summary>The vehicle to edit; a new vehicle is registered when null.</summary>
+    [Parameter]
+    public Guid? VehicleId { get; set; }
+
+    [Parameter]
+    public VehicleDetail? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var today = TunisTime.Today(Time);
+        if (Existing is { } vehicle)
+        {
+            _categoryId = vehicle.CategoryId;
+            _plate = vehicle.PlateNumber;
+            _make = vehicle.Make;
+            _model = vehicle.Model;
+            _year = vehicle.Year;
+            _color = vehicle.Color;
+            _transmission = vehicle.Transmission;
+            _fuel = vehicle.Fuel;
+            _seats = vehicle.Seats;
+            _largeBags = vehicle.LargeBags;
+            _smallBags = vehicle.SmallBags;
+            _inServiceOn = vehicle.InServiceOn.ToDateTime(TimeOnly.MinValue);
+            _firstRegistrationOn = vehicle.FirstRegistrationOn?.ToDateTime(TimeOnly.MinValue);
+            _supplement = vehicle.GuaranteedModelDailySupplement?.Amount;
+        }
+        else
+        {
+            _year = today.Year;
+            _inServiceOn = today.ToDateTime(TimeOnly.MinValue);
+            if ((Categories.FirstOrDefault(c => c.IsActive) ?? Categories.FirstOrDefault()) is { } first)
+            {
+                OnCategoryChanged(first.Id);
+            }
+        }
+    }
+
+    private string CategoryLabel(Guid id) =>
+        Categories.FirstOrDefault(c => c.Id == id) is { } category ? $"{category.Code} — {category.Name}" : string.Empty;
+
+    /// <summary>A new vehicle takes the features of its category by default.</summary>
+    private void OnCategoryChanged(Guid id)
+    {
+        _categoryId = id;
+        if (VehicleId is null && Categories.FirstOrDefault(c => c.Id == id) is { } category)
+        {
+            _transmission = category.Transmission;
+            _fuel = category.Fuel;
+            _seats = category.Seats;
+            _largeBags = category.LargeBags;
+            _smallBags = category.SmallBags;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var form = new VehicleForm(
+            _categoryId,
+            _plate ?? string.Empty,
+            _make ?? string.Empty,
+            _model ?? string.Empty,
+            _year,
+            _color,
+            _transmission,
+            _fuel,
+            _seats,
+            _largeBags,
+            _smallBags,
+            DateOnly.FromDateTime(_inServiceOn ?? TunisTime.Today(Time).ToDateTime(TimeOnly.MinValue)),
+            _firstRegistrationOn is { } firstRegistration ? DateOnly.FromDateTime(firstRegistration) : null,
+            _supplement);
+
+        Result outcome;
+        Guid? id = VehicleId;
+        if (VehicleId is { } vehicleId)
+        {
+            outcome = await Runner.RunAsync<VehicleService, Result>((service, ct) => service.UpdateAsync(vehicleId, form, ct));
+        }
+        else
+        {
+            var mileage = _mileage;
+            var registered = await Runner.RunAsync<VehicleService, Result<Guid>>((service, ct) => service.RegisterAsync(form, mileage, ct));
+            outcome = registered;
+            id = registered.IsSuccess ? registered.Value : null;
+        }
+
+        _busy = false;
+        if (outcome.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(id));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, outcome.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

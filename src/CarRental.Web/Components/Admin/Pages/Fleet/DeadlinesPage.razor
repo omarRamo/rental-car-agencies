@@ -1,0 +1,84 @@
+@page "/admin/fleet/deadlines"
+@attribute [HasPermission(Permissions.FleetRead)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Deadlines.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-3">@L["Deadlines.Title"]</MudText>
+
+<FleetSubNav Current="FleetSection.Deadlines" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudSelect T="int" Value="_horizon" ValueChanged="OnHorizonChangedAsync" Label="@L["Deadlines.Horizon"]" Style="min-inline-size:14rem"
+               ToStringFunc="@(days => L["Deadlines.Horizon.Days", days])">
+        @foreach (var days in Horizons)
+        {
+            <MudSelectItem T="int" Value="@days">@L["Deadlines.Horizon.Days", days]</MudSelectItem>
+        }
+    </MudSelect>
+    <MudText Typo="Typo.body2">@L["Deadlines.Hint"]</MudText>
+</MudStack>
+
+<MudTable T="DeadlineItem" Items="_deadlines" Loading="_loading" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Deadlines.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Documents.Column.State"]</MudTh>
+        <MudTh>@L["Vehicle.Field.Plate"]</MudTh>
+        <MudTh>@L["Vehicles.Column.Vehicle"]</MudTh>
+        <MudTh>@L["Document.Field.Type"]</MudTh>
+        <MudTh>@L["Document.Field.Number"]</MudTh>
+        <MudTh>@L["Document.Field.ExpiresOn"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Documents.Column.State"]">
+            <DeadlineBadge Deadline="@(new VehicleDeadline(context.Type, context.ExpiresOn, context.DaysLeft, context.State))" />
+        </MudTd>
+        <MudTd DataLabel="@L["Vehicle.Field.Plate"]"><MudLink Href="@($"/admin/fleet/vehicles/{context.VehicleId}")">@context.PlateNumber</MudLink></MudTd>
+        <MudTd DataLabel="@L["Vehicles.Column.Vehicle"]">
+            @context.Make @context.Model · @context.CategoryCode
+            @if (context.Status != VehicleStatus.Active)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@L[$"Status.{context.Status}"]</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Document.Field.Type"]">@L[$"DocumentType.{context.Type}"]</MudTd>
+        <MudTd DataLabel="@L["Document.Field.Number"]">@(context.Number ?? "—")</MudTd>
+        <MudTd DataLabel="@L["Document.Field.ExpiresOn"]">@FleetFormat.Date(context.ExpiresOn)</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Deadlines.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private static readonly int[] Horizons = [30, 60, 90, 180];
+    private IReadOnlyList<DeadlineItem> _deadlines = [];
+    private int _horizon = 60;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task OnHorizonChangedAsync(int horizon)
+    {
+        _horizon = horizon;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var horizon = _horizon;
+        var result = await Runner.RunAsync<FleetAdminQueries, Result<IReadOnlyList<DeadlineItem>>>((queries, ct) => queries.GetDeadlinesAsync(horizon, ct));
+        _loading = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _deadlines = result.Value;
+    }
+}

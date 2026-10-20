@@ -1,0 +1,112 @@
+@* Creates or replaces the recurring maintenance of a type (every X km and/or X months, from the last time it was done). *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="MaintenanceType" @bind-Value="_type" Label="@L["Maintenance.Field.Type"]" Disabled="@(Existing is not null)"
+                           ToStringFunc="@(t => L[$"MaintenanceType.{t}"])">
+                    @foreach (var type in Enum.GetValues<MaintenanceType>())
+                    {
+                        <MudSelectItem T="MaintenanceType" Value="@type">@L[$"MaintenanceType.{type}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_label" Label="@L["Plan.Field.Label"]" MaxLength="MaintenancePlan.LabelMaxLength" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="int?" @bind-Value="_intervalKm" Label="@L["Plan.Field.IntervalKm"]" Min="MaintenancePlan.MinIntervalKm" Max="MaintenancePlan.MaxIntervalKm"
+                                 Adornment="Adornment.End" AdornmentText="km" Clearable="true" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="int?" @bind-Value="_intervalMonths" Label="@L["Plan.Field.IntervalMonths"]" Min="1" Max="MaintenancePlan.MaxIntervalMonths" Clearable="true" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_lastDoneOn" Label="@L["Plan.Field.LastDoneOn"]" Editable="true" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="int?" @bind-Value="_lastDoneMileage" Label="@L["Plan.Field.LastDoneMileage"]" Min="0" Max="Vehicle.MaxMileage" Adornment="Adornment.End" AdornmentText="km" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Plan.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MaintenanceType _type = MaintenanceType.OilChange;
+    private string? _label;
+    private int? _intervalKm = 10_000;
+    private int? _intervalMonths = 12;
+    private DateTime? _lastDoneOn;
+    private int? _lastDoneMileage;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public int CurrentMileage { get; set; }
+
+    [Parameter]
+    public MaintenancePlanItem? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } plan)
+        {
+            _type = plan.Type;
+            _label = plan.Label;
+            _intervalKm = plan.IntervalKm;
+            _intervalMonths = plan.IntervalMonths;
+            _lastDoneOn = plan.LastDoneOn.ToDateTime(TimeOnly.MinValue);
+            _lastDoneMileage = plan.LastDoneMileage;
+        }
+        else
+        {
+            _lastDoneOn = TunisTime.Today(Time).ToDateTime(TimeOnly.MinValue);
+            _lastDoneMileage = CurrentMileage;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var form = new MaintenancePlanForm(
+            _type,
+            _intervalKm,
+            _intervalMonths,
+            _lastDoneOn is { } lastDone ? DateOnly.FromDateTime(lastDone) : null,
+            _lastDoneMileage,
+            _label);
+        var result = await Runner.RunAsync<VehicleMaintenanceService, Result<Guid>>((service, ct) => service.SetPlanAsync(VehicleId, form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

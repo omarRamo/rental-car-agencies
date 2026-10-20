@@ -1,0 +1,138 @@
+@* Documents and deadlines: the current document of each type (renew, correct), missing ones, and the renewals. *@
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+
+<MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Documents.Current"]</MudText>
+<MudTable T="DocumentRow" Items="Rows" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Documents.Current"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Document.Field.Type"]</MudTh>
+        <MudTh>@L["Document.Field.Number"]</MudTh>
+        <MudTh>@L["Document.Field.IssuedOn"]</MudTh>
+        <MudTh>@L["Document.Field.ExpiresOn"]</MudTh>
+        <MudTh>@L["Documents.Column.State"]</MudTh>
+        <MudTh>@L["Document.Field.Provider"]</MudTh>
+        <MudTh>@L["Document.Field.Cost"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Document.Field.Type"]">@L[$"DocumentType.{context.Type}"]</MudTd>
+        @if (context.Document is { } document)
+        {
+            <MudTd DataLabel="@L["Document.Field.Number"]">@document.Number</MudTd>
+            <MudTd DataLabel="@L["Document.Field.IssuedOn"]">@FleetFormat.Date(document.IssuedOn)</MudTd>
+            <MudTd DataLabel="@L["Document.Field.ExpiresOn"]">@FleetFormat.Date(document.ExpiresOn)</MudTd>
+            <MudTd DataLabel="@L["Documents.Column.State"]">
+                @if (document.ExpiresOn is null)
+                {
+                    <span>@L["Documents.NoExpiry"]</span>
+                }
+                else
+                {
+                    <DeadlineBadge Compact="true" Deadline="@(new VehicleDeadline(document.Type, document.ExpiresOn, document.DaysLeft, document.State))" />
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Document.Field.Provider"]">@(document.Provider ?? "—")</MudTd>
+            <MudTd DataLabel="@L["Document.Field.Cost"]" Style="white-space:nowrap">@FleetFormat.Amount(document.Cost)</MudTd>
+            <MudTd Style="white-space:nowrap">
+                @if (CanManage && Detail.Status != VehicleStatus.Sold)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => RecordAsync(context.Type, document)">@L["Documents.Renew"]</MudButton>
+                    <MudTooltip Text="@L["Documents.Correct"]">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" aria-label="@L["Documents.Correct"]"
+                                       OnClick="() => CorrectAsync(document)" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        }
+        else
+        {
+            <MudTd DataLabel="@L["Documents.Column.State"]" colspan="6">
+                @if (VehicleCompliance.IsMandatory(context.Type))
+                {
+                    <FleetBadge Tone="BadgeTone.Danger">@L["Deadline.Badge.Missing", L[$"DocumentType.{context.Type}"]]</FleetBadge>
+                }
+                else
+                {
+                    <span>@L["Documents.None"]</span>
+                }
+            </MudTd>
+            <MudTd>
+                @if (CanManage && Detail.Status != VehicleStatus.Sold)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => RecordAsync(context.Type, null)">@L["Documents.Add"]</MudButton>
+                }
+            </MudTd>
+        }
+    </RowTemplate>
+</MudTable>
+
+@if (History.Count > 0)
+{
+    <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6" GutterBottom="true">@L["Documents.History"]</MudText>
+    <MudTable T="VehicleDocumentItem" Items="History" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Documents.History"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Document.Field.Type"]</MudTh>
+            <MudTh>@L["Document.Field.Number"]</MudTh>
+            <MudTh>@L["Document.Field.IssuedOn"]</MudTh>
+            <MudTh>@L["Document.Field.ExpiresOn"]</MudTh>
+            <MudTh>@L["Documents.Column.ReplacedAt"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Document.Field.Type"]">@L[$"DocumentType.{context.Type}"]</MudTd>
+            <MudTd DataLabel="@L["Document.Field.Number"]">@context.Number</MudTd>
+            <MudTd DataLabel="@L["Document.Field.IssuedOn"]">@FleetFormat.Date(context.IssuedOn)</MudTd>
+            <MudTd DataLabel="@L["Document.Field.ExpiresOn"]">@FleetFormat.Date(context.ExpiresOn)</MudTd>
+            <MudTd DataLabel="@L["Documents.Column.ReplacedAt"]">@FleetFormat.Instant(context.SupersededAtUtc)</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private IEnumerable<DocumentRow> Rows =>
+        Enum.GetValues<VehicleDocumentType>().Select(type => new DocumentRow(type, Detail.Documents.FirstOrDefault(d => d.IsCurrent && d.Type == type)));
+
+    private IReadOnlyList<VehicleDocumentItem> History => [.. Detail.Documents.Where(d => !d.IsCurrent)];
+
+    private Task RecordAsync(VehicleDocumentType type, VehicleDocumentItem? current) => OpenAsync(
+        current is null ? L["Documents.Add"] : L["Documents.Renew"],
+        new DialogParameters
+        {
+            [nameof(DocumentDialog.VehicleId)] = Detail.Id,
+            [nameof(DocumentDialog.Type)] = (VehicleDocumentType?)type,
+            [nameof(DocumentDialog.Existing)] = current,
+        });
+
+    private Task CorrectAsync(VehicleDocumentItem document) => OpenAsync(
+        L["Documents.Correct"],
+        new DialogParameters
+        {
+            [nameof(DocumentDialog.VehicleId)] = Detail.Id,
+            [nameof(DocumentDialog.Type)] = (VehicleDocumentType?)document.Type,
+            [nameof(DocumentDialog.DocumentId)] = (Guid?)document.Id,
+            [nameof(DocumentDialog.Existing)] = document,
+        });
+
+    private async Task OpenAsync(string title, DialogParameters parameters)
+    {
+        var dialog = await Dialogs.ShowAsync<DocumentDialog>(title, parameters, FleetFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await Changed.InvokeAsync();
+        }
+    }
+
+    private sealed record DocumentRow(VehicleDocumentType Type, VehicleDocumentItem? Document);
+}
