@@ -23,6 +23,12 @@ public static class Permissions
     public const string RequestsManage = "requests.manage";
     public const string BookingsRead = "bookings.read";
     public const string BookingsManage = "bookings.manage";
+
+    /// <summary>Manual discount on a quote and waiver of a cancellation fee (manager by default, grantable to an agent).</summary>
+    public const string BookingsDiscount = "bookings.discount";
+
+    /// <summary>Let a vehicle whose mandatory documents expire before the return carry a rental file (traced, manager).</summary>
+    public const string BookingsComplianceWaive = "bookings.compliance.waive";
     public const string HandoversManage = "handovers.manage";
     public const string CustomersRead = "customers.read";
     public const string CustomersManage = "customers.manage";
@@ -70,6 +76,8 @@ public static class Permissions
             new(RequestsManage, PermissionArea.Operations),
             new(BookingsRead, PermissionArea.Operations),
             new(BookingsManage, PermissionArea.Operations),
+            new(BookingsDiscount, PermissionArea.Operations),
+            new(BookingsComplianceWaive, PermissionArea.Operations),
             new(HandoversManage, PermissionArea.Operations),
             new(CustomersRead, PermissionArea.Operations),
             new(CustomersManage, PermissionArea.Operations),

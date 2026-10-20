@@ -192,6 +192,37 @@ public sealed class Booking : AggregateRoot
     /// <summary>The vehicle is out and its planned return has passed.</summary>
     public bool IsLateAt(DateTimeOffset now) => Status == BookingStatus.InProgress && ReturnAt < now;
 
+    /// <summary>Whether <paramref name="changes"/> change an input of the price (anything but the payer and the notes).</summary>
+    public bool ChangesPrice(BookingChanges changes)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        return Diff(changes).PriceInputsChanged;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="changes"/> move the occupancy of the file (dates, category) or its vehicle (released,
+    /// another guaranteed vehicle): such an amendment is re-checked by the availability guard.
+    /// </summary>
+    public bool ChangesOccupancy(BookingChanges changes)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        var diff = Diff(changes);
+        return diff.CategoryChanged || diff.PickupChanged || diff.ReturnChanged || diff.VehicleReleased || diff.GuaranteedVehicleChanged;
+    }
+
+    /// <summary>The vehicle the file carries after <paramref name="changes"/> (same rule as the amendment).</summary>
+    public Guid? VehicleAfter(BookingChanges changes)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        var diff = Diff(changes);
+        if (diff.GuaranteedVehicleChanged && changes.GuaranteedVehicleId is { } guaranteed)
+        {
+            return guaranteed;
+        }
+
+        return diff.CategoryChanged || diff.VehicleReleased ? null : AssignedVehicleId;
+    }
+
     /// <summary>How the file occupies its category now (ADR-0025).</summary>
     public BookingOccupancy ToOccupancy() =>
         new(Id, Status.ToOccupancyKind(), Rental, ActualPickupAt, ActualReturnAt, AssignedVehicleId);

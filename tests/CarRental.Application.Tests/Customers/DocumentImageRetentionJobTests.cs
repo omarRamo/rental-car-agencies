@@ -1,5 +1,6 @@
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Customers.Documents;
+using CarRental.Application.Tests.Bookings.Fakes;
 using CarRental.Application.Tests.Customers.Fakes;
 using CarRental.Domain.Customers;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,8 +32,8 @@ public sealed class DocumentImageRetentionJobTests
         return (harness, cin);
     }
 
-    private static DocumentImageRetentionJob Job(CustomersHarness harness) =>
-        new(harness.Db, harness.Settings, harness.Audit, harness.Clock, NullLogger<DocumentImageRetentionJob>.Instance);
+    private static DocumentImageRetentionJob Job(CustomersHarness harness, FakeBookingsQueries? bookings = null) =>
+        new(harness.Db, harness.Settings, harness.Audit, bookings ?? new FakeBookingsQueries(), harness.Clock, NullLogger<DocumentImageRetentionJob>.Instance);
 
     [Fact]
     public void The_job_runs_every_night_in_tunis()
@@ -85,6 +86,24 @@ public sealed class DocumentImageRetentionJobTests
 
         cin.FrontImage.ShouldNotBeNull();
         harness.Audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_driver_of_an_open_rental_file_keeps_the_images_of_their_documents()
+    {
+        var (harness, cin) = await PersonWithImagesAsync();
+        harness.Settings.Set(CustomerSettings.DocumentImageRetentionEnabled, true);
+        var bookings = new FakeBookingsQueries();
+        bookings.PersonsWithOpenBookings.Add(harness.Db.Rows<Person>().Single().Id);
+
+        await Job(harness, bookings).ExecuteAsync(Ct);
+
+        cin.FrontImage.ShouldNotBeNull("uploaded 450 days ago, but the person has an open booking");
+        harness.Audit.Events.ShouldBeEmpty();
+
+        bookings.PersonsWithOpenBookings.Clear();
+        await Job(harness, bookings).ExecuteAsync(Ct);
+        cin.FrontImage.ShouldBeNull("purged once the booking is closed");
     }
 
     [Fact]

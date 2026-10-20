@@ -84,6 +84,16 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.CustomersRead, true },
         { Roles.Accountant, Permissions.CustomersManage, false },
 
+        // Manual discounts, cancellation fee waivers and vehicle compliance waivers: manager only (grantable per user).
+        { Roles.Manager, Permissions.BookingsDiscount, true },
+        { Roles.Agent, Permissions.BookingsDiscount, false },
+        { Roles.Accountant, Permissions.BookingsDiscount, false },
+        { Roles.Preparer, Permissions.BookingsDiscount, false },
+        { Roles.Manager, Permissions.BookingsComplianceWaive, true },
+        { Roles.Agent, Permissions.BookingsComplianceWaive, false },
+        { Roles.Accountant, Permissions.BookingsComplianceWaive, false },
+        { Roles.Preparer, Permissions.BookingsComplianceWaive, false },
+
         // Data subject rights (export, anonymization): manager only.
         { Roles.Manager, Permissions.CustomersPrivacy, true },
         { Roles.Agent, Permissions.CustomersPrivacy, false },
