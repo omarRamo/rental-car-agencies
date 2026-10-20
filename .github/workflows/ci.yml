@@ -1,0 +1,356 @@
+# Continuous integration (PROMPT.md §12-§14): formatting, build with warnings as errors,
+# unit / architecture / integration / E2E tests with coverage, vulnerable NuGet packages,
+# secret scanning and Bicep validation.
+#
+# Job graph:
+#   build (format, build, unit + architecture tests)  ──┬──> integration-tests ──┐
+#                                                       └──> e2e-tests ──────────┴──> coverage
+#   vulnerable-packages, secret-scan, bicep: independent, start immediately.
+#
+# Every third-party action is pinned to a full commit SHA (Dependabot keeps them up to date).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  NUGET_XMLDOC_MODE: skip
+  SOLUTION: CarRental.slnx
+  CONFIGURATION: Release
+  RUN_SETTINGS: .github/coverlet.runsettings
+
+jobs:
+  build:
+    name: Build and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore "$SOLUTION"
+
+      - name: Check formatting
+        run: dotnet format "$SOLUTION" --verify-no-changes --no-restore --verbosity minimal
+
+      - name: Build (warnings as errors)
+        run: dotnet build "$SOLUTION" --configuration "$CONFIGURATION" -warnaserror --no-restore
+
+      - name: Unit and architecture tests
+        run: |
+          status=0
+          for project in CarRental.Domain.Tests CarRental.Application.Tests CarRental.Architecture.Tests; do
+            echo "::group::$project"
+            dotnet test "tests/$project" --configuration "$CONFIGURATION" --no-build \
+              --logger "trx;LogFileName=$project.trx" \
+              --results-directory "$RUNNER_TEMP/TestResults" \
+              --collect "XPlat Code Coverage" --settings "$RUN_SETTINGS" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+      - name: Upload test results and coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-unit
+          path: ${{ runner.temp }}/TestResults
+          if-no-files-found: warn
+          retention-days: 14
+
+  integration-tests:
+    name: Integration tests (SQL Server and Azurite containers)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Build
+        run: dotnet build tests/CarRental.Integration.Tests --configuration "$CONFIGURATION"
+
+      # Testcontainers starts SQL Server and Azurite with the Docker engine of the runner.
+      - name: Integration tests
+        run: >-
+          dotnet test tests/CarRental.Integration.Tests --configuration "$CONFIGURATION" --no-build
+          --logger "trx;LogFileName=CarRental.Integration.Tests.trx"
+          --results-directory "$RUNNER_TEMP/TestResults"
+          --collect "XPlat Code Coverage" --settings "$RUN_SETTINGS"
+          --blame-hang-timeout 15m
+
+      - name: Upload test results and coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-integration
+          path: ${{ runner.temp }}/TestResults
+          if-no-files-found: warn
+          retention-days: 14
+
+  e2e-tests:
+    name: E2E tests (Playwright, Chromium)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/Directory.Packages.props', 'tests/CarRental.E2E.Tests/*.csproj') }}
+
+      - name: Build
+        run: dotnet build tests/CarRental.E2E.Tests --configuration "$CONFIGURATION"
+
+      # The test fixture downloads Chromium itself; Linux also needs the browser's OS libraries.
+      - name: Install Chromium and its OS dependencies
+        run: |
+          script="tests/CarRental.E2E.Tests/bin/$CONFIGURATION/net10.0/playwright.ps1"
+          if [ ! -f "$script" ]; then
+            script=$(find . -name playwright.ps1 -path '*E2E*' -not -path './.git/*' 2>/dev/null | head -n 1 || true)
+          fi
+          if [ -z "$script" ]; then
+            echo "::error::playwright.ps1 not found: is Microsoft.Playwright referenced by tests/CarRental.E2E.Tests?"
+            exit 1
+          fi
+          pwsh "$script" install --with-deps chromium
+
+      - name: E2E tests
+        env:
+          # Optional contract with the test fixture: traces, screenshots and videos go here.
+          E2E_ARTIFACTS_DIR: ${{ runner.temp }}/TestResults/e2e-artifacts
+        run: >-
+          dotnet test tests/CarRental.E2E.Tests --configuration "$CONFIGURATION" --no-build
+          --logger "trx;LogFileName=CarRental.E2E.Tests.trx"
+          --results-directory "$RUNNER_TEMP/TestResults"
+          --collect "XPlat Code Coverage" --settings "$RUN_SETTINGS"
+          --blame-hang-timeout 20m
+
+      - name: Upload test results, coverage and Playwright artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-e2e
+          path: ${{ runner.temp }}/TestResults
+          if-no-files-found: warn
+          retention-days: 14
+
+  coverage:
+    name: Coverage report
+    needs: [build, integration-tests, e2e-tests]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (sources for the HTML report)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Download test results
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: test-results-*
+          path: ${{ runner.temp }}/results
+
+      - name: Find coverage files
+        id: find
+        run: |
+          count=$(find "$RUNNER_TEMP/results" -name 'coverage.cobertura.xml' 2>/dev/null | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "$count coverage file(s) found."
+
+      - name: Merge coverage (ReportGenerator)
+        if: steps.find.outputs.count != '0'
+        uses: danielpalme/ReportGenerator-GitHub-Action@d3ebf1f760f7d8ab92cc44d9bcfee7ad73722a31 # v5.5.11
+        with:
+          reports: ${{ runner.temp }}/results/**/coverage.cobertura.xml
+          targetdir: ${{ runner.temp }}/coverage-report
+          reporttypes: HtmlInline;MarkdownSummaryGithub;Cobertura
+          title: CarRental
+
+      - name: Publish the coverage summary
+        if: steps.find.outputs.count != '0'
+        run: cat "$RUNNER_TEMP/coverage-report/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        if: steps.find.outputs.count != '0'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: ${{ runner.temp }}/coverage-report
+          retention-days: 14
+
+  vulnerable-packages:
+    name: Vulnerable NuGet packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore "$SOLUTION"
+
+      - name: Fail on known vulnerabilities (direct and transitive)
+        run: |
+          dotnet list "$SOLUTION" package --vulnerable --include-transitive
+          dotnet list "$SOLUTION" package --vulnerable --include-transitive --format json > "$RUNNER_TEMP/vulnerable.json"
+          count=$(jq '[.projects[]?.frameworks[]? | ((.topLevelPackages // []) + (.transitivePackages // []))[] | select((.vulnerabilities // []) | length > 0)] | length' "$RUNNER_TEMP/vulnerable.json")
+          if [ "$count" -gt 0 ]; then
+            echo "::error::$count vulnerable package reference(s) found (see the table above)."
+            exit 1
+          fi
+          echo "No known vulnerable package."
+
+  secret-scan:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # list the commits of a pull request
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .github/gitleaks.toml
+          # No PR comment (would need pull-requests: write): findings are in the job summary and SARIF artifact.
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          # A GITLEAKS_LICENSE secret is only required for organization-owned repositories.
+
+  bicep:
+    name: Bicep build and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BICEP_VERSION: v0.48.1
+      # Placeholders read by the .bicepparam files; nothing is deployed and no Azure login happens here.
+      SQL_ADMIN_GROUP_OBJECT_ID: 00000000-0000-0000-0000-000000000000
+      SQL_ADMIN_GROUP_NAME: ci-placeholder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install a pinned Bicep CLI
+        run: |
+          az config set bicep.use_binary_from_path=false --only-show-errors
+          az bicep install --version "$BICEP_VERSION"
+          az bicep version
+
+      - name: Build and lint
+        run: |
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep lint --file infra/main.bicep
+          for environment in recette prod; do
+            az bicep build-params --file "infra/main.$environment.bicepparam" --stdout > /dev/null
+          done
+          echo "Bicep templates and parameter files are valid."
+
+  # -----------------------------------------------------------------------------------------------
+  # TODO(phase-2): Lighthouse performance budget — PROMPT.md §10 and §13 (LCP < 2.5 s on simulated
+  # 4G, CI fails when the budget is exceeded). Added in phase 2, once the public site exists:
+  #   lighthouse:
+  #     name: Lighthouse budget
+  #     needs: build
+  #     runs-on: ubuntu-latest
+  #     steps:
+  #       - start CarRental.Web (Testcontainers SQL, Seed__Demo=true) or target the recette URL
+  #       - run Lighthouse CI (action pinned to a commit SHA) on /fr, /fr/reserver... with
+  #         .github/lighthouse/budget.json (LCP, total byte weight, no render-blocking JS)
+  #       - upload the Lighthouse reports as an artifact
+  # Deliberately not declared yet so that CI does not fail before the site exists.
+  # -----------------------------------------------------------------------------------------------

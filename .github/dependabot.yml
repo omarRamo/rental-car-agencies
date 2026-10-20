@@ -1,0 +1,90 @@
+# Dependabot version updates: weekly, grouped, Conventional Commits messages
+# ("build(deps): ...", "ci(deps): ..."). Security updates are separate and immediate
+# (enable "Dependabot security updates" in the repository settings).
+version: 2
+
+updates:
+  # NuGet packages (Directory.Packages.props, central package management) and the local tools
+  # manifest .config/dotnet-tools.json (dotnet-ef).
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Tunis
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      dotnet-platform:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions.*"
+          - "Microsoft.Data.SqlClient*"
+          - "dotnet-ef"
+        update-types: [minor, patch]
+      azure:
+        patterns:
+          - "Azure.*"
+          - "Microsoft.Azure.*"
+        update-types: [minor, patch]
+      testing:
+        patterns:
+          - "xunit*"
+          - "Shouldly"
+          - "FsCheck*"
+          - "Microsoft.NET.Test.Sdk"
+          - "Microsoft.Testing.*"
+          - "coverlet.*"
+          - "Testcontainers*"
+          - "Microsoft.Playwright*"
+          - "Deque.AxeCore.*"
+          - "NetArchTest*"
+        update-types: [minor, patch]
+      other-dependencies:
+        patterns:
+          - "*"
+        update-types: [minor, patch]
+    ignore:
+      # Moving to the next .NET major version (11+) is a deliberate decision (ADR), not a bump:
+      # the project targets .NET 10 LTS.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet-ef"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions (pinned to commit SHAs: Dependabot updates the SHA and the version comment).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Tunis
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # .NET SDK pinned in global.json (feature bands and patches of .NET 10 only).
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Tunis
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

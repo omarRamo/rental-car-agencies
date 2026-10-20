@@ -1,0 +1,277 @@
+# Deployment to Azure App Service (PROMPT.md §14, ADR-0004): EF Core migration bundle applied
+# before a zip deployment, then a check of /health/ready.
+#
+# - Manual: Actions > Deploy > Run workflow, environment "recette" or "prod".
+# - Nightly: 01:00 UTC (02:00 Africa/Tunis) to production (B1 has no deployment slot, so the
+#   restart happens at night), only when main has a new commit with a green CI run.
+# - Everything is skipped (not failed) until the repository variable AZURE_DEPLOY_ENABLED is
+#   "true", so the workflow is harmless on a repository without Azure credentials.
+#
+# Configuration (details in infra/README.md):
+#   repository variable   AZURE_DEPLOY_ENABLED = true
+#   environment secrets   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID (OIDC, no password)
+#   environment variables AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME, AZURE_SQL_SERVER, AZURE_SQL_DATABASE
+#                         HEALTHCHECK_BASE_URL (optional, e.g. https://www.example.tn behind Cloudflare)
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options:
+          - recette
+          - prod
+        default: recette
+  schedule:
+    - cron: "0 1 * * *" # 01:00 UTC = 02:00 in Tunisia (UTC+1 all year)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'prod' }}
+  cancel-in-progress: false # never interrupt a deployment (migrations may be running)
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  prepare:
+    name: Decide what to deploy
+    if: vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # read the deployed-prod tag
+      actions: read # read the CI runs of the commit
+    outputs:
+      environment: ${{ steps.decide.outputs.environment }}
+      deploy: ${{ steps.decide.outputs.deploy }}
+    steps:
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          environment="${REQUESTED_ENVIRONMENT:-prod}"
+          if [ "$EVENT_NAME" = "schedule" ]; then environment=prod; fi
+          deploy=true
+          reason="manual deployment requested"
+          [ "$EVENT_NAME" = "schedule" ] && reason="nightly deployment"
+
+          if [ "$environment" = "prod" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "::error::Production is deployed from main only (requested from $GITHUB_REF)."
+              exit 1
+            fi
+
+            green=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" \
+              --status success --limit 1 --json databaseId --jq 'length')
+            if [ "$green" = "0" ]; then
+              if [ "$EVENT_NAME" = "schedule" ]; then
+                echo "::warning::No successful CI run for $GITHUB_SHA: nightly production deployment skipped."
+                deploy=false
+                reason="CI is not green on $GITHUB_SHA"
+              else
+                echo "::error::No successful CI run for $GITHUB_SHA: wait for CI (or fix it) before deploying to production."
+                exit 1
+              fi
+            fi
+
+            if [ "$deploy" = "true" ] && [ "$EVENT_NAME" = "schedule" ]; then
+              deployed=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/deployed-prod" --jq '.object.sha' 2>/dev/null || true)
+              if [ "$deployed" = "$GITHUB_SHA" ]; then
+                deploy=false
+                reason="no new commit since the last production deployment"
+              fi
+            fi
+          fi
+
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Deployment decision"
+            echo "- Environment: \`$environment\`"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Deploy: **$deploy** ($reason)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy to ${{ needs.prepare.outputs.environment }}
+    needs: prepare
+    if: needs.prepare.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: ${{ needs.prepare.outputs.environment }}
+      url: ${{ steps.health.outputs.url }}
+    permissions:
+      id-token: write # OIDC token for azure/login
+      contents: read
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
+      SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
+      HEALTHCHECK_BASE_URL: ${{ vars.HEALTHCHECK_BASE_URL }}
+    steps:
+      - name: Check the environment configuration
+        run: |
+          missing=""
+          [ -n "$RESOURCE_GROUP" ] || missing="$missing AZURE_RESOURCE_GROUP"
+          [ -n "$WEBAPP_NAME" ] || missing="$missing AZURE_WEBAPP_NAME"
+          [ -n "$SQL_SERVER" ] || missing="$missing AZURE_SQL_SERVER"
+          [ -n "$SQL_DATABASE" ] || missing="$missing AZURE_SQL_DATABASE"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing variables in the GitHub environment:$missing (see infra/README.md)."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore .NET local tools (dotnet-ef)
+        run: dotnet tool restore
+
+      # Build everything before logging in: the GitHub OIDC assertion is short-lived.
+      - name: Publish the web app
+        run: dotnet publish src/CarRental.Web -c Release -o publish
+
+      - name: Build the EF Core migration bundle
+        run: >-
+          dotnet ef migrations bundle
+          -p src/CarRental.Infrastructure -s src/CarRental.Web
+          -r linux-x64 --self-contained --configuration Release
+          -o efbundle
+
+      - name: Azure login (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Fetched right after login and cached by the Azure CLI for about an hour; the migration
+      # bundle reuses it through "Authentication=Active Directory Default" (AzureCliCredential).
+      - name: Get a Microsoft Entra token for Azure SQL
+        run: az account get-access-token --scope https://database.windows.net/.default --output none
+
+      - name: Open the SQL firewall to this runner
+        id: firewall
+        run: |
+          rule="gha-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          # Output written first: the cleanup step then runs whatever happens below.
+          echo "rule=$rule" >> "$GITHUB_OUTPUT"
+          ip=$(curl -fsS --retry 3 --max-time 10 https://api.ipify.org)
+          az sql server firewall-rule create --resource-group "$RESOURCE_GROUP" --server "$SQL_SERVER" \
+            --name "$rule" --start-ip-address "$ip" --end-ip-address "$ip" --output none
+          echo "Temporary firewall rule $rule opened for $ip."
+
+      - name: Apply EF Core migrations
+        env:
+          # DefaultAzureCredential (Azure.Identity >= 1.14): developer credentials only, i.e. the az
+          # login session; skips the managed identity probe on the runner. Ignored by older versions.
+          AZURE_TOKEN_CREDENTIALS: dev
+        run: |
+          fqdn=$(az sql server show --resource-group "$RESOURCE_GROUP" --name "$SQL_SERVER" \
+            --query fullyQualifiedDomainName --output tsv)
+          connection="Server=tcp:$fqdn,1433;Database=$SQL_DATABASE;Authentication=Active Directory Default;Encrypt=True;Connect Timeout=60;"
+          # A serverless free-offer database (recette) resumes on the first connection, which
+          # fails while it wakes up: retry. Each migration runs in its own transaction.
+          for attempt in 1 2 3; do
+            if ./efbundle --connection "$connection"; then exit 0; fi
+            echo "::warning::Migration attempt $attempt failed, retrying in 30 s."
+            sleep 30
+          done
+          echo "::error::EF Core migrations failed."
+          exit 1
+
+      - name: Close the SQL firewall
+        if: always() && steps.firewall.outputs.rule != ''
+        env:
+          RULE: ${{ steps.firewall.outputs.rule }}
+        run: |
+          if ! az sql server firewall-rule show --resource-group "$RESOURCE_GROUP" --server "$SQL_SERVER" \
+            --name "$RULE" --output none 2>/dev/null; then
+            echo "No temporary firewall rule to remove."
+            exit 0
+          fi
+          az sql server firewall-rule delete --resource-group "$RESOURCE_GROUP" --server "$SQL_SERVER" \
+            --name "$RULE" --output none
+          echo "Temporary firewall rule $RULE removed."
+
+      - name: Zip deploy
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          resource-group-name: ${{ vars.AZURE_RESOURCE_GROUP }}
+          package: publish
+          clean: true
+          restart: true
+
+      - name: Check /health/ready
+        id: health
+        run: |
+          host=$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$WEBAPP_NAME" \
+            --query defaultHostName --output tsv)
+          base="${HEALTHCHECK_BASE_URL:-https://$host}"
+          base="${base%/}"
+          echo "url=$base" >> "$GITHUB_OUTPUT"
+          # Up to about 10 minutes: cold start (F1), auto-paused free SQL database resuming...
+          for attempt in $(seq 1 40); do
+            code=$(curl -s -o "$RUNNER_TEMP/health.txt" -w '%{http_code}' --max-time 20 "$base/health/ready" || true)
+            if [ "$code" = "200" ]; then
+              echo "Healthy after $attempt attempt(s)."
+              cat "$RUNNER_TEMP/health.txt"; echo
+              echo "Deployed \`$GITHUB_SHA\` to $base (healthy)." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP ${code:-none}, retrying in 15 s."
+            sleep 15
+          done
+          echo "::error::$base/health/ready did not answer 200."
+          cat "$RUNNER_TEMP/health.txt" 2>/dev/null || true
+          exit 1
+
+  mark-deployed:
+    name: Move the deployed-prod tag
+    needs: [prepare, deploy]
+    if: needs.prepare.outputs.environment == 'prod' && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # only this job may write: it moves one tag
+    steps:
+      - name: Point deployed-prod at the deployed commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/deployed-prod" --silent 2>/dev/null; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/deployed-prod" \
+              -f sha="$GITHUB_SHA" -F force=true --silent
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref=refs/tags/deployed-prod -f sha="$GITHUB_SHA" --silent
+          fi
+          echo "deployed-prod now points at \`$GITHUB_SHA\`." >> "$GITHUB_STEP_SUMMARY"

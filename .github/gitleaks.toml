@@ -1,0 +1,20 @@
+# gitleaks configuration (used by the "Secret scanning" job of .github/workflows/ci.yml
+# through GITLEAKS_CONFIG). The default gitleaks rules apply; only well-known public values are
+# allowed below. To accept a reviewed false positive on one line, end it with a
+# "gitleaks:allow" comment rather than widening this list.
+
+title = "rental-car-agencies"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public, documented non-secrets"
+regexes = [
+  # Azurite / Azure Storage emulator development account key, published by Microsoft.
+  '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
+]
+paths = [
+  # Original specification (binary PDF, no credentials).
+  '''^docs/specifications-2026-10-20\.pdf$''',
+]
