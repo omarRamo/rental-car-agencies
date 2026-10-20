@@ -46,7 +46,6 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<AppUrls>();
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
-        services.AddScoped<SignInRecorder>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 
         services.AddAntiforgery(options =>

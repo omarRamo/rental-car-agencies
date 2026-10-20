@@ -139,6 +139,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddCarRentalIdentityCore();
         services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<SignInRecorder>();
         services.AddDataSeeder<RolePresetSynchronizer>();
         services.AddDataSeeder<InitialManagerSeeder>();
         services.AddDataSeeder<IdentityDemoSeeder>();
