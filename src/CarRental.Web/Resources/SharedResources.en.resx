@@ -336,4 +336,22 @@
   <data name="Error.referential.setting_value_invalid" xml:space="preserve">
     <value>This value is not valid for this setting.</value>
   </data>
+  <data name="Error.outbox.forbidden" xml:space="preserve">
+    <value>You do not have the permission to manage the background messages.</value>
+  </data>
+  <data name="Error.outbox.message_not_found" xml:space="preserve">
+    <value>This message no longer exists or has just been processed: refresh the list.</value>
+  </data>
+  <data name="Error.referential.forbidden" xml:space="preserve">
+    <value>You do not have the permission to manage the settings.</value>
+  </data>
+  <data name="Error.referential.setting_unknown" xml:space="preserve">
+    <value>No module declares this setting.</value>
+  </data>
+  <data name="Error.referential.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.referential.setting_concurrent_update" xml:space="preserve">
+    <value>The setting was changed meanwhile: reload the page and try again.</value>
+  </data>
 </root>

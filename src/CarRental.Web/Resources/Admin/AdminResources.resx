@@ -249,4 +249,7 @@
   <data name="Gallery.Field.Switch" xml:space="preserve">
     <value>Interrupteur</value>
   </data>
+  <data name="Nav.Outbox" xml:space="preserve">
+    <value>Messages de fond</value>
+  </data>
 </root>

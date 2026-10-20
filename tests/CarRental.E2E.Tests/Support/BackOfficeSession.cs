@@ -58,6 +58,17 @@ internal static class BackOfficeSession
         await Expect(page.Locator("main#admin-main[data-interactive='true']")).ToBeAttachedAsync(new LocatorAssertionsToBeAttachedOptions { Timeout = 30_000 });
     }
 
+    /// <summary>
+    /// Waits until the open MudBlazor popover (picker, select list, menu) has finished its fade-in: axe would compute the
+    /// contrast of half-transparent text.
+    /// </summary>
+    public static async Task WaitForOpenPopoverAsync(IPage page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        await page.WaitForFunctionAsync(
+            "() => { const open = [...document.querySelectorAll('.mud-popover-open')]; return open.length > 0 && open.every(p => getComputedStyle(p).opacity === '1'); }");
+    }
+
     /// <summary>No critical or serious axe violation on the page as it is now.</summary>
     public static async Task AssertNoSeriousAxeViolationAsync(IPage page)
     {

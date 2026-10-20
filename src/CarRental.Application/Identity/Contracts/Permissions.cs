@@ -59,6 +59,9 @@ public static class Permissions
     public const string AuditRead = "audit.read";
     public const string JobsDashboard = "jobs.dashboard";
 
+    /// <summary>Background messages (outbox): failed and pending messages, retry (audited).</summary>
+    public const string OutboxManage = "outbox.manage";
+
     private static readonly FrozenSet<string> Known;
 
     static Permissions()
@@ -97,6 +100,7 @@ public static class Permissions
             new(SettingsManage, PermissionArea.Administration),
             new(AuditRead, PermissionArea.Administration),
             new(JobsDashboard, PermissionArea.Administration),
+            new(OutboxManage, PermissionArea.Administration),
         ];
         All = Catalog.Select(p => p.Name).ToArray();
         Known = All.ToFrozenSet(StringComparer.Ordinal);

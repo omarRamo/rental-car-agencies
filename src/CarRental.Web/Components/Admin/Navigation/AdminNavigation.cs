@@ -49,6 +49,7 @@ public static class AdminNavigation
             new("/admin/users", "Nav.Users", Icons.Material.Outlined.ManageAccounts, Permissions.UsersManage),
             new("/admin/settings", "Nav.Settings", Icons.Material.Outlined.Settings, Permissions.SettingsManage),
             new("/admin/audit", "Nav.Audit", Icons.Material.Outlined.History, Permissions.AuditRead),
+            new("/admin/outbox", "Nav.Outbox", Icons.Material.Outlined.Outbox, Permissions.OutboxManage),
             new("/admin/jobs", "Nav.Jobs", Icons.Material.Outlined.Schedule, Permissions.JobsDashboard, ForceLoad: true),
         ]),
     ];

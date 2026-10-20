@@ -1,0 +1,236 @@
+@page "/admin/outbox"
+@attribute [HasPermission(Permissions.OutboxManage)]
+@using CarRental.Application.Common.Paging
+@using CarRental.Infrastructure.Outbox
+@using CarRental.Web.Resources.Admin.Outbox
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<OutboxAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+@inject TimeProvider Clock
+
+<PageTitle>@L["Outbox.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Outbox.Title"]</MudText>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshAsync">@L["Outbox.Refresh"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-1">@L["Outbox.Intro", _overview?.MaxAttempts ?? 10]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Outbox.TimeZoneNote"]</MudText>
+
+<section aria-label="@L["Outbox.Summary.Label"]" class="mb-4">
+    @if (_overview is { } overview)
+    {
+        var statistics = overview.Statistics;
+        <MudGrid Spacing="2">
+            <MudItem xs="6" md="3">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="failed">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="@(statistics.FailedCount > 0 ? Color.Error : Color.Default)" Size="Size.Small" aria-hidden="true" Class="me-1" />
+                        @L["Outbox.Summary.Failed"]
+                    </MudText>
+                    <MudText Typo="Typo.h5">@statistics.FailedCount</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="pending">
+                    <MudText Typo="Typo.body2">@L["Outbox.Summary.Pending"]</MudText>
+                    <MudText Typo="Typo.h5">@statistics.PendingCount</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="retrying">
+                    <MudText Typo="Typo.body2">@L["Outbox.Summary.Retrying"]</MudText>
+                    <MudText Typo="Typo.h5">@statistics.RetryingCount</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="oldest">
+                    <MudText Typo="Typo.body2">@L["Outbox.Summary.Oldest"]</MudText>
+                    <MudText Typo="Typo.h5">@(statistics.OldestPendingAtUtc is { } oldest ? Age(oldest) : L["Outbox.Summary.None"].Value)</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Outbox.Summary.Alert", Duration(overview.PendingAlertAge)]</MudText>
+    }
+</section>
+
+<MudSelect T="OutboxListFilter" Value="_filter" ValueChanged="FilterChangedAsync" Label="@L["Outbox.Filter"]" Class="mb-4 outbox-filter">
+    @foreach (var filter in Enum.GetValues<OutboxListFilter>())
+    {
+        <MudSelectItem T="OutboxListFilter" Value="filter">@L[$"Outbox.Filter.{filter}"]</MudSelectItem>
+    }
+</MudSelect>
+
+<MudTable @ref="_table" T="OutboxEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Outbox.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Outbox.Column.OccurredAt"]</MudTh>
+        <MudTh>@L["Outbox.Column.Type"]</MudTh>
+        <MudTh>@L["Outbox.Column.State"]</MudTh>
+        <MudTh>@L["Outbox.Column.Attempts"]</MudTh>
+        <MudTh>@L["Outbox.Column.NextAttempt"]</MudTh>
+        <MudTh>@L["Outbox.Column.Error"]</MudTh>
+        <MudTh>@L["Outbox.Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Outbox.Column.OccurredAt"]">@Instant(context.OccurredAtUtc)</MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.Type"]"><span title="@context.Type">@context.ShortType</span></MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.State"]">
+            <MudChip T="string" Size="Size.Small" Color="@StateColor(context.State)" Icon="@StateIcon(context.State)">@L[$"Outbox.State.{context.State}"]</MudChip>
+        </MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.Attempts"]">@context.AttemptCount</MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.NextAttempt"]">@(context.NextAttemptAtUtc is { } next ? Instant(next) : L["Outbox.None"].Value)</MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.Error"]">
+            @if (string.IsNullOrEmpty(context.LastError))
+            {
+                @L["Outbox.None"]
+            }
+            else
+            {
+                <span class="outbox-error">@FirstLine(context.LastError)</span>
+                <MudIconButton Icon="@(_expanded.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small"
+                               OnClick="() => Toggle(context.Id)" aria-label="@L["Outbox.ShowError"]" aria-expanded="@(_expanded.Contains(context.Id) ? "true" : "false")" />
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Outbox.Column.Actions"]">
+            @if (context.State != OutboxEntryState.Pending)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay"
+                           Disabled="_busy" OnClick="() => RetryAsync(context)"
+                           aria-label="@L["Outbox.Retry.Label", context.ShortType, Instant(context.OccurredAtUtc)]">@L["Outbox.Retry"]</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent>
+        @if (_expanded.Contains(context.Id))
+        {
+            <MudTr>
+                <td colspan="7" class="audit-details">
+                    <pre>@context.LastError</pre>
+                    <p><strong>@L["Outbox.MessageId"]</strong> <code>@context.Id</code></p>
+                    <p><strong>@L["Outbox.Correlation"]</strong> <code>@context.CorrelationId</code></p>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+    <NoRecordsContent>
+        <MudText>@L["Outbox.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private readonly HashSet<Guid> _expanded = [];
+    private MudTable<OutboxEntry>? _table;
+    private OutboxOverview? _overview;
+    private OutboxListFilter _filter = OutboxListFilter.All;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadOverviewAsync();
+
+    private async Task LoadOverviewAsync()
+    {
+        var overview = await Runner.RunAsync<OutboxAdministrationService, Result<OutboxOverview>>((service, ct) => service.GetOverviewAsync(ct));
+        if (overview.IsSuccess)
+        {
+            _overview = overview.Value;
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, overview.Error), Severity.Error);
+        }
+    }
+
+    private async Task<TableData<OutboxEntry>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var filter = _filter;
+        var result = await Runner.RunAsync<OutboxAdministrationService, Result<PagedResult<OutboxEntry>>>(
+            (service, ct) => service.ListAsync(filter, page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<OutboxEntry> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<OutboxEntry> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadOverviewAsync();
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task FilterChangedAsync(OutboxListFilter filter)
+    {
+        _filter = filter;
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task RetryAsync(OutboxEntry entry)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<OutboxAdministrationService, Result>((service, ct) => service.RetryAsync(entry.Id, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Outbox.Retried"], Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await RefreshAsync();
+    }
+
+    private void Toggle(Guid id)
+    {
+        if (!_expanded.Remove(id))
+        {
+            _expanded.Add(id);
+        }
+    }
+
+    private static string Instant(DateTimeOffset instant) => TunisTime.ToTunis(instant).ToString("g", CultureInfo.CurrentCulture);
+
+    private static string FirstLine(string error)
+    {
+        var line = error.Split('\n', 2)[0].Trim();
+        return line.Length > 160 ? string.Concat(line.AsSpan(0, 159), "…") : line;
+    }
+
+    private string Age(DateTimeOffset since) => Duration(Clock.GetUtcNow() - since);
+
+    private string Duration(TimeSpan duration) => duration switch
+    {
+        _ when duration < TimeSpan.FromHours(1) => L["Outbox.Age.Minutes", Math.Max(0, (int)duration.TotalMinutes)],
+        _ when duration < TimeSpan.FromDays(2) => L["Outbox.Age.Hours", (int)duration.TotalHours],
+        _ => L["Outbox.Age.Days", (int)duration.TotalDays],
+    };
+
+    private static Color StateColor(OutboxEntryState state) => state switch
+    {
+        OutboxEntryState.Failed => Color.Error,
+        OutboxEntryState.Retrying => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private static string StateIcon(OutboxEntryState state) => state switch
+    {
+        OutboxEntryState.Failed => Icons.Material.Filled.ErrorOutline,
+        OutboxEntryState.Retrying => Icons.Material.Filled.Schedule,
+        _ => Icons.Material.Filled.HourglassEmpty,
+    };
+}

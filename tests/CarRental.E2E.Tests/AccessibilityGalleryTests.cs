@@ -50,6 +50,7 @@ public sealed class AccessibilityGalleryTests(E2EHost host) : BrowserTest(host)
 
         await Page.GetByLabel("Date", new PageGetByLabelOptions { Exact = true }).ClickAsync();
         await Expect(Page.Locator(".mud-picker-content")).ToBeVisibleAsync();
+        await BackOfficeSession.WaitForOpenPopoverAsync(Page);
         await Expect(Page.Locator("button[aria-label^='Mois précédent']")).ToBeVisibleAsync();
 
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
@@ -63,6 +64,7 @@ public sealed class AccessibilityGalleryTests(E2EHost host) : BrowserTest(host)
 
         await Page.GetByLabel("Heure", new PageGetByLabelOptions { Exact = true }).ClickAsync();
         await Expect(Page.Locator(".mud-picker-content")).ToBeVisibleAsync();
+        await BackOfficeSession.WaitForOpenPopoverAsync(Page);
 
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
     }

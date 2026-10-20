@@ -336,4 +336,22 @@
   <data name="Error.referential.setting_value_invalid" xml:space="preserve">
     <value>Cette valeur n'est pas valide pour ce paramètre.</value>
   </data>
+  <data name="Error.outbox.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les messages de fond.</value>
+  </data>
+  <data name="Error.outbox.message_not_found" xml:space="preserve">
+    <value>Ce message n'existe plus ou vient d'être traité : actualisez la liste.</value>
+  </data>
+  <data name="Error.referential.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les paramètres.</value>
+  </data>
+  <data name="Error.referential.setting_unknown" xml:space="preserve">
+    <value>Ce paramètre n'est déclaré par aucun module.</value>
+  </data>
+  <data name="Error.referential.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas.</value>
+  </data>
+  <data name="Error.referential.setting_concurrent_update" xml:space="preserve">
+    <value>Le paramètre a été modifié entre-temps : rechargez la page puis recommencez.</value>
+  </data>
 </root>

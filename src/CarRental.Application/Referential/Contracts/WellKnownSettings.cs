@@ -35,6 +35,13 @@ public static class WellKnownSettings
     public static readonly SettingDefinition<Money> StampDuty =
         SettingDefinitions.Amount("billing.stamp_duty", Money.Tnd(0m));
 
+    /// <summary>
+    /// How long processed outbox messages are kept before the nightly purge (30 days, one at least); failed messages are
+    /// kept until someone retries them (ADR-0028).
+    /// </summary>
+    public static readonly SettingDefinition<TimeSpan> OutboxProcessedRetention =
+        SettingDefinitions.Duration("outbox.processed_retention", TimeSpan.FromDays(30), TimeSpan.FromDays(1), SettingDefinitions.MaximumDuration);
+
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
         BookingHoldDuration,
@@ -43,5 +50,6 @@ public static class WellKnownSettings
         VatRate,
         DailyContributionExclVat,
         StampDuty,
+        OutboxProcessedRetention,
     ];
 }
