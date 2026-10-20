@@ -20,3 +20,6 @@
 *.eot binary
 *.zip binary
 *.snk binary
+
+# Resource files only grow by appended <data> entries: keep both sides when parallel branches add entries.
+*.resx merge=union
