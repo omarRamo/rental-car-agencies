@@ -26,6 +26,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0018](0018-journal-audit-ajout-seul.md) | Journal d'audit applicatif en ajout seul, complété par les tables temporelles | Acceptée |
 | [0019](0019-strategie-de-tests.md) | Stratégie de tests : xUnit v3 sur VSTest, conteneurs partagés, Playwright | Acceptée |
 | [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée |
+| [0021](0021-flotte-fenetres-de-disponibilite-et-echeances.md) | Flotte : fenêtres de disponibilité calculées par le domaine, écritures sous verrou et alertes d'échéance | Acceptée |
+| [0022](0022-photos-de-la-flotte.md) | Photos de la flotte : stockage privé, photos de catégorie servies par l'application | Acceptée |
 | [0023](0023-plans-tarifaires-versionnes.md) | Plans tarifaires versionnés : brouillon, publication, archives | Acceptée |
 | [0024](0024-moteur-de-prix-pur-et-son-alimentation.md) | Moteur de prix pur, alimenté par le service de tarification | Acceptée |
 | [0025](0025-moteur-de-disponibilite-cache-et-ecriture-sous-verrou.md) | Moteur de disponibilité : balayage des bornes, cache mémoire invalidé par événement, écriture sous verrou | Acceptée |

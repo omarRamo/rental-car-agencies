@@ -8,6 +8,7 @@
 - Format : `dotnet format` (la CI vérifie `dotnet format --verify-no-changes`)
 - Lancer : `dotnet run --project src/CarRental.Web` (https://localhost:7180 ; migrations et données de démonstration appliquées au démarrage en développement)
 - Migration : `dotnet ef migrations add <Name> -p src/CarRental.Infrastructure -s src/CarRental.Web -o Persistence/Migrations`
+- Fusion des `.resx` : pilote `tools/git/merge-resx.mjs` (fusion à trois voies des entrées par clé), à déclarer une fois par clone : `git config merge.resx.driver "node tools/git/merge-resx.mjs %O %A %B"`.
 - Avant chaque commit : `dotnet format`, `dotnet build -warnaserror` et `dotnet test` verts ; commits Conventional Commits en anglais.
 
 ## Architecture

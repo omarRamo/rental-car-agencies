@@ -81,7 +81,7 @@ flowchart LR
 | Communication Services + Email | domaine géré Azure | idem | Données au repos en France (`dataLocation`), suivi des ouvertures désactivé |
 | Budget | 40 (devise de facturation) | 10 | Alertes à 80 % du réel et 100 % de la prévision, seulement si `BUDGET_ALERT_EMAIL` est défini |
 
-Conteneurs privés : `documents` (pièces d'identité et permis), `inspections` (photos d'états des lieux), `contracts` (PDF), `exports`, `dataprotection` (trousseau de clés ASP.NET Core).
+Conteneurs privés : `documents` (pièces d'identité et permis), `inspections` (photos d'états des lieux), `contracts` (PDF), `invoices` (factures et avoirs, PDF et XML TEIF), `exports`, `fleet` (photos des catégories, servies sans authentification par l'application, et des véhicules), `dataprotection` (trousseau de clés ASP.NET Core).
 
 ### Noms
 
