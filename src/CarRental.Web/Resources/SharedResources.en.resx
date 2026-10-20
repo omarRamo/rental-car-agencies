@@ -261,4 +261,79 @@
   <data name="Error.customers.concurrent_update" xml:space="preserve">
     <value>The record was changed in the meantime: reload it and try again.</value>
   </data>
+  <data name="Error.acriss.required" xml:space="preserve">
+    <value>The ACRISS code is required.</value>
+  </data>
+  <data name="Error.acriss.invalid_length" xml:space="preserve">
+    <value>An ACRISS code has exactly four letters.</value>
+  </data>
+  <data name="Error.acriss.invalid_category" xml:space="preserve">
+    <value>The first letter is not an ACRISS category.</value>
+  </data>
+  <data name="Error.acriss.invalid_type" xml:space="preserve">
+    <value>The second letter is not an ACRISS vehicle type.</value>
+  </data>
+  <data name="Error.acriss.invalid_transmission" xml:space="preserve">
+    <value>The third letter is not an ACRISS transmission code.</value>
+  </data>
+  <data name="Error.acriss.invalid_fuel_air" xml:space="preserve">
+    <value>The fourth letter is not an ACRISS fuel and air conditioning code.</value>
+  </data>
+  <data name="Error.document_number.unknown_type" xml:space="preserve">
+    <value>Unknown document type.</value>
+  </data>
+  <data name="Error.document_number.invalid_year" xml:space="preserve">
+    <value>The fiscal year must have four digits.</value>
+  </data>
+  <data name="Error.document_number.invalid_sequence" xml:space="preserve">
+    <value>Numbering starts at 1.</value>
+  </data>
+  <data name="Error.document_number.invalid_format" xml:space="preserve">
+    <value>Expected a number such as FAC-2027-000045.</value>
+  </data>
+  <data name="Error.money.currency_required" xml:space="preserve">
+    <value>The currency is required.</value>
+  </data>
+  <data name="Error.money.unknown_currency" xml:space="preserve">
+    <value>This currency is not supported.</value>
+  </data>
+  <data name="Error.money.too_many_decimals" xml:space="preserve">
+    <value>The amount has too many decimals (three at most for the dinar).</value>
+  </data>
+  <data name="Error.period.end_must_be_after_start" xml:space="preserve">
+    <value>The end must be after the start.</value>
+  </data>
+  <data name="Error.referential.agency_required" xml:space="preserve">
+    <value>The agency is required.</value>
+  </data>
+  <data name="Error.referential.agency_name_invalid" xml:space="preserve">
+    <value>The agency name is required (120 characters max).</value>
+  </data>
+  <data name="Error.referential.agency_city_invalid" xml:space="preserve">
+    <value>The agency city is required (80 characters max).</value>
+  </data>
+  <data name="Error.referential.agency_field_too_long" xml:space="preserve">
+    <value>An agency field is too long.</value>
+  </data>
+  <data name="Error.referential.agency_email_invalid" xml:space="preserve">
+    <value>The agency e-mail address is invalid.</value>
+  </data>
+  <data name="Error.referential.location_code_invalid" xml:space="preserve">
+    <value>A location code has 2 to 16 characters: letters A to Z, digits or hyphen.</value>
+  </data>
+  <data name="Error.referential.location_name_invalid" xml:space="preserve">
+    <value>The location name is required (120 characters max).</value>
+  </data>
+  <data name="Error.referential.location_kind_invalid" xml:space="preserve">
+    <value>Unknown location kind.</value>
+  </data>
+  <data name="Error.referential.location_address_too_long" xml:space="preserve">
+    <value>The address is too long (300 characters max).</value>
+  </data>
+  <data name="Error.referential.setting_key_invalid" xml:space="preserve">
+    <value>A setting key is made of lower-case dotted segments, e.g. bookings.hold_duration.</value>
+  </data>
+  <data name="Error.referential.setting_value_invalid" xml:space="preserve">
+    <value>This value is not valid for this setting.</value>
+  </data>
 </root>

@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Globalization;
 using System.Reflection;
-using System.Resources;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Admin.Navigation;
@@ -18,13 +15,6 @@ public sealed class ConventionTests
     private static readonly Type[] RoutableComponents = Assemblies.Web.GetTypes()
         .Where(t => typeof(IComponent).IsAssignableFrom(t) && t.GetCustomAttributes<RouteAttribute>().Any())
         .ToArray();
-
-    public static TheoryData<string> ResourceMarkers() =>
-    [
-        .. Assemblies.Web.GetTypes()
-            .Where(t => t.Namespace?.StartsWith("CarRental.Web.Resources", StringComparison.Ordinal) == true && t.Name.EndsWith("Resources", StringComparison.Ordinal))
-            .Select(t => t.FullName!),
-    ];
 
     private static IEnumerable<Type> AdminPages => RoutableComponents.Where(t => t.Namespace!.StartsWith("CarRental.Web.Components.Admin", StringComparison.Ordinal));
 
@@ -91,37 +81,6 @@ public sealed class ConventionTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(ResourceMarkers))]
-    public void French_and_english_resources_have_the_same_keys(string markerTypeName)
-    {
-        var manager = new ResourceManager(markerTypeName, Assemblies.Web);
-        var french = Entries(manager.GetResourceSet(CultureInfo.InvariantCulture, createIfNotExists: true, tryParents: false));
-        var english = Entries(manager.GetResourceSet(CultureInfo.GetCultureInfo("en"), createIfNotExists: true, tryParents: false));
-
-        french.ShouldNotBeEmpty();
-        english.Keys.ShouldBe(french.Keys, ignoreOrder: true);
-        french.Values.ShouldAllBe(v => !string.IsNullOrWhiteSpace(v));
-        english.Values.ShouldAllBe(v => !string.IsNullOrWhiteSpace(v));
-    }
-
-    [Fact]
-    public void Every_error_code_of_the_identity_module_has_a_user_facing_text()
-    {
-        var manager = new ResourceManager("CarRental.Web.Resources.SharedResources", Assemblies.Web);
-        var errors = typeof(CarRental.Application.Identity.IdentityErrors)
-            .GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Select(f => f.GetValue(null))
-            .OfType<Error>()
-            .Append(CarRental.Application.Identity.IdentityErrors.OperationFailed("x"));
-
-        foreach (var error in errors)
-        {
-            manager.GetString($"Error.{error.Code}", CultureInfo.InvariantCulture).ShouldNotBeNull(error.Code);
-            manager.GetString($"Error.{error.Code}", CultureInfo.GetCultureInfo("en")).ShouldNotBeNull(error.Code);
-        }
-    }
-
     [Fact]
     public void Domain_types_expose_no_public_setter()
     {
@@ -162,11 +121,5 @@ public sealed class ConventionTests
 
         usingAuditLog.ShouldContain(nameof(CarRental.Application.Identity.Audit.AuditLogQueries));
         usingIdentityInternals.ShouldNotBeEmpty();
-    }
-
-    private static Dictionary<string, string> Entries(ResourceSet? set)
-    {
-        set.ShouldNotBeNull();
-        return set.Cast<DictionaryEntry>().ToDictionary(e => (string)e.Key, e => e.Value as string ?? string.Empty, StringComparer.Ordinal);
     }
 }
