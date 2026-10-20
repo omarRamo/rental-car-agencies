@@ -1,0 +1,54 @@
+# ADR-0025 — Moteur de disponibilité : balayage des bornes, cache mémoire invalidé par événement, écriture sous verrou
+
+- **Statut** : Acceptée
+- **Date** : 2026-10-20
+- **Source** : [conception phase 1](../conception/phase-1-exploitation.md) §2 et §3, [prompt](../PROMPT.md) §6 (invariants 1 à 3) et §8, [spécifications](../SPEC.md) §7, [ADR-0006](0006-anti-surreservation-verrou-par-categorie.md), [ADR-0017](0017-execution-cas-usage-portee-transactions.md)
+
+## Contexte
+
+L'[ADR-0006](0006-anti-surreservation-verrou-par-categorie.md) fixe le principe : capacité par catégorie, verrou applicatif par catégorie, cache mémoire pour le bot et les canaux. Il reste à décider comment calculer la disponibilité, comment la servir en moins de 100 ms sans jamais surréserver, comment invalider le cache et quel est le protocole exact des écritures, changement de catégorie compris. Le lot 1C livre le moteur ; le lot 1E (agrégat `Booking`) le branche.
+
+## Décision
+
+### Calcul (domaine pur, `CarRental.Domain.Bookings.Availability`)
+
+- **Occupation d'un dossier** : `OccupancyBasis` (l'instant présent et le tampon de préparation de l'agence) calcule l'intervalle demi-ouvert d'un dossier à partir de données indépendantes du statut (`BookingOccupancy` : type d'occupation, location prévue, départ et retour réels, véhicule affecté). Les types (`OccupancyKind`) sont `None` (brouillon, statuts terminaux), `Planned` `[départ, retour + tampon)`, `InProgress` `[départ réel ou prévu, max(retour, maintenant) + tampon)` — un véhicule en retard continue de bloquer — et `Returned` `[départ réel ou prévu, retour réel + tampon)`. Le module Bookings fait correspondre ses statuts à ces types ; une même base sert pour tous les dossiers et pour la demande d'un même calcul.
+- **Fonctions en escalier** (`StepFunction`, forme canonique, construction en O(n log n)) : la capacité de la flotte compte les véhicules dont une fenêtre du contrat Fleet contient t (fenêtres d'un même véhicule fusionnées, un véhicule ne compte jamais deux fois) ; la capacité vue par un canal vaut `max(0, flotte − véhicules réservés aux autres canaux)`, et 0 pendant un arrêt des ventes ; l'occupation compte les intervalles (tampon inclus) qui contiennent t, tous canaux confondus.
+- **Disponibilité** (`AvailabilityCalculator`) : une fenêtre `[s, e + tampon)` est disponible si `occupation(t) + 1 ≤ capacité(t)` pour tout t. La marge `capacité − occupation` est fusionnée une fois ; une vérification ne balaie que les instants où elle change (O(log n + k)) et retire le dossier en cours de modification. Elle rend la disponibilité, la capacité restante minimale, le premier sous-intervalle en conflit et sa cause (capacité, quota, arrêt des ventes) ; le profil capacité/occupation d'une plage sert au planning. Hors des fenêtres chargées, la capacité vaut 0 : une donnée absente ne paraît jamais disponible.
+- **Seul le futur compte** : écritures et lectures ne vérifient que la partie de l'occupation postérieure à l'instant présent (le début d'une location en cours est acquis) ; une période entièrement passée n'est plus vendable.
+- **Affectation** : `VehicleAssignmentRules` refuse un chevauchement sur le véhicule (tampon inclus, jamais dérogeable), un document obligatoire expirant avant le retour (dérogeable par le gérant pour ce dossier) et un véhicule hors de ses fenêtres (vérifiées jusqu'à la fin de conformité, où Fleet les coupe). `GreedyVehicleAssigner` garde les affectations fixes et les « modèles garantis », prend les autres dossiers par début et donne à chacun, parmi les véhicules libres et louables sur tout son intervalle, celui libéré le plus tôt (départage : immatriculation). Il rend les propositions, les dossiers non affectables avec leur motif et les affectations fixes en conflit.
+- **Tests** : unitaires (bornes jointives, tampon, maintenance, changement de capacité en cours de période, quotas, arrêt des ventes, avenant, retard, capacité nulle) et propriétés FsCheck sur des milliers de séquences aléatoires de réservations, avenants et annulations : l'invariant 2 tient toujours ; avec des véhicules identiques toujours en service, l'affecteur affecte chaque dossier accepté sans chevauchement (invariant 1) ; ses propositions restent dans les fenêtres ; calcul et profil concordent avec une implémentation de référence par force brute.
+
+### Lecture rapide : cache mémoire (`CarRental.Application.Bookings.Availability`)
+
+- `IAvailabilityQueries` (contrat du module Bookings pour la vitrine, le bot, les canaux et le planning) répond depuis un **instantané par catégorie** — capacité, occupation et restrictions des cinq canaux, d'hier à aujourd'hui + 400 jours (jours de Tunis) — et depuis la liste des catégories de chaque agence. Mesuré : moins de 0,1 ms par recherche pour 30 véhicules et 2 000 dossiers par an (un test vérifie moins de 100 ms).
+- **Invalidation par événement** : le cache est l'`IAvailabilityChangeNotifier` de l'application ; il remplace l'implémentation nulle. `CategoryChanged(id)` retire l'instantané de la catégorie (et les listes de catégories) ; `AllChanged()` vide tout (changement de paramètre comme le tampon). Un écrivain notifie **après la validation** de sa transaction.
+- **Un seul chargement à la fois par catégorie** : les lecteurs concurrents partagent le même chargement, un lecteur qui abandonne ne l'annule pas, un chargement en échec n'est pas conservé. Une notification pendant un chargement oblige les lecteurs suivants à recharger : une donnée lue avant un commit notifié n'est jamais servie après la notification. Chaque chargement s'exécute dans sa propre portée DI (son propre `DbContext`) sous l'acteur `system:availability-cache` ; les instantanés sont immuables et partagés.
+- **Filet de sécurité** : expiration absolue de 2 minutes (notification oubliée, « maintenant » glissant d'un retard). Une période au-delà de l'horizon est lue sans cache.
+- Le cache sert l'affichage : une réponse peut avoir quelques secondes de retard, et aucune écriture ne s'appuie dessus.
+
+### Écriture : verrou, puis recontrôle, puis écriture
+
+- Toute écriture qui consomme de la capacité (création, `Submit`, `Amend`, `ConfirmOption`, `ProvideInformation`, prolongation…) appelle, **dans** `IUnitOfWork.ExecuteAsync`, `IAvailabilityGuard.EnsureAvailableAsync`. Le garde prend `sp_getapplock` exclusif sur `availability:{categoryId}` (porté par la transaction), relit des données **fraîches** (Fleet, dossiers, restrictions, tampon) sans jamais passer par le cache, puis vérifie ; l'écrivain écrit ensuite dans la même transaction et notifie après le commit. Le second de deux demandeurs du dernier véhicule attend le verrou, puis reçoit `availability.not_available`.
+- **Changement de catégorie** : l'ancienne et la nouvelle catégorie sont verrouillées, chacune une seule fois, **dans l'ordre croissant de leurs identifiants** (`Guid.CompareTo`). Tous les écrivains suivent cet ordre global : deux transactions ne peuvent pas s'attendre en cycle, donc pas d'interblocage.
+- **Affectation d'un véhicule** : `EnsureVehicleAssignableAsync` verrouille la catégorie puis applique les règles d'affectation sur des données fraîches ; deux agents ne peuvent pas affecter le même véhicule à deux dossiers qui se chevauchent.
+- Le verrou est réentrant dans une transaction : le reprendre dans le garde est sans effet. Les écritures qui ne font que libérer de la capacité ou constater un fait (annulation, refus, expiration, retour) ne recontrôlent pas.
+- **Restrictions de canal** : quotas et arrêts des ventes passent par `IChannelAvailabilityPolicy` (contrat Bookings) ; la politique par défaut ne retire rien et le module Canaux la remplace en phase 5. Elles sont commerciales : un agent qui saisit un dossier déjà vendu par un canal peut les ignorer (`IgnoreChannelRestrictions`), jamais la capacité physique.
+
+## Conséquences
+
+- Zéro surréservation : la décision d'écrire est toujours prise sous verrou sur des données fraîches ; au pire, le cache affiche quelques secondes une disponibilité périmée, refusée à l'écriture.
+- Le lot 1E implémente `IOccupancyReader` (lecture fraîche des dossiers avec la base d'occupation reçue), appelle `AddBookingAvailability()` depuis `BookingsModule`, passe par le garde dans chaque écriture concernée, notifie après chaque commit et ajoute le test d'intégration « deux demandes simultanées sur le dernier véhicule : une seule réussit ».
+- Le module Flotte notifie après une modification qui change les fenêtres (statut, maintenance, documents, vente) ; le module Référentiel appelle `AllChanged()` après un changement du tampon de préparation.
+- Une seule instance applicative ([ADR-0004](0004-hebergement-app-service-b1-cloudflare.md)) : le cache est local au processus ; plusieurs instances exigeraient une invalidation distribuée.
+- Dérogation de conformité : les fenêtres Fleet s'arrêtent à la fin de conformité, si bien qu'au-delà une maintenance ou une vente ne peut pas être vérifiée ; la décision tracée du gérant couvre ce cas, et le calcul de capacité reste prudent.
+- L'affecteur glouton peut manquer une affectation possible quand des affectations fixes ou des maintenances contraignent le problème (NP-difficile en général) : il le signale et l'agent corrige.
+
+## Alternatives écartées
+
+- **Grille de temps discrète (par heure ou par jour)** : imprécise aux bornes (retour à 10:00, départ à 10:00) et plus coûteuse qu'un balayage des seules bornes.
+- **Compteurs matérialisés en base par créneau** : mis à jour à chaque écriture, sujets à dérive, à recalculer à chaque changement de flotte.
+- **`IMemoryCache`** : ni chargement unique par clé, ni protection contre une notification pendant un chargement ; un dictionnaire concurrent d'entrées paresseuses suffit et se teste facilement.
+- **Cache distribué (Redis)** : exclu par le prompt (§16) et inutile pour une seule instance.
+- **Recontrôle sur le cache sous verrou** : le cache peut avoir une notification de retard ; l'écriture doit relire la base.
+- **Concurrence optimiste seule (`rowversion`) ou verrou par véhicule** : la capacité est une contrainte de catégorie ; une `rowversion` sur un dossier ne protège pas contre deux nouveaux dossiers concurrents.
