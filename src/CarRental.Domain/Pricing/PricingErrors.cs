@@ -169,6 +169,10 @@ public static class PricingErrors
         "pricing.amount_invalid",
         "An amount has more decimals than the millime allows.");
 
+    public static readonly Error SimulationChannelMismatch = Error.Validation(
+        "pricing.simulation_channel_mismatch",
+        "A channel plan can only be simulated for its own channel.");
+
     /// <summary>
     /// The stay is shorter than the largest minimum duration of the seasons and events it touches. The required number of
     /// days is part of the message (<see cref="TryGetRequiredMinimumDays"/> reads it back).

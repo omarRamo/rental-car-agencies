@@ -16,8 +16,14 @@ public sealed class Extra : Entity
     {
     }
 
-    private Extra(Guid id, ExtraDefinition definition, int position)
-        : base(id) => Apply(definition, position);
+    private Extra(Guid id, Guid ratePlanId, ExtraDefinition definition, int position)
+        : base(id)
+    {
+        RatePlanId = ratePlanId;
+        Apply(definition, position);
+    }
+
+    public Guid RatePlanId { get; private set; }
 
     /// <summary>Stable upper-case code (e.g. <c>CHILD_SEAT</c>), unique in the plan; the booking funnel selects extras by code.</summary>
     public string Code { get; private set; } = null!;
@@ -84,11 +90,12 @@ public sealed class Extra : Entity
         return !flatOnly || definition.Mode == ExtraPricingMode.PerRental;
     }
 
-    internal static Extra Create(ExtraDefinition definition, int position) => new(NewId(), definition, position);
+    internal static Extra Create(Guid ratePlanId, ExtraDefinition definition, int position) => new(NewId(), ratePlanId, definition, position);
 
-    internal Extra CopyForNewPlan() => new(NewId(), ToDefinition() with { Id = null }, Position);
+    internal Extra CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null }, Position);
 
-    internal ExtraDefinition ToDefinition() => new(Code, Name, Kind, Mode, Price, CapPerUnit, LocationId, IsActive, NameEn, Id);
+    /// <summary>The content of this entity, as edited.</summary>
+    public ExtraDefinition ToDefinition() => new(Code, Name, Kind, Mode, Price, CapPerUnit, LocationId, IsActive, NameEn, Id);
 
     internal void Apply(ExtraDefinition definition, int position)
     {

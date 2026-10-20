@@ -16,8 +16,14 @@ public sealed class PriorityEvent : Entity
     {
     }
 
-    private PriorityEvent(Guid id, PriorityEventDefinition definition)
-        : base(id) => Apply(definition);
+    private PriorityEvent(Guid id, Guid ratePlanId, PriorityEventDefinition definition)
+        : base(id)
+    {
+        RatePlanId = ratePlanId;
+        Apply(definition);
+    }
+
+    public Guid RatePlanId { get; private set; }
 
     public string Name { get; private set; } = null!;
 
@@ -44,11 +50,12 @@ public sealed class PriorityEvent : Entity
         && definition.Priority is >= 1 and <= MaximumPriority
         && PricingValues.IsMinimumDays(definition.MinimumDays);
 
-    internal static PriorityEvent Create(PriorityEventDefinition definition) => new(NewId(), definition);
+    internal static PriorityEvent Create(Guid ratePlanId, PriorityEventDefinition definition) => new(NewId(), ratePlanId, definition);
 
-    internal PriorityEvent CopyForNewPlan() => new(NewId(), ToDefinition() with { Id = null });
+    internal PriorityEvent CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null });
 
-    internal PriorityEventDefinition ToDefinition() => new(Name, StartDate, EndDate, Priority, MinimumDays, Id);
+    /// <summary>The content of this entity, as edited.</summary>
+    public PriorityEventDefinition ToDefinition() => new(Name, StartDate, EndDate, Priority, MinimumDays, Id);
 
     internal void Apply(PriorityEventDefinition definition)
     {

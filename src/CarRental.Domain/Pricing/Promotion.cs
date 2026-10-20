@@ -18,8 +18,14 @@ public sealed class Promotion : Entity
     {
     }
 
-    private Promotion(Guid id, PromotionDefinition definition, int position)
-        : base(id) => Apply(definition, position);
+    private Promotion(Guid id, Guid ratePlanId, PromotionDefinition definition, int position)
+        : base(id)
+    {
+        RatePlanId = ratePlanId;
+        Apply(definition, position);
+    }
+
+    public Guid RatePlanId { get; private set; }
 
     /// <summary>Back-office label (e.g. "Bienvenue 10 %").</summary>
     public string Name { get; private set; } = null!;
@@ -107,11 +113,13 @@ public sealed class Promotion : Entity
             && (definition.Channels ?? []).All(Enum.IsDefined);
     }
 
-    internal static Promotion Create(PromotionDefinition definition, int position) => new(NewId(), definition, position);
+    internal static Promotion Create(Guid ratePlanId, PromotionDefinition definition, int position) =>
+        new(NewId(), ratePlanId, definition, position);
 
-    internal Promotion CopyForNewPlan() => new(NewId(), ToDefinition() with { Id = null }, Position);
+    internal Promotion CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null }, Position);
 
-    internal PromotionDefinition ToDefinition() => new(
+    /// <summary>The content of this entity, as edited.</summary>
+    public PromotionDefinition ToDefinition() => new(
         Name,
         Kind,
         DiscountType,

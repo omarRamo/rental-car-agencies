@@ -12,14 +12,17 @@ public sealed class CategoryPrice : Entity
     {
     }
 
-    private CategoryPrice(Guid id, CategoryPriceDefinition definition)
+    private CategoryPrice(Guid id, Guid ratePlanId, CategoryPriceDefinition definition)
         : base(id)
     {
+        RatePlanId = ratePlanId;
         CategoryId = definition.CategoryId;
         PeriodKind = definition.Period.Kind;
         EventId = definition.Period.EventId;
         DailyPrice = definition.DailyPrice;
     }
+
+    public Guid RatePlanId { get; private set; }
 
     /// <summary>Vehicle category (Fleet module), referenced by id.</summary>
     public Guid CategoryId { get; private set; }
@@ -35,9 +38,10 @@ public sealed class CategoryPrice : Entity
     public RatePeriodKey Period =>
         RatePeriodKey.From(PeriodKind, EventId) ?? throw new InvalidOperationException($"Inconsistent price period {PeriodKind}/{EventId}.");
 
-    internal static CategoryPrice Create(CategoryPriceDefinition definition) => new(NewId(), definition);
+    internal static CategoryPrice Create(Guid ratePlanId, CategoryPriceDefinition definition) => new(NewId(), ratePlanId, definition);
 
-    internal CategoryPriceDefinition ToDefinition() => new(CategoryId, Period, DailyPrice);
+    /// <summary>The content of this entity, as edited.</summary>
+    public CategoryPriceDefinition ToDefinition() => new(CategoryId, Period, DailyPrice);
 
     internal void ChangePrice(Money dailyPrice) => DailyPrice = dailyPrice;
 }

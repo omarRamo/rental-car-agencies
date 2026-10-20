@@ -13,8 +13,14 @@ public sealed class ChannelRule : Entity
     {
     }
 
-    private ChannelRule(Guid id, ChannelRuleDefinition definition)
-        : base(id) => Apply(definition);
+    private ChannelRule(Guid id, Guid ratePlanId, ChannelRuleDefinition definition)
+        : base(id)
+    {
+        RatePlanId = ratePlanId;
+        Apply(definition);
+    }
+
+    public Guid RatePlanId { get; private set; }
 
     public SalesChannel Channel { get; private set; }
 
@@ -30,11 +36,12 @@ public sealed class ChannelRule : Entity
             ? definition.MarkupPercent is { } percent && PricingValues.IsPercentage(percent, allowZero: false, allowHundred: true)
             : definition.MarkupPercent is null);
 
-    internal static ChannelRule Create(ChannelRuleDefinition definition) => new(NewId(), definition);
+    internal static ChannelRule Create(Guid ratePlanId, ChannelRuleDefinition definition) => new(NewId(), ratePlanId, definition);
 
-    internal ChannelRule CopyForNewPlan() => new(NewId(), new ChannelRuleDefinition(Channel, Mode, MarkupPercent));
+    internal ChannelRule CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition());
 
-    internal ChannelRuleDefinition ToDefinition() => new(Channel, Mode, MarkupPercent);
+    /// <summary>The content of this entity, as edited.</summary>
+    public ChannelRuleDefinition ToDefinition() => new(Channel, Mode, MarkupPercent);
 
     internal void Apply(ChannelRuleDefinition definition)
     {

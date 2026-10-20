@@ -12,8 +12,14 @@ public sealed class Season : Entity
     {
     }
 
-    private Season(Guid id, SeasonDefinition definition)
-        : base(id) => Apply(definition);
+    private Season(Guid id, Guid ratePlanId, SeasonDefinition definition)
+        : base(id)
+    {
+        RatePlanId = ratePlanId;
+        Apply(definition);
+    }
+
+    public Guid RatePlanId { get; private set; }
 
     public SeasonLevel Level { get; private set; }
 
@@ -33,11 +39,12 @@ public sealed class Season : Entity
         && definition.StartDate <= definition.EndDate
         && PricingValues.IsMinimumDays(definition.MinimumDays);
 
-    internal static Season Create(SeasonDefinition definition) => new(NewId(), definition);
+    internal static Season Create(Guid ratePlanId, SeasonDefinition definition) => new(NewId(), ratePlanId, definition);
 
-    internal Season CopyForNewPlan() => new(NewId(), ToDefinition() with { Id = null });
+    internal Season CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null });
 
-    internal SeasonDefinition ToDefinition() => new(Level, StartDate, EndDate, MinimumDays, Id);
+    /// <summary>The content of this entity, as edited.</summary>
+    public SeasonDefinition ToDefinition() => new(Level, StartDate, EndDate, MinimumDays, Id);
 
     internal void Apply(SeasonDefinition definition)
     {

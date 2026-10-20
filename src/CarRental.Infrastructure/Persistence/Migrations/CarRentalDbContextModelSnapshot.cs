@@ -159,6 +159,564 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Pricing.CategoryPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DailyPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PeriodKind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId", "CategoryId", "PeriodKind", "EventId")
+                        .IsUnique();
+
+                    b.ToTable("RatePlanPrices", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanPricesHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanPrice");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.ChannelRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MarkupPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId", "Channel")
+                        .IsUnique();
+
+                    b.ToTable("RatePlanChannelRules", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanChannelRulesHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanChannelRule");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.DurationTier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("MinimumDays")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId", "MinimumDays")
+                        .IsUnique();
+
+                    b.ToTable("RatePlanTiers", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanTiersHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanTier");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Extra", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("CapPerUnit")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("NameEn")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("RatePlanId");
+
+                    b.ToTable("RatePlanExtras", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanExtrasHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanExtra");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.PriorityEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("MinimumDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId");
+
+                    b.ToTable("RatePlanEvents", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanEventsHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanEvent");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Promotion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("BookableFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("BookableUntil")
+                        .HasColumnType("date");
+
+                    b.PrimitiveCollection<string>("CategoryIds")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.PrimitiveCollection<string>("Channels")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<decimal?>("DiscountAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("DiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCombinable")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MinimumDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateOnly?>("PickupFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("PickupUntil")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId");
+
+                    b.ToTable("RatePlanPromotions", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanPromotionsHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanPromotion");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.RatePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ArchivedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("BasedOnPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Channel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ModifiedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset?>("PublishedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.Property<int?>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "AgencyId", "Channel" }, "IX_RatePlans_Draft")
+                        .IsUnique()
+                        .HasFilter("[Status] = 1");
+
+                    b.HasIndex(new[] { "AgencyId", "Channel" }, "IX_RatePlans_Published")
+                        .IsUnique()
+                        .HasFilter("[Status] = 2");
+
+                    b.HasIndex(new[] { "AgencyId", "Channel", "Version" }, "IX_RatePlans_Version")
+                        .IsUnique()
+                        .HasFilter("[Version] IS NOT NULL");
+
+                    b.ToTable("RatePlans", "pricing");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlansHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Season", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinimumDays")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId");
+
+                    b.ToTable("RatePlanSeasons", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanSeasonsHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanSeason");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.TierCategoryDiscount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TierMinimumDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatePlanId", "TierMinimumDays", "CategoryId")
+                        .IsUnique();
+
+                    b.ToTable("RatePlanTierDiscounts", "pricing");
+
+                    b
+                        .ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("RatePlanTierDiscountsHistory", "pricing");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }))
+                        .HasAnnotation("CarRental:Audit:Name", "RatePlanTierDiscount");
+                });
+
             modelBuilder.Entity("CarRental.Domain.Referential.Agency", b =>
                 {
                     b.Property<Guid>("Id")
@@ -662,6 +1220,92 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasAnnotation("CarRental:Audit:Name", "UserToken");
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Pricing.CategoryPrice", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Prices")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.ChannelRule", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("ChannelRules")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.DurationTier", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Tiers")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Extra", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Extras")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.PriorityEvent", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Events")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Promotion", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Promotions")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.RatePlan", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.Season", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("Seasons")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.TierCategoryDiscount", b =>
+                {
+                    b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
+                        .WithMany("TierCategoryDiscounts")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarRental.Domain.Referential.Location", b =>
                 {
                     b.HasOne("CarRental.Domain.Referential.Agency", null)
@@ -728,6 +1372,25 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Pricing.RatePlan", b =>
+                {
+                    b.Navigation("ChannelRules");
+
+                    b.Navigation("Events");
+
+                    b.Navigation("Extras");
+
+                    b.Navigation("Prices");
+
+                    b.Navigation("Promotions");
+
+                    b.Navigation("Seasons");
+
+                    b.Navigation("TierCategoryDiscounts");
+
+                    b.Navigation("Tiers");
                 });
 #pragma warning restore 612, 618
         }
