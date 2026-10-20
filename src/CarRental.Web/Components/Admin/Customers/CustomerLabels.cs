@@ -15,6 +15,7 @@ public static class CustomerLabels
     public static IReadOnlyList<string> FrequentCountries { get; } = ["TN", "FR", "DE", "IT", "DZ", "LY", "BE", "CH", "GB", "CA", "US", "MA"];
 
     private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> CountriesByCulture = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, string> CountryNames = new(StringComparer.Ordinal);
 
     public static string DocumentType(IStringLocalizer<CustomersAdminResources> localizer, IdentityDocumentTypeInfo type)
     {
@@ -63,21 +64,25 @@ public static class CustomerLabels
     public static string CountryName(string code)
     {
         ArgumentException.ThrowIfNullOrEmpty(code);
-        try
-        {
-            return new RegionInfo($"{CultureInfo.CurrentUICulture.TwoLetterISOLanguageName}-{code}").DisplayName;
-        }
-        catch (ArgumentException)
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return CountryNames.GetOrAdd($"{language}-{code}", static (name, region) =>
         {
             try
             {
-                return new RegionInfo(code).EnglishName;
+                return new RegionInfo(name).DisplayName;
             }
             catch (ArgumentException)
             {
-                return code;
+                try
+                {
+                    return new RegionInfo(region).EnglishName;
+                }
+                catch (ArgumentException)
+                {
+                    return region;
+                }
             }
-        }
+        }, code);
     }
 
     /// <summary>Every accepted country code, frequent ones first, then by name in the current UI language (cached per language).</summary>

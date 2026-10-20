@@ -5,6 +5,8 @@ using CarRental.Application.Common.Seeding;
 using CarRental.Application.Customers.Administration;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Domain.Customers;
+using CarRental.Domain.Identity;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -122,6 +124,82 @@ public sealed class CustomerServicesTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task Payers_and_companies_are_read_and_searched_on_sql_server()
+    {
+        var (personId, _) = await CustomerTestData.PersonWithCinImageAsync(host, Ct);
+        var agent = await CustomerTestData.AgentAsync(host);
+        await using var scope = host.CreateScope(agent);
+        var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
+        var queries = scope.ServiceProvider.GetRequiredService<ICustomersQueries>();
+        var customerId = (await registration.GetOrCreateIndividualCustomerAsync(personId, Ct)).Value;
+
+        var individual = await queries.GetCustomerAsync(customerId, Ct);
+        var byPerson = await queries.FindIndividualCustomerAsync(personId, Ct);
+        var companies = await queries.SearchCompaniesAsync("atlas", cancellationToken: Ct);
+        var byTaxIdentifier = await queries.SearchCompaniesAsync("1234567", cancellationToken: Ct);
+        var listed = await scope.ServiceProvider.GetRequiredService<CustomerAdministrationQueries>().SearchCompaniesAsync("tourisme", new PageRequest(), Ct);
+
+        individual!.Kind.ShouldBe(CustomerKindInfo.Individual);
+        individual.PersonId.ShouldBe(personId);
+        individual.DisplayName.ShouldNotBeNullOrWhiteSpace();
+        byPerson!.Id.ShouldBe(customerId);
+        companies.ShouldContain(c => c.LegalName == "Atlas Conseil SA" && c.BillingAddress!.City == "Tunis");
+        byTaxIdentifier.ShouldContain(c => c.TaxIdentifier == "1234567/A/M/000");
+        listed.Value.Items.ShouldContain(c => c.LegalName == "Société Méditerranéenne de Tourisme SARL");
+    }
+
+    [Fact]
+    public async Task When_enabled_the_retention_job_purges_old_images_and_deletes_their_files()
+    {
+        // An image uploaded 500 days ago, more than the 400 days of retention.
+        var now = DateTimeOffset.UtcNow;
+        var person = Person.Register(new PersonDetails(CustomerTestData.Name(), CustomerTestData.Name(), "TN"), now).Value;
+        var cin = person.AddDocument(new IdentityDocumentDetails(IdentityDocumentType.NationalId, CustomerTestData.Cin(), "TN", new DateOnly(2016, 3, 1)), now).Value;
+        var path = $"persons/{person.Id:N}/{Guid.CreateVersion7():N}.png";
+        var storage = host.Factory.Services.GetRequiredService<IFileStorage>();
+        await using (var content = new MemoryStream(CustomerTestData.Png()))
+        {
+            await storage.UploadAsync(FileContainers.Documents, path, content, "image/png", Ct);
+        }
+
+        person.AttachDocumentImage(cin.Id, DocumentImageSide.Front, DocumentImage.Create(path, "image/png", 68, now.AddDays(-500)).Value, now).IsSuccess.ShouldBeTrue();
+        await using (var scope = host.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            db.Add(person);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await SetRetentionAsync(enabled: true);
+        try
+        {
+            await using var scope = host.CreateScope();
+            var descriptor = scope.ServiceProvider.GetServices<RecurringJobDescriptor>().Single(d => d.JobId == "customers.purge_document_images");
+            await ((IRecurringJob)scope.ServiceProvider.GetRequiredService(descriptor.JobType)).ExecuteAsync(Ct);
+        }
+        finally
+        {
+            await SetRetentionAsync(enabled: false);
+        }
+
+        await using (var check = host.CreateScope())
+        {
+            var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            var reloaded = await db.Set<Person>().AsNoTracking().SingleAsync(p => p.Id == person.Id, Ct);
+            reloaded.FindDocument(cin.Id)!.FrontImage.ShouldBeNull();
+            reloaded.FindDocument(cin.Id)!.NumberKey.ShouldBe(cin.NumberKey, "the document data is kept");
+            (await db.Set<AuditLog>().AnyAsync(a => a.Action == CustomerAuditActions.DocumentImagesPurged && a.OccurredAtUtc >= now, Ct)).ShouldBeTrue();
+        }
+
+        var deadline = DateTime.UtcNow.AddSeconds(45);
+        while (await storage.ExistsAsync(FileContainers.Documents, path, Ct))
+        {
+            DateTime.UtcNow.ShouldBeLessThan(deadline, "the purged file should be deleted by the outbox");
+            await Task.Delay(250, Ct);
+        }
+    }
+
+    [Fact]
     public async Task The_retention_job_purges_nothing_while_disabled_by_default()
     {
         var (personId, documentId) = await CustomerTestData.PersonWithCinImageAsync(host, Ct);
@@ -134,5 +212,16 @@ public sealed class CustomerServicesTests(IntegrationHost host)
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var person = await db.Set<Person>().AsNoTracking().SingleAsync(p => p.Id == personId, Ct);
         person.FindDocument(documentId)!.FrontImage.ShouldNotBeNull();
+    }
+
+    /// <summary>Sets the platform value of the retention switch (only the tests of this class run the job, one at a time).</summary>
+    private async Task SetRetentionAsync(bool enabled)
+    {
+        await using var scope = host.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+        var setting = await db.Set<Setting>()
+            .SingleAsync(s => s.Key == CustomerSettings.DocumentImageRetentionEnabled.Key && s.AgencyId == null, Ct);
+        setting.ChangeValue(CustomerSettings.DocumentImageRetentionEnabled.Format(enabled)).IsSuccess.ShouldBeTrue();
+        await db.SaveChangesAsync(Ct);
     }
 }
