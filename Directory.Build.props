@@ -1,0 +1,39 @@
+<Project>
+
+  <!--
+    Shared build settings for every project of the CarRental monorepo.
+    Strict by design: nullable reference types, warnings as errors, latest recommended analyzers
+    and code style enforced at build time. Any relaxation must be targeted and justified here
+    or in .editorconfig.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Required for IDE0005 (unnecessary usings) to be reported at build time. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: XML documentation is written where it adds value, not mandated on every public member. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- The UI is localized (fr, en, ar planned): ICU globalization data is required. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Only ship satellite assemblies (ours and third-party) for the supported UI languages. -->
+    <SatelliteResourceLanguages>fr;en;ar</SatelliteResourceLanguages>
+
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <Product>CarRental</Product>
+    <Company>CarRental</Company>
+    <Authors>CarRental team</Authors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

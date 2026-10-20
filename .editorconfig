@@ -1,0 +1,184 @@
+# EditorConfig for the CarRental monorepo.
+# Style rules marked `warning` are enforced at build time (EnforceCodeStyleInBuild + TreatWarningsAsErrors)
+# and fixed automatically by `dotnet format`.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,xml,csproj,props,targets,slnx,resx,config,razor,html,css,js,mjs,bicep}]
+indent_size = 2
+
+[*.razor]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cmd,bat,ps1}]
+end_of_line = crlf
+
+# ---------------------------------------------------------------------------
+# C# / .NET conventions
+# ---------------------------------------------------------------------------
+[*.cs]
+# Namespaces and usings
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# `this.` qualification: never
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# Language keywords instead of BCL type names
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# Modifiers
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:warning
+
+# Expression-level preferences
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = false:silent
+dotnet_style_prefer_conditional_expression_over_return = false:silent
+dotnet_style_explicit_tuple_names = true:warning
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_throw_expression = true:suggestion
+csharp_style_inlined_variable_declaration = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_prefer_braces = true:warning
+csharp_style_unused_value_discard_variable_preference = true:silent
+csharp_style_unused_value_expression_statement_preference = discard_variable:silent
+
+# Formatting
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_between_query_expression_clauses = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true
+
+# Naming: interfaces start with I, types and members PascalCase, private fields _camelCase
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.prefix_i.capitalization = pascal_case
+dotnet_naming_style.prefix_i.required_prefix = I
+dotnet_naming_rule.interfaces_start_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_start_with_i.style = prefix_i
+dotnet_naming_rule.interfaces_start_with_i.severity = warning
+
+dotnet_naming_symbols.types.applicable_kinds = class,struct,enum,delegate
+dotnet_naming_style.pascal.capitalization = pascal_case
+dotnet_naming_rule.types_are_pascal.symbols = types
+dotnet_naming_rule.types_are_pascal.style = pascal
+dotnet_naming_rule.types_are_pascal.severity = warning
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private,private_protected
+dotnet_naming_symbols.private_fields.required_modifiers =
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_rule.constants_are_pascal.symbols = constants
+dotnet_naming_rule.constants_are_pascal.style = pascal
+dotnet_naming_rule.constants_are_pascal.severity = warning
+
+dotnet_naming_symbols.static_readonly.applicable_kinds = field
+dotnet_naming_symbols.static_readonly.required_modifiers = static,readonly
+dotnet_naming_rule.static_readonly_are_pascal.symbols = static_readonly
+dotnet_naming_rule.static_readonly_are_pascal.style = pascal
+dotnet_naming_rule.static_readonly_are_pascal.severity = warning
+
+# Precedence: constants and static readonly before private fields
+dotnet_naming_rule.constants_are_pascal.priority = 1
+dotnet_naming_rule.static_readonly_are_pascal.priority = 2
+dotnet_naming_rule.private_fields_underscore.priority = 3
+
+# ---------------------------------------------------------------------------
+# Code-style diagnostics enforced at build
+# ---------------------------------------------------------------------------
+dotnet_diagnostic.IDE0005.severity = warning   # Unnecessary using
+dotnet_diagnostic.IDE0011.severity = warning   # Braces
+dotnet_diagnostic.IDE0036.severity = warning   # Modifier order
+dotnet_diagnostic.IDE0040.severity = warning   # Accessibility modifiers
+dotnet_diagnostic.IDE0044.severity = warning   # Readonly fields
+dotnet_diagnostic.IDE0055.severity = warning   # Formatting
+dotnet_diagnostic.IDE0065.severity = warning   # Using placement
+dotnet_diagnostic.IDE0161.severity = warning   # File-scoped namespace
+dotnet_diagnostic.IDE1006.severity = warning   # Naming rules
+
+# ---------------------------------------------------------------------------
+# Analyzer tuning (each relaxation is justified)
+# ---------------------------------------------------------------------------
+# CA1848/CA1873: LoggerMessage source generation is preferred for hot paths only; plain ILogger calls are fine here.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+# CA2007: ASP.NET Core has no SynchronizationContext; ConfigureAwait(false) adds noise without benefit.
+dotnet_diagnostic.CA2007.severity = none
+# CA1716: C#-only solution; names such as `Error` only clash with keywords of other .NET languages.
+dotnet_diagnostic.CA1716.severity = none
+# CA1711: allow established suffixes such as *Collection/*Queue in domain names.
+dotnet_diagnostic.CA1711.severity = suggestion
+
+# Generated code (EF migrations) is excluded from style checks.
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
+# ---------------------------------------------------------------------------
+# Tests: descriptive method names with underscores, public fixtures.
+# ---------------------------------------------------------------------------
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none       # Underscores in test names
+dotnet_diagnostic.CA1515.severity = none       # Test types must be public
+dotnet_diagnostic.CA2234.severity = none       # String URIs are fine in tests
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1303.severity = none
+dotnet_diagnostic.CA1305.severity = suggestion
+dotnet_diagnostic.CA1861.severity = none       # Inline constant arrays in test data
+dotnet_diagnostic.CA2000.severity = suggestion # Fixtures own disposables

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain model: aggregates, value objects, domain events and invariants.
+    Rule (checked by CarRental.Architecture.Tests): no package and no project dependency.
+  -->
+  <PropertyGroup>
+    <RootNamespace>CarRental.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CarRental.Domain.Tests" />
+  </ItemGroup>
+
+</Project>

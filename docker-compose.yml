@@ -1,0 +1,41 @@
+# Local development dependencies: SQL Server 2022 and Azurite (Azure Storage emulator).
+#
+#   docker compose up -d        # start
+#   docker compose down         # stop (data kept in named volumes)
+#   docker compose down -v      # stop and delete data
+#
+# DEV ONLY: the SA password below is a well-known local value, never used outside this container.
+# Override it with CARRENTAL_SQL_PASSWORD (and update ConnectionStrings:Sql through user-secrets).
+name: carrental
+
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: "${CARRENTAL_SQL_PASSWORD:-DevOnly_Sql_Passw0rd!}"
+    ports:
+      - "14333:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    command: ["azurite", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", "--location", "/data", "--skipApiVersionCheck", "--loose"]
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azurite-data:/data
+
+volumes:
+  sql-data:
+  azurite-data:
