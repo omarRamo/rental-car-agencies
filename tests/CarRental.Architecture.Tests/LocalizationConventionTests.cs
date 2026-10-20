@@ -70,5 +70,19 @@ public sealed class LocalizationConventionTests
         french.Keys.Except(keys, StringComparer.Ordinal).ShouldBeEmpty("Keys that MudBlazor no longer uses");
     }
 
+    [Fact]
+    public void Every_permission_and_area_has_a_french_and_an_english_label()
+    {
+        var french = ResourceCatalog.Entries(PermissionResources, ResourceCatalog.French);
+        var english = ResourceCatalog.Entries(PermissionResources, ResourceCatalog.English);
+        var keys = CarRental.Application.Identity.Contracts.Permissions.Catalog.Select(p => $"Permission.{p.Name}")
+            .Concat(Enum.GetNames<CarRental.Application.Identity.Contracts.PermissionArea>().Select(a => $"PermissionArea.{a}"));
+
+        keys.Where(k => !french.ContainsKey(k) || !english.ContainsKey(k)).ShouldBeEmpty(
+            "Add these keys to Resources/Admin/Identity/PermissionResources.resx (French) and PermissionResources.en.resx (English)");
+    }
+
     private const string MudBlazorResources = "CarRental.Web.Resources.Admin.MudBlazor.MudBlazorResources";
+
+    private const string PermissionResources = "CarRental.Web.Resources.Admin.Identity.PermissionResources";
 }

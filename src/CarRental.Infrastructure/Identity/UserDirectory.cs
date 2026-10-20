@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using CarRental.Application.Common.Paging;
 using CarRental.Application.Identity;
+using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Identity.Users;
 using CarRental.Domain.Common;
 using CarRental.Infrastructure.Persistence;
@@ -31,9 +33,13 @@ internal sealed class UserDirectory(
             .Take(page.PageSize)
             .ToListAsync(cancellationToken);
 
-        var roles = await RolesOfAsync(users.Select(u => u.Id).ToList(), cancellationToken);
+        var userIds = users.Select(u => u.Id).ToList();
+        var roles = await RolesOfAsync(userIds, cancellationToken);
+        var extraPermissions = await ExtraPermissionsOfAsync(userIds, cancellationToken);
         var now = timeProvider.GetUtcNow();
-        var items = users.Select(u => ToSummary(u, roles.GetValueOrDefault(u.Id) ?? [], now)).ToList();
+        var items = users
+            .Select(u => ToSummary(u, roles.GetValueOrDefault(u.Id) ?? [], extraPermissions.GetValueOrDefault(u.Id) ?? [], now))
+            .ToList();
         return new PagedResult<UserSummary>(items, total, page.Page, page.PageSize);
     }
 
@@ -46,7 +52,32 @@ internal sealed class UserDirectory(
         }
 
         var roles = await RolesOfAsync([user.Id], cancellationToken);
-        return ToSummary(user, roles.GetValueOrDefault(user.Id) ?? [], timeProvider.GetUtcNow());
+        var extraPermissions = await ExtraPermissionsOfAsync([user.Id], cancellationToken);
+        return ToSummary(user, roles.GetValueOrDefault(user.Id) ?? [], extraPermissions.GetValueOrDefault(user.Id) ?? [], timeProvider.GetUtcNow());
+    }
+
+    public async Task<Result> AddExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return IdentityErrors.UserNotFound;
+        }
+
+        var outcome = await userManager.AddClaimAsync(user, new Claim(Permissions.ClaimType, permission));
+        return outcome.Succeeded ? Result.Success() : IdentityErrors.OperationFailed(Describe(outcome));
+    }
+
+    public async Task<Result> RemoveExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return IdentityErrors.UserNotFound;
+        }
+
+        var outcome = await userManager.RemoveClaimAsync(user, new Claim(Permissions.ClaimType, permission));
+        return outcome.Succeeded ? Result.Success() : IdentityErrors.OperationFailed(Describe(outcome));
     }
 
     public Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken)
@@ -129,7 +160,7 @@ internal sealed class UserDirectory(
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName, cancellationToken);
 
-    private static UserSummary ToSummary(ApplicationUser user, IReadOnlyList<string> roles, DateTimeOffset now) => new(
+    private static UserSummary ToSummary(ApplicationUser user, IReadOnlyList<string> roles, IReadOnlyList<string> extraPermissions, DateTimeOffset now) => new(
         user.Id,
         user.Email ?? string.Empty,
         user.DisplayName,
@@ -139,7 +170,8 @@ internal sealed class UserDirectory(
         LockoutEndUtc: user.LockoutEnd,
         HasPassword: user.PasswordHash is not null,
         user.CreatedAtUtc,
-        user.LastSignInAtUtc);
+        user.LastSignInAtUtc,
+        extraPermissions);
 
     private static string Describe(IdentityResult result) => string.Join(" ", result.Errors.Select(e => e.Description));
 
@@ -155,5 +187,21 @@ internal sealed class UserDirectory(
         return pairs
             .GroupBy(p => p.UserId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(p => p.Name!).OrderBy(n => n, StringComparer.Ordinal).ToList());
+    }
+
+    /// <summary>Permission claims of the users themselves (not of their roles): their extra permissions.</summary>
+    private async Task<Dictionary<Guid, IReadOnlyList<string>>> ExtraPermissionsOfAsync(List<Guid> userIds, CancellationToken cancellationToken)
+    {
+        var pairs = await db.UserClaims
+            .AsNoTracking()
+            .Where(c => userIds.Contains(c.UserId) && c.ClaimType == Permissions.ClaimType && c.ClaimValue != null)
+            .Select(c => new { c.UserId, c.ClaimValue })
+            .ToListAsync(cancellationToken);
+
+        return pairs
+            .GroupBy(p => p.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)g.Select(p => p.ClaimValue!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList());
     }
 }

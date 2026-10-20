@@ -29,7 +29,9 @@ internal sealed class FakeUserDirectory : IUserDirectory
 
     public List<(Guid UserId, bool Locked)> LockChanges { get; } = [];
 
-    public UserSummary Add(string email, string role, bool locked = false)
+    public List<(Guid UserId, string Permission, bool Granted)> PermissionChanges { get; } = [];
+
+    public UserSummary Add(string email, string role, bool locked = false, params string[] extraPermissions)
     {
         var user = new UserSummary(
             Guid.CreateVersion7(),
@@ -41,9 +43,30 @@ internal sealed class FakeUserDirectory : IUserDirectory
             LockoutEndUtc: locked ? DateTimeOffset.MaxValue : null,
             HasPassword: true,
             CreatedAtUtc: DateTimeOffset.UnixEpoch,
-            LastSignInAtUtc: null);
+            LastSignInAtUtc: null,
+            ExtraPermissions: extraPermissions);
         Users.Add(user);
         return user;
+    }
+
+    public Task<Result> AddExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken) =>
+        ChangePermission(userId, permission, granted: true);
+
+    public Task<Result> RemoveExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken) =>
+        ChangePermission(userId, permission, granted: false);
+
+    private Task<Result> ChangePermission(Guid userId, string permission, bool granted)
+    {
+        PermissionChanges.Add((userId, permission, granted));
+        var index = Users.FindIndex(u => u.Id == userId);
+        var permissions = Users[index].ExtraPermissions.Where(p => p != permission).ToList();
+        if (granted)
+        {
+            permissions.Add(permission);
+        }
+
+        Users[index] = Users[index] with { ExtraPermissions = [.. permissions.Order(StringComparer.Ordinal)] };
+        return Task.FromResult(Result.Success());
     }
 
     public Task<PagedResult<UserSummary>> ListAsync(string? search, PageRequest page, CancellationToken cancellationToken)
@@ -78,6 +101,13 @@ internal sealed class FakeUserDirectory : IUserDirectory
 
     public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyDictionary<Guid, string>>(Users.Where(u => userIds.Contains(u.Id)).ToDictionary(u => u.Id, u => u.DisplayName));
+}
+
+internal sealed class RecordingUserSessions : IUserSessions
+{
+    public List<Guid> Refreshed { get; } = [];
+
+    public void RefreshClaims(Guid userId) => Refreshed.Add(userId);
 }
 
 internal sealed class RecordingInvitationSender : IUserInvitationSender

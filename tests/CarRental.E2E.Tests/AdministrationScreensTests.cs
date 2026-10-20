@@ -106,6 +106,37 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
         await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Valeur de la plateforme");
     }
 
+    [Fact]
+    public async Task A_manager_gives_an_agent_an_extra_permission_and_takes_it_back()
+    {
+        var agentEmail = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), "/admin/users");
+        await BackOfficeSession.WaitUntilInteractiveAsync(Page);
+        await Page.GetByLabel("Rechercher (nom ou e-mail)").FillAsync(agentEmail);
+        var row = Page.Locator("tr", new PageLocatorOptions { Has = Page.Locator($"[data-user-email='{agentEmail}']") });
+        await Expect(row).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(row.Locator("[data-extra-permissions]")).ToHaveTextAsync("—");
+
+        await row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Permissions de Agent E2E" }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog);
+        await Expect(dialog.GetByRole(AriaRole.Checkbox, new LocatorGetByRoleOptions { Name = "Dossiers (créer, modifier) (rôle)" })).ToBeDisabledAsync();
+        var pricing = dialog.GetByRole(AriaRole.Checkbox, new LocatorGetByRoleOptions { Name = "Tarifs, saisons et promotions (gérer)", Exact = true });
+        await pricing.CheckAsync();
+        await Expect(dialog.GetByRole(AriaRole.Checkbox, new LocatorGetByRoleOptions { Name = "Tarifs (consulter) (incluse)" })).ToBeCheckedAsync();
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+
+        await Expect(Page.GetByText("Permissions enregistrées")).ToBeVisibleAsync();
+        await Expect(row.Locator("[data-extra-permissions]")).ToContainTextAsync("Tarifs, saisons et promotions (gérer)");
+
+        await row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Permissions de Agent E2E" }).ClickAsync();
+        await Expect(pricing).ToBeCheckedAsync();
+        await pricing.UncheckAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(row.Locator("[data-extra-permissions]")).ToHaveTextAsync("—");
+    }
+
     [GeneratedRegex("^Relancer le message E2eUnhandledMessage")]
     private static partial Regex RetryLabel();
 

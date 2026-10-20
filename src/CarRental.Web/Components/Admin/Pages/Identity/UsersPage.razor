@@ -7,6 +7,7 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<PermissionResources> P
 @inject IStringLocalizer<SharedResources> Shared
 
 <PageTitle>@L["Users.Title"]</PageTitle>
@@ -24,17 +25,28 @@
         <MudTh>@L["Users.Column.Name"]</MudTh>
         <MudTh>@L["Users.Column.Email"]</MudTh>
         <MudTh>@L["Users.Column.Roles"]</MudTh>
+        <MudTh>@L["Users.Column.ExtraPermissions"]</MudTh>
         <MudTh>@L["Users.Column.TwoFactor"]</MudTh>
         <MudTh>@L["Users.Column.Status"]</MudTh>
         <MudTh>@L["Users.Column.Actions"]</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="@L["Users.Column.Name"]">@context.DisplayName</MudTd>
+        <MudTd DataLabel="@L["Users.Column.Name"]" data-user-email="@context.Email">@context.DisplayName</MudTd>
         <MudTd DataLabel="@L["Users.Column.Email"]">@context.Email</MudTd>
         <MudTd DataLabel="@L["Users.Column.Roles"]">
             @foreach (var role in context.Roles)
             {
                 <MudChip T="string" Size="Size.Small">@L[$"Role.{role}"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Users.Column.ExtraPermissions"]" data-extra-permissions>
+            @if (context.ExtraPermissions.Count == 0)
+            {
+                @L["Users.ExtraPermissions.None"]
+            }
+            @foreach (var permission in context.ExtraPermissions)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Icon="@Icons.Material.Filled.Add">@PermissionResources.Label(P, permission)</MudChip>
             }
         </MudTd>
         <MudTd DataLabel="@L["Users.Column.TwoFactor"]">
@@ -49,14 +61,21 @@
         </MudTd>
         <MudTd DataLabel="@L["Users.Column.Status"]">@(context.IsLockedOut ? L["Users.Status.Locked"] : L["Users.Status.Active"])</MudTd>
         <MudTd DataLabel="@L["Users.Column.Actions"]">
-            @if (context.IsLockedOut)
-            {
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => UnlockAsync(context)">@L["Users.Unlock"]</MudButton>
-            }
-            else
-            {
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="() => LockAsync(context)">@L["Users.Lock"]</MudButton>
-            }
+            <div class="d-flex flex-wrap gap-1">
+                @if (CanChangePermissions(context))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Key"
+                               OnClick="() => EditPermissionsAsync(context)" aria-label="@L["Users.Permissions.Label", context.DisplayName]">@L["Users.Permissions"]</MudButton>
+                }
+                @if (context.IsLockedOut)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => UnlockAsync(context)">@L["Users.Unlock"]</MudButton>
+                }
+                else
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="() => LockAsync(context)">@L["Users.Lock"]</MudButton>
+                }
+            </div>
         </MudTd>
     </RowTemplate>
     <NoRecordsContent>
@@ -70,6 +89,33 @@
 @code {
     private MudTable<UserSummary>? _table;
     private string? _search;
+    private Guid? _currentUserId;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = AuthenticationState is null ? null : (await AuthenticationState).User.GetUserId();
+    }
+
+    /// <summary>Not for oneself, nor for a manager (the manager preset holds every permission).</summary>
+    private bool CanChangePermissions(UserSummary user) =>
+        user.Id != _currentUserId && !user.Roles.Contains(Roles.Manager, StringComparer.Ordinal);
+
+    private async Task EditPermissionsAsync(UserSummary user)
+    {
+        var parameters = new DialogParameters<UserPermissionsDialog> { { d => d.UserId, user.Id } };
+        var dialog = await Dialogs.ShowAsync<UserPermissionsDialog>(
+            L["Users.Permissions.Title", user.DisplayName],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Users.Permissions.Saved"], Severity.Success);
+            await SearchAsync();
+        }
+    }
 
     private async Task<TableData<UserSummary>> LoadAsync(TableState state, CancellationToken cancellationToken)
     {

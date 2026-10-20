@@ -24,5 +24,11 @@ public static class IdentityErrors
         "identity.last_manager",
         "The last active manager cannot be locked: nobody could administer the platform any more.");
 
+    public static readonly Error PermissionUnknown = Error.Validation("identity.permission_unknown", "Unknown permission.");
+
+    public static readonly Error CannotChangeOwnPermissions = Error.Validation(
+        "identity.cannot_change_own_permissions",
+        "Users cannot change their own permissions.");
+
     public static Error OperationFailed(string details) => Error.Failure("identity.operation_failed", details);
 }

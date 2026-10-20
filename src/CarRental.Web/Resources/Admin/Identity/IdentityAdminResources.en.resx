@@ -171,4 +171,34 @@
   <data name="Users.Unlocked" xml:space="preserve">
     <value>Account unlocked.</value>
   </data>
+  <data name="Users.Column.ExtraPermissions" xml:space="preserve">
+    <value>Extra permissions</value>
+  </data>
+  <data name="Users.ExtraPermissions.None" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Users.Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="Users.Permissions.Label" xml:space="preserve">
+    <value>Permissions of {0}</value>
+  </data>
+  <data name="Users.Permissions.Title" xml:space="preserve">
+    <value>Permissions of {0}</value>
+  </data>
+  <data name="Users.Permissions.Intro" xml:space="preserve">
+    <value>The permissions of their role ({0}) are granted. Tick the extra permissions to give them: they apply from their next action, without signing in again, and every change is recorded in the audit log.</value>
+  </data>
+  <data name="Users.Permissions.FromRole" xml:space="preserve">
+    <value>{0} (role)</value>
+  </data>
+  <data name="Users.Permissions.Included" xml:space="preserve">
+    <value>{0} (included)</value>
+  </data>
+  <data name="Users.Permissions.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Users.Permissions.Saved" xml:space="preserve">
+    <value>Permissions saved: they apply from the user's next action.</value>
+  </data>
 </root>

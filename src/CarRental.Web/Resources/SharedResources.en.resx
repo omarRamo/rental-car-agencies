@@ -357,4 +357,10 @@
   <data name="Error.referential.platform_setting_required" xml:space="preserve">
     <value>The platform value cannot be removed: reset it to its default value instead.</value>
   </data>
+  <data name="Error.identity.permission_unknown" xml:space="preserve">
+    <value>This permission does not exist.</value>
+  </data>
+  <data name="Error.identity.cannot_change_own_permissions" xml:space="preserve">
+    <value>You cannot change your own permissions.</value>
+  </data>
 </root>

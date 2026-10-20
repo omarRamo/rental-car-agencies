@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PermissionArea.Operations" xml:space="preserve">
+    <value>Operations</value>
+  </data>
+  <data name="PermissionArea.Commercial" xml:space="preserve">
+    <value>Commercial</value>
+  </data>
+  <data name="PermissionArea.Finance" xml:space="preserve">
+    <value>Finance</value>
+  </data>
+  <data name="PermissionArea.Administration" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Permission.dashboard.read" xml:space="preserve">
+    <value>Daily dashboard</value>
+  </data>
+  <data name="Permission.requests.read" xml:space="preserve">
+    <value>Web requests (read)</value>
+  </data>
+  <data name="Permission.requests.manage" xml:space="preserve">
+    <value>Web requests (validate, refuse)</value>
+  </data>
+  <data name="Permission.bookings.read" xml:space="preserve">
+    <value>Bookings (read)</value>
+  </data>
+  <data name="Permission.bookings.manage" xml:space="preserve">
+    <value>Bookings (create, edit)</value>
+  </data>
+  <data name="Permission.handovers.manage" xml:space="preserve">
+    <value>Pick-ups and returns</value>
+  </data>
+  <data name="Permission.customers.read" xml:space="preserve">
+    <value>Customers (read)</value>
+  </data>
+  <data name="Permission.customers.manage" xml:space="preserve">
+    <value>Customers (create, edit)</value>
+  </data>
+  <data name="Permission.customers.documents.read" xml:space="preserve">
+    <value>Identity document images (logged viewing)</value>
+  </data>
+  <data name="Permission.customers.privacy" xml:space="preserve">
+    <value>Data subject rights (export, anonymization)</value>
+  </data>
+  <data name="Permission.fleet.read" xml:space="preserve">
+    <value>Fleet (read)</value>
+  </data>
+  <data name="Permission.fleet.manage" xml:space="preserve">
+    <value>Fleet and deadlines (manage)</value>
+  </data>
+  <data name="Permission.fleet.maintenance" xml:space="preserve">
+    <value>Fleet maintenance</value>
+  </data>
+  <data name="Permission.pricing.read" xml:space="preserve">
+    <value>Rates (read)</value>
+  </data>
+  <data name="Permission.pricing.manage" xml:space="preserve">
+    <value>Rates, seasons and promotions (manage)</value>
+  </data>
+  <data name="Permission.whatsapp.inbox" xml:space="preserve">
+    <value>WhatsApp inbox</value>
+  </data>
+  <data name="Permission.channels.manage" xml:space="preserve">
+    <value>Sales channels</value>
+  </data>
+  <data name="Permission.payments.read" xml:space="preserve">
+    <value>Payments (read)</value>
+  </data>
+  <data name="Permission.payments.manage" xml:space="preserve">
+    <value>Payments and deposits</value>
+  </data>
+  <data name="Permission.invoices.read" xml:space="preserve">
+    <value>Invoices (read)</value>
+  </data>
+  <data name="Permission.invoices.issue" xml:space="preserve">
+    <value>Invoices (issue)</value>
+  </data>
+  <data name="Permission.invoices.manage" xml:space="preserve">
+    <value>Invoices and credit notes (manage)</value>
+  </data>
+  <data name="Permission.cash.own" xml:space="preserve">
+    <value>Own cash session</value>
+  </data>
+  <data name="Permission.cash.manage" xml:space="preserve">
+    <value>All cash sessions (manage, close)</value>
+  </data>
+  <data name="Permission.expenses.manage" xml:space="preserve">
+    <value>Expenses, fines and claims</value>
+  </data>
+  <data name="Permission.reconciliation.manage" xml:space="preserve">
+    <value>Reconciliations</value>
+  </data>
+  <data name="Permission.accounting.manage" xml:space="preserve">
+    <value>Accounting exports</value>
+  </data>
+  <data name="Permission.reports.read" xml:space="preserve">
+    <value>Reports and indicators</value>
+  </data>
+  <data name="Permission.users.manage" xml:space="preserve">
+    <value>Users and roles</value>
+  </data>
+  <data name="Permission.settings.manage" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Permission.audit.read" xml:space="preserve">
+    <value>Audit log</value>
+  </data>
+  <data name="Permission.jobs.dashboard" xml:space="preserve">
+    <value>Background jobs (Hangfire)</value>
+  </data>
+  <data name="Permission.outbox.manage" xml:space="preserve">
+    <value>Background messages (retry)</value>
+  </data>
+</root>

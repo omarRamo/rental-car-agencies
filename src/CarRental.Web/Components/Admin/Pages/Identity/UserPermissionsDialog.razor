@@ -1,0 +1,114 @@
+@* Extra permissions of a user, on top of the presets of their roles (SPEC §3): role permissions are shown checked and
+   disabled, the ones included by a ticked permission likewise; the rest can be ticked. *@
+@using CarRental.Application.Identity.Users
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<PermissionResources> P
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_permissions is { } permissions)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@L["Users.Permissions.Intro", string.Join(", ", permissions.Roles.Select(r => L[$"Role.{r}"].Value))]</MudText>
+            @foreach (var area in Permissions.Catalog.GroupBy(p => p.Area))
+            {
+                <fieldset class="permissions-area" data-permission-area="@area.Key">
+                    <legend>@P[$"PermissionArea.{area.Key}"]</legend>
+                    @foreach (var permission in area)
+                    {
+                        var name = permission.Name;
+                        var label = PermissionResources.Label(P, name);
+                        @if (permissions.RolePermissions.Contains(name))
+                        {
+                            <MudCheckBox T="bool" Value="true" Disabled="true" Dense="true" Label="@L["Users.Permissions.FromRole", label]" />
+                        }
+                        else if (!_selected.Contains(name) && Included.Contains(name))
+                        {
+                            <MudCheckBox T="bool" Value="true" Disabled="true" Dense="true" Label="@L["Users.Permissions.Included", label]" />
+                        }
+                        else
+                        {
+                            <MudCheckBox T="bool" Value="@_selected.Contains(name)" ValueChanged="@(on => Toggle(name, on))" Dense="true" Color="Color.Primary"
+                                         Label="@label" data-permission="@name" />
+                        }
+                    }
+                </fieldset>
+            }
+        }
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(_busy || _permissions is null)">@L["Users.Permissions.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private UserPermissions? _permissions;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid UserId { get; set; }
+
+    /// <summary>What the role presets and the ticked permissions include (shown as included, not stored).</summary>
+    private IReadOnlySet<string> Included =>
+        Permissions.WithImplied(_permissions is null ? _selected : _permissions.RolePermissions.Concat(_selected));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = UserId;
+        var result = await Runner.RunAsync<UserAdministrationService, Result<UserPermissions>>((service, ct) => service.GetPermissionsAsync(userId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        _permissions = result.Value;
+        _selected.UnionWith(result.Value.ExtraPermissions);
+    }
+
+    private void Toggle(string permission, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(permission);
+        }
+        else
+        {
+            _selected.Remove(permission);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        var userId = UserId;
+        var permissions = _selected.ToArray();
+        var result = await Runner.RunAsync<UserAdministrationService, Result>((service, ct) => service.SetExtraPermissionsAsync(userId, permissions, ct));
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}
