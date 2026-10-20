@@ -2,7 +2,7 @@
 
 - **Statut** : Acceptée (à confirmer avec l'agence : « vente par catégorie ou par modèle » est un point ouvert)
 - **Date** : 2026-10-20
-- **Source** : [spécifications](../specifications.md), sections 4 et 7
+- **Source** : [spécifications](../SPEC.md), sections 4 et 7
 
 ## Contexte
 

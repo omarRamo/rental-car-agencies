@@ -2,7 +2,7 @@
 
 - **Statut** : Acceptée (choix « connecteur maison ou intermédiaire » encore ouvert)
 - **Date** : 2026-10-20
-- **Source** : [spécifications](../specifications.md), section 10
+- **Source** : [spécifications](../SPEC.md), section 10
 
 ## Contexte
 

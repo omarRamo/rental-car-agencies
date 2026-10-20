@@ -1,6 +1,6 @@
 # Points ouverts
 
-Suivi vivant des décisions, démarches et vérifications qui conditionnent le projet. La référence figée reste [specifications.md](specifications.md) (v1 du 20/10/2026) : quand un point est tranché, on le coche ici avec la date et la décision, et on met à jour l'ADR ou la spec concernée.
+Suivi vivant des décisions, démarches et vérifications qui conditionnent le projet. La référence figée reste [SPEC.md](SPEC.md) (v1 du 20/10/2026) : quand un point est tranché, on le coche ici avec la date et la décision, et on met à jour l'ADR ou la spec concernée.
 
 ## Démarches de l'agence à lancer dès la semaine 1
 
@@ -56,3 +56,20 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 - [ ] **Statut manquant** : le plan de repli Clic to Pay (section 9) introduit « Validée, en attente de paiement », absent du cycle de vie (section 4). À ajouter au cycle, ou à modéliser comme « Confirmée » avec paiement en attente.
 - [ ] **Fin d'une option datée** : elle « expire seule », mais le cycle de vie ne dit pas vers quel statut (« Expirée » ?) ni si la capacité est libérée de la même façon.
 - [ ] **Décompte des améliorations** (section 16) : « Quatorze ajouts […] ; les cinq derniers points sont des évolutions possibles », alors que le tableau compte déjà 14 lignes et que les 5 évolutions sont listées à part.
+
+## Écarts entre PROMPT.md et SPEC.md
+
+[PROMPT.md](PROMPT.md) demande de signaler ces points avant de coder. L'exécution étant autonome, chacun est tranché par défaut, de façon réversible ; la décision prise est indiquée.
+
+| # | Écart ou question | Décision par défaut |
+|---|---|---|
+| 1 | La spec parle de « tarifs de chaque véhicule », le prompt de tarifs par catégorie. | Grille par catégorie ; prix par véhicule seulement pour l'option « modèle garanti » (règle 2 du moteur de prix de la spec). |
+| 2 | Statut « Validée, en attente de paiement » (plan de repli Clic to Pay) absent du cycle de vie. | Statut `AwaitingPayment` ajouté : actif pour la capacité, il expire comme une demande si le lien `register.do` n'est pas payé dans les 24 h. |
+| 3 | Statut d'arrivée d'une option datée qui expire. | `Expired`, avec libération de la capacité, comme une demande web. |
+| 4 | Plafond du siège enfant (50,000 TND) présent dans le prompt, absent de la spec. | Repris : plafond paramétrable par option. |
+| 5 | Le prompt numérote « ADR 0004 = verrou de disponibilité » ; dans le dépôt, l'ADR 0004 traite de l'hébergement et le verrou est l'ADR 0006. | Numérotation existante conservée ; les nouvelles ADR démarrent à 0011. |
+| 6 | Cache de disponibilité : < 1 s dans la spec, < 100 ms dans le prompt. | Cible du prompt (< 100 ms), plus stricte. |
+| 7 | « La recette est déployée » (fin de phase 0) suppose un abonnement Azure et des identifiants. | Bicep et `deploy.yml` livrés et validés localement ; le déploiement réel attend les identifiants Azure (OIDC) dans les secrets GitHub. |
+| 8 | Double authentification obligatoire : comment se connectent les tests E2E ? | Utilisateurs de démonstration avec clé TOTP connue, uniquement en développement et en test. |
+| 9 | Valeur du droit de timbre. | Paramètre à 0,000 TND par défaut, `TODO(spec)` : valeur à fournir par l'expert-comptable. |
+| 10 | Licence QuestPDF Community (seuil de chiffre d'affaires). | Utilisée en Community ; à confirmer avec le chiffre d'affaires de l'agence. |

@@ -2,7 +2,7 @@
 
 - **Statut** : Acceptée (paramètres fiscaux à valider par l'expert-comptable, procédures INPDP par un avocat)
 - **Date** : 2026-10-20
-- **Source** : [spécifications](../specifications.md), sections 7, 8 et 14
+- **Source** : [spécifications](../SPEC.md), sections 7, 8 et 14
 
 ## Contexte
 

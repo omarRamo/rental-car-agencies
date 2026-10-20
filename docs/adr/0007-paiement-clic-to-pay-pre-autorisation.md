@@ -2,7 +2,7 @@
 
 - **Statut** : Acceptée (dépend de l'activation de la pré-autorisation sur le compte marchand)
 - **Date** : 2026-10-20
-- **Source** : [spécifications](../specifications.md), section 9
+- **Source** : [spécifications](../SPEC.md), section 9
 
 ## Contexte
 

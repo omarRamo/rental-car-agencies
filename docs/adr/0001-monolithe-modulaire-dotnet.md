@@ -2,7 +2,7 @@
 
 - **Statut** : Acceptée
 - **Date** : 2026-10-20
-- **Source** : [spécifications](../specifications.md), sections 1 et 12
+- **Source** : [spécifications](../SPEC.md), sections 1 et 12
 
 ## Contexte
 

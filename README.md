@@ -30,7 +30,7 @@ Le détail et la justification de chaque décision sont dans les [ADR](docs/adr/
 
 | Document | Contenu |
 |---|---|
-| [Spécifications](docs/specifications.md) | Spécification fonctionnelle et technique complète (v1 du 20/10/2026) |
+| [Spécifications](docs/SPEC.md) | Spécification fonctionnelle et technique complète (v1 du 20/10/2026) |
 | [Spécifications (PDF d'origine)](docs/specifications-2026-10-20.pdf) | Version de référence figée |
 | [Décisions d'architecture](docs/adr/README.md) | Les ADR, une par décision structurante |
 | [Points ouverts](docs/points-ouverts.md) | Démarches de l'agence, décisions à obtenir, hypothèses à confirmer, incohérences à trancher |

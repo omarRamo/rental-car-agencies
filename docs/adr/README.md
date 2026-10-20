@@ -1,6 +1,6 @@
 # Décisions d'architecture (ADR)
 
-Chaque ADR consigne une décision structurante : son contexte, ce qui a été décidé, et ce que cela implique. Les décisions initiales viennent des [spécifications v1](../specifications.md) du 20/10/2026.
+Chaque ADR consigne une décision structurante : son contexte, ce qui a été décidé, et ce que cela implique. Les décisions initiales viennent des [spécifications v1](../SPEC.md) du 20/10/2026.
 
 Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la remplace et on passe l'ancien au statut « Remplacée par ADR-XXXX ».
 
