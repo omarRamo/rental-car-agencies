@@ -302,6 +302,21 @@ public sealed class AvailabilityGuardTests
     }
 
     [Fact]
+    public async Task Assigning_a_vehicle_to_a_booking_entirely_in_the_past_has_nothing_to_protect()
+    {
+        // Correcting the history: the vehicle has been in the garage since, which does not matter any more.
+        var world = new AvailabilityWorld();
+        var category = world.Category(vehicles: 0);
+        var vehicle = world.Fleet.AddVehicle(category, "123 TU 4567", [P(-1000, -100)]);
+        var request = new VehicleAssignmentRequest(category.Id, Planned(Guid.CreateVersion7(), P(-50, -20)), vehicle.Id);
+
+        var result = await InUnitOfWork(world, ct => world.Guard().EnsureVehicleAssignableAsync(request, ct));
+
+        result.IsSuccess.ShouldBeTrue();
+        world.Journal.Entries.ShouldNotContain("occupancy");
+    }
+
+    [Fact]
     public async Task Assigning_a_vehicle_requires_a_unit_of_work_and_reports_lock_failures()
     {
         var world = new AvailabilityWorld();

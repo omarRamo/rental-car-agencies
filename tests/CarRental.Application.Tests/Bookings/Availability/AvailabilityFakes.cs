@@ -118,6 +118,14 @@ internal sealed class FakeFleetQueries(CallJournal journal) : IFleetQueries
         return vehicle;
     }
 
+    public void RemoveCategory(Guid categoryId)
+    {
+        lock (_gate)
+        {
+            _categories.RemoveAll(c => c.Id == categoryId);
+        }
+    }
+
     public void SetWindows(Guid vehicleId, params Period[] windows)
     {
         lock (_gate)

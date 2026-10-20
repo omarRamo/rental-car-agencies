@@ -237,6 +237,48 @@ public sealed class AvailabilityCacheTests
     }
 
     [Fact]
+    public async Task The_category_list_of_an_agency_is_cached_and_reloaded_after_a_change()
+    {
+        var world = new AvailabilityWorld();
+        world.Category("ECMR");
+        await using var services = world.Services();
+        var cache = services.GetRequiredService<AvailabilityCache>();
+
+        async Task<int> SearchAsync()
+        {
+            await using var scope = services.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<IAvailabilityQueries>();
+            return (await queries.GetAvailableCategoriesAsync(world.AgencyId, P(10, 20), SalesChannel.Web, Ct)).Count;
+        }
+
+        (await SearchAsync()).ShouldBe(1);
+        var added = world.Category("CDMR");
+        (await SearchAsync()).ShouldBe(1);
+        cache.CategoryListLoads.ShouldBe(1);
+
+        // The Fleet module notifies the new category: the list reloads.
+        services.GetRequiredService<IAvailabilityChangeNotifier>().CategoryChanged(added.Id);
+        (await SearchAsync()).ShouldBe(2);
+        cache.CategoryListLoads.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_category_deleted_before_a_fresh_read_beyond_the_horizon_is_reported_as_missing()
+    {
+        var world = new AvailabilityWorld();
+        var category = world.Category();
+        await using var services = world.Services();
+        await using var scope = services.CreateAsyncScope();
+        var queries = scope.ServiceProvider.GetRequiredService<IAvailabilityQueries>();
+        (await queries.GetCategoryAvailabilityAsync(category.Id, P(10, 20), SalesChannel.Web, cancellationToken: Ct)).ShouldNotBeNull();
+
+        world.Fleet.RemoveCategory(category.Id);
+
+        (await queries.GetCategoryAvailabilityAsync(category.Id, P(500 * 24, (500 * 24) + 5), SalesChannel.Web, cancellationToken: Ct)).ShouldBeNull();
+        (await queries.GetCapacityProfileAsync(category.Id, P(-72, 0), cancellationToken: Ct)).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Unknown_categories_are_reported_as_missing()
     {
         var world = new AvailabilityWorld();
