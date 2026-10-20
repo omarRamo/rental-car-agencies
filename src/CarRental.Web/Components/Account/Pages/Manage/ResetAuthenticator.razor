@@ -1,0 +1,39 @@
+@page "/account/manage/reset-authenticator"
+@using System.Security.Claims
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["ResetAuth.Title"]</PageTitle>
+
+<h2>@L["ResetAuth.Title"]</h2>
+<div class="alert alert--warning" role="alert">@L["ResetAuth.Warning"]</div>
+<form method="post" @formname="reset-authenticator" @onsubmit="ResetAsync">
+    <AntiforgeryToken />
+    <button type="submit" class="button button--danger">@L["ResetAuth.Submit"]</button>
+</form>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task ResetAsync()
+    {
+        var user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        await UserManager.SetTwoFactorEnabledAsync(user, false);
+        await UserManager.ResetAuthenticatorKeyAsync(user);
+        await Recorder.AccountEventAsync(AuditActions.AuthenticatorReset, HttpContext.User);
+
+        // Without a verified authenticator the session is no longer an MFA session: back office closed until re-enrollment.
+        await SignInManager.SignInWithClaimsAsync(user, isPersistent: false, [new Claim(MfaRequirement.AuthenticationMethodClaimType, "pwd")]);
+        RedirectManager.RedirectToWithStatus("account/manage/enable-authenticator", L["ResetAuth.Done"], HttpContext);
+    }
+}

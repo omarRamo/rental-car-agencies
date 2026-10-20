@@ -1,0 +1,11 @@
+@page "/not-found"
+@layout Public.Layout.PublicLayout
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>@L["NotFound.Title"]</PageTitle>
+
+<section class="status-page">
+    <h1>@L["NotFound.Title"]</h1>
+    <p>@L["NotFound.Message"]</p>
+    <p><a href="/" data-enhance-nav="false">@L["NotFound.Home"]</a></p>
+</section>

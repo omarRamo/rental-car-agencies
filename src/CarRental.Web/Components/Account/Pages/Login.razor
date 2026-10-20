@@ -1,0 +1,113 @@
+@page "/account/login"
+@using Microsoft.AspNetCore.Authentication
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["Login.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["Login.Heading"]</h1>
+        @if (ReturnUrl?.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) == true && HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            <p class="field-hint">@L["Login.BackOfficeHint"]</p>
+        }
+        <StatusMessage Message="@_message" IsError="true" />
+        <EditForm Model="Input" method="post" OnSubmit="LoginAsync" FormName="login" novalidate>
+            <div class="form-field">
+                <label for="email">@L["Field.Email"]</label>
+                <InputText id="email" type="email" @bind-Value="Input.Email" autocomplete="username" aria-required="true"
+                           aria-invalid="@Invalid(_emailError)" aria-describedby="@Describe(_emailError, "email-error")" />
+                <FieldError Id="email-error" Message="@_emailError" />
+            </div>
+            <div class="form-field">
+                <label for="password">@L["Field.Password"]</label>
+                <InputText id="password" type="password" @bind-Value="Input.Password" autocomplete="current-password" aria-required="true"
+                           aria-invalid="@Invalid(_passwordError)" aria-describedby="@Describe(_passwordError, "password-error")" />
+                <FieldError Id="password-error" Message="@_passwordError" />
+            </div>
+            <button type="submit" class="button button--block">@L["Login.Submit"]</button>
+        </EditForm>
+        <p><a href="account/forgot-password">@L["Login.ForgotPassword"]</a></p>
+    </div>
+</div>
+
+@code {
+    private string? _message;
+    private string? _emailError;
+    private string? _passwordError;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear a half-finished external sign-in.
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    private static string? Invalid(string? error) => error is null ? null : "true";
+
+    private static string? Describe(string? error, string id) => error is null ? null : id;
+
+    private async Task LoginAsync()
+    {
+        var email = Input.Email?.Trim() ?? string.Empty;
+        _emailError = email.Length == 0 ? L["Validation.Required"].Value : null;
+        _passwordError = string.IsNullOrEmpty(Input.Password) ? L["Validation.Required"].Value : null;
+        if (_emailError is not null || _passwordError is not null)
+        {
+            return;
+        }
+
+        var user = await UserManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            await Recorder.FailedAsync(null, "unknown account", email);
+            _message = L["Login.Invalid"];
+            return;
+        }
+
+        var result = await SignInManager.PasswordSignInAsync(user, Input.Password, isPersistent: false, lockoutOnFailure: true);
+        if (result.Succeeded)
+        {
+            // Password only: two-factor is not enrolled yet; the back office will require the enrollment.
+            await Recorder.SucceededAsync(user, "password (two-factor not enrolled)");
+            RedirectManager.RedirectTo(ReturnUrl ?? "/admin");
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo("account/login-with-2fa", new() { ["ReturnUrl"] = ReturnUrl });
+        }
+        else if (result.IsLockedOut)
+        {
+            await Recorder.LockedOutAsync(user);
+            RedirectManager.RedirectTo("account/lockout");
+        }
+        else
+        {
+            await Recorder.FailedAsync(user, "invalid password");
+            _message = L["Login.Invalid"];
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public string? Email { get; set; }
+
+        public string Password { get; set; } = string.Empty;
+    }
+}

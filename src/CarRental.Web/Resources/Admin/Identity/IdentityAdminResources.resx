@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Audit.After" xml:space="preserve">
+    <value>Après :</value>
+  </data>
+  <data name="Audit.Before" xml:space="preserve">
+    <value>Avant :</value>
+  </data>
+  <data name="Audit.Column.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Audit.Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Audit.Column.Details" xml:space="preserve">
+    <value>Détails</value>
+  </data>
+  <data name="Audit.Column.Entity" xml:space="preserve">
+    <value>Objet</value>
+  </data>
+  <data name="Audit.Column.Ip" xml:space="preserve">
+    <value>Adresse IP</value>
+  </data>
+  <data name="Audit.Column.User" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="Audit.Correlation" xml:space="preserve">
+    <value>Corrélation :</value>
+  </data>
+  <data name="Audit.Details" xml:space="preserve">
+    <value>Contexte :</value>
+  </data>
+  <data name="Audit.Empty" xml:space="preserve">
+    <value>Aucune entrée pour ces filtres.</value>
+  </data>
+  <data name="Audit.Filter.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Audit.Filter.Correlation" xml:space="preserve">
+    <value>Identifiant de corrélation</value>
+  </data>
+  <data name="Audit.Filter.EntityId" xml:space="preserve">
+    <value>Identifiant d'objet</value>
+  </data>
+  <data name="Audit.Filter.EntityType" xml:space="preserve">
+    <value>Type d'objet</value>
+  </data>
+  <data name="Audit.Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Audit.Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Audit.Filter.User" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="Audit.Reset" xml:space="preserve">
+    <value>Effacer les filtres</value>
+  </data>
+  <data name="Audit.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Audit.ShowDetails" xml:space="preserve">
+    <value>Afficher les détails</value>
+  </data>
+  <data name="Audit.TimeZoneNote" xml:space="preserve">
+    <value>Heures affichées à l'heure de Tunis. Le journal est en ajout seul.</value>
+  </data>
+  <data name="Audit.Title" xml:space="preserve">
+    <value>Journal d'audit</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} sur {all_items}</value>
+  </data>
+  <data name="Pager.RowsPerPage" xml:space="preserve">
+    <value>Lignes par page</value>
+  </data>
+  <data name="Role.Accountant" xml:space="preserve">
+    <value>Comptable</value>
+  </data>
+  <data name="Role.Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Role.Manager" xml:space="preserve">
+    <value>Gérant</value>
+  </data>
+  <data name="Role.Preparer" xml:space="preserve">
+    <value>Préparateur</value>
+  </data>
+  <data name="Users.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Users.Column.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Users.Column.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Users.Column.Roles" xml:space="preserve">
+    <value>Rôles</value>
+  </data>
+  <data name="Users.Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Users.Column.TwoFactor" xml:space="preserve">
+    <value>Double authentification</value>
+  </data>
+  <data name="Users.Create" xml:space="preserve">
+    <value>Nouvel utilisateur</value>
+  </data>
+  <data name="Users.Create.Hint" xml:space="preserve">
+    <value>L'utilisateur reçoit un lien pour choisir son mot de passe, puis active la double authentification à sa première connexion.</value>
+  </data>
+  <data name="Users.Create.Submit" xml:space="preserve">
+    <value>Créer et inviter</value>
+  </data>
+  <data name="Users.Created" xml:space="preserve">
+    <value>Utilisateur créé : l'invitation est envoyée par e-mail.</value>
+  </data>
+  <data name="Users.Empty" xml:space="preserve">
+    <value>Aucun utilisateur.</value>
+  </data>
+  <data name="Users.Field.DisplayName" xml:space="preserve">
+    <value>Nom affiché</value>
+  </data>
+  <data name="Users.Field.Email" xml:space="preserve">
+    <value>Adresse e-mail</value>
+  </data>
+  <data name="Users.Field.Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="Users.Lock" xml:space="preserve">
+    <value>Verrouiller</value>
+  </data>
+  <data name="Users.Lock.Confirm.Message" xml:space="preserve">
+    <value>{0} ne pourra plus se connecter et ses sessions seront fermées. Continuer ?</value>
+  </data>
+  <data name="Users.Lock.Confirm.Title" xml:space="preserve">
+    <value>Verrouiller le compte</value>
+  </data>
+  <data name="Users.Locked" xml:space="preserve">
+    <value>Compte verrouillé.</value>
+  </data>
+  <data name="Users.Search" xml:space="preserve">
+    <value>Rechercher (nom ou e-mail)</value>
+  </data>
+  <data name="Users.Status.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Users.Status.Locked" xml:space="preserve">
+    <value>Verrouillé</value>
+  </data>
+  <data name="Users.Title" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
+  <data name="Users.TwoFactor.Off" xml:space="preserve">
+    <value>À activer</value>
+  </data>
+  <data name="Users.TwoFactor.On" xml:space="preserve">
+    <value>Activée</value>
+  </data>
+  <data name="Users.Unlock" xml:space="preserve">
+    <value>Déverrouiller</value>
+  </data>
+  <data name="Users.Unlocked" xml:space="preserve">
+    <value>Compte déverrouillé.</value>
+  </data>
+</root>

@@ -1,0 +1,30 @@
+@* Interactive navigation to a page the user may not open: anonymous users go to the login page, signed-in users see
+   an access denied message (HTTP requests are handled earlier by the authorization middleware). *@
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResources> L
+
+@if (_authenticated)
+{
+    <section class="access-denied" role="alert">
+        <h1>@L["AccessDenied.Title"]</h1>
+        <p>@L["AccessDenied.Message"]</p>
+    </section>
+}
+
+@code {
+    private bool _authenticated;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = AuthenticationState is null ? null : await AuthenticationState;
+        _authenticated = state?.User.Identity?.IsAuthenticated == true;
+        if (!_authenticated)
+        {
+            var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+            Navigation.NavigateTo($"account/login?ReturnUrl={Uri.EscapeDataString("/" + returnUrl)}", forceLoad: true);
+        }
+    }
+}

@@ -10,6 +10,7 @@ namespace CarRental.Application.Common.Security;
 public sealed class ScopedUserContext(IEnumerable<IAmbientUserContextProvider> ambientProviders) : IUserContext
 {
     private UserContextSnapshot? _snapshot;
+    private bool _isExplicit;
 
     /// <summary>The effective snapshot (explicit, ambient or anonymous).</summary>
     public UserContextSnapshot Snapshot => _snapshot ??= ResolveAmbient();
@@ -26,16 +27,19 @@ public sealed class ScopedUserContext(IEnumerable<IAmbientUserContextProvider> a
 
     public string? CorrelationId => Snapshot.CorrelationId;
 
-    /// <summary>Sets the actor of this scope. Can be called once, before the context is read.</summary>
+    /// <summary>
+    /// Sets the actor of this scope (replacing an ambient snapshot resolved earlier). Setting a different actor twice is a bug.
+    /// </summary>
     public void Initialize(UserContextSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        if (_snapshot is not null && !ReferenceEquals(_snapshot, snapshot))
+        if (_isExplicit && !ReferenceEquals(_snapshot, snapshot))
         {
             throw new InvalidOperationException("The user context of this scope is already set.");
         }
 
         _snapshot = snapshot;
+        _isExplicit = true;
     }
 
     public bool HasPermission(string permission)

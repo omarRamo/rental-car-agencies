@@ -1,0 +1,19 @@
+@inject IStringLocalizer<AccountResources> L
+@inject NavigationManager Navigation
+
+<nav class="manage-nav" aria-label="@L["Manage.Title"]">
+    <ul>
+        <li><a href="account/manage" aria-current="@Current("account/manage")">@L["Manage.Nav.Profile"]</a></li>
+        <li><a href="account/manage/change-password" aria-current="@Current("account/manage/change-password")">@L["Manage.Nav.Password"]</a></li>
+        <li><a href="account/manage/two-factor" aria-current="@Current("account/manage/two-factor")">@L["Manage.Nav.TwoFactor"]</a></li>
+        <li><a href="/admin" data-enhance-nav="false">@L["Manage.Nav.BackOffice"]</a></li>
+    </ul>
+</nav>
+
+@code {
+    private string? Current(string path)
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        return string.Equals(relative, path, StringComparison.OrdinalIgnoreCase) ? "page" : null;
+    }
+}

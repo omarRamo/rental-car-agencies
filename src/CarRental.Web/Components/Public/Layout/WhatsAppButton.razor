@@ -1,0 +1,18 @@
+@* Floating WhatsApp button on every public page (hidden when PublicSite:WhatsAppNumber is empty). *@
+@using CarRental.Web.Resources.Public
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+@if (!string.IsNullOrWhiteSpace(Site.Value.WhatsAppNumber))
+{
+    <aside class="whatsapp" aria-label="@L["WhatsApp.Region"]">
+        <a class="whatsapp__button"
+           href="@($"https://wa.me/{Site.Value.WhatsAppNumber}?text={Uri.EscapeDataString(L["WhatsApp.Message"])}")"
+           target="_blank" rel="noopener noreferrer"
+           aria-label="@L["WhatsApp.Label"]">
+            <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M16.04 3C9.1 3 3.45 8.64 3.45 15.58c0 2.22.58 4.39 1.69 6.3L3.35 28.5l6.8-1.78a12.6 12.6 0 0 0 5.89 1.5h.01c6.94 0 12.59-5.64 12.59-12.58C28.64 8.64 22.98 3 16.04 3Zm0 23.07h-.01a10.5 10.5 0 0 1-5.35-1.47l-.38-.23-4.04 1.06 1.08-3.94-.25-.4a10.45 10.45 0 0 1-1.6-5.5c0-5.78 4.71-10.49 10.5-10.49 2.8 0 5.44 1.09 7.42 3.08a10.42 10.42 0 0 1 3.07 7.42c0 5.79-4.7 10.5-10.44 10.5Zm5.76-7.85c-.32-.16-1.87-.92-2.16-1.03-.29-.1-.5-.16-.71.16-.21.32-.81 1.03-1 1.24-.18.21-.37.24-.68.08-.32-.16-1.33-.49-2.54-1.57-.94-.84-1.57-1.87-1.75-2.18-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.1-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.34-.26-.62-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.07-1.1 2.62 0 1.55 1.13 3.04 1.28 3.25.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.66.75.24 1.44.21 1.98.13.6-.09 1.87-.76 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.13-.29-.21-.6-.37Z" />
+            </svg>
+        </a>
+    </aside>
+}

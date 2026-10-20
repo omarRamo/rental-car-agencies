@@ -1,0 +1,19 @@
+@inject IStringLocalizer<AdminResources> L
+
+<AuthorizeView>
+    <Authorized Context="auth">
+        <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AriaLabel="@L["UserMenu.Label"]"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudText Class="px-4 py-2" Typo="Typo.body2">@auth.User.GetDisplayName()</MudText>
+            <MudDivider />
+            <MudMenuItem Href="/account/manage" ForceLoad="true" Icon="@Icons.Material.Outlined.Person">@L["UserMenu.Account"]</MudMenuItem>
+            <MudMenuItem Href="/account/manage/change-password" ForceLoad="true" Icon="@Icons.Material.Outlined.Password">@L["UserMenu.ChangePassword"]</MudMenuItem>
+            <MudMenuItem Href="/account/manage/two-factor" ForceLoad="true" Icon="@Icons.Material.Outlined.Security">@L["UserMenu.TwoFactor"]</MudMenuItem>
+        </MudMenu>
+        <form class="logout-form" method="post" action="account/logout">
+            <AntiforgeryToken />
+            <input type="hidden" name="returnUrl" value="/account/login" />
+            <MudButton ButtonType="ButtonType.Submit" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Logout">@L["UserMenu.Logout"]</MudButton>
+        </form>
+    </Authorized>
+</AuthorizeView>

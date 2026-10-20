@@ -1,0 +1,36 @@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<AdminResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<MudThemeProvider Theme="AdminTheme.Theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<a class="skip-link" href="#admin-main">@L["SkipToContent"]</a>
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" aria-label="@L["Menu.Toggle"]" />
+        <MudText Typo="Typo.h6" Class="ms-2">@Site.Value.AgencyName</MudText>
+        <MudSpacer />
+        <CultureMenu />
+        <UserMenu />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1" Variant="DrawerVariant.Responsive">
+        <AdminNavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        <main id="admin-main" tabindex="-1">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+                @Body
+            </MudContainer>
+        </main>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

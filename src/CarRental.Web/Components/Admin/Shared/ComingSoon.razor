@@ -1,0 +1,15 @@
+@* Placeholder of a back office screen delivered by a later phase. *@
+@inject IStringLocalizer<AdminResources> L
+
+<PageTitle>@L[TitleKey]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L[TitleKey]</MudText>
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined">@L["ComingSoon.Message", Phase]</MudAlert>
+
+@code {
+    [Parameter, EditorRequired]
+    public string TitleKey { get; set; } = default!;
+
+    [Parameter]
+    public int Phase { get; set; } = 1;
+}

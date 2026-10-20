@@ -1,0 +1,25 @@
+@page "/error"
+@layout Public.Layout.PublicLayout
+@attribute [ExcludeFromInteractiveRouting]
+@using System.Diagnostics
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>@L["Error.Title"]</PageTitle>
+
+<section class="status-page">
+    <h1>@L["Error.Title"]</h1>
+    <p>@L["Error.Message"]</p>
+    @if (!string.IsNullOrEmpty(_requestId))
+    {
+        <p>@L["Error.RequestId"] <code>@_requestId</code></p>
+    }
+</section>
+
+@code {
+    private string? _requestId;
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    protected override void OnInitialized() => _requestId = Activity.Current?.TraceId.ToString() ?? HttpContext?.TraceIdentifier;
+}

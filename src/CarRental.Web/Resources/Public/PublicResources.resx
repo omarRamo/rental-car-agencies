@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Home.Description" xml:space="preserve">
+    <value>Louez une voiture en Tunisie : prix total affiché tout de suite, réservation en ligne, retrait à l'agence ou à l'aéroport.</value>
+  </data>
+  <data name="Home.Features.Airports.Text" xml:space="preserve">
+    <value>Retrait et retour à l'agence ou aux aéroports de Tunis-Carthage et d'Enfidha-Hammamet.</value>
+  </data>
+  <data name="Home.Features.Airports.Title" xml:space="preserve">
+    <value>Agence et aéroports</value>
+  </data>
+  <data name="Home.Features.Online.Text" xml:space="preserve">
+    <value>Sans création de compte, depuis votre téléphone.</value>
+  </data>
+  <data name="Home.Features.Online.Title" xml:space="preserve">
+    <value>Réservation en trois étapes</value>
+  </data>
+  <data name="Home.Features.Price.Text" xml:space="preserve">
+    <value>Options, contribution journalière et caution sont affichées avant le paiement.</value>
+  </data>
+  <data name="Home.Features.Price.Title" xml:space="preserve">
+    <value>Prix total, sans surprise</value>
+  </data>
+  <data name="Home.Features.Title" xml:space="preserve">
+    <value>Pourquoi nous choisir</value>
+  </data>
+  <data name="Home.Heading" xml:space="preserve">
+    <value>Louez votre voiture en Tunisie</value>
+  </data>
+  <data name="Home.Lead" xml:space="preserve">
+    <value>À l'agence ou aux aéroports de Tunis-Carthage et d'Enfidha-Hammamet, avec le prix total TTC affiché tout de suite.</value>
+  </data>
+  <data name="Home.SearchComingSoon" xml:space="preserve">
+    <value>La recherche et la réservation en ligne arrivent bientôt. En attendant, écrivez-nous sur WhatsApp.</value>
+  </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>Location de voitures en Tunisie</value>
+  </data>
+  <data name="LanguageNav" xml:space="preserve">
+    <value>Langue</value>
+  </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Aller au contenu</value>
+  </data>
+  <data name="StaffLogin" xml:space="preserve">
+    <value>Espace équipe</value>
+  </data>
+  <data name="WhatsApp.Label" xml:space="preserve">
+    <value>Nous écrire sur WhatsApp (nouvelle fenêtre)</value>
+  </data>
+  <data name="WhatsApp.Message" xml:space="preserve">
+    <value>Bonjour, je souhaite louer une voiture.</value>
+  </data>
+  <data name="WhatsApp.Region" xml:space="preserve">
+    <value>Contact WhatsApp</value>
+  </data>
+</root>

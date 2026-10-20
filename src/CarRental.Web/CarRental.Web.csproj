@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Single host: public site (static SSR), back office /admin (Interactive Server + MudBlazor),
+    minimal APIs, webhooks, health endpoints and the Hangfire server/dashboard.
+  -->
+  <PropertyGroup>
+    <RootNamespace>CarRental.Web</RootNamespace>
+    <UserSecretsId>carrental-web-5f0b6b52-4f43-4d43-9a5c-7f3c2d6f8e10</UserSecretsId>
+    <!-- .NET 10 default for new apps: NavigationManager.NavigateTo during static SSR does not throw. -->
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <!-- Neutral resources (Resources/**/*.resx) are French; English (and later Arabic) are satellite assemblies. -->
+    <NeutralLanguage>fr</NeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CarRental.Application\CarRental.Application.csproj" />
+    <ProjectReference Include="..\CarRental.Infrastructure\CarRental.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CarRental.Integration.Tests" />
+    <InternalsVisibleTo Include="CarRental.E2E.Tests" />
+    <InternalsVisibleTo Include="CarRental.Architecture.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+@page "/account/lockout"
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["Lockout.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["Lockout.Title"]</h1>
+        <p role="status">@L["Lockout.Message"]</p>
+        <p><a href="account/login">@L["BackToLogin"]</a></p>
+    </div>
+</div>

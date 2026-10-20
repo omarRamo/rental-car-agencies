@@ -1,0 +1,56 @@
+@* Render mode by path (ADR-0002): /admin* is Interactive Server with MudBlazor; everything else, account pages
+   included, is static server rendering with hand-written CSS. MudBlazor assets are only loaded under /admin. *@
+<!DOCTYPE html>
+<html lang="@_language" dir="@_direction">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
+    @if (_isAdmin)
+    {
+        <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
+        <link rel="stylesheet" href="@Assets["css/admin.css"]" />
+    }
+    else
+    {
+        <link rel="stylesheet" href="@Assets["css/site.css"]" />
+    }
+    <HeadOutlet @rendermode="PageRenderMode" />
+</head>
+
+<body>
+    <Routes @rendermode="PageRenderMode" />
+    @if (_isAdmin)
+    {
+        <ReconnectModal />
+    }
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    @if (_isAdmin)
+    {
+        <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    }
+</body>
+
+</html>
+
+@code {
+    private bool _isAdmin;
+    private string _language = CultureCatalog.Default;
+    private string _direction = "ltr";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private IComponentRenderMode? PageRenderMode =>
+        _isAdmin && HttpContext.AcceptsInteractiveRouting() ? InteractiveServer : null;
+
+    protected override void OnParametersSet()
+    {
+        _isAdmin = HttpContext.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
+        var culture = CultureInfo.CurrentUICulture;
+        _language = culture.TwoLetterISOLanguageName;
+        _direction = culture.TextInfo.IsRightToLeft ? "rtl" : "ltr";
+    }
+}

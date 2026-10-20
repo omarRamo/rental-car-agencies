@@ -1,0 +1,4 @@
+@* Public pages: static server rendering only, culture-prefixed routes (/{culture:length(2)}/...), validated by
+   PublicCultureMiddleware. Never interactive: navigating here from the back office reloads the page. *@
+@layout PublicLayout
+@attribute [ExcludeFromInteractiveRouting]

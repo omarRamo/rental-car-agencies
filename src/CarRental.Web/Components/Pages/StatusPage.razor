@@ -1,0 +1,31 @@
+@page "/status/{StatusCode:int}"
+@layout Public.Layout.PublicLayout
+@attribute [ExcludeFromInteractiveRouting]
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>@Title</PageTitle>
+
+<section class="status-page">
+    <h1>@Title</h1>
+    <p>@Message</p>
+    <p><a href="/" data-enhance-nav="false">@L["NotFound.Home"]</a></p>
+</section>
+
+@code {
+    [Parameter]
+    public int StatusCode { get; set; }
+
+    private string Title => StatusCode switch
+    {
+        404 => L["NotFound.Title"],
+        403 => L["AccessDenied.Title"],
+        _ => L["Status.Title", StatusCode],
+    };
+
+    private string Message => StatusCode switch
+    {
+        404 => L["NotFound.Message"],
+        403 => L["AccessDenied.Message"],
+        _ => L["Status.Message"],
+    };
+}

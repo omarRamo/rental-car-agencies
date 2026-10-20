@@ -1,0 +1,137 @@
+@page "/account/manage/enable-authenticator"
+@using System.Security.Claims
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["Enable.Title"]</PageTitle>
+
+@if (_recoveryCodes is not null)
+{
+    <ShowRecoveryCodes RecoveryCodes="_recoveryCodes" StatusMessage="@L["Enable.Success"]" ContinueUrl="@ContinueUrl" />
+}
+else
+{
+    <h2>@L["Enable.Title"]</h2>
+    <StatusMessage />
+    @if (_required)
+    {
+        <div class="alert alert--warning" role="alert">@L["Enable.Required"]</div>
+    }
+    <StatusMessage Message="@_message" IsError="true" />
+    <ol class="steps">
+        <li>@L["Enable.Step1"]</li>
+        <li>
+            <p>@L["Enable.Step2"]</p>
+            @if (_qrCode is not null)
+            {
+                <img class="qr-code" src="@_qrCode" alt="@L["Enable.QrAlt"]" width="192" height="192" />
+            }
+            <p>@L["Enable.Key"] <kbd class="shared-key" data-testid="authenticator-key">@_sharedKey</kbd></p>
+        </li>
+        <li>
+            <p>@L["Enable.Step3"]</p>
+            <EditForm Model="Input" method="post" OnSubmit="VerifyAsync" FormName="send-code" novalidate>
+                <div class="form-field">
+                    <label for="code">@L["Enable.Code"]</label>
+                    <InputText id="code" @bind-Value="Input.Code" inputmode="numeric" autocomplete="one-time-code" aria-required="true"
+                               aria-invalid="@(_codeError is null ? null : "true")" aria-describedby="@(_codeError is null ? null : "code-error")" />
+                    <FieldError Id="code-error" Message="@_codeError" />
+                </div>
+                <button type="submit" class="button">@L["Enable.Submit"]</button>
+            </EditForm>
+        </li>
+    </ol>
+}
+
+@code {
+    private string? _message;
+    private string? _codeError;
+    private string? _sharedKey;
+    private string? _qrCode;
+    private bool _required;
+    private ApplicationUser? _user;
+    private IReadOnlyList<string>? _recoveryCodes;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string ContinueUrl => LocalUrls.IsLocal(ReturnUrl) ? ReturnUrl! : "/admin";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        _user = await UserManager.GetUserAsync(HttpContext.User);
+        if (_user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        _required = !await UserManager.GetTwoFactorEnabledAsync(_user);
+        await LoadSharedKeyAsync(_user);
+    }
+
+    private async Task LoadSharedKeyAsync(ApplicationUser user)
+    {
+        var key = await UserManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(key))
+        {
+            await UserManager.ResetAuthenticatorKeyAsync(user);
+            key = await UserManager.GetAuthenticatorKeyAsync(user);
+        }
+
+        _sharedKey = AuthenticatorSetup.FormatKey(key!);
+        _qrCode = AuthenticatorSetup.QrCodeDataUri(AuthenticatorSetup.BuildUri(user.Email!, key!));
+    }
+
+    private async Task VerifyAsync()
+    {
+        if (_user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        var code = AuthenticatorSetup.NormalizeCode(Input.Code);
+        if (code.Length is < 6 or > 7)
+        {
+            _codeError = L["TwoFactor.CodeFormat"];
+            return;
+        }
+
+        var valid = await UserManager.VerifyTwoFactorTokenAsync(_user, UserManager.Options.Tokens.AuthenticatorTokenProvider, code);
+        if (!valid)
+        {
+            _message = L["Enable.Invalid"];
+            return;
+        }
+
+        await UserManager.SetTwoFactorEnabledAsync(_user, true);
+        await Recorder.AccountEventAsync(AuditActions.TwoFactorEnabled, HttpContext.User);
+
+        // The code proves possession of the second factor: the session becomes an MFA session.
+        await SignInManager.SignInWithClaimsAsync(_user, isPersistent: false, [new Claim(MfaRequirement.AuthenticationMethodClaimType, MfaRequirement.MfaValue)]);
+
+        _recoveryCodes = (await UserManager.CountRecoveryCodesAsync(_user)) == 0
+            ? (await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10))?.ToList() ?? []
+            : null;
+        if (_recoveryCodes is null)
+        {
+            RedirectManager.RedirectToWithStatus(ContinueUrl, L["Enable.Success"], HttpContext);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public string? Code { get; set; }
+    }
+}

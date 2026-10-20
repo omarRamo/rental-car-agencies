@@ -1,0 +1,26 @@
+@inject IStringLocalizer<AccountResources> L
+
+<StatusMessage Message="@StatusMessage" />
+<h2>@L["RecoveryCodes.Title"]</h2>
+<div class="alert alert--warning" role="note">@L["RecoveryCodes.Warning"]</div>
+<ul class="recovery-codes">
+    @foreach (var recoveryCode in RecoveryCodes)
+    {
+        <li><code>@recoveryCode</code></li>
+    }
+</ul>
+@if (!string.IsNullOrEmpty(ContinueUrl))
+{
+    <p><a class="button" href="@ContinueUrl" data-enhance-nav="false">@L["RecoveryCodes.Continue"]</a></p>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<string> RecoveryCodes { get; set; } = [];
+
+    [Parameter]
+    public string? StatusMessage { get; set; }
+
+    [Parameter]
+    public string? ContinueUrl { get; set; }
+}

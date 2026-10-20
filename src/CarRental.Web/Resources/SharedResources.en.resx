@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AccessDenied.Message" xml:space="preserve">
+    <value>You do not have permission to open this page.</value>
+  </data>
+  <data name="AccessDenied.Title" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Error.Generic" xml:space="preserve">
+    <value>The operation failed ({0}).</value>
+  </data>
+  <data name="Error.identity.cannot_lock_self" xml:space="preserve">
+    <value>You cannot lock your own account.</value>
+  </data>
+  <data name="Error.identity.display_name_invalid" xml:space="preserve">
+    <value>The display name is required (100 characters at most).</value>
+  </data>
+  <data name="Error.identity.email_invalid" xml:space="preserve">
+    <value>The email address is not valid.</value>
+  </data>
+  <data name="Error.identity.email_taken" xml:space="preserve">
+    <value>A user already has this email address.</value>
+  </data>
+  <data name="Error.identity.forbidden" xml:space="preserve">
+    <value>You do not have the required permission.</value>
+  </data>
+  <data name="Error.identity.last_manager" xml:space="preserve">
+    <value>The last active manager cannot be locked.</value>
+  </data>
+  <data name="Error.identity.operation_failed" xml:space="preserve">
+    <value>The operation failed.</value>
+  </data>
+  <data name="Error.identity.role_unknown" xml:space="preserve">
+    <value>Unknown role.</value>
+  </data>
+  <data name="Error.identity.user_not_found" xml:space="preserve">
+    <value>User not found.</value>
+  </data>
+  <data name="Error.Message" xml:space="preserve">
+    <value>An unexpected error occurred. The technical team has been notified.</value>
+  </data>
+  <data name="Error.RequestId" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>Something went wrong</value>
+  </data>
+  <data name="NotFound.Home" xml:space="preserve">
+    <value>Back to the home page</value>
+  </data>
+  <data name="NotFound.Message" xml:space="preserve">
+    <value>The page you asked for does not exist or has moved.</value>
+  </data>
+  <data name="NotFound.Title" xml:space="preserve">
+    <value>Page not found</value>
+  </data>
+  <data name="Reconnect.Failed" xml:space="preserve">
+    <value>Failed to rejoin. Retry or reload the page.</value>
+  </data>
+  <data name="Reconnect.Paused" xml:space="preserve">
+    <value>The session has been paused by the server.</value>
+  </data>
+  <data name="Reconnect.Rejoining" xml:space="preserve">
+    <value>Rejoining the server…</value>
+  </data>
+  <data name="Reconnect.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Reconnect.ResumeFailed" xml:space="preserve">
+    <value>Failed to resume the session. Retry or reload the page.</value>
+  </data>
+  <data name="Reconnect.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Reconnect.Retrying" xml:space="preserve">
+    <value>Rejoin failed. Trying again in (seconds):</value>
+  </data>
+  <data name="Status.Message" xml:space="preserve">
+    <value>The request could not be completed.</value>
+  </data>
+  <data name="Status.Title" xml:space="preserve">
+    <value>Error {0}</value>
+  </data>
+  <data name="Validation.Required" xml:space="preserve">
+    <value>This field is required.</value>
+  </data>
+</root>

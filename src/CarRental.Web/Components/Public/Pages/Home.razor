@@ -1,0 +1,44 @@
+@page "/{culture:length(2)}"
+@inject IStringLocalizer<PublicResources> L
+@inject NavigationManager Navigation
+@inject CultureCatalog Cultures
+
+<PageTitle>@L["Home.Title"]</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L["Home.Description"]" />
+    @foreach (var culture in Cultures.Enabled)
+    {
+        <link rel="alternate" hreflang="@culture" href="@($"{Navigation.BaseUri}{culture}")" />
+    }
+    <link rel="alternate" hreflang="x-default" href="@Navigation.BaseUri" />
+</HeadContent>
+
+<section class="hero" aria-labelledby="home-heading">
+    <h1 id="home-heading">@L["Home.Heading"]</h1>
+    <p class="hero__lead">@L["Home.Lead"]</p>
+    <p class="notice" role="note">@L["Home.SearchComingSoon"]</p>
+</section>
+
+<section class="features" aria-labelledby="features-heading">
+    <h2 id="features-heading">@L["Home.Features.Title"]</h2>
+    <ul class="features__list">
+        <li class="feature">
+            <h3>@L["Home.Features.Price.Title"]</h3>
+            <p>@L["Home.Features.Price.Text"]</p>
+        </li>
+        <li class="feature">
+            <h3>@L["Home.Features.Online.Title"]</h3>
+            <p>@L["Home.Features.Online.Text"]</p>
+        </li>
+        <li class="feature">
+            <h3>@L["Home.Features.Airports.Title"]</h3>
+            <p>@L["Home.Features.Airports.Text"]</p>
+        </li>
+    </ul>
+</section>
+
+@code {
+    /// <summary>Culture prefix of the URL (validated by the culture middleware).</summary>
+    [Parameter]
+    public string Culture { get; set; } = CultureCatalog.Default;
+}

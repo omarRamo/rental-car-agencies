@@ -1,0 +1,88 @@
+@page "/account/login-with-2fa"
+@inject SignInManager<ApplicationUser> SignInManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["TwoFactor.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["TwoFactor.Title"]</h1>
+        <p>@L["TwoFactor.Intro"]</p>
+        <StatusMessage Message="@_message" IsError="true" />
+        <EditForm Model="Input" method="post" OnSubmit="VerifyAsync" FormName="login-with-2fa" novalidate>
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+            <div class="form-field">
+                <label for="code">@L["TwoFactor.Code"]</label>
+                <InputText id="code" @bind-Value="Input.Code" inputmode="numeric" autocomplete="one-time-code" aria-required="true"
+                           aria-invalid="@(_codeError is null ? null : "true")" aria-describedby="@(_codeError is null ? null : "code-error")" />
+                <FieldError Id="code-error" Message="@_codeError" />
+            </div>
+            <button type="submit" class="button button--block">@L["TwoFactor.Submit"]</button>
+        </EditForm>
+        <p><a href="@($"account/login-with-recovery-code?ReturnUrl={Uri.EscapeDataString(ReturnUrl ?? string.Empty)}")">@L["TwoFactor.UseRecoveryCode"]</a></p>
+    </div>
+</div>
+
+@code {
+    private string? _message;
+    private string? _codeError;
+    private ApplicationUser? _user;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        // The password step must have been completed.
+        _user = await SignInManager.GetTwoFactorAuthenticationUserAsync();
+        if (_user is null)
+        {
+            RedirectManager.RedirectTo("account/login");
+        }
+    }
+
+    private async Task VerifyAsync()
+    {
+        if (_user is null)
+        {
+            RedirectManager.RedirectTo("account/login");
+            return;
+        }
+
+        var code = AuthenticatorSetup.NormalizeCode(Input.Code);
+        if (code.Length is < 6 or > 7)
+        {
+            _codeError = L["TwoFactor.CodeFormat"];
+            return;
+        }
+
+        var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(code, isPersistent: false, rememberClient: false);
+        if (result.Succeeded)
+        {
+            await Recorder.SucceededAsync(_user, "password + authenticator");
+            RedirectManager.RedirectTo(ReturnUrl ?? "/admin");
+        }
+        else if (result.IsLockedOut)
+        {
+            await Recorder.LockedOutAsync(_user);
+            RedirectManager.RedirectTo("account/lockout");
+        }
+        else
+        {
+            await Recorder.FailedAsync(_user, "invalid authenticator code");
+            _message = L["TwoFactor.Invalid"];
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public string? Code { get; set; }
+    }
+}

@@ -1,0 +1,20 @@
+@* Language of the back office: stored in the culture cookie, then the page reloads (new circuit in that culture). *@
+@inject IStringLocalizer<AdminResources> L
+@inject NavigationManager Navigation
+@inject CultureCatalog Cultures
+
+<MudMenu Icon="@Icons.Material.Filled.Translate" Color="Color.Inherit" AriaLabel="@L["CultureMenu.Label"]"
+         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+    @foreach (var culture in Cultures.Enabled)
+    {
+        <MudMenuItem Href="@LinkFor(culture)" ForceLoad="true" lang="@culture">@CultureCatalog.NativeName(culture)</MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    private string LinkFor(string culture)
+    {
+        var returnUrl = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        return $"{CultureEndpoints.SetCulturePath}?culture={culture}&returnUrl={Uri.EscapeDataString(returnUrl)}";
+    }
+}

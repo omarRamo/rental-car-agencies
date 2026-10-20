@@ -1,0 +1,56 @@
+@page "/account/manage/generate-recovery-codes"
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["GenerateCodes.Title"]</PageTitle>
+
+@if (_recoveryCodes is not null)
+{
+    <ShowRecoveryCodes RecoveryCodes="_recoveryCodes" ContinueUrl="account/manage/two-factor" />
+}
+else
+{
+    <h2>@L["GenerateCodes.Title"]</h2>
+    <div class="alert alert--warning" role="alert">@L["GenerateCodes.Warning"]</div>
+    <form method="post" @formname="generate-recovery-codes" @onsubmit="GenerateAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="button">@L["GenerateCodes.Submit"]</button>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<string>? _recoveryCodes;
+    private ApplicationUser? _user;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserManager.GetUserAsync(HttpContext.User);
+        if (_user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        if (!await UserManager.GetTwoFactorEnabledAsync(_user))
+        {
+            RedirectManager.RedirectTo("account/manage/enable-authenticator");
+        }
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (_user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        _recoveryCodes = (await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10))?.ToList() ?? [];
+        await Recorder.AccountEventAsync(AuditActions.RecoveryCodesGenerated, HttpContext.User);
+    }
+}

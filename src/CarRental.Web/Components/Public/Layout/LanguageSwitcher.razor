@@ -1,0 +1,37 @@
+@* Same page in each enabled culture: the culture prefix of the path is replaced (query string kept). *@
+@inject NavigationManager Navigation
+@inject CultureCatalog Cultures
+
+<ul class="language-switcher">
+    @foreach (var culture in Cultures.Enabled)
+    {
+        var isCurrent = string.Equals(culture, _current, StringComparison.OrdinalIgnoreCase);
+        <li>
+            @if (isCurrent)
+            {
+                <span class="language-switcher__current" aria-current="true" lang="@culture">@CultureCatalog.NativeName(culture)</span>
+            }
+            else
+            {
+                <a href="@LinkFor(culture)" hreflang="@culture" lang="@culture">@CultureCatalog.NativeName(culture)</a>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    private string _current = CultureCatalog.Default;
+
+    protected override void OnParametersSet() => _current = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+    private string LinkFor(string culture)
+    {
+        var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        var queryStart = relative.IndexOf('?', StringComparison.Ordinal);
+        var path = queryStart < 0 ? relative : relative[..queryStart];
+        var query = queryStart < 0 ? string.Empty : relative[queryStart..];
+        var segment = PathRequestCultureProvider.FirstSegment(path);
+        var rest = segment is not null && Cultures.IsEnabled(segment) ? path[(segment.Length + 1)..] : string.Empty;
+        return $"/{culture}{rest}{query}";
+    }
+}

@@ -1,0 +1,12 @@
+@page "/account/access-denied"
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["AccessDenied.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["AccessDenied.Title"]</h1>
+        <p role="status">@L["AccessDenied.Message"]</p>
+        <p><a href="/admin" data-enhance-nav="false">@L["AccessDenied.Back"]</a></p>
+    </div>
+</div>

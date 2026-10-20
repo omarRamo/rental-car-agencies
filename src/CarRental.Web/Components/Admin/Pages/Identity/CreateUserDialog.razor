@@ -1,0 +1,60 @@
+@using CarRental.Application.Identity.Users
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_email" Label="@L["Users.Field.Email"]" InputType="InputType.Email" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+        <MudTextField T="string" @bind-Value="_displayName" Label="@L["Users.Field.DisplayName"]" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" MaxLength="UserAdministrationService.DisplayNameMaxLength" />
+        <MudSelect T="string" @bind-Value="_role" Label="@L["Users.Field.Role"]" Required="true">
+            @foreach (var role in Roles.All)
+            {
+                <MudSelectItem T="string" Value="@role">@L[$"Role.{role}"]</MudSelectItem>
+            }
+        </MudSelect>
+        <MudText Typo="Typo.body2" Class="mt-3">@L["Users.Create.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Users.Create.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _email;
+    private string? _displayName;
+    private string _role = Roles.Agent;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CreateUserRequest(_email ?? string.Empty, _displayName ?? string.Empty, _role);
+        var result = await Runner.RunAsync<UserAdministrationService, Result<Guid>>((service, ct) => service.CreateUserAsync(request, ct));
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

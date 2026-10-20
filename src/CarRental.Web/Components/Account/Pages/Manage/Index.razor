@@ -1,0 +1,42 @@
+@page "/account/manage"
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["Manage.Nav.Profile"]</PageTitle>
+
+<h2>@L["Manage.Nav.Profile"]</h2>
+<StatusMessage />
+@if (_user is not null)
+{
+    <dl class="profile">
+        <dt>@L["Profile.DisplayName"]</dt>
+        <dd>@_user.DisplayName</dd>
+        <dt>@L["Field.Email"]</dt>
+        <dd>@_user.Email</dd>
+        <dt>@L["Profile.Roles"]</dt>
+        <dd>@string.Join(", ", _roles)</dd>
+        <dt>@L["Manage.Nav.TwoFactor"]</dt>
+        <dd>@(_user.TwoFactorEnabled ? L["TwoFactorManage.Enabled"] : L["TwoFactorManage.Disabled"])</dd>
+    </dl>
+}
+
+@code {
+    private ApplicationUser? _user;
+    private IList<string> _roles = [];
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserManager.GetUserAsync(HttpContext.User);
+        if (_user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        _roles = await UserManager.GetRolesAsync(_user);
+    }
+}

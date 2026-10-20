@@ -1,0 +1,85 @@
+@page "/account/login-with-recovery-code"
+@inject SignInManager<ApplicationUser> SignInManager
+@inject SignInRecorder Recorder
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["Recovery.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["Recovery.Title"]</h1>
+        <p>@L["Recovery.Intro"]</p>
+        <StatusMessage Message="@_message" IsError="true" />
+        <EditForm Model="Input" method="post" OnSubmit="VerifyAsync" FormName="login-with-recovery-code" novalidate>
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+            <div class="form-field">
+                <label for="recovery-code">@L["Recovery.Code"]</label>
+                <InputText id="recovery-code" @bind-Value="Input.RecoveryCode" autocomplete="off" aria-required="true"
+                           aria-invalid="@(_codeError is null ? null : "true")" aria-describedby="@(_codeError is null ? null : "recovery-code-error")" />
+                <FieldError Id="recovery-code-error" Message="@_codeError" />
+            </div>
+            <button type="submit" class="button button--block">@L["Recovery.Submit"]</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string? _message;
+    private string? _codeError;
+    private ApplicationUser? _user;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        _user = await SignInManager.GetTwoFactorAuthenticationUserAsync();
+        if (_user is null)
+        {
+            RedirectManager.RedirectTo("account/login");
+        }
+    }
+
+    private async Task VerifyAsync()
+    {
+        if (_user is null)
+        {
+            RedirectManager.RedirectTo("account/login");
+            return;
+        }
+
+        var code = (Input.RecoveryCode ?? string.Empty).Replace(" ", string.Empty, StringComparison.Ordinal);
+        if (code.Length == 0)
+        {
+            _codeError = L["Validation.Required"];
+            return;
+        }
+
+        var result = await SignInManager.TwoFactorRecoveryCodeSignInAsync(code);
+        if (result.Succeeded)
+        {
+            await Recorder.SucceededAsync(_user, "password + recovery code");
+            RedirectManager.RedirectTo(ReturnUrl ?? "/admin");
+        }
+        else if (result.IsLockedOut)
+        {
+            await Recorder.LockedOutAsync(_user);
+            RedirectManager.RedirectTo("account/lockout");
+        }
+        else
+        {
+            await Recorder.FailedAsync(_user, "invalid recovery code");
+            _message = L["Recovery.Invalid"];
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public string? RecoveryCode { get; set; }
+    }
+}

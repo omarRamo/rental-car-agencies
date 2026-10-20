@@ -1,0 +1,139 @@
+@page "/admin/users"
+@attribute [HasPermission(Permissions.UsersManage)]
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Identity.Users
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Users.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Users.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreateAsync">@L["Users.Create"]</MudButton>
+</MudStack>
+
+<MudTextField T="string" @bind-Value="_search" Label="@L["Users.Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              DebounceInterval="400" OnDebounceIntervalElapsed="SearchAsync" Clearable="true" Class="mb-4" />
+
+<MudTable @ref="_table" T="UserSummary" ServerData="LoadAsync" Hover="true" Elevation="1" TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Users.Title"].Value })" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>@L["Users.Column.Name"]</MudTh>
+        <MudTh>@L["Users.Column.Email"]</MudTh>
+        <MudTh>@L["Users.Column.Roles"]</MudTh>
+        <MudTh>@L["Users.Column.TwoFactor"]</MudTh>
+        <MudTh>@L["Users.Column.Status"]</MudTh>
+        <MudTh>@L["Users.Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Users.Column.Name"]">@context.DisplayName</MudTd>
+        <MudTd DataLabel="@L["Users.Column.Email"]">@context.Email</MudTd>
+        <MudTd DataLabel="@L["Users.Column.Roles"]">
+            @foreach (var role in context.Roles)
+            {
+                <MudChip T="string" Size="Size.Small">@L[$"Role.{role}"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Users.Column.TwoFactor"]">
+            @if (context.TwoFactorEnabled)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.VerifiedUser">@L["Users.TwoFactor.On"]</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.GppMaybe">@L["Users.TwoFactor.Off"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Users.Column.Status"]">@(context.IsLockedOut ? L["Users.Status.Locked"] : L["Users.Status.Active"])</MudTd>
+        <MudTd DataLabel="@L["Users.Column.Actions"]">
+            @if (context.IsLockedOut)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => UnlockAsync(context)">@L["Users.Unlock"]</MudButton>
+            }
+            else
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="() => LockAsync(context)">@L["Users.Lock"]</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Users.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="PageSizes" RowsPerPageString="@L["Pager.RowsPerPage"]" InfoFormat="@L["Pager.Info"]" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private static readonly int[] PageSizes = [25, 50, 100];
+    private MudTable<UserSummary>? _table;
+    private string? _search;
+
+    private async Task<TableData<UserSummary>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var search = _search;
+        var result = await Runner.RunAsync<UserAdministrationService, Result<PagedResult<UserSummary>>>(
+            (service, ct) => service.ListAsync(search, page, ct),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<UserSummary> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<UserSummary> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private Task SearchAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateUserDialog>(L["Users.Create"], new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var outcome = await dialog.Result;
+        if (outcome is { Canceled: false })
+        {
+            Snackbar.Add(L["Users.Created"], Severity.Success);
+            await SearchAsync();
+        }
+    }
+
+    private async Task LockAsync(UserSummary user)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Users.Lock.Confirm.Title"],
+            L["Users.Lock.Confirm.Message", user.DisplayName],
+            yesText: L["Users.Lock"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await Runner.RunAsync<UserAdministrationService, Result>((service, ct) => service.LockAsync(user.Id, ct));
+        await NotifyAsync(result, L["Users.Locked"]);
+    }
+
+    private async Task UnlockAsync(UserSummary user)
+    {
+        var result = await Runner.RunAsync<UserAdministrationService, Result>((service, ct) => service.UnlockAsync(user.Id, ct));
+        await NotifyAsync(result, L["Users.Unlocked"]);
+    }
+
+    private async Task NotifyAsync(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await SearchAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

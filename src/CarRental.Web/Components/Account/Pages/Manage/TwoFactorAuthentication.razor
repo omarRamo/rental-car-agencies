@@ -1,0 +1,46 @@
+@page "/account/manage/two-factor"
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["TwoFactorManage.Title"]</PageTitle>
+
+<h2>@L["TwoFactorManage.Title"]</h2>
+<StatusMessage />
+<p>@L["TwoFactorManage.Mandatory"]</p>
+
+@if (_enabled)
+{
+    <div class="alert alert--success" role="status">@L["TwoFactorManage.Enabled"]</div>
+    <p class="@(_recoveryCodesLeft <= 3 ? "alert alert--warning" : null)">@L["TwoFactorManage.RecoveryLeft", _recoveryCodesLeft]</p>
+    <div class="actions">
+        <a class="button button--secondary" href="account/manage/generate-recovery-codes">@L["TwoFactorManage.GenerateCodes"]</a>
+        <a class="button button--secondary" href="account/manage/reset-authenticator">@L["TwoFactorManage.Reset"]</a>
+    </div>
+}
+else
+{
+    <div class="alert alert--warning" role="status">@L["TwoFactorManage.Disabled"]</div>
+    <p><a class="button" href="account/manage/enable-authenticator">@L["TwoFactorManage.Setup"]</a></p>
+}
+
+@code {
+    private bool _enabled;
+    private int _recoveryCodesLeft;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(HttpContext);
+            return;
+        }
+
+        _enabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        _recoveryCodesLeft = await UserManager.CountRecoveryCodesAsync(user);
+    }
+}

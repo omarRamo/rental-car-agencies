@@ -1,0 +1,57 @@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<AccountResources> L
+@inject IOptions<PublicSiteOptions> Site
+@inject NavigationManager Navigation
+@inject CultureCatalog Cultures
+
+<a class="skip-link" href="#main">@L["SkipToContent"]</a>
+
+<header class="site-header">
+    <div class="container site-header__inner">
+        <a class="site-brand" href="/" data-enhance-nav="false">@Site.Value.AgencyName — @L["Layout.Title"]</a>
+        <nav class="site-nav" aria-label="@L["LanguageNav"]">
+            <ul class="language-switcher">
+                @foreach (var culture in Cultures.Enabled)
+                {
+                    <li>
+                        @if (string.Equals(culture, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="language-switcher__current" aria-current="true" lang="@culture">@CultureCatalog.NativeName(culture)</span>
+                        }
+                        else
+                        {
+                            <a href="@CultureLink(culture)" lang="@culture" hreflang="@culture" data-enhance-nav="false">@CultureCatalog.NativeName(culture)</a>
+                        }
+                    </li>
+                }
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main id="main" class="site-main container" tabindex="-1">
+    @Body
+</main>
+
+<footer class="site-footer">
+    <div class="container site-footer__inner">
+        <p>© @DateTime.UtcNow.Year @Site.Value.AgencyName</p>
+        <AuthorizeView>
+            <Authorized>
+                <form class="inline-form" method="post" action="account/logout">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="returnUrl" value="/account/login" />
+                    <button type="submit" class="link-button">@L["Logout"]</button>
+                </form>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</footer>
+
+@code {
+    private string CultureLink(string culture)
+    {
+        var returnUrl = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        return $"{CultureEndpoints.SetCulturePath}?culture={culture}&returnUrl={Uri.EscapeDataString(returnUrl)}";
+    }
+}

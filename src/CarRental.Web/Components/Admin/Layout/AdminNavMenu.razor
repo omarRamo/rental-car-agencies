@@ -1,0 +1,26 @@
+@* Menu filtered by the permissions of the signed-in user (pages enforce them again). *@
+@inject IStringLocalizer<AdminResources> L
+
+<nav aria-label="@L["Nav.Label"]">
+    <MudNavMenu Class="pt-2">
+        <AuthorizeView>
+            <Authorized Context="auth">
+                @foreach (var group in AdminNavigation.Groups)
+                {
+                    var items = group.Items.Where(i => i.Permission is null || auth.User.HasPermission(i.Permission)).ToList();
+                    if (items.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    <MudNavGroup Title="@L[group.TitleKey]" Icon="@group.Icon" Expanded="true">
+                        @foreach (var item in items)
+                        {
+                            <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All" ForceLoad="@item.ForceLoad">@L[item.TitleKey]</MudNavLink>
+                        }
+                    </MudNavGroup>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </MudNavMenu>
+</nav>

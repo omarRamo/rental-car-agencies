@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AccessDenied.Message" xml:space="preserve">
+    <value>Vous n'avez pas la permission d'accéder à cette page.</value>
+  </data>
+  <data name="AccessDenied.Title" xml:space="preserve">
+    <value>Accès refusé</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Error.Generic" xml:space="preserve">
+    <value>L'opération a échoué ({0}).</value>
+  </data>
+  <data name="Error.identity.cannot_lock_self" xml:space="preserve">
+    <value>Vous ne pouvez pas verrouiller votre propre compte.</value>
+  </data>
+  <data name="Error.identity.display_name_invalid" xml:space="preserve">
+    <value>Le nom affiché est obligatoire (100 caractères au plus).</value>
+  </data>
+  <data name="Error.identity.email_invalid" xml:space="preserve">
+    <value>L'adresse e-mail n'est pas valide.</value>
+  </data>
+  <data name="Error.identity.email_taken" xml:space="preserve">
+    <value>Un utilisateur utilise déjà cette adresse e-mail.</value>
+  </data>
+  <data name="Error.identity.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission nécessaire.</value>
+  </data>
+  <data name="Error.identity.last_manager" xml:space="preserve">
+    <value>Le dernier gérant actif ne peut pas être verrouillé.</value>
+  </data>
+  <data name="Error.identity.operation_failed" xml:space="preserve">
+    <value>L'opération a échoué.</value>
+  </data>
+  <data name="Error.identity.role_unknown" xml:space="preserve">
+    <value>Rôle inconnu.</value>
+  </data>
+  <data name="Error.identity.user_not_found" xml:space="preserve">
+    <value>Utilisateur introuvable.</value>
+  </data>
+  <data name="Error.Message" xml:space="preserve">
+    <value>Une erreur inattendue s'est produite. L'équipe technique en est informée.</value>
+  </data>
+  <data name="Error.RequestId" xml:space="preserve">
+    <value>Identifiant de la requête :</value>
+  </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>Une erreur est survenue</value>
+  </data>
+  <data name="NotFound.Home" xml:space="preserve">
+    <value>Retour à l'accueil</value>
+  </data>
+  <data name="NotFound.Message" xml:space="preserve">
+    <value>La page demandée n'existe pas ou a été déplacée.</value>
+  </data>
+  <data name="NotFound.Title" xml:space="preserve">
+    <value>Page introuvable</value>
+  </data>
+  <data name="Reconnect.Failed" xml:space="preserve">
+    <value>La reconnexion a échoué. Réessayez ou rechargez la page.</value>
+  </data>
+  <data name="Reconnect.Paused" xml:space="preserve">
+    <value>La session a été suspendue par le serveur.</value>
+  </data>
+  <data name="Reconnect.Rejoining" xml:space="preserve">
+    <value>Reconnexion au serveur…</value>
+  </data>
+  <data name="Reconnect.Resume" xml:space="preserve">
+    <value>Reprendre</value>
+  </data>
+  <data name="Reconnect.ResumeFailed" xml:space="preserve">
+    <value>Impossible de reprendre la session. Réessayez ou rechargez la page.</value>
+  </data>
+  <data name="Reconnect.Retry" xml:space="preserve">
+    <value>Réessayer</value>
+  </data>
+  <data name="Reconnect.Retrying" xml:space="preserve">
+    <value>Échec de la reconnexion. Nouvel essai dans (secondes) :</value>
+  </data>
+  <data name="Status.Message" xml:space="preserve">
+    <value>La requête n'a pas pu aboutir.</value>
+  </data>
+  <data name="Status.Title" xml:space="preserve">
+    <value>Erreur {0}</value>
+  </data>
+  <data name="Validation.Required" xml:space="preserve">
+    <value>Ce champ est obligatoire.</value>
+  </data>
+</root>

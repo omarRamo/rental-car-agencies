@@ -9,6 +9,8 @@
   <Folder Name="/src/">
     <Project Path="src/CarRental.Application/CarRental.Application.csproj" />
     <Project Path="src/CarRental.Domain/CarRental.Domain.csproj" />
+    <Project Path="src/CarRental.Infrastructure/CarRental.Infrastructure.csproj" />
+    <Project Path="src/CarRental.Web/CarRental.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />

@@ -1,0 +1,12 @@
+@page "/account/invalid-user"
+@inject IStringLocalizer<AccountResources> L
+
+<PageTitle>@L["InvalidUser.Title"]</PageTitle>
+
+<div class="account">
+    <div class="card">
+        <h1>@L["InvalidUser.Title"]</h1>
+        <p role="status">@L["InvalidUser.Message"]</p>
+        <p><a href="account/login">@L["BackToLogin"]</a></p>
+    </div>
+</div>

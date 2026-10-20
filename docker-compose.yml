@@ -14,7 +14,7 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
-      MSSQL_SA_PASSWORD: "${CARRENTAL_SQL_PASSWORD:-DevOnly_Sql_Passw0rd!}"
+      MSSQL_SA_PASSWORD: "${CARRENTAL_SQL_PASSWORD:-DevOnly_Sql_Passw0rd!}" # gitleaks:allow (dev-only local SA password)
     ports:
       - "14333:1433"
     volumes:

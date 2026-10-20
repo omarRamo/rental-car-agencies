@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+@layout AccountLayout
+@inject IStringLocalizer<AccountResources> L
+
+<div class="account account--wide">
+    <h1>@L["Manage.Title"]</h1>
+    <div class="manage">
+        <ManageNavMenu />
+        <section class="card">
+            @Body
+        </section>
+    </div>
+</div>

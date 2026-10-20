@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ComingSoon.Message" xml:space="preserve">
+    <value>À venir : cet écran sera livré avec la phase {0}.</value>
+  </data>
+  <data name="CultureMenu.Label" xml:space="preserve">
+    <value>Langue</value>
+  </data>
+  <data name="Dashboard.ComingSoon" xml:space="preserve">
+    <value>Départs et retours du jour, demandes à valider et alertes arrivent avec la phase 1.</value>
+  </data>
+  <data name="Dashboard.Title" xml:space="preserve">
+    <value>Tableau du jour</value>
+  </data>
+  <data name="Dashboard.Welcome" xml:space="preserve">
+    <value>Bonjour {0}.</value>
+  </data>
+  <data name="Menu.Toggle" xml:space="preserve">
+    <value>Afficher ou masquer le menu</value>
+  </data>
+  <data name="Nav.Accounting" xml:space="preserve">
+    <value>Exports comptables</value>
+  </data>
+  <data name="Nav.Audit" xml:space="preserve">
+    <value>Journal d'audit</value>
+  </data>
+  <data name="Nav.Bookings" xml:space="preserve">
+    <value>Dossiers</value>
+  </data>
+  <data name="Nav.Cash" xml:space="preserve">
+    <value>Caisse</value>
+  </data>
+  <data name="Nav.Channels" xml:space="preserve">
+    <value>Canaux de vente</value>
+  </data>
+  <data name="Nav.Customers" xml:space="preserve">
+    <value>Clients et conducteurs</value>
+  </data>
+  <data name="Nav.Dashboard" xml:space="preserve">
+    <value>Tableau du jour</value>
+  </data>
+  <data name="Nav.Expenses" xml:space="preserve">
+    <value>Dépenses, amendes, sinistres</value>
+  </data>
+  <data name="Nav.Fleet" xml:space="preserve">
+    <value>Flotte et échéances</value>
+  </data>
+  <data name="Nav.Group.Administration" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Nav.Group.Commercial" xml:space="preserve">
+    <value>Commercial</value>
+  </data>
+  <data name="Nav.Group.Finance" xml:space="preserve">
+    <value>Finance</value>
+  </data>
+  <data name="Nav.Group.Operations" xml:space="preserve">
+    <value>Exploitation</value>
+  </data>
+  <data name="Nav.Handovers" xml:space="preserve">
+    <value>Départs et retours</value>
+  </data>
+  <data name="Nav.Invoices" xml:space="preserve">
+    <value>Factures et avoirs</value>
+  </data>
+  <data name="Nav.Jobs" xml:space="preserve">
+    <value>Tâches de fond</value>
+  </data>
+  <data name="Nav.Label" xml:space="preserve">
+    <value>Menu du back office</value>
+  </data>
+  <data name="Nav.NewBooking" xml:space="preserve">
+    <value>Nouvelle réservation</value>
+  </data>
+  <data name="Nav.Payments" xml:space="preserve">
+    <value>Paiements et cautions</value>
+  </data>
+  <data name="Nav.Planning" xml:space="preserve">
+    <value>Planning</value>
+  </data>
+  <data name="Nav.Pricing" xml:space="preserve">
+    <value>Tarifs et saisons</value>
+  </data>
+  <data name="Nav.Reconciliation" xml:space="preserve">
+    <value>Rapprochements</value>
+  </data>
+  <data name="Nav.Reports" xml:space="preserve">
+    <value>Indicateurs</value>
+  </data>
+  <data name="Nav.Requests" xml:space="preserve">
+    <value>Demandes web</value>
+  </data>
+  <data name="Nav.Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="Nav.Users" xml:space="preserve">
+    <value>Utilisateurs et rôles</value>
+  </data>
+  <data name="Nav.WhatsApp" xml:space="preserve">
+    <value>Boîte WhatsApp</value>
+  </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Aller au contenu</value>
+  </data>
+  <data name="UserMenu.Account" xml:space="preserve">
+    <value>Mon compte</value>
+  </data>
+  <data name="UserMenu.ChangePassword" xml:space="preserve">
+    <value>Changer de mot de passe</value>
+  </data>
+  <data name="UserMenu.Label" xml:space="preserve">
+    <value>Mon compte</value>
+  </data>
+  <data name="UserMenu.Logout" xml:space="preserve">
+    <value>Se déconnecter</value>
+  </data>
+  <data name="UserMenu.TwoFactor" xml:space="preserve">
+    <value>Double authentification</value>
+  </data>
+</root>

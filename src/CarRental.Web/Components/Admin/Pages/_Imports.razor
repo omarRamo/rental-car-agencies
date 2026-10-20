@@ -1,0 +1,5 @@
+@* Back office pages: Interactive Server (chosen by App.razor from the /admin path), MudBlazor layout. Every page
+   requires an MFA session; each page also declares its permission with [HasPermission(...)]. Application services
+   are called through IOperationRunner (one DI scope per operation, never the long-lived circuit scope). *@
+@layout AdminLayout
+@attribute [Authorize(Policy = AuthorizationPolicies.AdminArea)]

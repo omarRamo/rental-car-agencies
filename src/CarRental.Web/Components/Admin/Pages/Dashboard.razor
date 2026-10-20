@@ -1,0 +1,12 @@
+@page "/admin"
+@inject IStringLocalizer<AdminResources> L
+
+<PageTitle>@L["Nav.Dashboard"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Dashboard.Title"]</MudText>
+<AuthorizeView>
+    <Authorized Context="auth">
+        <MudText Typo="Typo.body1">@L["Dashboard.Welcome", auth.User.GetDisplayName() ?? string.Empty]</MudText>
+    </Authorized>
+</AuthorizeView>
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">@L["Dashboard.ComingSoon"]</MudAlert>

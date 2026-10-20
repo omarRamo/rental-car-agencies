@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+@using CarRental.Web.Resources.Public
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<a class="skip-link" href="#main">@L["SkipToContent"]</a>
+
+<header class="site-header">
+    <div class="container site-header__inner">
+        <a class="site-brand" href="/@_culture">@Site.Value.AgencyName</a>
+        <nav class="site-nav" aria-label="@L["LanguageNav"]">
+            <LanguageSwitcher />
+        </nav>
+    </div>
+</header>
+
+<main id="main" class="site-main container" tabindex="-1">
+    @Body
+</main>
+
+<footer class="site-footer">
+    <div class="container site-footer__inner">
+        <p>© @DateTime.UtcNow.Year @Site.Value.AgencyName</p>
+        <p><a href="/account/login" data-enhance-nav="false">@L["StaffLogin"]</a></p>
+    </div>
+</footer>
+
+<WhatsAppButton />
+
+@code {
+    private string _culture = CultureCatalog.Default;
+
+    protected override void OnParametersSet() => _culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}

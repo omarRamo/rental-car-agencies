@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AccessDenied.Back" xml:space="preserve">
+    <value>Back to today's dashboard</value>
+  </data>
+  <data name="AccessDenied.Message" xml:space="preserve">
+    <value>You do not have permission to open this page.</value>
+  </data>
+  <data name="AccessDenied.Title" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="BackToLogin" xml:space="preserve">
+    <value>Back to sign-in</value>
+  </data>
+  <data name="ChangePassword.Confirm" xml:space="preserve">
+    <value>Confirm the new password</value>
+  </data>
+  <data name="ChangePassword.Current" xml:space="preserve">
+    <value>Current password</value>
+  </data>
+  <data name="ChangePassword.New" xml:space="preserve">
+    <value>New password</value>
+  </data>
+  <data name="ChangePassword.Submit" xml:space="preserve">
+    <value>Change password</value>
+  </data>
+  <data name="ChangePassword.Success" xml:space="preserve">
+    <value>Your password has been changed.</value>
+  </data>
+  <data name="ChangePassword.Title" xml:space="preserve">
+    <value>Change password</value>
+  </data>
+  <data name="Email.Confirm.Body" xml:space="preserve">
+    <value>To confirm your email address, open this link:</value>
+  </data>
+  <data name="Email.Confirm.Subject" xml:space="preserve">
+    <value>Confirm your email address</value>
+  </data>
+  <data name="Email.Greeting" xml:space="preserve">
+    <value>Hello {0},</value>
+  </data>
+  <data name="Email.Ignore" xml:space="preserve">
+    <value>If you did not ask for this, ignore this message.</value>
+  </data>
+  <data name="Email.Invitation.Action" xml:space="preserve">
+    <value>Choose my password</value>
+  </data>
+  <data name="Email.Invitation.Body" xml:space="preserve">
+    <value>An account has been created for you in the {0} staff area. Choose your password with this link (valid for 24 hours):</value>
+  </data>
+  <data name="Email.Invitation.Subject" xml:space="preserve">
+    <value>Invitation to the {0} staff area</value>
+  </data>
+  <data name="Email.Invitation.TwoFactor" xml:space="preserve">
+    <value>At your first sign-in, you will turn on two-factor authentication with an app on your phone.</value>
+  </data>
+  <data name="Email.Reset.Body" xml:space="preserve">
+    <value>To choose a new password, open this link:</value>
+  </data>
+  <data name="Email.Reset.Subject" xml:space="preserve">
+    <value>Password reset</value>
+  </data>
+  <data name="Email.ResetCode.Body" xml:space="preserve">
+    <value>Your reset code:</value>
+  </data>
+  <data name="Enable.Code" xml:space="preserve">
+    <value>Verification code</value>
+  </data>
+  <data name="Enable.Invalid" xml:space="preserve">
+    <value>Invalid verification code.</value>
+  </data>
+  <data name="Enable.Key" xml:space="preserve">
+    <value>Key:</value>
+  </data>
+  <data name="Enable.QrAlt" xml:space="preserve">
+    <value>Authenticator app setup QR code</value>
+  </data>
+  <data name="Enable.Required" xml:space="preserve">
+    <value>Turn on two-factor authentication before accessing the back office.</value>
+  </data>
+  <data name="Enable.Step1" xml:space="preserve">
+    <value>Install an authenticator app on your phone (Microsoft Authenticator, Google Authenticator…).</value>
+  </data>
+  <data name="Enable.Step2" xml:space="preserve">
+    <value>Scan the QR code or enter the key below (spaces and case do not matter).</value>
+  </data>
+  <data name="Enable.Step3" xml:space="preserve">
+    <value>Enter the 6-digit code shown by the app.</value>
+  </data>
+  <data name="Enable.Submit" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="Enable.Success" xml:space="preserve">
+    <value>Your authenticator app is verified.</value>
+  </data>
+  <data name="Enable.Title" xml:space="preserve">
+    <value>Set up your authenticator app</value>
+  </data>
+  <data name="Field.Email" xml:space="preserve">
+    <value>Email address</value>
+  </data>
+  <data name="Field.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Forgot.Intro" xml:space="preserve">
+    <value>Enter your email address: you will receive a link to choose a new password.</value>
+  </data>
+  <data name="Forgot.Submit" xml:space="preserve">
+    <value>Send the link</value>
+  </data>
+  <data name="Forgot.Title" xml:space="preserve">
+    <value>Forgot your password</value>
+  </data>
+  <data name="ForgotConfirmation.Message" xml:space="preserve">
+    <value>If an account matches this address, a reset link has just been sent.</value>
+  </data>
+  <data name="ForgotConfirmation.Title" xml:space="preserve">
+    <value>Check your inbox</value>
+  </data>
+  <data name="GenerateCodes.Submit" xml:space="preserve">
+    <value>Generate</value>
+  </data>
+  <data name="GenerateCodes.Title" xml:space="preserve">
+    <value>New recovery codes</value>
+  </data>
+  <data name="GenerateCodes.Warning" xml:space="preserve">
+    <value>Your previous codes will stop working.</value>
+  </data>
+  <data name="IdentityError.DefaultError" xml:space="preserve">
+    <value>An error occurred.</value>
+  </data>
+  <data name="IdentityError.DuplicateEmail" xml:space="preserve">
+    <value>This email address is already in use.</value>
+  </data>
+  <data name="IdentityError.DuplicateUserName" xml:space="preserve">
+    <value>This user name is already in use.</value>
+  </data>
+  <data name="IdentityError.InvalidEmail" xml:space="preserve">
+    <value>The email address is not valid.</value>
+  </data>
+  <data name="IdentityError.InvalidToken" xml:space="preserve">
+    <value>This link is invalid or has expired.</value>
+  </data>
+  <data name="IdentityError.PasswordMismatch" xml:space="preserve">
+    <value>Incorrect password.</value>
+  </data>
+  <data name="IdentityError.PasswordRequiresDigit" xml:space="preserve">
+    <value>The password must contain a digit.</value>
+  </data>
+  <data name="IdentityError.PasswordRequiresLower" xml:space="preserve">
+    <value>The password must contain a lower-case letter.</value>
+  </data>
+  <data name="IdentityError.PasswordRequiresNonAlphanumeric" xml:space="preserve">
+    <value>The password must contain a special character.</value>
+  </data>
+  <data name="IdentityError.PasswordRequiresUniqueChars" xml:space="preserve">
+    <value>The password must contain at least {0} different characters.</value>
+  </data>
+  <data name="IdentityError.PasswordRequiresUpper" xml:space="preserve">
+    <value>The password must contain an upper-case letter.</value>
+  </data>
+  <data name="IdentityError.PasswordTooShort" xml:space="preserve">
+    <value>The password must have at least {0} characters.</value>
+  </data>
+  <data name="IdentityError.RecoveryCodeRedemptionFailed" xml:space="preserve">
+    <value>Invalid recovery code.</value>
+  </data>
+  <data name="IdentityError.UserLockoutNotEnabled" xml:space="preserve">
+    <value>Lockout is not enabled for this account.</value>
+  </data>
+  <data name="InvalidReset.Message" xml:space="preserve">
+    <value>This reset link is invalid or has expired.</value>
+  </data>
+  <data name="InvalidReset.Title" xml:space="preserve">
+    <value>Invalid link</value>
+  </data>
+  <data name="InvalidUser.Message" xml:space="preserve">
+    <value>Your session matches no user. Please sign in again.</value>
+  </data>
+  <data name="InvalidUser.Title" xml:space="preserve">
+    <value>User not found</value>
+  </data>
+  <data name="LanguageNav" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Layout.Title" xml:space="preserve">
+    <value>Staff area</value>
+  </data>
+  <data name="Lockout.Message" xml:space="preserve">
+    <value>This account is locked. Try again later or contact the manager.</value>
+  </data>
+  <data name="Lockout.Title" xml:space="preserve">
+    <value>Account locked</value>
+  </data>
+  <data name="Login.BackOfficeHint" xml:space="preserve">
+    <value>Sign in with your password, then the code of your authenticator app.</value>
+  </data>
+  <data name="Login.ForgotPassword" xml:space="preserve">
+    <value>Forgot your password?</value>
+  </data>
+  <data name="Login.Heading" xml:space="preserve">
+    <value>Sign in to the staff area</value>
+  </data>
+  <data name="Login.Invalid" xml:space="preserve">
+    <value>Invalid email address or password.</value>
+  </data>
+  <data name="Login.Submit" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Login.Title" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="Manage.Nav.BackOffice" xml:space="preserve">
+    <value>Back office</value>
+  </data>
+  <data name="Manage.Nav.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Manage.Nav.Profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="Manage.Nav.TwoFactor" xml:space="preserve">
+    <value>Two-factor authentication</value>
+  </data>
+  <data name="Manage.Title" xml:space="preserve">
+    <value>My account</value>
+  </data>
+  <data name="Profile.DisplayName" xml:space="preserve">
+    <value>Display name</value>
+  </data>
+  <data name="Profile.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="Recovery.Code" xml:space="preserve">
+    <value>Recovery code</value>
+  </data>
+  <data name="Recovery.Intro" xml:space="preserve">
+    <value>Enter one of your recovery codes. Each code works only once.</value>
+  </data>
+  <data name="Recovery.Invalid" xml:space="preserve">
+    <value>Invalid recovery code.</value>
+  </data>
+  <data name="Recovery.Submit" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Recovery.Title" xml:space="preserve">
+    <value>Recovery code</value>
+  </data>
+  <data name="RecoveryCodes.Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="RecoveryCodes.Title" xml:space="preserve">
+    <value>Recovery codes</value>
+  </data>
+  <data name="RecoveryCodes.Warning" xml:space="preserve">
+    <value>Keep these codes in a safe place: they let you sign in if you lose your phone. They will not be shown again.</value>
+  </data>
+  <data name="Reset.Confirm" xml:space="preserve">
+    <value>Confirm the password</value>
+  </data>
+  <data name="Reset.InvitationIntro" xml:space="preserve">
+    <value>Welcome! Choose your password, then sign in and turn on two-factor authentication.</value>
+  </data>
+  <data name="Reset.Password" xml:space="preserve">
+    <value>New password</value>
+  </data>
+  <data name="Reset.Rules" xml:space="preserve">
+    <value>At least 12 characters, with a lower-case letter, an upper-case letter and a digit.</value>
+  </data>
+  <data name="Reset.Submit" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Reset.Title" xml:space="preserve">
+    <value>Choose a password</value>
+  </data>
+  <data name="ResetAuth.Done" xml:space="preserve">
+    <value>The key has been reset: set up your authenticator app again.</value>
+  </data>
+  <data name="ResetAuth.Submit" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ResetAuth.Title" xml:space="preserve">
+    <value>Reset the authenticator app</value>
+  </data>
+  <data name="ResetAuth.Warning" xml:space="preserve">
+    <value>Your current app will stop working: you will have to set it up again right away.</value>
+  </data>
+  <data name="ResetConfirmation.Login" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="ResetConfirmation.Message" xml:space="preserve">
+    <value>Your password has been saved.</value>
+  </data>
+  <data name="ResetConfirmation.Title" xml:space="preserve">
+    <value>Password saved</value>
+  </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Skip to content</value>
+  </data>
+  <data name="TwoFactor.Code" xml:space="preserve">
+    <value>Verification code</value>
+  </data>
+  <data name="TwoFactor.CodeFormat" xml:space="preserve">
+    <value>The code has 6 digits.</value>
+  </data>
+  <data name="TwoFactor.Intro" xml:space="preserve">
+    <value>Enter the 6-digit code shown by your authenticator app.</value>
+  </data>
+  <data name="TwoFactor.Invalid" xml:space="preserve">
+    <value>Invalid code.</value>
+  </data>
+  <data name="TwoFactor.Submit" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="TwoFactor.Title" xml:space="preserve">
+    <value>Two-factor authentication</value>
+  </data>
+  <data name="TwoFactor.UseRecoveryCode" xml:space="preserve">
+    <value>Lost access to your authenticator app? Use a recovery code.</value>
+  </data>
+  <data name="TwoFactorManage.Disabled" xml:space="preserve">
+    <value>Two-factor authentication is not on yet.</value>
+  </data>
+  <data name="TwoFactorManage.Enabled" xml:space="preserve">
+    <value>Two-factor authentication is on.</value>
+  </data>
+  <data name="TwoFactorManage.GenerateCodes" xml:space="preserve">
+    <value>Generate new recovery codes</value>
+  </data>
+  <data name="TwoFactorManage.Mandatory" xml:space="preserve">
+    <value>Two-factor authentication is required to access the back office.</value>
+  </data>
+  <data name="TwoFactorManage.RecoveryLeft" xml:space="preserve">
+    <value>Recovery codes left: {0}</value>
+  </data>
+  <data name="TwoFactorManage.Reset" xml:space="preserve">
+    <value>Reset the authenticator app</value>
+  </data>
+  <data name="TwoFactorManage.Setup" xml:space="preserve">
+    <value>Set up the authenticator app</value>
+  </data>
+  <data name="TwoFactorManage.Title" xml:space="preserve">
+    <value>Two-factor authentication</value>
+  </data>
+  <data name="Validation.PasswordsDiffer" xml:space="preserve">
+    <value>The two passwords do not match.</value>
+  </data>
+  <data name="Validation.Required" xml:space="preserve">
+    <value>This field is required.</value>
+  </data>
+</root>
