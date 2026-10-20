@@ -57,8 +57,10 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 ```text
 /src
   CarRental.Web             hôte ASP.NET Core : vitrine (rendu statique, /fr et /en),
-                            back office (/admin, interactif, MudBlazor), comptes (/account),
-                            santé (/health, /health/ready), tableau de bord Hangfire (/admin/jobs)
+                            back office (/admin, interactif, MudBlazor : utilisateurs et
+                            permissions, paramètres, journal d'audit, messages de fond),
+                            comptes (/account), santé (/health, /health/ready),
+                            tableau de bord Hangfire (/admin/jobs)
   CarRental.Application     cas d'usage par module, ports (IAppDbContext, IUnitOfWork...)
   CarRental.Domain          noyau commun (Result, Money en TND, Period, AcrissCode), agrégats
   CarRental.Infrastructure  EF Core / SQL Server, Identity, outbox et Hangfire, Blob, e-mail,

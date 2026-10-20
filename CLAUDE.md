@@ -21,7 +21,7 @@
   - `src/CarRental.Application/<Module>/Contracts/` : seule surface visible des autres modules (`I<Module>Queries`, DTO, identifiants) ;
   - `src/CarRental.Infrastructure/Persistence/Configurations/<Module>/` : configurations EF ; schéma SQL `<module>` (`Schemas`).
 - Noyau commun : `Domain/Common` (`Result`, `Error`, `Entity`, `AggregateRoot`, `Money`, `Period`, `AcrissCode`, `TunisTime`, `DocumentNumber`) et `Application/Common` (`IAppDbContext`, `IUnitOfWork`, `IAvailabilityLock`, `IDocumentNumberGenerator`, `IOutbox`, `IUserContext`, `IAuditTrail`, `IDocumentAccessLog`, `IFileStorage`, `IEmailQueue`, `IDataSeeder`, `IRecurringJob`).
-- Décisions : `docs/adr` (0011 à 0020 pour le socle). Infrastructure Azure : `infra/README.md`.
+- Décisions : `docs/adr` (0011 à 0020 pour le socle ; 0028 exploitation de l'outbox et requêtes fractionnées, 0029 paramètres, permissions par utilisateur et accessibilité du back office). Infrastructure Azure : `infra/README.md`.
 
 ## Invariants (ne jamais casser)
 - Pas de chevauchement d'affectation véhicule (tampon inclus) ; capacité par catégorie jamais dépassée.
