@@ -17,6 +17,7 @@
     <Project Path="tests/CarRental.Application.Tests/CarRental.Application.Tests.csproj" />
     <Project Path="tests/CarRental.Architecture.Tests/CarRental.Architecture.Tests.csproj" />
     <Project Path="tests/CarRental.Domain.Tests/CarRental.Domain.Tests.csproj" />
+    <Project Path="tests/CarRental.E2E.Tests/CarRental.E2E.Tests.csproj" />
     <Project Path="tests/CarRental.Integration.Tests/CarRental.Integration.Tests.csproj" />
   </Folder>
 </Solution>

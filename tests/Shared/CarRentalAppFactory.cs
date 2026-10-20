@@ -53,6 +53,9 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseEnvironment("Testing");
+
+        // Serves library assets (_content/MudBlazor/…) from the build output like in Development; published builds copy them to wwwroot.
+        builder.UseStaticWebAssets();
         builder.UseSetting("ConnectionStrings:Sql", SqlConnectionString);
         builder.UseSetting("Storage:ConnectionString", _containers.StorageConnectionString);
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
