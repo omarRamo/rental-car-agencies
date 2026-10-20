@@ -46,6 +46,11 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Coûts Azure | Prix réels en France Central (la source du prix Azure SQL date de 2016) ; offre gratuite Azure SQL toujours proposée pour la recette | Calculatrice Azure | 0 |
 | Purge des pièces d'identité | Procédure de destruction (art. 45 : PV d'huissier, expert INPDP) | Avocat | 2 |
 | Contrat et conditions générales | Franchise, caution, carburant, retard, sortie du territoire, amendes | Avocat | 1 |
+| Matricule fiscal | Format exact du matricule fiscal des sociétés (validé de façon souple pour l'instant) | Expert-comptable | 1 |
+| Pièce d'un conducteur tunisien | Un Tunisien doit présenter une CIN délivrée en Tunisie ; un passeport ne la remplace pas (lecture stricte de la spec, règle d'éligibilité actuelle) | Agence | 1 |
+| Permis international | Le pays de délivrance du permis international n'est pas comparé à celui du permis national | Agence | 1 |
+| Droit d'accès et liste noire | L'export des données d'une personne inclut-il son inscription sur la liste noire ? (option désactivée par défaut) | Avocat | 1 |
+| Historique après anonymisation | Les tables temporelles gardent les anciennes valeurs ; procédure T-SQL de purge de l'historique fournie dans l'ADR-0027, à exécuter par un administrateur | Avocat | 1 |
 
 ## Incohérences relevées dans la spec v1
 

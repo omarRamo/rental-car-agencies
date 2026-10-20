@@ -27,6 +27,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0019](0019-strategie-de-tests.md) | Stratégie de tests : xUnit v3 sur VSTest, conteneurs partagés, Playwright | Acceptée |
 | [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée |
 | [0025](0025-moteur-de-disponibilite-cache-et-ecriture-sous-verrou.md) | Moteur de disponibilité : balayage des bornes, cache mémoire invalidé par événement, écriture sous verrou | Acceptée |
+| [0026](0026-pieces-identite-stockage-et-acces-journalise.md) | Pièces d'identité : stockage privé, accès autorisé et journalisé, rétention désactivée | Acceptée |
+| [0027](0027-personnes-dedoublonnage-et-anonymisation.md) | Personnes : dédoublonnage par clés normalisées, export et anonymisation réservés au gérant | Acceptée |
 
 ## Modèle
 
