@@ -23,6 +23,11 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         builder.HasIndex(m => new { m.OccurredAtUtc, m.NextAttemptAtUtc })
             .HasFilter("[ProcessedAtUtc] IS NULL")
             .HasDatabaseName("IX_OutboxMessages_Pending");
+
+        // Processed messages by date, for the nightly purge (ADR-0028).
+        builder.HasIndex(m => m.ProcessedAtUtc)
+            .HasFilter("[ProcessedAtUtc] IS NOT NULL")
+            .HasDatabaseName("IX_OutboxMessages_Processed");
     }
 }
 
