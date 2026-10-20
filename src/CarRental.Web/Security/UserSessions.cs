@@ -3,6 +3,7 @@ using System.Security.Claims;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -46,26 +47,53 @@ internal sealed class UserSessionRegistry(TimeProvider timeProvider) : IUserSess
 /// <summary>
 /// The security stamp validation of the authentication cookie, run at once (instead of after the validation interval)
 /// for a session whose user's claims changed since the cookie was issued: the claims are rebuilt from the database and
-/// the cookie renewed, without signing in again; a changed stamp still ends the session.
+/// the cookie renewed, without signing in again. A changed stamp or a locked-out account ends the session.
 /// </summary>
-internal sealed class CarRentalSecurityStampValidator(
+internal sealed partial class CarRentalSecurityStampValidator(
     IOptions<SecurityStampValidatorOptions> options,
     SignInManager<ApplicationUser> signInManager,
     ILoggerFactory loggerFactory,
     UserSessionRegistry sessions)
     : SecurityStampValidator<ApplicationUser>(options, signInManager, loggerFactory)
 {
-    public override Task ValidateAsync(CookieValidatePrincipalContext context)
+    private readonly ILogger _logger = loggerFactory.CreateLogger<CarRentalSecurityStampValidator>();
+
+    public override async Task ValidateAsync(CookieValidatePrincipalContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (context.Principal?.GetUserId() is { } userId && sessions.HasChangedSince(userId, context.Properties.IssuedUtc))
+        if (context.Principal?.GetUserId() is not { } userId || !sessions.HasChangedSince(userId, context.Properties.IssuedUtc))
         {
-            // No issue date: the base validator validates now (stamp check, fresh principal, renewed cookie).
-            context.Properties.IssuedUtc = null;
+            await base.ValidateAsync(context);
+            return;
         }
 
-        return base.ValidateAsync(context);
+        // The periodic validation, now. The issue date of the ticket stays: the cookie handler only renews a ticket that
+        // has its issue and expiry dates, and the renewed cookie must carry the rebuilt principal.
+        var user = await VerifySecurityStamp(context.Principal);
+        if (user is not null)
+        {
+            await SecurityStampVerified(user, context);
+            return;
+        }
+
+        LogSessionEnded(userId);
+        context.RejectPrincipal();
+        await SignInManager.SignOutAsync();
+        await SignInManager.Context.SignOutAsync(IdentityConstants.TwoFactorRememberMeScheme);
     }
+
+    /// <summary>
+    /// The stamp of the session still matches and the account is not locked out: an automatic lockout (failed attempts)
+    /// leaves the stamp unchanged, yet ends the sessions at their next validation, as it ends the circuits.
+    /// </summary>
+    protected override async Task<ApplicationUser?> VerifySecurityStamp(ClaimsPrincipal? principal)
+    {
+        var user = await base.VerifySecurityStamp(principal);
+        return user is not null && await SignInManager.UserManager.IsLockedOutAsync(user) ? null : user;
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Session of user {UserId} ended at its revalidation (stamp changed or account locked).")]
+    private partial void LogSessionEnded(Guid userId);
 }
 
 /// <summary>Claims of a session that must survive the refresh of its principal.</summary>

@@ -4,6 +4,7 @@ using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
 using CarRental.Integration.Tests.Support;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Identity;
@@ -35,6 +36,44 @@ public sealed class SessionRefreshTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task A_refresh_renews_the_session_cookie_with_the_rebuilt_principal()
+    {
+        var (userId, email) = await TestStaff.CreateAsync(host, Roles.Agent);
+        var cookies = new CookieContainer();
+        using var client = host.Factory.CreateDefaultClient(new Uri("http://localhost"), new CookieContainerHandler(cookies));
+        await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
+        var issued = AuthenticationCookies(cookies);
+
+        host.Factory.Services.GetRequiredService<IUserSessions>().RefreshClaims(userId);
+        (await client.GetAsync(Admin, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Without a renewed cookie, the fresh claims would only live for that request.
+        AuthenticationCookies(cookies).ShouldNotBe(issued);
+        (await client.GetAsync(Admin, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task A_locked_out_account_ends_its_sessions_at_the_next_validation()
+    {
+        var (userId, email) = await TestStaff.CreateAsync(host, Roles.Agent);
+        using var client = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
+        await using (var scope = host.CreateScope())
+        {
+            // As after repeated failed attempts: locked out, security stamp unchanged.
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = (await users.FindByIdAsync(userId.ToString()))!;
+            (await users.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(15))).Succeeded.ShouldBeTrue();
+        }
+
+        host.Factory.Services.GetRequiredService<IUserSessions>().RefreshClaims(userId);
+        var response = await client.GetAsync(Admin, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        HttpSignIn.PathAndQuery(response.Headers.Location!).ShouldContain("/account/login");
+    }
+
+    [Fact]
     public async Task A_refresh_after_a_security_stamp_change_ends_the_session()
     {
         var (userId, email) = await TestStaff.CreateAsync(host, Roles.Agent);
@@ -52,4 +91,8 @@ public sealed class SessionRefreshTests(IntegrationHost host)
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(response.Headers.Location!).ShouldContain("/account/login");
     }
+
+    /// <summary>The value of the authentication cookie (all its chunks).</summary>
+    private static string AuthenticationCookies(CookieContainer cookies) =>
+        string.Join('|', cookies.GetAllCookies().Where(c => c.Name.StartsWith("carrental.auth", StringComparison.Ordinal)).Select(c => $"{c.Name}={c.Value}"));
 }

@@ -1,3 +1,4 @@
+using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -10,11 +11,13 @@ namespace CarRental.Web.Components.Account;
 /// <summary>
 /// Revalidates the user of an interactive circuit every two minutes: a changed security stamp (password change, lock by
 /// the manager, role change), a lockout or a revoked permission ends the authentication state of the circuit; the page
-/// then reloads over HTTP (<c>NotAuthorizedRedirect</c>), where the cookie is validated with the current claims.
+/// then reloads over HTTP (<c>NotAuthorizedRedirect</c>), where the cookie is validated at once with the current state
+/// of the account: fresh claims, or the login page.
 /// </summary>
 internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     ILoggerFactory loggerFactory,
     IServiceScopeFactory scopeFactory,
+    IUserSessions sessions,
     IOptions<IdentityOptions> options)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
@@ -26,10 +29,17 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     {
         ArgumentNullException.ThrowIfNull(authenticationState);
         await using var scope = scopeFactory.CreateAsyncScope();
-        return await SessionClaims.IsStillValidAsync(
+        var valid = await SessionClaims.IsStillValidAsync(
             scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
             scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
             authenticationState.User,
             options.Value);
+        if (!valid && authenticationState.User.GetUserId() is { } userId)
+        {
+            // The reload must not wait for the validation interval of the cookie.
+            sessions.RefreshClaims(userId);
+        }
+
+        return valid;
     }
 }

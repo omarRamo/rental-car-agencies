@@ -24,7 +24,7 @@
                         {
                             <MudCheckBox T="bool" Value="true" Disabled="true" Dense="true" Label="@L["Users.Permissions.FromRole", label]" />
                         }
-                        else if (!_selected.Contains(name) && Included.Contains(name))
+                        else if (!_selected.Contains(name) && _included.Contains(name))
                         {
                             <MudCheckBox T="bool" Value="true" Disabled="true" Dense="true" Label="@L["Users.Permissions.Included", label]" />
                         }
@@ -51,6 +51,7 @@
 
 @code {
     private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private IReadOnlySet<string> _included = new HashSet<string>(StringComparer.Ordinal);
     private UserPermissions? _permissions;
     private string? _error;
     private bool _busy;
@@ -60,10 +61,6 @@
 
     [Parameter, EditorRequired]
     public Guid UserId { get; set; }
-
-    /// <summary>What the role presets and the ticked permissions include (shown as included, not stored).</summary>
-    private IReadOnlySet<string> Included =>
-        Permissions.WithImplied(_permissions is null ? _selected : _permissions.RolePermissions.Concat(_selected));
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,6 +74,7 @@
 
         _permissions = result.Value;
         _selected.UnionWith(result.Value.ExtraPermissions);
+        UpdateIncluded();
     }
 
     private void Toggle(string permission, bool on)
@@ -89,7 +87,13 @@
         {
             _selected.Remove(permission);
         }
+
+        UpdateIncluded();
     }
+
+    /// <summary>What the role presets and the ticked permissions include (shown as included, not stored).</summary>
+    private void UpdateIncluded() =>
+        _included = Permissions.WithImplied(_permissions is null ? _selected : _permissions.RolePermissions.Concat(_selected));
 
     private async Task SaveAsync()
     {
