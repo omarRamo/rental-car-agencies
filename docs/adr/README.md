@@ -26,6 +26,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0018](0018-journal-audit-ajout-seul.md) | Journal d'audit applicatif en ajout seul, complété par les tables temporelles | Acceptée |
 | [0019](0019-strategie-de-tests.md) | Stratégie de tests : xUnit v3 sur VSTest, conteneurs partagés, Playwright | Acceptée |
 | [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée |
+| [0023](0023-plans-tarifaires-versionnes.md) | Plans tarifaires versionnés : brouillon, publication, archives | Acceptée |
+| [0024](0024-moteur-de-prix-pur-et-son-alimentation.md) | Moteur de prix pur, alimenté par le service de tarification | Acceptée |
 | [0025](0025-moteur-de-disponibilite-cache-et-ecriture-sous-verrou.md) | Moteur de disponibilité : balayage des bornes, cache mémoire invalidé par événement, écriture sous verrou | Acceptée |
 | [0026](0026-pieces-identite-stockage-et-acces-journalise.md) | Pièces d'identité : stockage privé, accès autorisé et journalisé, rétention désactivée | Acceptée |
 | [0027](0027-personnes-dedoublonnage-et-anonymisation.md) | Personnes : dédoublonnage par clés normalisées, export et anonymisation réservés au gérant | Acceptée |
