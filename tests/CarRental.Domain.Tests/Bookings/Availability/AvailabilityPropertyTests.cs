@@ -136,16 +136,19 @@ public sealed class AvailabilityPropertyTests
             });
             var conflictsReported = scenario.Bookings.Where(b => b.Vehicle is not null).All(fixedBooking =>
             {
-                var reported = plan.Conflicts.Where(c => c.BookingId == BookingId(fixedBooking.Number)).ToList();
+                var reported = plan.Conflicts.Where(c => c.BookingId == BookingId(fixedBooking.Number)).Select(c => c.Reason).ToList();
                 if (fixedBooking.Vehicle >= scenario.Fleet.Windows.Count)
                 {
-                    return reported.Count == 1 && reported[0].Reason == AvailabilityErrors.VehicleNotInCategory;
+                    return reported.SequenceEqual([AvailabilityErrors.VehicleNotInCategory]);
                 }
 
                 var overlapsAnother = scenario.Bookings.Any(other => other.Number != fixedBooking.Number
                     && other.Vehicle == fixedBooking.Vehicle
                     && other.Span.Overlaps(fixedBooking.Span));
-                return overlapsAnother || reported.Count == 0;
+                var rentable = scenario.Fleet.Covers(fixedBooking.Vehicle!.Value, fixedBooking.Span);
+                return overlapsAnother
+                    ? reported.Count <= 1 && reported.All(r => r == AvailabilityErrors.VehicleOverlap || r == AvailabilityErrors.VehicleUnavailable)
+                    : rentable ? reported.Count == 0 : reported.SequenceEqual([AvailabilityErrors.VehicleUnavailable]);
             });
             var overlappingPairsReported = scenario.Bookings.Where(b => b.Vehicle is { } v && v < scenario.Fleet.Windows.Count)
                 .SelectMany(a => scenario.Bookings.Where(b => b.Number > a.Number && b.Vehicle == a.Vehicle && b.Span.Overlaps(a.Span)), (a, b) => (a, b))
@@ -169,7 +172,7 @@ public sealed class AvailabilityPropertyTests
         });
 
     [Property(MaxTest = 2000)]
-    public Property An_in_progress_rental_covers_the_current_instant_and_its_planned_return_plus_buffer() =>
+    public Property An_in_progress_rental_ends_at_its_return_or_now_whichever_is_later_plus_buffer() =>
         Prop.ForAll(
             Span(0, 100, 1, 100).ToArbitrary(),
             Gen.Choose(0, 300).ToArbitrary(),
@@ -180,10 +183,12 @@ public sealed class AvailabilityPropertyTests
                 var basis = new OccupancyBasis(At(now), TimeSpan.FromHours(buffer));
                 var period = basis.PeriodOf(new BookingOccupancy(BookingId(1), OccupancyKind.InProgress, rental.ToPeriod(), At(pickup)))!;
 
+                // End: max(return, now) + buffer, still including now when the buffer is zero.
+                var end = At(Math.Max(rental.To, now) + buffer);
+                var expectedEnd = end > At(now) ? end : At(now).AddTicks(1);
                 return period.Start == At(pickup)
                     && period.Contains(At(now))
-                    && period.End >= At(rental.To + buffer)
-                    && period.End >= At(now + buffer);
+                    && period.End == expectedEnd;
             });
 
     // ---------------------------------------------------------------- replay and reference

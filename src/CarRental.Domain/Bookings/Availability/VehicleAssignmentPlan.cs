@@ -21,7 +21,10 @@ public sealed class VehicleAssignmentPlan
     /// <summary>Bookings left without a vehicle, with the reason.</summary>
     public IReadOnlyList<UnassignableBooking> Unassignable { get; }
 
-    /// <summary>Fixed assignments that break the rules (overlap on their vehicle, vehicle outside the category).</summary>
+    /// <summary>
+    /// Fixed assignments that break a rule, one entry per booking: overlap on their vehicle, vehicle outside the
+    /// category, or vehicle not rentable over the booking.
+    /// </summary>
     public IReadOnlyList<AssignmentConflict> Conflicts { get; }
 
     /// <summary>Every booking has a valid vehicle.</summary>
@@ -38,7 +41,7 @@ public sealed record VehicleAssignmentProposal(Guid BookingId, Guid VehicleId);
 public sealed record UnassignableBooking(Guid BookingId, Error Reason);
 
 /// <summary>
-/// A fixed assignment that breaks the rules: <see cref="AvailabilityErrors.VehicleOverlap"/> or
-/// <see cref="AvailabilityErrors.VehicleNotInCategory"/>.
+/// A fixed assignment that breaks a rule: <see cref="AvailabilityErrors.VehicleOverlap"/>,
+/// <see cref="AvailabilityErrors.VehicleNotInCategory"/> or <see cref="AvailabilityErrors.VehicleUnavailable"/>.
 /// </summary>
 public sealed record AssignmentConflict(Guid BookingId, Guid VehicleId, Error Reason);

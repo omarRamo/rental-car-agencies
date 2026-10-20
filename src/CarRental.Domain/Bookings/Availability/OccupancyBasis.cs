@@ -57,6 +57,23 @@ public sealed record OccupancyBasis
     public OccupancyInterval? IntervalOf(BookingOccupancy booking) =>
         PeriodOf(booking) is { } period ? new OccupancyInterval(booking.BookingId, period, booking.AssignedVehicleId) : null;
 
+    /// <summary>
+    /// When the vehicle of the booking is (expected to be) back, buffer excluded: the instant until which its
+    /// mandatory documents must stay valid (invariant 3). The planned return; for a rental in progress not before now
+    /// (an overdue vehicle is still on the road); the actual return once returned.
+    /// </summary>
+    public DateTimeOffset VehicleBackAt(BookingOccupancy booking)
+    {
+        ArgumentNullException.ThrowIfNull(booking);
+        return booking.Kind switch
+        {
+            OccupancyKind.InProgress => booking.Rental.End > Now ? booking.Rental.End : Now,
+            OccupancyKind.Returned => booking.ActualReturnAt
+                ?? throw new ArgumentException("A returned booking needs its actual return instant.", nameof(booking)),
+            _ => booking.Rental.End,
+        };
+    }
+
     private Period InProgressPeriod(BookingOccupancy booking)
     {
         var start = booking.ActualPickupAt ?? booking.Rental.Start;

@@ -114,6 +114,19 @@ public sealed class OccupancyBasisTests
     }
 
     [Fact]
+    public void The_vehicle_is_back_at_the_planned_return_or_not_before_now_when_overdue()
+    {
+        // Compliance of the vehicle documents is checked until that instant (invariant 3).
+        BasisAt(-5).VehicleBackAt(Booking(OccupancyKind.Planned)).ShouldBe(At(48));
+        BasisAt(-5).VehicleBackAt(Booking(OccupancyKind.None)).ShouldBe(At(48));
+        BasisAt(10).VehicleBackAt(Booking(OccupancyKind.InProgress, actualPickup: 0)).ShouldBe(At(48));
+        BasisAt(53).VehicleBackAt(Booking(OccupancyKind.InProgress, actualPickup: 0)).ShouldBe(At(53));
+        BasisAt(60).VehicleBackAt(Booking(OccupancyKind.Returned, actualPickup: 0, actualReturn: 51)).ShouldBe(At(51));
+        Should.Throw<ArgumentException>(() => BasisAt(60).VehicleBackAt(Booking(OccupancyKind.Returned, actualPickup: 0)));
+        Should.Throw<ArgumentNullException>(() => BasisAt(0).VehicleBackAt(null!));
+    }
+
+    [Fact]
     public void A_returned_booking_needs_its_actual_return()
     {
         Should.Throw<ArgumentException>(() => BasisAt(60).PeriodOf(Booking(OccupancyKind.Returned, actualPickup: 0)));

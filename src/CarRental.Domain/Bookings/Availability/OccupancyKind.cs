@@ -4,9 +4,17 @@ namespace CarRental.Domain.Bookings.Availability;
 /// How a booking occupies the capacity of its category, independently of the booking status machine
 /// (docs/conception/phase-1-exploitation.md §2 and §3). The Bookings module maps each status onto one kind.
 /// </summary>
+/// <remarks>
+/// <c>Closed</c> maps to <see cref="Returned"/> (its actual return is known): a booking closed right after its return
+/// keeps its preparation buffer, and its interval then lies in the past, where it no longer counts. Mapping it to
+/// <see cref="None"/>, as the §2 table suggests, would free the vehicle before it is prepared (ADR-0025).
+/// </remarks>
 public enum OccupancyKind
 {
-    /// <summary>No occupancy: <c>Draft</c> and the terminal statuses (<c>Refused</c>, <c>Expired</c>, <c>Cancelled</c>, <c>NoShow</c>).</summary>
+    /// <summary>
+    /// No occupancy: <c>Draft</c> and the terminal statuses without rental (<c>Refused</c>, <c>Expired</c>,
+    /// <c>Cancelled</c>, <c>NoShow</c>).
+    /// </summary>
     None = 0,
 
     /// <summary>
@@ -21,6 +29,8 @@ public enum OccupancyKind
     /// </summary>
     InProgress = 2,
 
-    /// <summary>Vehicle back and being prepared (<c>Returned</c>): <c>[actual or planned pick-up, ActualReturnAt + buffer)</c>.</summary>
+    /// <summary>
+    /// Vehicle back and being prepared (<c>Returned</c>, <c>Closed</c>): <c>[actual or planned pick-up, ActualReturnAt + buffer)</c>.
+    /// </summary>
     Returned = 3,
 }

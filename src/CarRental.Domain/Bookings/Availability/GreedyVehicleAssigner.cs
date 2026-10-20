@@ -16,10 +16,16 @@ public static class GreedyVehicleAssigner
     /// whole interval and without an overlapping interval (buffer included), the vehicle freed the earliest â€” the end of
     /// its last interval before the booking, or the opening of its window â€” ties broken by plate number.
     /// </summary>
-    /// <param name="vehicles">Vehicles of the category with their rentable windows.</param>
+    /// <param name="vehicles">Vehicles of the category with their rentable windows, loaded over a range that covers the
+    /// intervals (Fleet clips windows to the requested range): otherwise cut the intervals with <paramref name="notBefore"/>.</param>
     /// <param name="intervals">Occupancy intervals of the category, one per booking.</param>
     /// <param name="notBefore">When set, the intervals are cut at this instant and those ending before it are ignored
     /// (the past is settled, e.g. after a vehicle swap during a rental).</param>
+    /// <remarks>
+    /// A fixed assignment is reported when it overlaps an earlier fixed one on its vehicle, when the vehicle is not of
+    /// the category, or when the vehicle cannot be rented over the whole booking (maintenance, sale, documents). A
+    /// booking whose document check the manager waived therefore shows as unavailable: the caller knows the waivers.
+    /// </remarks>
     public static VehicleAssignmentPlan Assign(
         IEnumerable<RentableVehicle> vehicles,
         IEnumerable<OccupancyInterval> intervals,
@@ -31,6 +37,7 @@ public static class GreedyVehicleAssigner
             .OrderBy(vehicle => vehicle.PlateNumber, StringComparer.Ordinal)
             .ThenBy(vehicle => vehicle.Id)
             .ToList();
+        var byId = fleet.ToDictionary(vehicle => vehicle.Id);
         var schedules = fleet.ToDictionary(vehicle => vehicle.Id, _ => new List<Period>());
         var bookings = Prepare(intervals, notBefore);
 
@@ -48,7 +55,12 @@ public static class GreedyVehicleAssigner
             {
                 conflicts.Add(new AssignmentConflict(booking.BookingId, vehicleId, AvailabilityErrors.VehicleOverlap));
             }
+            else if (!byId[vehicleId].IsRentableFor(booking.Period))
+            {
+                conflicts.Add(new AssignmentConflict(booking.BookingId, vehicleId, AvailabilityErrors.VehicleUnavailable));
+            }
 
+            // A fixed booking keeps its vehicle busy even when it breaks a rule: proposals never overlap it.
             schedule.Add(booking.Period);
         }
 

@@ -128,6 +128,28 @@ public sealed class GreedyVehicleAssignerTests
     }
 
     [Fact]
+    public void A_fixed_assignment_on_a_vehicle_no_longer_rentable_is_reported()
+    {
+        // Vehicle 1 got a maintenance block [8 h, 9 h) after booking 1 was assigned to it.
+        var plan = GreedyVehicleAssigner.Assign(
+            [Vehicle(1, P(-100, 8), P(9, 100)), AlwaysRentable(2)],
+            [Booking(1, P(0, 20), vehicle: 1), Booking(2, P(0, 20), vehicle: 2)]);
+
+        plan.Conflicts.ShouldBe([new AssignmentConflict(BookingId(1), VehicleId(1), AvailabilityErrors.VehicleUnavailable)]);
+        plan.IsComplete.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_fixed_assignment_reports_a_single_conflict_overlap_first()
+    {
+        var plan = GreedyVehicleAssigner.Assign(
+            [Vehicle(1, P(-100, 8), P(9, 100))],
+            [Booking(1, P(0, 5), vehicle: 1), Booking(2, P(4, 20), vehicle: 1)]);
+
+        plan.Conflicts.ShouldBe([new AssignmentConflict(BookingId(2), VehicleId(1), AvailabilityErrors.VehicleOverlap)]);
+    }
+
+    [Fact]
     public void Proposals_never_overlap_a_conflicting_fixed_assignment()
     {
         var plan = GreedyVehicleAssigner.Assign(
