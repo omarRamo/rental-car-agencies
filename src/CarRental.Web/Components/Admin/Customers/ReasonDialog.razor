@@ -1,0 +1,47 @@
+@* Asks for the mandatory reason of a decision (blacklist, lift, anonymization); returns the text. *@
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <MudAlert Severity="@(Danger ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined" Class="mb-3">@Message</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@Label" Lines="3" MaxLength="MaxLength" Counter="MaxLength"
+                      Required="true" RequiredError="@Shared["Validation.Required"]" HelperText="@HelperText" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="@(Danger ? Color.Error : Color.Primary)" OnClick="Submit"
+                   Disabled="@(string.IsNullOrWhiteSpace(_reason))">@SubmitText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    [Parameter]
+    public bool Danger { get; set; }
+
+    [Parameter]
+    public int MaxLength { get; set; } = 500;
+
+    private void Submit() => Dialog.Close(DialogResult.Ok(_reason!.Trim()));
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,104 @@
+@* Secure viewer of an identity document image (ADR-0026): nothing is loaded before the user states the purpose;
+   each display (streamed by the authorized endpoint) or 5-minute link is written to the document access log. *@
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Application.Customers.Documents
+@using CarRental.Web.Endpoints
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">@L["Viewer.Notice"]</MudAlert>
+        <MudSelect T="string" @bind-Value="_purpose" Label="@L["Viewer.Purpose"]" Disabled="_shown">
+            @foreach (var purpose in DocumentAccessPurposes.All)
+            {
+                <MudSelectItem T="string" Value="purpose">@L[$"Viewer.Purpose.{purpose}"]</MudSelectItem>
+            }
+        </MudSelect>
+
+        @if (_shown && !IsPdf)
+        {
+            <figure class="ma-0 mt-4">
+                <img src="@_imageUrl" alt="@Title" style="display:block; max-inline-size:100%; max-block-size:70vh; margin-inline:auto;" />
+            </figure>
+        }
+
+        @if (_link is not null)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-4">
+                <MudLink Href="@_link.Uri.ToString()" Target="_blank" rel="noopener noreferrer">@L["Viewer.OpenLink"]</MudLink>
+                <MudText Typo="Typo.caption" Class="d-block">@L["Viewer.LinkExpires", CustomerLabels.Instant(_link.ExpiresAtUtc)]</MudText>
+            </MudAlert>
+        }
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@Shared["Close"]</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew" OnClick="CreateLinkAsync" Disabled="_busy">
+            @L["Viewer.TemporaryLink"]
+        </MudButton>
+        @if (!IsPdf)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Show" Disabled="_shown">
+                @L["Viewer.Show"]
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _purpose = DocumentAccessPurposes.CustomerFile;
+    private bool _shown;
+    private bool _busy;
+    private string? _imageUrl;
+    private TemporaryDocumentLink? _link;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DocumentId { get; set; }
+
+    [Parameter, EditorRequired]
+    public DocumentImageSideInfo Side { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    [Parameter]
+    public bool IsPdf { get; set; }
+
+    /// <summary>Displays the image: the browser fetches it from the authorized endpoint, which logs the access.</summary>
+    private void Show()
+    {
+        _imageUrl = $"{CustomerEndpoints.ImageUrl(DocumentId, Side, _purpose)}&v={Guid.CreateVersion7():N}";
+        _shown = true;
+    }
+
+    /// <summary>A 5-minute read link (PDF, or to zoom in another tab); the access is logged before the link is given.</summary>
+    private async Task CreateLinkAsync()
+    {
+        _busy = true;
+        _error = null;
+        var purpose = _purpose;
+        var link = await Runner.RunAsync<DocumentImageAccess, Result<TemporaryDocumentLink>>(
+            (access, ct) => access.CreateTemporaryLinkAsync(DocumentId, Side, purpose, ct));
+        _busy = false;
+        if (link.IsSuccess)
+        {
+            _link = link.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, link.Error);
+        }
+    }
+
+    private void Close() => Dialog.Close();
+}

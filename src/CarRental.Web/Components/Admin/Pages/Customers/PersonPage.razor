@@ -1,0 +1,461 @@
+@page "/admin/customers/persons/{PersonId:guid}"
+@attribute [HasPermission(Permissions.CustomersRead)]
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Application.Customers.Privacy
+@using CarRental.Web.Components.Admin.Customers
+@using CarRental.Web.Endpoints
+@using CarRental.Web.Resources.Admin.Customers
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<HeadContent>
+    @* Keyboard focus of the hidden file inputs shown on their visible labels (camera and file buttons). *@
+    <style>
+        .document-upload input[type=file]:focus-visible + label { outline: 2px solid #0b57d0; outline-offset: 2px; }
+    </style>
+</HeadContent>
+
+<MudLink Href="/admin/customers" Class="d-inline-flex align-center mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="me-1" />@L["Person.Back"]
+</MudLink>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_file is null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Person.NotFound.Title"]</MudText>
+    <MudAlert Severity="Severity.Warning">@_error</MudAlert>
+}
+else
+{
+    var file = _file;
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+        <div>
+            <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
+            <MudStack Row="true" Spacing="1" Class="mt-1" Wrap="Wrap.Wrap">
+                @if (file.IsBlacklisted)
+                {
+                    <MudChip T="string" Color="Color.Error" Icon="@Icons.Material.Filled.Block" Size="Size.Small">@L["Blacklist.Badge"]</MudChip>
+                }
+                @if (file.IsAnonymized)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small">@L["Person.Anonymized.Badge"]</MudChip>
+                }
+            </MudStack>
+        </div>
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            @if (file.Permissions.CanManage)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync">@L["Person.Edit"]</MudButton>
+            }
+            @if (file.Permissions.CanManagePrivacy)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" Href="@CustomerEndpoints.ExportUrl(file.Id)" Target="_blank">
+                    @L["Privacy.Export"]
+                </MudButton>
+                @if (!file.IsAnonymized)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.PersonOff" OnClick="AnonymizeAsync">@L["Privacy.Anonymize"]</MudButton>
+                }
+            }
+        </MudStack>
+    </MudStack>
+
+    @if (file.IsAnonymized)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">@L["Person.Anonymized.Message", CustomerLabels.Instant(file.AnonymizedAtUtc)]</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 h-100" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Person.Identity"]</MudText>
+                <dl class="ma-0">
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Nationality"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-2">@CustomerLabels.Country(file.Nationality)</MudText>
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.BirthDate"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-2">
+                        @if (file.BirthDate is { } birthDate)
+                        {
+                            @L["Person.BirthDateAndAge", CustomerLabels.Date(birthDate), CustomerLabels.Age(birthDate, TunisTime.Today(Clock))]
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </MudText>
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Phone"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-2">
+                        @if (file.Phone is { } phone)
+                        {
+                            <MudLink Href="@($"tel:{phone}")">@CustomerLabels.Phone(phone)</MudLink>
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </MudText>
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Email"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-2">
+                        @if (file.Email is { } email)
+                        {
+                            <MudLink Href="@($"mailto:{email}")">@email</MudLink>
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </MudText>
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Address"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-2">@(file.Address is { } address ? FormatAddress(address) : "—")</MudText>
+                    <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.CreatedAt"]</MudText>
+                    <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0">@CustomerLabels.Instant(file.CreatedAtUtc)</MudText>
+                </dl>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            @if (!file.IsAnonymized)
+            {
+                <EligibilityPanel PersonId="file.Id" />
+            }
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+                <MudText Typo="Typo.h6" HtmlTag="h2">@L["Documents.Title"]</MudText>
+                @if (file.Permissions.CanManage)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCard" OnClick="AddDocumentAsync">@L["Documents.Add"]</MudButton>
+                }
+            </MudStack>
+            @if (!file.CurrentDocuments.Any())
+            {
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">@L["Documents.Empty"]</MudAlert>
+            }
+            <MudGrid Spacing="2">
+                @foreach (var document in file.CurrentDocuments)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="1" Class="h-100" data-document-type="@document.Type.ToString()">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">@CustomerLabels.DocumentType(L, document.Type)</MudText>
+                                    <MudText Typo="Typo.body2">@L["Document.NumberAndCountry", document.Number, CustomerLabels.Country(document.IssuingCountry)]</MudText>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    @if (document.IsVerified)
+                                    {
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Verified">@L["Document.Verified"]</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.HelpOutline">@L["Document.NotVerified"]</MudChip>
+                                    }
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudText Typo="Typo.body2">@L["Document.IssuedOn", CustomerLabels.Date(document.IssuedOn)]</MudText>
+                                <MudText Typo="Typo.body2">
+                                    @(document.ExpiresOn is null ? L["Document.NoExpiry"] : L["Document.ExpiresOn", CustomerLabels.Date(document.ExpiresOn)])
+                                    @if (!document.IsValidUntil(TunisTime.Today(Clock)))
+                                    {
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ms-2">@L["Document.Expired"]</MudChip>
+                                    }
+                                </MudText>
+                                @if (document.Type == IdentityDocumentTypeInfo.DrivingLicense)
+                                {
+                                    <MudText Typo="Typo.body2">@(document.IsLatinScript ? L["Document.LatinScript"] : L["Document.NonLatinScript"])</MudText>
+                                }
+                                @if (document.IsVerified)
+                                {
+                                    <MudText Typo="Typo.caption" Class="d-block">@L["Document.VerifiedBy", document.VerifiedBy ?? "—", CustomerLabels.Instant(document.VerifiedAtUtc)]</MudText>
+                                }
+
+                                @foreach (var side in new[] { DocumentImageSideInfo.Front, DocumentImageSideInfo.Back })
+                                {
+                                    var image = document.ImageOf(side);
+                                    <MudDivider Class="my-2" />
+                                    <div class="d-flex flex-wrap align-center gap-2">
+                                        <MudText Typo="Typo.body2" Class="me-2"><strong>@L[$"Side.{side}"]</strong> :
+                                            @(image is null ? L["Image.None"] : L["Image.Stored", image.IsPdf ? "PDF" : image.ContentType == "image/png" ? "PNG" : "JPEG", CustomerLabels.FileSize(L, image.Length), CustomerLabels.Instant(image.UploadedAtUtc)])
+                                        </MudText>
+                                        @if (image is not null && file.Permissions.CanViewDocumentImages)
+                                        {
+                                            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility"
+                                                       OnClick="@(() => ViewAsync(document, side))">@L[$"Image.View.{side}"]</MudButton>
+                                        }
+                                        @if (file.Permissions.CanManage)
+                                        {
+                                            <DocumentImageUpload DocumentId="document.Id" Side="side" OnUploaded="ReloadAsync" />
+                                        }
+                                    </div>
+                                }
+                            </MudCardContent>
+                            @if (file.Permissions.CanManage)
+                            {
+                                <MudCardActions Class="d-flex flex-wrap gap-2">
+                                    @if (!document.IsVerified)
+                                    {
+                                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Verified"
+                                                   OnClick="@(() => VerifyAsync(document))">@L["Document.Verify"]</MudButton>
+                                    }
+                                    @if (file.Permissions.CanViewDocumentImages)
+                                    {
+                                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => CorrectDocumentAsync(document))">@L["Document.Correct"]</MudButton>
+                                    }
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="@(() => RemoveDocumentAsync(document))">@L["Document.Remove"]</MudButton>
+                                </MudCardActions>
+                            }
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (file.SupersededDocuments.Any())
+            {
+                <MudExpansionPanels Class="mt-3" Elevation="0">
+                    <MudExpansionPanel Text="@L["Documents.Superseded", file.SupersededDocuments.Count()]">
+                        @foreach (var document in file.SupersededDocuments)
+                        {
+                            <div class="d-flex flex-wrap align-center gap-2 py-1">
+                                <MudText Typo="Typo.body2">
+                                    @L["Documents.SupersededItem", CustomerLabels.DocumentType(L, document.Type), document.Number, CustomerLabels.Instant(document.SupersededAtUtc)]
+                                </MudText>
+                                @foreach (var side in new[] { DocumentImageSideInfo.Front, DocumentImageSideInfo.Back })
+                                {
+                                    if (document.ImageOf(side) is not null && file.Permissions.CanViewDocumentImages)
+                                    {
+                                        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ViewAsync(document, side))">@L[$"Image.View.{side}"]</MudButton>
+                                    }
+                                }
+                            </div>
+                        }
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+        </MudItem>
+
+        @if (!file.IsAnonymized)
+        {
+            <MudItem xs="12" md="6">
+                <ConsentsPanel PersonId="file.Id" Consents="file.Consents" CanManage="file.Permissions.CanManage" OnChanged="ReloadAsync" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4 h-100" Elevation="1">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Blacklist.Title"]</MudText>
+                    <MudText Typo="Typo.caption" Class="d-block mb-2">@L["Blacklist.Internal"]</MudText>
+                    @if (file.Blacklist.FirstOrDefault(entry => entry.IsActive) is { } active)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-2">@L["Blacklist.Active", active.Reason, active.AddedBy ?? "—", CustomerLabels.Instant(active.AddedAtUtc)]</MudAlert>
+                        @if (file.Permissions.CanManage)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="LiftBlacklistAsync">@L["Blacklist.Lift"]</MudButton>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">@L["Blacklist.None"]</MudText>
+                        @if (file.Permissions.CanManage)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Block" OnClick="BlacklistAsync">@L["Blacklist.Add"]</MudButton>
+                        }
+                    }
+                    @foreach (var entry in file.Blacklist.Where(entry => !entry.IsActive))
+                    {
+                        <MudText Typo="Typo.caption" Class="d-block mt-2">
+                            @L["Blacklist.HistoryItem", CustomerLabels.Instant(entry.AddedAtUtc), entry.Reason, CustomerLabels.Instant(entry.LiftedAtUtc), entry.LiftReason ?? "—"]
+                        </MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+
+        <MudItem xs="12">
+            <PersonBookingsPanel PersonId="file.Id" />
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private PersonFile? _file;
+    private string? _error;
+    private bool _loading = true;
+
+    [Parameter]
+    public Guid PersonId { get; set; }
+
+    private string Title => _file switch
+    {
+        null => L["Person.Title"],
+        { IsAnonymized: true } => L["Person.Anonymized.Title"],
+        var file => file.FullName,
+    };
+
+    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var personId = PersonId;
+        var result = await Runner.RunAsync<CustomerAdministrationQueries, Result<PersonFile>>((queries, ct) => queries.GetPersonFileAsync(personId, ct));
+        _loading = false;
+        if (result.IsSuccess)
+        {
+            _file = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _file = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private static string FormatAddress(PostalAddressInfo address) =>
+        string.Join(", ", new[] { address.Line1, address.Line2, string.Join(' ', new[] { address.PostalCode, address.City }.Where(p => !string.IsNullOrEmpty(p))), CustomerLabels.CountryName(address.Country) }
+            .Where(part => !string.IsNullOrEmpty(part)));
+
+    private async Task EditAsync()
+    {
+        var parameters = new DialogParameters<PersonFormDialog> { { d => d.PersonId, PersonId }, { d => d.Initial, _file } };
+        var dialog = await Dialogs.ShowAsync<PersonFormDialog>(L["Person.Edit"], parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Person.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task AddDocumentAsync()
+    {
+        var parameters = new DialogParameters<DocumentFormDialog> { { d => d.PersonId, PersonId }, { d => d.Nationality, _file?.Nationality } };
+        var dialog = await Dialogs.ShowAsync<DocumentFormDialog>(L["Documents.Add"], parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Document.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task CorrectDocumentAsync(DocumentFileItem document)
+    {
+        var parameters = new DialogParameters<DocumentFormDialog>
+        {
+            { d => d.PersonId, PersonId },
+            { d => d.Nationality, _file?.Nationality },
+            { d => d.Document, document },
+        };
+        var dialog = await Dialogs.ShowAsync<DocumentFormDialog>(L["Document.Correct"], parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Document.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task RemoveDocumentAsync(DocumentFileItem document)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Document.Remove.Title"],
+            L["Document.Remove.Message", CustomerLabels.DocumentType(L, document.Type)],
+            yesText: L["Document.Remove"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed == true)
+        {
+            var personId = PersonId;
+            await NotifyAsync(
+                await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.RemoveDocumentAsync(personId, document.Id, ct)),
+                L["Document.Removed"]);
+        }
+    }
+
+    private async Task VerifyAsync(DocumentFileItem document)
+    {
+        var personId = PersonId;
+        await NotifyAsync(
+            await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.VerifyDocumentAsync(personId, document.Id, ct)),
+            L["Document.VerifiedNow"]);
+    }
+
+    private async Task ViewAsync(DocumentFileItem document, DocumentImageSideInfo side)
+    {
+        var title = L["Viewer.Title", CustomerLabels.DocumentType(L, document.Type), L[$"Side.{side}"]];
+        var parameters = new DialogParameters<DocumentImageViewerDialog>
+        {
+            { d => d.DocumentId, document.Id },
+            { d => d.Side, side },
+            { d => d.Title, title },
+            { d => d.IsPdf, document.ImageOf(side)?.IsPdf ?? false },
+        };
+        await Dialogs.ShowAsync<DocumentImageViewerDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+    }
+
+    private async Task BlacklistAsync()
+    {
+        if (await AskReasonAsync(L["Blacklist.Add"], L["Blacklist.Add.Message"], L["Blacklist.Reason"], danger: true) is { } reason)
+        {
+            var personId = PersonId;
+            await NotifyAsync(
+                await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.BlacklistAsync(personId, reason, ct)),
+                L["Blacklist.Added"]);
+        }
+    }
+
+    private async Task LiftBlacklistAsync()
+    {
+        if (await AskReasonAsync(L["Blacklist.Lift"], message: null, L["Blacklist.LiftReason"], danger: false) is { } reason)
+        {
+            var personId = PersonId;
+            await NotifyAsync(
+                await Runner.RunAsync<PersonAdministrationService, Result>((service, ct) => service.LiftBlacklistAsync(personId, reason, ct)),
+                L["Blacklist.Lifted"]);
+        }
+    }
+
+    private async Task AnonymizeAsync()
+    {
+        if (await AskReasonAsync(L["Privacy.Anonymize"], L["Privacy.Anonymize.Message"], L["Privacy.Anonymize.Reason"], danger: true, L["Privacy.Anonymize.Help"]) is { } reason)
+        {
+            var personId = PersonId;
+            await NotifyAsync(
+                await Runner.RunAsync<PersonalDataService, Result>((service, ct) => service.AnonymizeAsync(personId, reason, ct)),
+                L["Privacy.Anonymized"]);
+        }
+    }
+
+    private async Task<string?> AskReasonAsync(string title, string? message, string label, bool danger, string? helperText = null)
+    {
+        var parameters = new DialogParameters<ReasonDialog>
+        {
+            { d => d.Label, label },
+            { d => d.SubmitText, title },
+            { d => d.Message, message },
+            { d => d.HelperText, helperText },
+            { d => d.Danger, danger },
+        };
+        var dialog = await Dialogs.ShowAsync<ReasonDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        return await dialog.Result is { Canceled: false, Data: string reason } ? reason : null;
+    }
+
+    private async Task NotifyAsync(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

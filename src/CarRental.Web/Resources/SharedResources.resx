@@ -102,4 +102,130 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>Ce champ est obligatoire.</value>
   </data>
+  <data name="Error.customers.person.not_found" xml:space="preserve">
+    <value>Personne introuvable.</value>
+  </data>
+  <data name="Error.customers.person.first_name_invalid" xml:space="preserve">
+    <value>Le prénom est obligatoire (100 caractères au plus, lettres uniquement).</value>
+  </data>
+  <data name="Error.customers.person.last_name_invalid" xml:space="preserve">
+    <value>Le nom est obligatoire (100 caractères au plus, lettres uniquement).</value>
+  </data>
+  <data name="Error.customers.person.birth_date_invalid" xml:space="preserve">
+    <value>La date de naissance ne peut être ni future ni antérieure de plus de 120 ans.</value>
+  </data>
+  <data name="Error.customers.person.anonymized" xml:space="preserve">
+    <value>Les données de cette personne ont été anonymisées : elles ne peuvent plus être modifiées.</value>
+  </data>
+  <data name="Error.customers.country_invalid" xml:space="preserve">
+    <value>Pays inconnu : utilisez un code ISO à deux lettres (TN, FR…).</value>
+  </data>
+  <data name="Error.customers.phone_invalid" xml:space="preserve">
+    <value>Numéro de téléphone invalide : 8 chiffres pour la Tunisie, sinon le format international (+33…).</value>
+  </data>
+  <data name="Error.customers.email_invalid" xml:space="preserve">
+    <value>L'adresse e-mail n'est pas valide.</value>
+  </data>
+  <data name="Error.customers.address_invalid" xml:space="preserve">
+    <value>L'adresse doit comporter une rue, une ville et un pays.</value>
+  </data>
+  <data name="Error.customers.document.not_found" xml:space="preserve">
+    <value>Pièce introuvable.</value>
+  </data>
+  <data name="Error.customers.document.type_invalid" xml:space="preserve">
+    <value>Type de pièce inconnu, ou le type d'une pièce existante ne peut pas changer.</value>
+  </data>
+  <data name="Error.customers.document.number_invalid" xml:space="preserve">
+    <value>Le numéro de la pièce comporte de 4 à 20 lettres ou chiffres (séparateurs / - . admis).</value>
+  </data>
+  <data name="Error.customers.document.national_id_number_invalid" xml:space="preserve">
+    <value>Un numéro de CIN tunisienne comporte exactement 8 chiffres.</value>
+  </data>
+  <data name="Error.customers.document.issue_date_required" xml:space="preserve">
+    <value>La date de délivrance du permis est obligatoire (ancienneté du permis).</value>
+  </data>
+  <data name="Error.customers.document.expiry_date_required" xml:space="preserve">
+    <value>La date d'expiration d'un passeport ou d'un permis international est obligatoire.</value>
+  </data>
+  <data name="Error.customers.document.dates_invalid" xml:space="preserve">
+    <value>La date de délivrance doit être passée (après 1900) et antérieure à la date d'expiration.</value>
+  </data>
+  <data name="Error.customers.document.not_current" xml:space="preserve">
+    <value>Cette pièce a été remplacée par une plus récente : elle ne peut plus être modifiée.</value>
+  </data>
+  <data name="Error.customers.document.number_in_use" xml:space="preserve">
+    <value>Ce numéro de pièce est déjà enregistré pour une autre personne.</value>
+  </data>
+  <data name="Error.customers.document_image.empty" xml:space="preserve">
+    <value>Le fichier est vide.</value>
+  </data>
+  <data name="Error.customers.document_image.too_large" xml:space="preserve">
+    <value>Le fichier dépasse 10 Mo.</value>
+  </data>
+  <data name="Error.customers.document_image.unsupported_type" xml:space="preserve">
+    <value>Seuls les fichiers JPEG, PNG et PDF sont acceptés (contenu vérifié).</value>
+  </data>
+  <data name="Error.customers.document_image.not_found" xml:space="preserve">
+    <value>Cette face de la pièce n'a pas d'image.</value>
+  </data>
+  <data name="Error.customers.document_image.side_invalid" xml:space="preserve">
+    <value>Face de pièce inconnue.</value>
+  </data>
+  <data name="Error.customers.document_image.purpose_invalid" xml:space="preserve">
+    <value>Motif de consultation inconnu.</value>
+  </data>
+  <data name="Error.customers.consent.purpose_invalid" xml:space="preserve">
+    <value>Finalité de consentement inconnue.</value>
+  </data>
+  <data name="Error.customers.consent.channel_invalid" xml:space="preserve">
+    <value>Canal de consentement inconnu.</value>
+  </data>
+  <data name="Error.customers.blacklist.reason_invalid" xml:space="preserve">
+    <value>Un motif de 3 à 500 caractères est obligatoire.</value>
+  </data>
+  <data name="Error.customers.blacklist.already_active" xml:space="preserve">
+    <value>Cette personne est déjà sur la liste noire.</value>
+  </data>
+  <data name="Error.customers.blacklist.not_active" xml:space="preserve">
+    <value>Cette personne n'est pas sur la liste noire.</value>
+  </data>
+  <data name="Error.customers.customer.not_found" xml:space="preserve">
+    <value>Client introuvable.</value>
+  </data>
+  <data name="Error.customers.customer.not_a_company" xml:space="preserve">
+    <value>Ce client n'est pas une société.</value>
+  </data>
+  <data name="Error.customers.customer.person_required" xml:space="preserve">
+    <value>Un client particulier est rattaché à une personne.</value>
+  </data>
+  <data name="Error.customers.company.legal_name_invalid" xml:space="preserve">
+    <value>La raison sociale est obligatoire (200 caractères au plus).</value>
+  </data>
+  <data name="Error.customers.company.tax_identifier_invalid" xml:space="preserve">
+    <value>Matricule fiscal invalide (exemple : 1234567/A/M/000).</value>
+  </data>
+  <data name="Error.customers.company.billing_address_required" xml:space="preserve">
+    <value>L'adresse de facturation de la société est obligatoire.</value>
+  </data>
+  <data name="Error.customers.company.contact_name_invalid" xml:space="preserve">
+    <value>Le nom du contact est trop long (200 caractères au plus).</value>
+  </data>
+  <data name="Error.customers.company.already_exists" xml:space="preserve">
+    <value>Une société avec ce matricule fiscal existe déjà.</value>
+  </data>
+  <data name="Error.customers.eligibility.period_invalid" xml:space="preserve">
+    <value>Le retour doit être postérieur au départ.</value>
+  </data>
+  <data name="Error.customers.privacy.blacklisted" xml:space="preserve">
+    <value>Une personne sur liste noire ne peut pas être anonymisée : levez d'abord la liste noire (avec son motif).</value>
+  </data>
+  <data name="Error.customers.privacy.reason_required" xml:space="preserve">
+    <value>Le motif de l'anonymisation est obligatoire (500 caractères au plus).</value>
+  </data>
+  <data name="Error.customers.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission nécessaire.</value>
+  </data>
+  <data name="Error.customers.concurrent_update" xml:space="preserve">
+    <value>La fiche a été modifiée entre-temps : rechargez-la puis recommencez.</value>
+  </data>
 </root>

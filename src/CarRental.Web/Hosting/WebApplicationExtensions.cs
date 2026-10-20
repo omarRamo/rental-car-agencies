@@ -2,6 +2,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Infrastructure;
 using CarRental.Web.Components;
 using CarRental.Web.Components.Account;
+using CarRental.Web.Endpoints;
 using CarRental.Web.Localization;
 using CarRental.Web.Security;
 using Hangfire;
@@ -49,6 +50,7 @@ internal static class WebApplicationExtensions
         app.MapStaticAssets();
         app.MapCultureEndpoints();
         app.MapAccountEndpoints();
+        app.MapCustomerEndpoints();
         app.MapHangfireDashboardWithAuthorizationPolicy(
             PermissionPolicy.For(Permissions.JobsDashboard),
             "/admin/jobs",

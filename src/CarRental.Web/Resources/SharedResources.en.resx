@@ -102,4 +102,130 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>This field is required.</value>
   </data>
+  <data name="Error.customers.person.not_found" xml:space="preserve">
+    <value>Person not found.</value>
+  </data>
+  <data name="Error.customers.person.first_name_invalid" xml:space="preserve">
+    <value>The first name is required (100 characters max, letters only).</value>
+  </data>
+  <data name="Error.customers.person.last_name_invalid" xml:space="preserve">
+    <value>The last name is required (100 characters max, letters only).</value>
+  </data>
+  <data name="Error.customers.person.birth_date_invalid" xml:space="preserve">
+    <value>The birth date cannot be in the future nor more than 120 years ago.</value>
+  </data>
+  <data name="Error.customers.person.anonymized" xml:space="preserve">
+    <value>This person's data was anonymized: it can no longer be changed.</value>
+  </data>
+  <data name="Error.customers.country_invalid" xml:space="preserve">
+    <value>Unknown country: use a two-letter ISO code (TN, FR…).</value>
+  </data>
+  <data name="Error.customers.phone_invalid" xml:space="preserve">
+    <value>Invalid phone number: 8 digits for Tunisia, otherwise the international format (+33…).</value>
+  </data>
+  <data name="Error.customers.email_invalid" xml:space="preserve">
+    <value>The e-mail address is invalid.</value>
+  </data>
+  <data name="Error.customers.address_invalid" xml:space="preserve">
+    <value>The address needs a street, a city and a country.</value>
+  </data>
+  <data name="Error.customers.document.not_found" xml:space="preserve">
+    <value>Document not found.</value>
+  </data>
+  <data name="Error.customers.document.type_invalid" xml:space="preserve">
+    <value>Unknown document type, or the type of an existing document cannot change.</value>
+  </data>
+  <data name="Error.customers.document.number_invalid" xml:space="preserve">
+    <value>The document number has 4 to 20 letters or digits (separators / - . allowed).</value>
+  </data>
+  <data name="Error.customers.document.national_id_number_invalid" xml:space="preserve">
+    <value>A Tunisian national identity card (CIN) number has exactly 8 digits.</value>
+  </data>
+  <data name="Error.customers.document.issue_date_required" xml:space="preserve">
+    <value>The issue date of the driving licence is required (licence seniority).</value>
+  </data>
+  <data name="Error.customers.document.expiry_date_required" xml:space="preserve">
+    <value>The expiry date of a passport or an international driving permit is required.</value>
+  </data>
+  <data name="Error.customers.document.dates_invalid" xml:space="preserve">
+    <value>The issue date must be in the past (after 1900) and before the expiry date.</value>
+  </data>
+  <data name="Error.customers.document.not_current" xml:space="preserve">
+    <value>This document was replaced by a newer one: it can no longer be changed.</value>
+  </data>
+  <data name="Error.customers.document.number_in_use" xml:space="preserve">
+    <value>This document number is already registered for another person.</value>
+  </data>
+  <data name="Error.customers.document_image.empty" xml:space="preserve">
+    <value>The file is empty.</value>
+  </data>
+  <data name="Error.customers.document_image.too_large" xml:space="preserve">
+    <value>The file exceeds 10 MB.</value>
+  </data>
+  <data name="Error.customers.document_image.unsupported_type" xml:space="preserve">
+    <value>Only JPEG, PNG and PDF files are accepted (content checked).</value>
+  </data>
+  <data name="Error.customers.document_image.not_found" xml:space="preserve">
+    <value>This side of the document has no image.</value>
+  </data>
+  <data name="Error.customers.document_image.side_invalid" xml:space="preserve">
+    <value>Unknown document side.</value>
+  </data>
+  <data name="Error.customers.document_image.purpose_invalid" xml:space="preserve">
+    <value>Unknown viewing purpose.</value>
+  </data>
+  <data name="Error.customers.consent.purpose_invalid" xml:space="preserve">
+    <value>Unknown consent purpose.</value>
+  </data>
+  <data name="Error.customers.consent.channel_invalid" xml:space="preserve">
+    <value>Unknown consent channel.</value>
+  </data>
+  <data name="Error.customers.blacklist.reason_invalid" xml:space="preserve">
+    <value>A reason of 3 to 500 characters is required.</value>
+  </data>
+  <data name="Error.customers.blacklist.already_active" xml:space="preserve">
+    <value>This person is already blacklisted.</value>
+  </data>
+  <data name="Error.customers.blacklist.not_active" xml:space="preserve">
+    <value>This person is not blacklisted.</value>
+  </data>
+  <data name="Error.customers.customer.not_found" xml:space="preserve">
+    <value>Customer not found.</value>
+  </data>
+  <data name="Error.customers.customer.not_a_company" xml:space="preserve">
+    <value>This customer is not a company.</value>
+  </data>
+  <data name="Error.customers.customer.person_required" xml:space="preserve">
+    <value>An individual customer is linked to a person.</value>
+  </data>
+  <data name="Error.customers.company.legal_name_invalid" xml:space="preserve">
+    <value>The legal name is required (200 characters max).</value>
+  </data>
+  <data name="Error.customers.company.tax_identifier_invalid" xml:space="preserve">
+    <value>Invalid tax identifier (e.g. 1234567/A/M/000).</value>
+  </data>
+  <data name="Error.customers.company.billing_address_required" xml:space="preserve">
+    <value>The billing address of the company is required.</value>
+  </data>
+  <data name="Error.customers.company.contact_name_invalid" xml:space="preserve">
+    <value>The contact name is too long (200 characters max).</value>
+  </data>
+  <data name="Error.customers.company.already_exists" xml:space="preserve">
+    <value>A company with this tax identifier already exists.</value>
+  </data>
+  <data name="Error.customers.eligibility.period_invalid" xml:space="preserve">
+    <value>The return must be after the pick-up.</value>
+  </data>
+  <data name="Error.customers.privacy.blacklisted" xml:space="preserve">
+    <value>A blacklisted person cannot be anonymized: lift the blacklist first (with its reason).</value>
+  </data>
+  <data name="Error.customers.privacy.reason_required" xml:space="preserve">
+    <value>The reason of the anonymization is required (500 characters max).</value>
+  </data>
+  <data name="Error.customers.forbidden" xml:space="preserve">
+    <value>You lack the required permission.</value>
+  </data>
+  <data name="Error.customers.concurrent_update" xml:space="preserve">
+    <value>The record was changed in the meantime: reload it and try again.</value>
+  </data>
 </root>

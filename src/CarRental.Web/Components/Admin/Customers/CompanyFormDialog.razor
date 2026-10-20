@@ -1,0 +1,127 @@
+@* Creates or edits a company payer: legal name, tax identifier (matricule fiscal), billing address, contact. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_legalName" Label="@L["Company.Field.LegalName"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="200" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_taxIdentifier" Label="@L["Company.Field.TaxIdentifier"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="32" HelperText="@L["Company.Field.TaxIdentifier.Help"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_line1" Label="@L["Address.Line1"]" Required="true" RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_postalCode" Label="@L["Address.PostalCode"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_line2" Label="@L["Address.Line2"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_city" Label="@L["Address.City"]" Required="true" RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <CountryField @bind-Value="_country" Label="@L["Address.Country"]" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_contactName" Label="@L["Company.Field.ContactName"]" MaxLength="200" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_email" Label="@L["Person.Field.Email"]" InputType="InputType.Email" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_phone" Label="@L["Person.Field.Phone"]" InputType="InputType.Telephone" autocomplete="off" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Company.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _legalName;
+    private string? _taxIdentifier;
+    private string? _line1;
+    private string? _line2;
+    private string? _postalCode;
+    private string? _city;
+    private string? _country = "TN";
+    private string? _contactName;
+    private string? _email;
+    private string? _phone;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The company to edit; null to create one.</summary>
+    [Parameter]
+    public CompanyFile? Company { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Company is { } company)
+        {
+            _legalName = company.LegalName;
+            _taxIdentifier = company.TaxIdentifier;
+            _line1 = company.BillingAddress.Line1;
+            _line2 = company.BillingAddress.Line2;
+            _postalCode = company.BillingAddress.PostalCode;
+            _city = company.BillingAddress.City;
+            _country = company.BillingAddress.Country;
+            _contactName = company.ContactName;
+            _email = company.Email;
+            _phone = company.Phone;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CompanyCustomerRequest(
+            _legalName ?? string.Empty,
+            _taxIdentifier ?? string.Empty,
+            new PostalAddressInfo(_line1 ?? string.Empty, _line2, _postalCode, _city ?? string.Empty, _country ?? string.Empty),
+            _contactName,
+            _email,
+            _phone);
+
+        Result result;
+        if (Company is { } company)
+        {
+            result = await Runner.RunAsync<CompanyCustomerAdministrationService, Result>((service, ct) => service.UpdateAsync(company.Id, request, ct));
+        }
+        else
+        {
+            result = await Runner.RunAsync<CompanyCustomerAdministrationService, Result<Guid>>((service, ct) => service.CreateAsync(request, ct));
+        }
+
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}
