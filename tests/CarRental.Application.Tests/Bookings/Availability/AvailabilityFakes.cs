@@ -249,6 +249,26 @@ internal sealed class FakeOccupancyReader(CallJournal journal) : IOccupancyReade
         }
     }
 
+    /// <summary>Adds the booking, or replaces the one with the same id (an amendment).</summary>
+    public void Upsert(Guid categoryId, BookingOccupancy booking)
+    {
+        lock (_gate)
+        {
+            _bookings.GetValueOrDefault(categoryId)?.RemoveAll(b => b.BookingId == booking.BookingId);
+        }
+
+        Add(categoryId, booking);
+    }
+
+    /// <summary>The bookings of a category, as stored.</summary>
+    public IReadOnlyList<BookingOccupancy> BookingsOf(Guid categoryId)
+    {
+        lock (_gate)
+        {
+            return [.. _bookings.GetValueOrDefault(categoryId) ?? []];
+        }
+    }
+
     public async Task<IReadOnlyList<OccupancyInterval>> GetOccupancyAsync(
         Guid categoryId,
         Period range,
