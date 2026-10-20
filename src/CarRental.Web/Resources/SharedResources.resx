@@ -134,6 +134,7 @@
   </data>
   <data name="Error.availability.lock_failed" xml:space="preserve">
     <value>La disponibilité n'a pas pu être vérifiée. Réessayez.</value>
+  </data>
   <data name="Error.customers.person.not_found" xml:space="preserve">
     <value>Personne introuvable.</value>
   </data>
