@@ -56,7 +56,8 @@ public sealed class VehicleCategoryTests
     public void Invalid_details_are_rejected()
     {
         VehicleCategory.Create(Guid.Empty, CategoryDetails()).Error.ShouldBe(FleetErrors.AgencyRequired);
-        VehicleCategory.Create(AgencyId, CategoryDetails("XX")).Error.ShouldBe(AcrissCodeErrors.InvalidLength);
+        VehicleCategory.Create(AgencyId, CategoryDetails("XX")).Error.ShouldBe(FleetErrors.CategoryCodeInvalid);
+        VehicleCategory.Create(AgencyId, CategoryDetails("QCMR")).Error.ShouldBe(FleetErrors.CategoryCodeInvalid);
         VehicleCategory.Create(AgencyId, CategoryDetails() with { Name = " " }).Error.ShouldBe(FleetErrors.CategoryNameInvalid);
         VehicleCategory.Create(AgencyId, CategoryDetails() with { Name = new string('a', VehicleCategory.NameMaxLength + 1) }).Error.ShouldBe(FleetErrors.CategoryNameInvalid);
         VehicleCategory.Create(AgencyId, CategoryDetails() with { ExampleModel = "" }).Error.ShouldBe(FleetErrors.CategoryExampleModelInvalid);

@@ -155,7 +155,7 @@ public sealed class VehicleCategory : AggregateRoot, ISoftDeletable
         var code = AcrissCode.Create(details.Code);
         if (code.IsFailure)
         {
-            return code.Error;
+            return FleetErrors.CategoryCodeInvalid;
         }
 
         var normalized = details.Normalize();

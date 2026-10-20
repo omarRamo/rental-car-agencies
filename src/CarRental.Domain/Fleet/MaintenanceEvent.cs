@@ -69,13 +69,16 @@ public sealed class MaintenanceEvent : Entity
     /// The period during which this maintenance makes the vehicle unavailable: <c>[start, end)</c> while planned or in
     /// progress, <c>[start, completion)</c> once completed, nothing when cancelled.
     /// </summary>
-    public Period? Block => Status switch
+    public Period? Block => BlockOf(Status, StartsAtUtc, EndsAtUtc, CompletedAtUtc);
+
+    /// <summary>The blocking rule of <see cref="Block"/>, for queries that project the stored values.</summary>
+    public static Period? BlockOf(MaintenanceStatus status, DateTimeOffset startsAt, DateTimeOffset endsAt, DateTimeOffset? completedAt) => status switch
     {
         MaintenanceStatus.Cancelled => null,
-        MaintenanceStatus.Completed => CompletedAtUtc is { } completed && completed > StartsAtUtc
-            ? Period.Create(StartsAtUtc, completed).Value
+        MaintenanceStatus.Completed => completedAt is { } completed && completed > startsAt
+            ? Period.Create(startsAt, completed).Value
             : null,
-        _ => Period.Create(StartsAtUtc, EndsAtUtc).Value,
+        _ => endsAt > startsAt ? Period.Create(startsAt, endsAt).Value : null,
     };
 
     /// <summary>The block as planned or expected, whatever the status.</summary>

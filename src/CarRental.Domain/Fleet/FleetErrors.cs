@@ -24,8 +24,16 @@ public static class FleetErrors
         "fleet.concurrent_update",
         "The record was changed by someone else in the meantime; reload and try again.");
 
+    public static readonly Error AvailabilityBusy = Error.Conflict(
+        "fleet.availability_busy",
+        "Another operation is updating the availability of this category; try again.");
+
     // Categories
     public static readonly Error CategoryNotFound = Error.NotFound("fleet.category.not_found", "The vehicle category does not exist.");
+
+    public static readonly Error CategoryCodeInvalid = Error.Validation(
+        "fleet.category.code_invalid",
+        "The ACRISS code has four letters valid for their position (e.g. ECMR).");
 
     public static readonly Error CategoryNameInvalid = Error.Validation(
         "fleet.category.name_invalid",
