@@ -29,6 +29,7 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 
         // Technical counter bumped by every change, so that the rowversion of the root guards child changes too.
         builder.Property(v => v.Revision).IsAuditIgnored();
+        builder.Property(v => v.LastHistorySequence).IsAuditIgnored();
 
         builder.HasOne<Agency>().WithMany().HasForeignKey(v => v.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<VehicleCategory>().WithMany().HasForeignKey(v => v.CategoryId).OnDelete(DeleteBehavior.Restrict);
@@ -145,7 +146,9 @@ internal sealed class VehicleHistoryEntryConfiguration : IEntityTypeConfiguratio
         builder.Property(h => h.PreviousValue).HasMaxLength(VehicleHistoryEntry.ValueMaxLength);
         builder.Property(h => h.NewValue).HasMaxLength(VehicleHistoryEntry.ValueMaxLength);
         builder.Property(h => h.Reason).HasMaxLength(Vehicle.ReasonMaxLength);
-        builder.HasIndex(h => new { h.VehicleId, h.OccurredAtUtc });
+        // Not unique on purpose: the sequence is guarded by the vehicle rowversion, so that two concurrent changes fail
+        // with a concurrency conflict (fleet.concurrent_update) rather than a duplicate key.
+        builder.HasIndex(h => new { h.VehicleId, h.Sequence });
     }
 }
 

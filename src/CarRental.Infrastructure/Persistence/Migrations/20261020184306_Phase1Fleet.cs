@@ -93,6 +93,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     SalePrice = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
                     Buyer = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Revision = table.Column<int>(type: "int", nullable: false),
+                    LastHistorySequence = table.Column<int>(type: "int", nullable: false),
                     ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false)
                         .Annotation("SqlServer:TemporalIsPeriodStartColumn", true),
                     ValidTo = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -269,6 +270,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     VehicleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Sequence = table.Column<int>(type: "int", nullable: false),
                     Kind = table.Column<int>(type: "int", nullable: false),
                     OccurredAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     Actor = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -402,10 +404,10 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_VehicleHistory_VehicleId_OccurredAtUtc",
+                name: "IX_VehicleHistory_VehicleId_Sequence",
                 schema: "fleet",
                 table: "VehicleHistory",
-                columns: new[] { "VehicleId", "OccurredAtUtc" });
+                columns: new[] { "VehicleId", "Sequence" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_VehiclePhotos_VehicleId",

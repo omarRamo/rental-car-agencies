@@ -133,8 +133,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
         var history = await db.Set<VehicleHistoryEntry>()
             .AsNoTracking()
             .Where(h => h.VehicleId == vehicleId)
-            .OrderByDescending(h => h.OccurredAtUtc)
-            .ThenByDescending(h => h.Id)
+            .OrderByDescending(h => h.Sequence)
             .Take(HistoryLimit)
             .ToListAsync(cancellationToken);
 

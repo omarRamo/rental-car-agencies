@@ -49,8 +49,9 @@ public sealed class FleetPersistenceTests(IntegrationHost host)
         var block = detail.Maintenances.ShouldHaveSingleItem();
         block.Cost.ShouldBe(Money.Tnd(410.5m));
         (block.EndsAtUtc - block.StartsAtUtc).ShouldBe(TimeSpan.FromHours(6));
-        detail.History.Select(h => h.Kind).ShouldContain(VehicleHistoryKind.Registered);
         detail.History.Count.ShouldBeGreaterThanOrEqualTo(8);
+        detail.History[0].Kind.ShouldBe(VehicleHistoryKind.MaintenanceScheduled);
+        detail.History[^1].Kind.ShouldBe(VehicleHistoryKind.Registered);
         detail.History.ShouldAllBe(h => h.Actor == "gerant@demo.local");
     }
 

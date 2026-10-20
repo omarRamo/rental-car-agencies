@@ -110,6 +110,9 @@ public sealed class Vehicle : AggregateRoot
     /// <summary>Incremented by every change (see remarks of the class).</summary>
     public int Revision { get; private set; }
 
+    /// <summary>Sequence number of the last history line: the history is ordered by it, not by the clock.</summary>
+    public int LastHistorySequence { get; private set; }
+
     public IReadOnlyList<VehicleDocument> Documents => _documents;
 
     public IReadOnlyList<MaintenancePlan> MaintenancePlans => _maintenancePlans;
@@ -1004,8 +1007,11 @@ public sealed class Vehicle : AggregateRoot
         string? subject = null,
         string? previousValue = null,
         string? newValue = null,
-        string? reason = null) =>
-        _history.Add(VehicleHistoryEntry.Create(Id, kind, stamp, subject, previousValue, newValue, reason));
+        string? reason = null)
+    {
+        LastHistorySequence++;
+        _history.Add(VehicleHistoryEntry.Create(Id, LastHistorySequence, kind, stamp, subject, previousValue, newValue, reason));
+    }
 
     /// <summary>Raises <see cref="VehicleAvailabilityChanged"/> once per operation (and per previous category).</summary>
     private void AvailabilityChanged(Guid? previousCategoryId = null)

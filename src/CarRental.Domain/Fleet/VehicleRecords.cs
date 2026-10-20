@@ -88,16 +88,20 @@ public sealed class VehicleHistoryEntry : Entity
     {
     }
 
-    private VehicleHistoryEntry(Guid id, Guid vehicleId, VehicleHistoryKind kind, ChangeStamp stamp)
+    private VehicleHistoryEntry(Guid id, Guid vehicleId, int sequence, VehicleHistoryKind kind, ChangeStamp stamp)
         : base(id)
     {
         VehicleId = vehicleId;
+        Sequence = sequence;
         Kind = kind;
         OccurredAtUtc = stamp.At;
         Actor = stamp.By;
     }
 
     public Guid VehicleId { get; private set; }
+
+    /// <summary>Position in the history of the vehicle (1, 2, 3…): the lines of one change share the same instant.</summary>
+    public int Sequence { get; private set; }
 
     public VehicleHistoryKind Kind { get; private set; }
 
@@ -115,13 +119,14 @@ public sealed class VehicleHistoryEntry : Entity
 
     internal static VehicleHistoryEntry Create(
         Guid vehicleId,
+        int sequence,
         VehicleHistoryKind kind,
         ChangeStamp stamp,
         string? subject,
         string? previousValue,
         string? newValue,
         string? reason) =>
-        new(NewId(), vehicleId, kind, stamp)
+        new(NewId(), vehicleId, sequence, kind, stamp)
         {
             Subject = Truncate(subject, SubjectMaxLength),
             PreviousValue = Truncate(previousValue, ValueMaxLength),

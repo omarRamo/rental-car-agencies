@@ -192,6 +192,10 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<int>("LargeBags")
                         .HasColumnType("int");
 
+                    b.Property<int>("LastHistorySequence")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
                     b.Property<string>("Make")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -547,6 +551,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
                     b.Property<string>("Subject")
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
@@ -556,7 +563,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VehicleId", "OccurredAtUtc");
+                    b.HasIndex("VehicleId", "Sequence");
 
                     b.ToTable("VehicleHistory", "fleet");
 

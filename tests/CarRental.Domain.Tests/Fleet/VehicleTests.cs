@@ -239,6 +239,22 @@ public sealed class VehicleTests
     }
 
     [Fact]
+    public void History_lines_are_numbered_in_order_even_within_the_same_instant()
+    {
+        var stamp = Stamp();
+        var vehicle = NewVehicle();
+
+        vehicle.RecordMileage(30_000, stamp);
+        vehicle.AddCost(new DateOnly(2026, 10, 1), "Lavage", Money.Tnd(20m), stamp);
+        vehicle.ChangeStatus(VehicleStatus.Maintenance, "Contrôle", stamp);
+
+        vehicle.History.Select(h => h.Sequence).ShouldBe([.. Enumerable.Range(1, vehicle.History.Count)]);
+        vehicle.LastHistorySequence.ShouldBe(vehicle.History.Count);
+        vehicle.History.TakeLast(3).Select(h => h.Kind).ShouldBe(
+            [VehicleHistoryKind.MileageRecorded, VehicleHistoryKind.CostAdded, VehicleHistoryKind.StatusChanged]);
+    }
+
+    [Fact]
     public void Photos_are_limited_and_removable()
     {
         var vehicle = NewVehicle();
