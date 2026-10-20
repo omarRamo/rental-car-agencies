@@ -102,4 +102,37 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>Ce champ est obligatoire.</value>
   </data>
+  <data name="Error.availability.not_available" xml:space="preserve">
+    <value>Plus aucun véhicule de cette catégorie n'est disponible pour ces dates.</value>
+  </data>
+  <data name="Error.availability.vehicle_overlap" xml:space="preserve">
+    <value>Ce véhicule est déjà affecté à une autre location sur cette période (temps de préparation compris).</value>
+  </data>
+  <data name="Error.availability.vehicle_not_compliant" xml:space="preserve">
+    <value>Un document obligatoire du véhicule (assurance, vignette, visite technique) expire avant la date de retour.</value>
+  </data>
+  <data name="Error.availability.vehicle_unavailable" xml:space="preserve">
+    <value>Ce véhicule n'est pas disponible sur toute la période (maintenance, hors service, vendu ou pas encore en service).</value>
+  </data>
+  <data name="Error.availability.vehicle_not_in_category" xml:space="preserve">
+    <value>Ce véhicule n'appartient pas à la catégorie du dossier.</value>
+  </data>
+  <data name="Error.availability.no_vehicle_in_service" xml:space="preserve">
+    <value>Aucun véhicule de la catégorie n'est en service sur toute la période.</value>
+  </data>
+  <data name="Error.availability.all_vehicles_occupied" xml:space="preserve">
+    <value>Tous les véhicules en service sur la période sont déjà affectés.</value>
+  </data>
+  <data name="Error.availability.category_not_found" xml:space="preserve">
+    <value>Catégorie de véhicule introuvable.</value>
+  </data>
+  <data name="Error.availability.lock_timeout" xml:space="preserve">
+    <value>Une autre opération modifie la disponibilité de cette catégorie. Réessayez dans un instant.</value>
+  </data>
+  <data name="Error.availability.lock_deadlock" xml:space="preserve">
+    <value>La disponibilité n'a pas pu être vérifiée à cause d'opérations simultanées. Réessayez.</value>
+  </data>
+  <data name="Error.availability.lock_failed" xml:space="preserve">
+    <value>La disponibilité n'a pas pu être vérifiée. Réessayez.</value>
+  </data>
 </root>
