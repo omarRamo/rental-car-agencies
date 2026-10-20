@@ -1,0 +1,37 @@
+@* Asks for the mandatory reason of a decision (cancellation of a pending payment); returns the text. *@
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <MudText Typo="Typo.body1" Class="mb-3">@Message</MudText>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@Label" Lines="3" MaxLength="500" Counter="500" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(string.IsNullOrWhiteSpace(_reason))">@SubmitText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    private void Submit() => Dialog.Close(DialogResult.Ok(_reason!.Trim()));
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,77 @@
+@* Keeps part (or all) of a deposit with a mandatory justification; the rest is returned to the customer. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">@L["Retain.Deposit", PaymentsFormat.Amount(Deposit.Amount), L[$"DepositMode.{Deposit.Mode}"]]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.RetainedAmount"]" Min="0m" Max="@Deposit.Amount.Amount" Format="N3"
+                                 Adornment="Adornment.End" AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]"
+                                 HideSpinButtons="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" Class="d-flex align-center">
+                <MudText Typo="Typo.body1" role="status">@L["Retain.Returned", PaymentsFormat.Amount(Returned)]</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_justification" Label="@L["Field.Justification"]" Lines="3" MaxLength="1000" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.Justification.Help"]" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_attachment" Label="@L["Field.Attachment"]" MaxLength="500" HelperText="@L["Field.Attachment.Help"]" />
+            </MudItem>
+        </MudGrid>
+        @if (Deposit.Mode == DepositModeInfo.Cash)
+        {
+            <FinanceNotice Class="mt-3">@L["Retain.CashHint"]</FinanceNotice>
+        }
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_justification))">
+            @L["Retain.Submit"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private decimal? _amount;
+    private string? _justification;
+    private string? _attachment;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DepositInfo Deposit { get; set; } = default!;
+
+    private Money Returned =>
+        _amount is { } retained && retained >= 0m && retained <= Deposit.Amount.Amount ? Deposit.Amount - Money.Tnd(retained) : Deposit.Amount;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new DepositRetentionRequest(PaymentsFormat.Value(_amount), _justification ?? string.Empty, _attachment);
+        var result = await Runner.RunAsync<IDeposits, Result>((deposits, ct) => deposits.RetainAsync(Deposit.Id, request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

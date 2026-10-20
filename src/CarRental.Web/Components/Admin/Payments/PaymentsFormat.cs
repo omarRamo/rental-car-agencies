@@ -1,0 +1,99 @@
+using System.Globalization;
+using CarRental.Application.Cash.Contracts;
+using CarRental.Application.Payments.Contracts;
+using CarRental.Domain.Common;
+using MudBlazor;
+
+namespace CarRental.Web.Components.Admin.Payments;
+
+/// <summary>Display formats of the payments and cash screens (current UI culture; instants shown in Tunis time).</summary>
+public static class PaymentsFormat
+{
+    /// <summary>Means of payment an agent can record at the counter (every one but Clic to Pay).</summary>
+    public static IReadOnlyList<PaymentMethodInfo> CounterMethods { get; } =
+    [
+        PaymentMethodInfo.Cash,
+        PaymentMethodInfo.CardTerminal,
+        PaymentMethodInfo.Cheque,
+        PaymentMethodInfo.BankTransfer,
+        PaymentMethodInfo.ChannelPrepaid,
+    ];
+
+    /// <summary>Means an agent can pay money back with at the counter.</summary>
+    public static IReadOnlyList<PaymentMethodInfo> RefundMethods { get; } =
+    [
+        PaymentMethodInfo.Cash,
+        PaymentMethodInfo.CardTerminal,
+        PaymentMethodInfo.Cheque,
+        PaymentMethodInfo.BankTransfer,
+    ];
+
+    /// <summary>Options of the dialogs: full width up to <paramref name="maxWidth"/>, closed by the Escape key.</summary>
+    public static DialogOptions Dialog(MaxWidth maxWidth = MaxWidth.Small) =>
+        new() { MaxWidth = maxWidth, FullWidth = true, CloseOnEscapeKey = true };
+
+    public static string Amount(Money amount) => amount.ToString("N", CultureInfo.CurrentCulture);
+
+    public static string Amount(Money? amount) => amount is { } value ? Amount(value) : "—";
+
+    /// <summary>A signed amount (variance, adjustment): an explicit "+" for positive values.</summary>
+    public static string WithSign(Money amount) => amount.IsPositive ? $"+{Amount(amount)}" : Amount(amount);
+
+    public static string WithSign(Money? amount) => amount is { } value ? WithSign(value) : "—";
+
+    public static string Instant(DateTimeOffset instant) => TunisTime.ToTunis(instant).ToString("g", CultureInfo.CurrentCulture);
+
+    public static string Instant(DateTimeOffset? instant) => instant is { } value ? Instant(value) : "—";
+
+    public static string Date(DateOnly date) => date.ToString("d", CultureInfo.CurrentCulture);
+
+    /// <summary>The first characters of a booking id (bookings are referenced by id until the Bookings contract gives their number).</summary>
+    public static string ShortId(Guid id) => id.ToString("N")[..8].ToUpperInvariant();
+
+    public static bool RequiresReference(PaymentMethodInfo method) =>
+        method is PaymentMethodInfo.Cheque or PaymentMethodInfo.BankTransfer or PaymentMethodInfo.ChannelPrepaid;
+
+    public static bool CanAwaitConfirmation(PaymentMethodInfo method) => method is PaymentMethodInfo.BankTransfer or PaymentMethodInfo.Cheque;
+
+    public static bool RequiresReference(DepositModeInfo mode) => mode is DepositModeInfo.CardImprint or DepositModeInfo.Cheque;
+
+    /// <summary>Exact decimal amount typed in a numeric field (MudBlazor gives a decimal; null when empty).</summary>
+    public static decimal Value(decimal? amount) => amount ?? 0m;
+
+    public static FinanceTone ToneOf(PaymentStatusInfo status) => status switch
+    {
+        PaymentStatusInfo.Captured => FinanceTone.Success,
+        PaymentStatusInfo.Pending or PaymentStatusInfo.PreAuthorized => FinanceTone.Warning,
+        PaymentStatusInfo.Failed => FinanceTone.Danger,
+        PaymentStatusInfo.Refunded => FinanceTone.Info,
+        _ => FinanceTone.Neutral,
+    };
+
+    public static FinanceTone ToneOf(DepositStatusInfo status) => status switch
+    {
+        DepositStatusInfo.Held => FinanceTone.Warning,
+        DepositStatusInfo.Released => FinanceTone.Success,
+        DepositStatusInfo.PartiallyRetained => FinanceTone.Info,
+        _ => FinanceTone.Danger,
+    };
+
+    public static FinanceTone ToneOf(CashSessionStatusInfo status) => status switch
+    {
+        CashSessionStatusInfo.Open => FinanceTone.Success,
+        CashSessionStatusInfo.Closed => FinanceTone.Warning,
+        _ => FinanceTone.Neutral,
+    };
+
+    /// <summary>Tone of a variance: zero is fine, anything else needs attention.</summary>
+    public static FinanceTone ToneOf(Money? variance) => variance is { IsZero: false } ? FinanceTone.Danger : FinanceTone.Success;
+}
+
+/// <summary>Colour family of a <see cref="FinanceBadge"/>.</summary>
+public enum FinanceTone
+{
+    Neutral = 0,
+    Info = 1,
+    Success = 2,
+    Warning = 3,
+    Danger = 4,
+}

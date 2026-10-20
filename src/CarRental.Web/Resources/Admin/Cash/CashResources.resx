@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Cash.Title" xml:space="preserve">
+    <value>Caisse</value>
+  </data>
+  <data name="Cash.Intro" xml:space="preserve">
+    <value>Une caisse par agent et par jour : fonds de caisse, mouvements, comptage de clôture et écarts justifiés. Les cautions en espèces sont comptées à part. Heures de Tunis.</value>
+  </data>
+  <data name="Cash.Tab.Mine" xml:space="preserve">
+    <value>Ma caisse</value>
+  </data>
+  <data name="Cash.Tab.All" xml:space="preserve">
+    <value>Toutes les caisses</value>
+  </data>
+  <data name="Cash.Tab.History" xml:space="preserve">
+    <value>Mes caisses</value>
+  </data>
+  <data name="Cash.Loading" xml:space="preserve">
+    <value>Chargement de la caisse</value>
+  </data>
+  <data name="Cash.ClosedToday" xml:space="preserve">
+    <value>Votre caisse du jour est clôturée (écart espèces : {0}). Une caisse clôturée ne se rouvre pas le même jour.</value>
+  </data>
+  <data name="Cash.ViewSession" xml:space="preserve">
+    <value>Voir</value>
+  </data>
+  <data name="Cash.ViewSession.Label" xml:space="preserve">
+    <value>Voir la caisse du {0} de {1}</value>
+  </data>
+  <data name="Cash.Sessions" xml:space="preserve">
+    <value>Caisses</value>
+  </data>
+  <data name="Cash.NoSession" xml:space="preserve">
+    <value>Aucune caisse pour ces critères.</value>
+  </data>
+  <data name="Open.Title" xml:space="preserve">
+    <value>Ouvrir ma caisse</value>
+  </data>
+  <data name="Open.Hint" xml:space="preserve">
+    <value>Comptez le fonds de caisse avant d'ouvrir : les encaissements et les cautions en espèces de la journée y seront enregistrés.</value>
+  </data>
+  <data name="Open.Submit" xml:space="preserve">
+    <value>Ouvrir ma caisse</value>
+  </data>
+  <data name="Open.Done" xml:space="preserve">
+    <value>Caisse ouverte.</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Field.OpeningFloat" xml:space="preserve">
+    <value>Fonds de caisse</value>
+  </data>
+  <data name="Field.OpeningFloat.Help" xml:space="preserve">
+    <value>Espèces présentes dans la caisse à l'ouverture.</value>
+  </data>
+  <data name="Field.Direction" xml:space="preserve">
+    <value>Sens du mouvement</value>
+  </data>
+  <data name="Direction.In" xml:space="preserve">
+    <value>Entrée</value>
+  </data>
+  <data name="Direction.Out" xml:space="preserve">
+    <value>Sortie</value>
+  </data>
+  <data name="Field.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Field.Reason" xml:space="preserve">
+    <value>Motif</value>
+  </data>
+  <data name="Field.Reason.Help" xml:space="preserve">
+    <value>Obligatoire : dépôt en banque, monnaie, petit achat…</value>
+  </data>
+  <data name="Field.CountedRevenue" xml:space="preserve">
+    <value>Espèces comptées (recette)</value>
+  </data>
+  <data name="Field.CountedDeposit" xml:space="preserve">
+    <value>Cautions en espèces comptées</value>
+  </data>
+  <data name="Field.Justification" xml:space="preserve">
+    <value>Justification de l'écart</value>
+  </data>
+  <data name="Field.Justification.Required" xml:space="preserve">
+    <value>Obligatoire : le comptage diffère des espèces attendues.</value>
+  </data>
+  <data name="Field.Justification.Optional" xml:space="preserve">
+    <value>Facultatif : le comptage correspond aux espèces attendues.</value>
+  </data>
+  <data name="Field.Pocket" xml:space="preserve">
+    <value>Poche corrigée</value>
+  </data>
+  <data name="Pocket.Revenue" xml:space="preserve">
+    <value>Espèces de recette</value>
+  </data>
+  <data name="Pocket.Deposit" xml:space="preserve">
+    <value>Cautions en espèces</value>
+  </data>
+  <data name="Field.SignedAmount" xml:space="preserve">
+    <value>Montant (négatif pour une sortie)</value>
+  </data>
+  <data name="Field.SignedAmount.Help" xml:space="preserve">
+    <value>Par exemple -5,000 pour un remboursement oublié.</value>
+  </data>
+  <data name="Field.CorrectedSession" xml:space="preserve">
+    <value>Caisse corrigée</value>
+  </data>
+  <data name="Status.Open" xml:space="preserve">
+    <value>Ouverte</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Clôturée</value>
+  </data>
+  <data name="Status.Locked" xml:space="preserve">
+    <value>Verrouillée</value>
+  </data>
+  <data name="Kind.PaymentReceived" xml:space="preserve">
+    <value>Paiement reçu</value>
+  </data>
+  <data name="Kind.RefundPaid" xml:space="preserve">
+    <value>Remboursement payé</value>
+  </data>
+  <data name="Kind.DepositReceived" xml:space="preserve">
+    <value>Caution reçue</value>
+  </data>
+  <data name="Kind.DepositReturned" xml:space="preserve">
+    <value>Caution restituée</value>
+  </data>
+  <data name="Kind.DepositRetained" xml:space="preserve">
+    <value>Caution retenue</value>
+  </data>
+  <data name="Kind.DepositTransferIn" xml:space="preserve">
+    <value>Caution reprise (coffre ou autre caisse)</value>
+  </data>
+  <data name="Kind.DepositTransferOut" xml:space="preserve">
+    <value>Caution remise à une autre caisse</value>
+  </data>
+  <data name="Kind.ManualIn" xml:space="preserve">
+    <value>Entrée manuelle</value>
+  </data>
+  <data name="Kind.ManualOut" xml:space="preserve">
+    <value>Sortie manuelle</value>
+  </data>
+  <data name="Kind.Adjustment" xml:space="preserve">
+    <value>Ajustement</value>
+  </data>
+  <data name="Session.Heading" xml:space="preserve">
+    <value>Caisse du {0} — {1}</value>
+  </data>
+  <data name="Session.Title" xml:space="preserve">
+    <value>Caisse du {0} — {1}</value>
+  </data>
+  <data name="Session.TitleLoading" xml:space="preserve">
+    <value>Caisse</value>
+  </data>
+  <data name="Session.Back" xml:space="preserve">
+    <value>Retour à la caisse</value>
+  </data>
+  <data name="Session.ManualMovement" xml:space="preserve">
+    <value>Mouvement manuel</value>
+  </data>
+  <data name="Session.Adjustment" xml:space="preserve">
+    <value>Ajustement</value>
+  </data>
+  <data name="Session.Close" xml:space="preserve">
+    <value>Clôturer la caisse</value>
+  </data>
+  <data name="Session.Lock" xml:space="preserve">
+    <value>Verrouiller</value>
+  </data>
+  <data name="Session.StaleWarning" xml:space="preserve">
+    <value>Cette caisse est ouverte depuis le {0} : clôturez-la dès que possible.</value>
+  </data>
+  <data name="Session.OpeningFloat" xml:space="preserve">
+    <value>Fonds de caisse</value>
+  </data>
+  <data name="Session.ExpectedRevenue" xml:space="preserve">
+    <value>Espèces attendues</value>
+  </data>
+  <data name="Session.ExpectedDeposit" xml:space="preserve">
+    <value>Cautions en espèces attendues</value>
+  </data>
+  <data name="Session.CountedRevenue" xml:space="preserve">
+    <value>Espèces comptées</value>
+  </data>
+  <data name="Session.RevenueVariance" xml:space="preserve">
+    <value>Écart espèces</value>
+  </data>
+  <data name="Session.CountedDeposit" xml:space="preserve">
+    <value>Cautions comptées</value>
+  </data>
+  <data name="Session.DepositVariance" xml:space="preserve">
+    <value>Écart cautions</value>
+  </data>
+  <data name="Session.ClosedBy" xml:space="preserve">
+    <value>Clôturée le {0} par {1}.</value>
+  </data>
+  <data name="Session.Justification" xml:space="preserve">
+    <value>Justification : {0}</value>
+  </data>
+  <data name="Session.LockedBy" xml:space="preserve">
+    <value>Verrouillée le {0} par {1}.</value>
+  </data>
+  <data name="Session.Movements" xml:space="preserve">
+    <value>Mouvements de la caisse</value>
+  </data>
+  <data name="Session.NoMovement" xml:space="preserve">
+    <value>Aucun mouvement pour l'instant.</value>
+  </data>
+  <data name="Column.Sequence" xml:space="preserve">
+    <value>N°</value>
+  </data>
+  <data name="Column.Time" xml:space="preserve">
+    <value>Heure</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Revenue" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="Column.Deposit" xml:space="preserve">
+    <value>Cautions</value>
+  </data>
+  <data name="Column.RevenueBalance" xml:space="preserve">
+    <value>Espèces attendues</value>
+  </data>
+  <data name="Column.DepositBalance" xml:space="preserve">
+    <value>Cautions attendues</value>
+  </data>
+  <data name="Column.Detail" xml:space="preserve">
+    <value>Motif ou dossier</value>
+  </data>
+  <data name="Column.By" xml:space="preserve">
+    <value>Par</value>
+  </data>
+  <data name="Column.BusinessDate" xml:space="preserve">
+    <value>Jour</value>
+  </data>
+  <data name="Column.Cashier" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Column.OpeningFloat" xml:space="preserve">
+    <value>Fonds</value>
+  </data>
+  <data name="Column.ExpectedRevenue" xml:space="preserve">
+    <value>Espèces attendues</value>
+  </data>
+  <data name="Column.CountedRevenue" xml:space="preserve">
+    <value>Espèces comptées</value>
+  </data>
+  <data name="Column.RevenueVariance" xml:space="preserve">
+    <value>Écart</value>
+  </data>
+  <data name="Column.ExpectedDeposit" xml:space="preserve">
+    <value>Cautions attendues</value>
+  </data>
+  <data name="Column.DepositVariance" xml:space="preserve">
+    <value>Écart cautions</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Movement.Booking" xml:space="preserve">
+    <value>Dossier {0}</value>
+  </data>
+  <data name="Movement.Booking.Label" xml:space="preserve">
+    <value>Paiements du dossier {0}</value>
+  </data>
+  <data name="Manual.Title" xml:space="preserve">
+    <value>Mouvement manuel</value>
+  </data>
+  <data name="Manual.Submit" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Manual.Done" xml:space="preserve">
+    <value>Mouvement enregistré.</value>
+  </data>
+  <data name="Adjustment.Title" xml:space="preserve">
+    <value>Ajustement de caisse</value>
+  </data>
+  <data name="Adjustment.Hint" xml:space="preserve">
+    <value>Une caisse verrouillée ne change plus : une erreur constatée après coup se corrige ici, dans une caisse ouverte, en indiquant la caisse corrigée.</value>
+  </data>
+  <data name="Adjustment.Submit" xml:space="preserve">
+    <value>Enregistrer l'ajustement</value>
+  </data>
+  <data name="Adjustment.Done" xml:space="preserve">
+    <value>Ajustement enregistré.</value>
+  </data>
+  <data name="Close.Title" xml:space="preserve">
+    <value>Clôturer la caisse</value>
+  </data>
+  <data name="Close.Warning" xml:space="preserve">
+    <value>La clôture est définitive : plus aucune opération en espèces dans cette caisse, et pas de nouvelle caisse aujourd'hui dans cette agence.</value>
+  </data>
+  <data name="Close.Expected" xml:space="preserve">
+    <value>Attendu : {0}</value>
+  </data>
+  <data name="Close.RevenueVariance" xml:space="preserve">
+    <value>Écart espèces : {0}</value>
+  </data>
+  <data name="Close.DepositVariance" xml:space="preserve">
+    <value>Écart cautions : {0}</value>
+  </data>
+  <data name="Close.Submit" xml:space="preserve">
+    <value>Clôturer</value>
+  </data>
+  <data name="Close.Done" xml:space="preserve">
+    <value>Caisse clôturée.</value>
+  </data>
+  <data name="Lock.Title" xml:space="preserve">
+    <value>Verrouiller la caisse</value>
+  </data>
+  <data name="Lock.Message" xml:space="preserve">
+    <value>Verrouiller la caisse du {0} de {1} ? Elle ne pourra plus être modifiée.</value>
+  </data>
+  <data name="Lock.Done" xml:space="preserve">
+    <value>Caisse verrouillée.</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Cashier" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Filter.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Réinitialiser</value>
+  </data>
+  <data name="Totals.Sessions" xml:space="preserve">
+    <value>Caisses</value>
+  </data>
+  <data name="Totals.ExpectedRevenue" xml:space="preserve">
+    <value>Espèces attendues</value>
+  </data>
+  <data name="Totals.CountedRevenue" xml:space="preserve">
+    <value>Espèces comptées</value>
+  </data>
+  <data name="Totals.RevenueVariance" xml:space="preserve">
+    <value>Écarts espèces</value>
+  </data>
+  <data name="Totals.ExpectedDeposit" xml:space="preserve">
+    <value>Cautions attendues</value>
+  </data>
+  <data name="Totals.DepositVariance" xml:space="preserve">
+    <value>Écarts cautions</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} sur {all_items}</value>
+  </data>
+</root>

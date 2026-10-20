@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Payments.Title" xml:space="preserve">
+    <value>Paiements et cautions</value>
+  </data>
+  <data name="Payments.TimeZoneNote" xml:space="preserve">
+    <value>Dates et heures à l'heure de Tunis. Les cautions sont des dettes envers les clients : elles ne comptent jamais dans les encaissements.</value>
+  </data>
+  <data name="Payments.Tab.Payments" xml:space="preserve">
+    <value>Paiements</value>
+  </data>
+  <data name="Payments.Tab.Deposits" xml:space="preserve">
+    <value>Cautions</value>
+  </data>
+  <data name="Payments.Empty" xml:space="preserve">
+    <value>Aucun paiement pour ces critères.</value>
+  </data>
+  <data name="Deposits.Empty" xml:space="preserve">
+    <value>Aucune caution pour ces critères.</value>
+  </data>
+  <data name="Lookup.Label" xml:space="preserve">
+    <value>Ouvrir les paiements d'un dossier (identifiant)</value>
+  </data>
+  <data name="Lookup.Help" xml:space="preserve">
+    <value>Ouvre les paiements et les cautions d'un dossier (identifiant complet).</value>
+  </data>
+  <data name="Lookup.Open" xml:space="preserve">
+    <value>Ouvrir le dossier</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Method" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="Filter.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Filter.DepositMode" xml:space="preserve">
+    <value>Mode de caution</value>
+  </data>
+  <data name="Filter.Booking" xml:space="preserve">
+    <value>Identifiant du dossier</value>
+  </data>
+  <data name="Filter.Booking.Invalid" xml:space="preserve">
+    <value>Cet identifiant de dossier n'est pas valide.</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Réinitialiser</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} sur {all_items}</value>
+  </data>
+  <data name="Booking.Title" xml:space="preserve">
+    <value>Paiements du dossier {0}</value>
+  </data>
+  <data name="Booking.Subtitle" xml:space="preserve">
+    <value>Dossier {0}</value>
+  </data>
+  <data name="Booking.Back" xml:space="preserve">
+    <value>Retour aux paiements et cautions</value>
+  </data>
+  <data name="Booking.Open.Label" xml:space="preserve">
+    <value>Ouvrir les paiements du dossier {0}</value>
+  </data>
+  <data name="Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Sens</value>
+  </data>
+  <data name="Column.Method" xml:space="preserve">
+    <value>Moyen</value>
+  </data>
+  <data name="Column.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Column.Reference" xml:space="preserve">
+    <value>Référence</value>
+  </data>
+  <data name="Column.By" xml:space="preserve">
+    <value>Enregistré par</value>
+  </data>
+  <data name="Column.DepositMode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="Column.Retained" xml:space="preserve">
+    <value>Retenu</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Direction.Incoming" xml:space="preserve">
+    <value>Encaissement</value>
+  </data>
+  <data name="Direction.Refund" xml:space="preserve">
+    <value>Remboursement</value>
+  </data>
+  <data name="Method.Cash" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="Method.CardTerminal" xml:space="preserve">
+    <value>Carte (TPE)</value>
+  </data>
+  <data name="Method.Cheque" xml:space="preserve">
+    <value>Chèque</value>
+  </data>
+  <data name="Method.BankTransfer" xml:space="preserve">
+    <value>Virement</value>
+  </data>
+  <data name="Method.ChannelPrepaid" xml:space="preserve">
+    <value>Prépayé au canal (Booking.com…)</value>
+  </data>
+  <data name="Method.ClicToPay" xml:space="preserve">
+    <value>Clic to Pay (en ligne)</value>
+  </data>
+  <data name="PaymentStatus.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="PaymentStatus.PreAuthorized" xml:space="preserve">
+    <value>Pré-autorisé</value>
+  </data>
+  <data name="PaymentStatus.Captured" xml:space="preserve">
+    <value>Encaissé</value>
+  </data>
+  <data name="PaymentStatus.Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="PaymentStatus.Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="PaymentStatus.Failed" xml:space="preserve">
+    <value>Échoué</value>
+  </data>
+  <data name="Status.Incoming.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Status.Incoming.PreAuthorized" xml:space="preserve">
+    <value>Pré-autorisé</value>
+  </data>
+  <data name="Status.Incoming.Captured" xml:space="preserve">
+    <value>Encaissé</value>
+  </data>
+  <data name="Status.Incoming.Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="Status.Incoming.Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="Status.Incoming.Failed" xml:space="preserve">
+    <value>Échoué</value>
+  </data>
+  <data name="Status.Refund.Pending" xml:space="preserve">
+    <value>À rembourser</value>
+  </data>
+  <data name="Status.Refund.PreAuthorized" xml:space="preserve">
+    <value>Pré-autorisé</value>
+  </data>
+  <data name="Status.Refund.Captured" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="Status.Refund.Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="Status.Refund.Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="Status.Refund.Failed" xml:space="preserve">
+    <value>Échoué</value>
+  </data>
+  <data name="DepositMode.CardImprint" xml:space="preserve">
+    <value>Empreinte de carte (TPE)</value>
+  </data>
+  <data name="DepositMode.Cash" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="DepositMode.Cheque" xml:space="preserve">
+    <value>Chèque</value>
+  </data>
+  <data name="DepositStatus.Held" xml:space="preserve">
+    <value>Bloquée</value>
+  </data>
+  <data name="DepositStatus.Released" xml:space="preserve">
+    <value>Restituée</value>
+  </data>
+  <data name="DepositStatus.PartiallyRetained" xml:space="preserve">
+    <value>Retenue partielle</value>
+  </data>
+  <data name="DepositStatus.Retained" xml:space="preserve">
+    <value>Retenue</value>
+  </data>
+  <data name="Totals.Captured" xml:space="preserve">
+    <value>Encaissé</value>
+  </data>
+  <data name="Totals.Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="Totals.NetPaid" xml:space="preserve">
+    <value>Net payé</value>
+  </data>
+  <data name="Totals.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Totals.PreAuthorized" xml:space="preserve">
+    <value>Pré-autorisé</value>
+  </data>
+  <data name="Totals.OpenLiability" xml:space="preserve">
+    <value>Cautions détenues</value>
+  </data>
+  <data name="Totals.OpenLiability.Value" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Totals.Retained" xml:space="preserve">
+    <value>Retenu sur cautions</value>
+  </data>
+  <data name="Totals.Returned" xml:space="preserve">
+    <value>Restitué</value>
+  </data>
+  <data name="Panel.Payments" xml:space="preserve">
+    <value>Paiements</value>
+  </data>
+  <data name="Panel.Deposits" xml:space="preserve">
+    <value>Cautions</value>
+  </data>
+  <data name="Panel.RecordPayment" xml:space="preserve">
+    <value>Encaisser</value>
+  </data>
+  <data name="Panel.TakeDeposit" xml:space="preserve">
+    <value>Prendre une caution</value>
+  </data>
+  <data name="Panel.NoPayment" xml:space="preserve">
+    <value>Aucun paiement pour ce dossier.</value>
+  </data>
+  <data name="Panel.NoDeposit" xml:space="preserve">
+    <value>Aucune caution pour ce dossier.</value>
+  </data>
+  <data name="Panel.Loading" xml:space="preserve">
+    <value>Chargement des paiements</value>
+  </data>
+  <data name="Panel.PartlyRefunded" xml:space="preserve">
+    <value>dont {0} remboursés</value>
+  </data>
+  <data name="Panel.Refund" xml:space="preserve">
+    <value>Rembourser</value>
+  </data>
+  <data name="Panel.Refund.Label" xml:space="preserve">
+    <value>Rembourser le paiement de {0}</value>
+  </data>
+  <data name="Panel.Confirm" xml:space="preserve">
+    <value>Confirmer la réception</value>
+  </data>
+  <data name="Panel.Confirm.Label" xml:space="preserve">
+    <value>Confirmer la réception du paiement de {0}</value>
+  </data>
+  <data name="Panel.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Panel.Cancel.Label" xml:space="preserve">
+    <value>Annuler le paiement en attente de {0}</value>
+  </data>
+  <data name="Panel.Release" xml:space="preserve">
+    <value>Restituer</value>
+  </data>
+  <data name="Panel.Release.Label" xml:space="preserve">
+    <value>Restituer la caution de {0}</value>
+  </data>
+  <data name="Panel.Retain" xml:space="preserve">
+    <value>Retenir</value>
+  </data>
+  <data name="Panel.Retain.Label" xml:space="preserve">
+    <value>Retenir sur la caution de {0}</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Field.Method" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="Field.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Field.Reference.Cash" xml:space="preserve">
+    <value>Référence (facultative)</value>
+  </data>
+  <data name="Field.Reference.CardTerminal" xml:space="preserve">
+    <value>N° du ticket TPE (facultatif)</value>
+  </data>
+  <data name="Field.Reference.Cheque" xml:space="preserve">
+    <value>N° du chèque</value>
+  </data>
+  <data name="Field.Reference.BankTransfer" xml:space="preserve">
+    <value>Référence du virement</value>
+  </data>
+  <data name="Field.Reference.ChannelPrepaid" xml:space="preserve">
+    <value>Référence de réservation du canal</value>
+  </data>
+  <data name="Field.Reference.ClicToPay" xml:space="preserve">
+    <value>N° de commande Clic to Pay</value>
+  </data>
+  <data name="Field.AwaitingConfirmation" xml:space="preserve">
+    <value>En attente de confirmation (virement annoncé, chèque non encaissé)</value>
+  </data>
+  <data name="Field.Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Field.RefundMethod" xml:space="preserve">
+    <value>Rembourser par</value>
+  </data>
+  <data name="Field.RefundReason" xml:space="preserve">
+    <value>Motif du remboursement</value>
+  </data>
+  <data name="Field.DepositMode" xml:space="preserve">
+    <value>Mode de caution</value>
+  </data>
+  <data name="Field.DepositReference.CardImprint" xml:space="preserve">
+    <value>N° d'autorisation de l'empreinte</value>
+  </data>
+  <data name="Field.DepositReference.Cash" xml:space="preserve">
+    <value>Référence (facultative)</value>
+  </data>
+  <data name="Field.DepositReference.Cheque" xml:space="preserve">
+    <value>N° du chèque</value>
+  </data>
+  <data name="Field.RetainedAmount" xml:space="preserve">
+    <value>Montant retenu</value>
+  </data>
+  <data name="Field.Justification" xml:space="preserve">
+    <value>Justification de la retenue</value>
+  </data>
+  <data name="Field.Justification.Help" xml:space="preserve">
+    <value>Obligatoire : dommages, carburant manquant, retard, nettoyage…</value>
+  </data>
+  <data name="Field.Attachment" xml:space="preserve">
+    <value>Justificatif (référence)</value>
+  </data>
+  <data name="Field.Attachment.Help" xml:space="preserve">
+    <value>Facultatif : n° de devis, de facture ou nom de la photo.</value>
+  </data>
+  <data name="RecordPayment.Title" xml:space="preserve">
+    <value>Encaisser un paiement</value>
+  </data>
+  <data name="RecordPayment.Submit" xml:space="preserve">
+    <value>Encaisser</value>
+  </data>
+  <data name="RecordPayment.CashHint" xml:space="preserve">
+    <value>Les espèces sont enregistrées dans votre caisse ouverte.</value>
+  </data>
+  <data name="RecordPayment.Done" xml:space="preserve">
+    <value>Paiement enregistré.</value>
+  </data>
+  <data name="Refund.Title" xml:space="preserve">
+    <value>Rembourser</value>
+  </data>
+  <data name="Refund.Refundable" xml:space="preserve">
+    <value>Remboursable : {0}</value>
+  </data>
+  <data name="Refund.Submit" xml:space="preserve">
+    <value>Rembourser</value>
+  </data>
+  <data name="Refund.Done" xml:space="preserve">
+    <value>Remboursement enregistré.</value>
+  </data>
+  <data name="Confirm.Title" xml:space="preserve">
+    <value>Confirmer la réception</value>
+  </data>
+  <data name="Confirm.Message" xml:space="preserve">
+    <value>Confirmer la réception de {0} ({1}) ? Le paiement sera compté comme encaissé.</value>
+  </data>
+  <data name="Confirm.Done" xml:space="preserve">
+    <value>Paiement confirmé.</value>
+  </data>
+  <data name="Cancel.Title" xml:space="preserve">
+    <value>Annuler un paiement en attente</value>
+  </data>
+  <data name="Cancel.Message" xml:space="preserve">
+    <value>Le paiement de {0} ({1}) ne sera plus attendu.</value>
+  </data>
+  <data name="Cancel.Reason" xml:space="preserve">
+    <value>Motif de l'annulation</value>
+  </data>
+  <data name="Cancel.Submit" xml:space="preserve">
+    <value>Annuler le paiement</value>
+  </data>
+  <data name="Cancel.Done" xml:space="preserve">
+    <value>Paiement annulé.</value>
+  </data>
+  <data name="TakeDeposit.Title" xml:space="preserve">
+    <value>Prendre une caution</value>
+  </data>
+  <data name="TakeDeposit.Hint" xml:space="preserve">
+    <value>La caution est une dette envers le client : elle est restituée ou retenue au retour, jamais encaissée comme un paiement. En espèces, elle est comptée à part dans votre caisse.</value>
+  </data>
+  <data name="TakeDeposit.Submit" xml:space="preserve">
+    <value>Prendre la caution</value>
+  </data>
+  <data name="TakeDeposit.Done" xml:space="preserve">
+    <value>Caution enregistrée.</value>
+  </data>
+  <data name="Release.Title" xml:space="preserve">
+    <value>Restituer la caution</value>
+  </data>
+  <data name="Release.Message" xml:space="preserve">
+    <value>Restituer la caution de {0} ({1}) en totalité ? Cette décision est définitive.</value>
+  </data>
+  <data name="Release.Done" xml:space="preserve">
+    <value>Caution restituée.</value>
+  </data>
+  <data name="Retain.Title" xml:space="preserve">
+    <value>Retenir sur la caution</value>
+  </data>
+  <data name="Retain.Deposit" xml:space="preserve">
+    <value>Caution de {0} ({1}).</value>
+  </data>
+  <data name="Retain.Returned" xml:space="preserve">
+    <value>Restitué au client : {0}</value>
+  </data>
+  <data name="Retain.CashHint" xml:space="preserve">
+    <value>La part restituée sort de vos cautions en espèces ; la part retenue rejoint vos espèces de recette.</value>
+  </data>
+  <data name="Retain.Submit" xml:space="preserve">
+    <value>Retenir</value>
+  </data>
+  <data name="Retain.Done" xml:space="preserve">
+    <value>Retenue enregistrée.</value>
+  </data>
+  <data name="Panel.NoAccess" xml:space="preserve">
+    <value>Vos droits ne donnent pas accès aux paiements et aux cautions de ce dossier.</value>
+  </data>
+</root>

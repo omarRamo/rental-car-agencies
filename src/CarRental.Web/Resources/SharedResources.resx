@@ -591,4 +591,184 @@
   <data name="Error.fleet.vehicle.year_invalid" xml:space="preserve">
     <value>L'année est comprise entre 1990 et 2100.</value>
   </data>
+  <data name="Error.payments.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission d'enregistrer ou de consulter les paiements et les cautions.</value>
+  </data>
+  <data name="Error.payments.agency_required" xml:space="preserve">
+    <value>Une agence est obligatoire.</value>
+  </data>
+  <data name="Error.payments.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas ou n'est plus active.</value>
+  </data>
+  <data name="Error.payments.booking_required" xml:space="preserve">
+    <value>Un dossier est obligatoire.</value>
+  </data>
+  <data name="Error.payments.amount_invalid" xml:space="preserve">
+    <value>Le montant est positif, en dinars avec au plus 3 décimales (millimes), et ne dépasse pas 1 000 000 TND.</value>
+  </data>
+  <data name="Error.payments.reference_too_long" xml:space="preserve">
+    <value>La référence compte 100 caractères au plus.</value>
+  </data>
+  <data name="Error.payments.notes_too_long" xml:space="preserve">
+    <value>Les notes comptent 500 caractères au plus.</value>
+  </data>
+  <data name="Error.payments.reason_required" xml:space="preserve">
+    <value>Un motif d'au moins 3 caractères est obligatoire.</value>
+  </data>
+  <data name="Error.payments.reason_too_long" xml:space="preserve">
+    <value>Le motif compte 500 caractères au plus.</value>
+  </data>
+  <data name="Error.payments.concurrent_update" xml:space="preserve">
+    <value>Quelqu'un a modifié ces données entre-temps : rechargez la page et recommencez.</value>
+  </data>
+  <data name="Error.payments.method_invalid" xml:space="preserve">
+    <value>Moyen de paiement inconnu.</value>
+  </data>
+  <data name="Error.payments.method_not_counter" xml:space="preserve">
+    <value>Un paiement Clic to Pay vient du paiement en ligne : il ne s'enregistre pas au comptoir.</value>
+  </data>
+  <data name="Error.payments.reference_required" xml:space="preserve">
+    <value>Le numéro du chèque, la référence du virement ou la référence de réservation du canal est obligatoire.</value>
+  </data>
+  <data name="Error.payments.confirmation_not_applicable" xml:space="preserve">
+    <value>Seuls un virement ou un chèque peuvent être en attente de confirmation.</value>
+  </data>
+  <data name="Error.payments.cash_session_required" xml:space="preserve">
+    <value>Les espèces passent toujours par la caisse ouverte de l'agent.</value>
+  </data>
+  <data name="Error.payments.payment.not_found" xml:space="preserve">
+    <value>Ce paiement n'existe pas.</value>
+  </data>
+  <data name="Error.payments.payment.not_pending" xml:space="preserve">
+    <value>Seul un paiement en attente peut être confirmé ou annulé.</value>
+  </data>
+  <data name="Error.payments.payment.online_status_from_gateway_only" xml:space="preserve">
+    <value>Le statut d'un paiement Clic to Pay ne change que sur confirmation de la banque.</value>
+  </data>
+  <data name="Error.payments.payment.not_online" xml:space="preserve">
+    <value>Ce statut de la banque ne concerne qu'un paiement Clic to Pay.</value>
+  </data>
+  <data name="Error.payments.payment.gateway_transition_invalid" xml:space="preserve">
+    <value>Le statut confirmé par la banque ne suit pas le statut actuel du paiement.</value>
+  </data>
+  <data name="Error.payments.payment.gateway_amount_invalid" xml:space="preserve">
+    <value>Le montant confirmé par la banque manque ou dépasse le montant du paiement.</value>
+  </data>
+  <data name="Error.payments.refund.not_allowed" xml:space="preserve">
+    <value>Seul un encaissement peut être remboursé.</value>
+  </data>
+  <data name="Error.payments.refund.not_captured" xml:space="preserve">
+    <value>Seul un paiement encaissé peut être remboursé.</value>
+  </data>
+  <data name="Error.payments.refund.exceeds_captured" xml:space="preserve">
+    <value>Les remboursements d'un paiement ne peuvent pas dépasser le montant encaissé.</value>
+  </data>
+  <data name="Error.payments.refund.method_invalid" xml:space="preserve">
+    <value>Le remboursement au comptoir se fait en espèces, par carte (TPE), par chèque ou par virement.</value>
+  </data>
+  <data name="Error.payments.refund.reason_required" xml:space="preserve">
+    <value>Le motif du remboursement est obligatoire (3 à 500 caractères).</value>
+  </data>
+  <data name="Error.payments.deposit.not_found" xml:space="preserve">
+    <value>Cette caution n'existe pas.</value>
+  </data>
+  <data name="Error.payments.deposit.mode_invalid" xml:space="preserve">
+    <value>Une caution se prend par empreinte de carte, en espèces ou par chèque.</value>
+  </data>
+  <data name="Error.payments.deposit.reference_required" xml:space="preserve">
+    <value>Le numéro d'autorisation de l'empreinte ou le numéro du chèque est obligatoire.</value>
+  </data>
+  <data name="Error.payments.deposit.already_settled" xml:space="preserve">
+    <value>Cette caution a déjà été restituée ou retenue.</value>
+  </data>
+  <data name="Error.payments.deposit.retained_amount_invalid" xml:space="preserve">
+    <value>Le montant retenu est positif, en millimes au plus, et ne dépasse pas la caution (restituez-la pour ne rien retenir).</value>
+  </data>
+  <data name="Error.payments.deposit.justification_required" xml:space="preserve">
+    <value>Une retenue exige une justification d'au moins 3 caractères.</value>
+  </data>
+  <data name="Error.payments.deposit.justification_too_long" xml:space="preserve">
+    <value>La justification compte 1 000 caractères au plus.</value>
+  </data>
+  <data name="Error.payments.deposit.attachment_too_long" xml:space="preserve">
+    <value>La référence du justificatif compte 500 caractères au plus.</value>
+  </data>
+  <data name="Error.cash.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer cette caisse.</value>
+  </data>
+  <data name="Error.cash.agency_required" xml:space="preserve">
+    <value>Une agence est obligatoire.</value>
+  </data>
+  <data name="Error.cash.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas ou n'est plus active.</value>
+  </data>
+  <data name="Error.cash.cashier_required" xml:space="preserve">
+    <value>Une caisse appartient à un utilisateur connecté.</value>
+  </data>
+  <data name="Error.cash.amount_invalid" xml:space="preserve">
+    <value>Le montant est positif, en dinars avec au plus 3 décimales (millimes), et ne dépasse pas 1 000 000 TND.</value>
+  </data>
+  <data name="Error.cash.concurrent_update" xml:space="preserve">
+    <value>La caisse a été modifiée entre-temps : rechargez la page et recommencez.</value>
+  </data>
+  <data name="Error.cash.session.opening_float_invalid" xml:space="preserve">
+    <value>Le fonds de caisse est nul ou positif, en dinars avec au plus 3 décimales.</value>
+  </data>
+  <data name="Error.cash.session.not_found" xml:space="preserve">
+    <value>Cette caisse n'existe pas.</value>
+  </data>
+  <data name="Error.cash.session.not_owned" xml:space="preserve">
+    <value>Cette caisse appartient à un autre utilisateur.</value>
+  </data>
+  <data name="Error.cash.session.none_open" xml:space="preserve">
+    <value>Les espèces s'enregistrent dans votre caisse ouverte : ouvrez d'abord votre caisse.</value>
+  </data>
+  <data name="Error.cash.session.already_open" xml:space="preserve">
+    <value>Vous avez déjà une caisse ouverte : clôturez-la avant d'en ouvrir une autre.</value>
+  </data>
+  <data name="Error.cash.session.already_exists_for_day" xml:space="preserve">
+    <value>Vous avez déjà eu une caisse aujourd'hui dans cette agence : une caisse clôturée ne se rouvre pas.</value>
+  </data>
+  <data name="Error.cash.session.agency_mismatch" xml:space="preserve">
+    <value>Votre caisse ouverte appartient à une autre agence.</value>
+  </data>
+  <data name="Error.cash.session.closed" xml:space="preserve">
+    <value>Cette caisse est clôturée : plus aucun mouvement ne peut y être enregistré.</value>
+  </data>
+  <data name="Error.cash.session.locked" xml:space="preserve">
+    <value>Cette caisse est verrouillée : elle ne change plus ; corrigez-la par un ajustement dans une caisse ouverte.</value>
+  </data>
+  <data name="Error.cash.session.not_closed" xml:space="preserve">
+    <value>Seule une caisse clôturée peut être verrouillée.</value>
+  </data>
+  <data name="Error.cash.session.counted_amount_invalid" xml:space="preserve">
+    <value>Un montant compté est nul ou positif, en dinars avec au plus 3 décimales.</value>
+  </data>
+  <data name="Error.cash.session.variance_justification_required" xml:space="preserve">
+    <value>Un écart entre le comptage et les espèces attendues exige une justification d'au moins 3 caractères.</value>
+  </data>
+  <data name="Error.cash.session.justification_too_long" xml:space="preserve">
+    <value>La justification compte 500 caractères au plus.</value>
+  </data>
+  <data name="Error.cash.movement.reason_required" xml:space="preserve">
+    <value>Un mouvement manuel ou un ajustement exige un motif d'au moins 3 caractères.</value>
+  </data>
+  <data name="Error.cash.movement.reason_too_long" xml:space="preserve">
+    <value>Le motif compte 500 caractères au plus.</value>
+  </data>
+  <data name="Error.cash.movement.direction_invalid" xml:space="preserve">
+    <value>Un mouvement manuel est une entrée ou une sortie.</value>
+  </data>
+  <data name="Error.cash.movement.pocket_invalid" xml:space="preserve">
+    <value>Poche de caisse inconnue.</value>
+  </data>
+  <data name="Error.cash.movement.duplicate" xml:space="preserve">
+    <value>Ce paiement ou cette caution est déjà enregistré dans la caisse.</value>
+  </data>
+  <data name="Error.cash.movement.insufficient_cash" xml:space="preserve">
+    <value>Les espèces attendues de la caisse ne couvrent pas cette sortie.</value>
+  </data>
+  <data name="Error.cash.adjustment.corrected_session_invalid" xml:space="preserve">
+    <value>La caisse corrigée doit être une autre caisse, clôturée ou verrouillée.</value>
+  </data>
 </root>

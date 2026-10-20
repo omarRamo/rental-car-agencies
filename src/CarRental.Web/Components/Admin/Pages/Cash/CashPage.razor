@@ -1,0 +1,268 @@
+@page "/admin/cash"
+@attribute [HasPermission(Permissions.CashOwn)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject TimeProvider Time
+@inject IStringLocalizer<CashResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Cash.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && !_loading ? "true" : "false")">@L["Cash.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Cash.Intro"]</MudText>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="@L["Cash.Tab.Mine"]">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Cash.Loading"]" />
+        }
+        else if (_current is { } current)
+        {
+            <CashSessionView Session="current" IsOwner="true" CanManage="_canManage" OnChanged="LoadMineAsync" />
+        }
+        else
+        {
+            @foreach (var today in _closedToday)
+            {
+                <FinanceNotice Tone="FinanceTone.Info" Class="mb-3" Role="status">
+                    @L["Cash.ClosedToday", PaymentsFormat.WithSign(today.RevenueVariance)]
+                    <MudLink Href="@($"/admin/cash/sessions/{today.Id}")" Class="ms-2" Underline="Underline.Always">@L["Cash.ViewSession"]</MudLink>
+                </FinanceNotice>
+            }
+
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Open.Title"]</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@L["Open.Hint"]</MudText>
+                <MudGrid Spacing="2">
+                    @if (_agencies.Count > 1)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                                @foreach (var agency in _agencies)
+                                {
+                                    <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal?" @bind-Value="_openingFloat" Label="@L["Field.OpeningFloat"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                         AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true"
+                                         HelperText="@L["Field.OpeningFloat.Help"]" Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PointOfSale" OnClick="OpenAsync"
+                                   Disabled="@(_busy || _openingFloat is null || _agencyId == Guid.Empty || !RendererInfo.IsInteractive)">@L["Open.Submit"]</MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (_openError is not null)
+                {
+                    <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_openError</FinanceNotice>
+                }
+            </MudPaper>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@(_canManage ? L["Cash.Tab.All"] : L["Cash.Tab.History"])">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_from" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_to" Clearable="true" Editable="true" />
+                </MudItem>
+                @if (_canManage)
+                {
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="Guid?" @bind-Value="_cashierId" Label="@L["Filter.Cashier"]" Clearable="true" ToStringFunc="CashierName">
+                            @foreach (var cashier in _cashiers)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)cashier.CashierId)">@cashier.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="CashSessionStatusInfo?" @bind-Value="_status" Label="@L["Filter.Status"]" Clearable="true"
+                               ToStringFunc="@(s => s is { } status ? L[$"Status.{status}"] : string.Empty)">
+                        @foreach (var status in Enum.GetValues<CashSessionStatusInfo>())
+                        {
+                            <MudSelectItem T="CashSessionStatusInfo?" Value="@((CashSessionStatusInfo?)status)">@L[$"Status.{status}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" Class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchAsync">@L["Filter.Search"]</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="ResetAsync">@L["Filter.Reset"]</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @if (_totals is { } totals)
+        {
+            <dl class="d-flex flex-wrap gap-6 mb-3" style="margin:0" data-testid="session-list-totals">
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Sessions"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@totals.Count</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.ExpectedRevenue"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.ExpectedRevenueCash)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.CountedRevenue"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.CountedRevenueCash)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.RevenueVariance"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.WithSign(totals.RevenueVariance)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.ExpectedDeposit"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.ExpectedDepositCash)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.DepositVariance"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.WithSign(totals.DepositVariance)</dd></div>
+            </dl>
+        }
+
+        <MudTable @ref="_table" T="CashSessionSummary" ServerData="LoadSessionsAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1"
+                  Breakpoint="Breakpoint.Sm" TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Cash.Sessions"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.BusinessDate"]</MudTh>
+                <MudTh>@L["Column.Cashier"]</MudTh>
+                <MudTh>@L["Column.Status"]</MudTh>
+                <MudTh>@L["Column.OpeningFloat"]</MudTh>
+                <MudTh>@L["Column.ExpectedRevenue"]</MudTh>
+                <MudTh>@L["Column.CountedRevenue"]</MudTh>
+                <MudTh>@L["Column.RevenueVariance"]</MudTh>
+                <MudTh>@L["Column.ExpectedDeposit"]</MudTh>
+                <MudTh>@L["Column.DepositVariance"]</MudTh>
+                <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.BusinessDate"]">@PaymentsFormat.Date(context.BusinessDate)</MudTd>
+                <MudTd DataLabel="@L["Column.Cashier"]">@context.CashierName</MudTd>
+                <MudTd DataLabel="@L["Column.Status"]">
+                    <FinanceBadge Tone="PaymentsFormat.ToneOf(context.Status)">@L[$"Status.{context.Status}"]</FinanceBadge>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.OpeningFloat"]">@PaymentsFormat.Amount(context.OpeningFloat)</MudTd>
+                <MudTd DataLabel="@L["Column.ExpectedRevenue"]">@PaymentsFormat.Amount(context.ExpectedRevenueCash)</MudTd>
+                <MudTd DataLabel="@L["Column.CountedRevenue"]">@PaymentsFormat.Amount(context.CountedRevenueCash)</MudTd>
+                <MudTd DataLabel="@L["Column.RevenueVariance"]">@PaymentsFormat.WithSign(context.RevenueVariance)</MudTd>
+                <MudTd DataLabel="@L["Column.ExpectedDeposit"]">@PaymentsFormat.Amount(context.ExpectedDepositCash)</MudTd>
+                <MudTd DataLabel="@L["Column.DepositVariance"]">@PaymentsFormat.WithSign(context.DepositVariance)</MudTd>
+                <MudTd>
+                    <MudLink Href="@($"/admin/cash/sessions/{context.Id}")"
+                             aria-label="@L["Cash.ViewSession.Label", PaymentsFormat.Date(context.BusinessDate), context.CashierName]">@L["Cash.ViewSession"]</MudLink>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Cash.NoSession"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<CashSessionSummary>? _table;
+    private CashSessionDetails? _current;
+    private IReadOnlyList<CashSessionSummary> _closedToday = [];
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private IReadOnlyList<CashierInfo> _cashiers = [];
+    private CashSessionListTotals? _totals;
+    private Guid _agencyId;
+    private decimal? _openingFloat;
+    private string? _openError;
+    private bool _loading = true;
+    private bool _busy;
+    private bool _canManage;
+    private int _tab;
+    private DateTime? _from;
+    private DateTime? _to;
+    private Guid? _cashierId;
+    private CashSessionStatusInfo? _status;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.CashManage);
+        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        _agencies = [.. agencies.Where(a => a.IsActive)];
+        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (_canManage)
+        {
+            var cashiers = await Runner.RunAsync<ICashSessions, Result<IReadOnlyList<CashierInfo>>>((sessions, ct) => sessions.ListCashiersAsync(ct));
+            _cashiers = cashiers.IsSuccess ? cashiers.Value : [];
+        }
+
+        await LoadMineAsync();
+    }
+
+    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private string CashierName(Guid? id) => _cashiers.FirstOrDefault(c => c.CashierId == id)?.Name ?? string.Empty;
+
+    private static DateOnly? DateOf(DateTime? value) => value is { } date ? DateOnly.FromDateTime(date) : null;
+
+    /// <summary>The open session of the user, or today's closed session (a closed session is not reopened the same day).</summary>
+    private async Task LoadMineAsync()
+    {
+        _loading = true;
+        var current = await Runner.RunAsync<ICashSessions, Result<CashSessionDetails?>>((sessions, ct) => sessions.GetCurrentAsync(ct));
+        if (current.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, current.Error), Severity.Error);
+            _loading = false;
+            return;
+        }
+
+        _current = current.Value;
+        if (_current is null)
+        {
+            var today = TunisTime.Today(Time);
+            var mine = await Runner.RunAsync<ICashSessions, Result<CashSessionList>>((sessions, ct) =>
+                sessions.ListAsync(new CashSessionFilter(From: today, To: today), new PageRequest(1, 20), ct));
+            var userId = (await AuthenticationState).User.GetUserId();
+            _closedToday = mine.IsSuccess ? [.. mine.Value.Page.Items.Where(s => s.CashierId == userId)] : [];
+        }
+
+        _loading = false;
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        _busy = true;
+        _openError = null;
+        var request = new OpenCashSessionRequest(_agencyId, PaymentsFormat.Value(_openingFloat));
+        var result = await Runner.RunAsync<ICashSessions, Result<Guid>>((sessions, ct) => sessions.OpenAsync(request, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _openError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        Snackbar.Add(L["Open.Done"], Severity.Success);
+        _openingFloat = null;
+        await LoadMineAsync();
+    }
+
+    private async Task<TableData<CashSessionSummary>> LoadSessionsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var filter = new CashSessionFilter(DateOf(_from), DateOf(_to), _cashierId, Status: _status);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<ICashSessions, Result<CashSessionList>>((sessions, ct) => sessions.ListAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<CashSessionSummary> { Items = [], TotalItems = 0 };
+        }
+
+        _totals = result.Value.Totals;
+        return new TableData<CashSessionSummary> { Items = result.Value.Page.Items, TotalItems = result.Value.Page.TotalCount };
+    }
+
+    private Task SearchAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task ResetAsync()
+    {
+        (_from, _to, _cashierId, _status) = (null, null, null, null);
+        return SearchAsync();
+    }
+}

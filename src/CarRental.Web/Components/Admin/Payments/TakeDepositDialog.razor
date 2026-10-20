@@ -1,0 +1,103 @@
+@* Takes a security deposit for a booking: card imprint (authorization number), cash (deposit cash of the session) or cheque. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            @if (Agencies.Count > 1)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                        @foreach (var agency in Agencies)
+                        {
+                            <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudSelect T="DepositModeInfo" @bind-Value="_mode" Label="@L["Field.DepositMode"]" ToStringFunc="@(m => L[$"DepositMode.{m}"])">
+                    @foreach (var mode in Enum.GetValues<DepositModeInfo>())
+                    {
+                        <MudSelectItem T="DepositModeInfo" Value="@mode">@L[$"DepositMode.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                 AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L[$"Field.DepositReference.{_mode}"]" MaxLength="100"
+                              Required="@PaymentsFormat.RequiresReference(_mode)" RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Field.Notes"]" Lines="2" MaxLength="500" />
+            </MudItem>
+        </MudGrid>
+        <FinanceNotice Class="mt-3">@L["TakeDeposit.Hint"]</FinanceNotice>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["TakeDeposit.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Guid _agencyId;
+    private DepositModeInfo _mode = DepositModeInfo.CardImprint;
+    private decimal? _amount;
+    private string? _reference;
+    private string? _notes;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    [Parameter]
+    public Guid? AgencyId { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+
+    /// <summary>Amount proposed (e.g. the deposit of the category), changeable.</summary>
+    [Parameter]
+    public decimal? SuggestedAmount { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
+    }
+
+    private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new DepositRequest(BookingId, _agencyId, _mode, PaymentsFormat.Value(_amount), _reference, _notes);
+        var result = await Runner.RunAsync<IDeposits, Result<Guid>>((deposits, ct) => deposits.TakeAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -23,6 +23,200 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CarRental.Domain.Cash.CashMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DepositEffect")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid?>("DepositId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("RecordedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RelatedSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("RevenueEffect")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("DepositId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("RelatedSessionId");
+
+                    b.HasIndex("SessionId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("CashMovements", "cash");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Cash.CashSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("BusinessDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("CashierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CashierName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("ClosedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ClosedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("CountedDepositCash")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("CountedRevenueCash")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("DepositVariance")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("ExpectedDepositCash")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("ExpectedRevenueCash")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("LastSequence")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<DateTimeOffset?>("LockedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LockedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("LockedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OpenedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("OpeningFloat")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("RevenueVariance")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.Property<string>("VarianceJustification")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgencyId");
+
+                    b.HasIndex("CashierId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CashSessions_Cashier_Open")
+                        .HasFilter("[Status] = 1");
+
+                    b.HasIndex("BusinessDate", "Status");
+
+                    b.HasIndex("CashierId", "AgencyId", "BusinessDate")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CashSessions_Cashier_Agency_BusinessDate");
+
+                    b.ToTable("CashSessions", "cash");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("CashSessionsHistory", "cash");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
             modelBuilder.Entity("CarRental.Domain.Customers.BlacklistEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1229,6 +1423,233 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Payments.DepositHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("AttachmentReference")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("RetainedAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("RetentionJustification")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("SettledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SettledByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("SettledByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SettledInCashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("TakenAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("TakenByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("TakenByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TakenInCashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("SettledInCashSessionId");
+
+                    b.HasIndex("TakenInCashSessionId");
+
+                    b.HasIndex("AgencyId", "Mode")
+                        .HasDatabaseName("IX_DepositHolds_Held")
+                        .HasFilter("[Status] = 1");
+
+                    b.HasIndex("AgencyId", "TakenAtUtc");
+
+                    b.ToTable("DepositHolds", "payments");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("DepositHoldsHistory", "payments");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Payments.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CapturedAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTimeOffset?>("CapturedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("OriginalPaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("RecordedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("RefundedAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("StatusChangedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("StatusChangedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("StatusChangedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("CapturedAtUtc")
+                        .HasFilter("[CapturedAtUtc] IS NOT NULL");
+
+                    b.HasIndex("CashSessionId");
+
+                    b.HasIndex("OriginalPaymentId");
+
+                    b.HasIndex("AgencyId", "RecordedAtUtc");
+
+                    b.ToTable("Payments", "payments");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("PaymentsHistory", "payments");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
             modelBuilder.Entity("CarRental.Domain.Pricing.CategoryPrice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2290,6 +2711,39 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasAnnotation("CarRental:Audit:Name", "UserToken");
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Cash.CashMovement", b =>
+                {
+                    b.HasOne("CarRental.Domain.Payments.DepositHold", null)
+                        .WithMany()
+                        .HasForeignKey("DepositId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Payments.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Cash.CashSession", null)
+                        .WithMany()
+                        .HasForeignKey("RelatedSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Cash.CashSession", null)
+                        .WithMany("Movements")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Cash.CashSession", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarRental.Domain.Customers.BlacklistEntry", b =>
                 {
                     b.HasOne("CarRental.Domain.Customers.Person", null)
@@ -2419,6 +2873,44 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Payments.DepositHold", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarRental.Domain.Cash.CashSession", null)
+                        .WithMany()
+                        .HasForeignKey("SettledInCashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Cash.CashSession", null)
+                        .WithMany()
+                        .HasForeignKey("TakenInCashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Payments.Payment", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarRental.Domain.Cash.CashSession", null)
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Payments.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("CarRental.Domain.Pricing.CategoryPrice", b =>
@@ -2573,6 +3065,11 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Cash.CashSession", b =>
+                {
+                    b.Navigation("Movements");
                 });
 
             modelBuilder.Entity("CarRental.Domain.Customers.Person", b =>

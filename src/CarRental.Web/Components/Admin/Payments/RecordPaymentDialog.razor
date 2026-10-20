@@ -1,0 +1,125 @@
+@* Records money received at the counter for a booking. Cash goes into the open cash session of the agent. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            @if (Agencies.Count > 1)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                        @foreach (var agency in Agencies)
+                        {
+                            <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudSelect T="PaymentMethodInfo" Value="_method" ValueChanged="MethodChanged" Label="@L["Field.Method"]"
+                           ToStringFunc="@(m => L[$"Method.{m}"])">
+                    @foreach (var method in PaymentsFormat.CounterMethods)
+                    {
+                        <MudSelectItem T="PaymentMethodInfo" Value="@method">@L[$"Method.{method}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                 AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L[$"Field.Reference.{_method}"]" MaxLength="100"
+                              Required="@PaymentsFormat.RequiresReference(_method)" RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+            </MudItem>
+            @if (PaymentsFormat.CanAwaitConfirmation(_method))
+            {
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_awaiting" Color="Color.Primary" Label="@L["Field.AwaitingConfirmation"]" />
+                </MudItem>
+            }
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Field.Notes"]" Lines="2" MaxLength="500" />
+            </MudItem>
+        </MudGrid>
+        @if (_method == PaymentMethodInfo.Cash)
+        {
+            <FinanceNotice Class="mt-3">@L["RecordPayment.CashHint"]</FinanceNotice>
+        }
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["RecordPayment.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Guid _agencyId;
+    private PaymentMethodInfo _method = PaymentMethodInfo.Cash;
+    private decimal? _amount;
+    private string? _reference;
+    private string? _notes;
+    private bool _awaiting;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    /// <summary>The agency of the booking; the first agency of <see cref="Agencies"/> when not given.</summary>
+    [Parameter]
+    public Guid? AgencyId { get; set; }
+
+    /// <summary>Active agencies (a choice is offered when there are several and <see cref="AgencyId"/> is not given).</summary>
+    [Parameter]
+    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+
+    /// <summary>Amount proposed (e.g. the balance due), changeable.</summary>
+    [Parameter]
+    public decimal? SuggestedAmount { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
+    }
+
+    private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private void MethodChanged(PaymentMethodInfo method)
+    {
+        _method = method;
+        if (!PaymentsFormat.CanAwaitConfirmation(method))
+        {
+            _awaiting = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CounterPaymentRequest(BookingId, _agencyId, _method, PaymentsFormat.Value(_amount), _reference, _notes, _awaiting);
+        var result = await Runner.RunAsync<ICounterPayments, Result<Guid>>((payments, ct) => payments.RecordPaymentAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,387 @@
+@page "/admin/payments"
+@attribute [HasPermission(Permissions.PaymentsRead)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Payments.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@L["Payments.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Payments.TimeZoneNote"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+        <MudTextField T="string" @bind-Value="_lookup" Label="@L["Lookup.Label"]" HelperText="@L["Lookup.Help"]" Class="flex-grow-1"
+                      autocomplete="off" OnKeyUp="LookupKeyUp" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FolderOpen" OnClick="OpenBooking">@L["Lookup.Open"]</MudButton>
+    </MudStack>
+    @if (_lookupError is not null)
+    {
+        <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_lookupError</FinanceNotice>
+    }
+</MudPaper>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="@L["Payments.Tab.Payments"]">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_paymentFrom" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_paymentTo" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="PaymentMethodInfo?" @bind-Value="_method" Label="@L["Filter.Method"]" Clearable="true"
+                               ToStringFunc="@(m => m is { } method ? L[$"Method.{method}"] : string.Empty)">
+                        @foreach (var method in Enum.GetValues<PaymentMethodInfo>())
+                        {
+                            <MudSelectItem T="PaymentMethodInfo?" Value="@((PaymentMethodInfo?)method)">@L[$"Method.{method}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="PaymentStatusInfo?" @bind-Value="_paymentStatus" Label="@L["Filter.Status"]" Clearable="true"
+                               ToStringFunc="@(s => s is { } status ? L[$"PaymentStatus.{status}"] : string.Empty)">
+                        @foreach (var status in Enum.GetValues<PaymentStatusInfo>())
+                        {
+                            <MudSelectItem T="PaymentStatusInfo?" Value="@((PaymentStatusInfo?)status)">@L[$"PaymentStatus.{status}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_paymentBooking" Label="@L["Filter.Booking"]" Clearable="true" autocomplete="off" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex gap-2 align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchPaymentsAsync">@L["Filter.Search"]</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="ResetPaymentsAsync">@L["Filter.Reset"]</MudButton>
+                </MudItem>
+            </MudGrid>
+            @if (_paymentFilterError is not null)
+            {
+                <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_paymentFilterError</FinanceNotice>
+            }
+        </MudPaper>
+
+        @if (_paymentTotals is { } totals)
+        {
+            <dl class="d-flex flex-wrap gap-6 mb-3" style="margin:0" data-testid="payment-list-totals">
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Captured"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.Captured)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Refunded"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.Refunded)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.NetPaid"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.NetPaid)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Pending"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(totals.Pending)</dd></div>
+            </dl>
+        }
+
+        <MudTable @ref="_payments" T="PaymentInfo" ServerData="LoadPaymentsAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Payments.Tab.Payments"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Date"]</MudTh>
+                <MudTh>@L["Column.Booking"]</MudTh>
+                <MudTh>@L["Column.Kind"]</MudTh>
+                <MudTh>@L["Column.Method"]</MudTh>
+                <MudTh>@L["Column.Amount"]</MudTh>
+                <MudTh>@L["Column.Status"]</MudTh>
+                <MudTh>@L["Column.Reference"]</MudTh>
+                <MudTh>@L["Column.By"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Instant(context.RecordedAtUtc)</MudTd>
+                <MudTd DataLabel="@L["Column.Booking"]">
+                    <MudLink Href="@($"/admin/payments/bookings/{context.BookingId}")" aria-label="@L["Booking.Open.Label", PaymentsFormat.ShortId(context.BookingId)]">
+                        @PaymentsFormat.ShortId(context.BookingId)
+                    </MudLink>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Kind"]">@L[$"Direction.{context.Direction}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Method"]">@L[$"Method.{context.Method}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Amount"]">@PaymentsFormat.Amount(context.Amount)</MudTd>
+                <MudTd DataLabel="@L["Column.Status"]">
+                    <FinanceBadge Tone="PaymentsFormat.ToneOf(context.Status)">@L[$"Status.{context.Direction}.{context.Status}"]</FinanceBadge>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Reference"]">@(context.ExternalReference ?? "—")</MudTd>
+                <MudTd DataLabel="@L["Column.By"]">@(context.RecordedByName ?? "—")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Payments.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Payments.Tab.Deposits"]">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_depositFrom" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_depositTo" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="DepositModeInfo?" @bind-Value="_mode" Label="@L["Filter.DepositMode"]" Clearable="true"
+                               ToStringFunc="@(m => m is { } mode ? L[$"DepositMode.{mode}"] : string.Empty)">
+                        @foreach (var mode in Enum.GetValues<DepositModeInfo>())
+                        {
+                            <MudSelectItem T="DepositModeInfo?" Value="@((DepositModeInfo?)mode)">@L[$"DepositMode.{mode}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="DepositStatusInfo?" @bind-Value="_depositStatus" Label="@L["Filter.Status"]" Clearable="true"
+                               ToStringFunc="@(s => s is { } status ? L[$"DepositStatus.{status}"] : string.Empty)">
+                        @foreach (var status in Enum.GetValues<DepositStatusInfo>())
+                        {
+                            <MudSelectItem T="DepositStatusInfo?" Value="@((DepositStatusInfo?)status)">@L[$"DepositStatus.{status}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_depositBooking" Label="@L["Filter.Booking"]" Clearable="true" autocomplete="off" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex gap-2 align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchDepositsAsync">@L["Filter.Search"]</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="ResetDepositsAsync">@L["Filter.Reset"]</MudButton>
+                </MudItem>
+            </MudGrid>
+            @if (_depositFilterError is not null)
+            {
+                <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_depositFilterError</FinanceNotice>
+            }
+        </MudPaper>
+
+        @if (_depositTotals is { } depositTotals)
+        {
+            <dl class="d-flex flex-wrap gap-6 mb-3" style="margin:0" data-testid="deposit-list-totals">
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.OpenLiability"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@L["Totals.OpenLiability.Value", PaymentsFormat.Amount(depositTotals.OpenLiability), depositTotals.HeldCount]</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Retained"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(depositTotals.Retained)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Returned"]</dt><dd style="margin:0" class="mud-typography mud-typography-subtitle1">@PaymentsFormat.Amount(depositTotals.Returned)</dd></div>
+            </dl>
+        }
+
+        <MudTable @ref="_deposits" T="DepositInfo" ServerData="LoadDepositsAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Payments.Tab.Deposits"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Date"]</MudTh>
+                <MudTh>@L["Column.Booking"]</MudTh>
+                <MudTh>@L["Column.DepositMode"]</MudTh>
+                <MudTh>@L["Column.Amount"]</MudTh>
+                <MudTh>@L["Column.Status"]</MudTh>
+                <MudTh>@L["Column.Retained"]</MudTh>
+                <MudTh>@L["Column.Reference"]</MudTh>
+                @if (_canManage)
+                {
+                    <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Instant(context.TakenAtUtc)</MudTd>
+                <MudTd DataLabel="@L["Column.Booking"]">
+                    <MudLink Href="@($"/admin/payments/bookings/{context.BookingId}")" aria-label="@L["Booking.Open.Label", PaymentsFormat.ShortId(context.BookingId)]">
+                        @PaymentsFormat.ShortId(context.BookingId)
+                    </MudLink>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.DepositMode"]">@L[$"DepositMode.{context.Mode}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Amount"]">@PaymentsFormat.Amount(context.Amount)</MudTd>
+                <MudTd DataLabel="@L["Column.Status"]">
+                    <FinanceBadge Tone="PaymentsFormat.ToneOf(context.Status)">@L[$"DepositStatus.{context.Status}"]</FinanceBadge>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Retained"]">
+                    @(context.RetainedAmount.IsPositive ? PaymentsFormat.Amount(context.RetainedAmount) : "—")
+                    @if (context.RetentionJustification is { } justification)
+                    {
+                        <MudText Typo="Typo.caption" Class="d-block">@justification</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Reference"]">@(context.ExternalReference ?? "—")</MudTd>
+                @if (_canManage)
+                {
+                    <MudTd>
+                        @if (context.IsHeld)
+                        {
+                            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => ReleaseAsync(context))"
+                                           aria-label="@L["Panel.Release.Label", PaymentsFormat.Amount(context.Amount)]">@L["Panel.Release"]</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => RetainAsync(context))"
+                                           aria-label="@L["Panel.Retain.Label", PaymentsFormat.Amount(context.Amount)]">@L["Panel.Retain"]</MudButton>
+                            </MudStack>
+                        }
+                    </MudTd>
+                }
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Deposits.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<PaymentInfo>? _payments;
+    private MudTable<DepositInfo>? _deposits;
+    private PaymentTotals? _paymentTotals;
+    private DepositTotals? _depositTotals;
+    private int _tab;
+    private bool _canManage;
+    private string? _lookup;
+    private string? _lookupError;
+    private DateTime? _paymentFrom;
+    private DateTime? _paymentTo;
+    private PaymentMethodInfo? _method;
+    private PaymentStatusInfo? _paymentStatus;
+    private string? _paymentBooking;
+    private string? _paymentFilterError;
+    private DateTime? _depositFrom;
+    private DateTime? _depositTo;
+    private DepositModeInfo? _mode;
+    private DepositStatusInfo? _depositStatus;
+    private string? _depositBooking;
+    private string? _depositFilterError;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() =>
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.PaymentsManage);
+
+    private static DateOnly? DateOf(DateTime? value) => value is { } date ? DateOnly.FromDateTime(date) : null;
+
+    /// <summary>A booking id typed by the user: empty is no filter; otherwise it must be a valid id.</summary>
+    private static bool TryBooking(string? text, out Guid? bookingId)
+    {
+        bookingId = null;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return true;
+        }
+
+        if (Guid.TryParse(text.Trim(), out var id))
+        {
+            bookingId = id;
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task<TableData<PaymentInfo>> LoadPaymentsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!TryBooking(_paymentBooking, out var bookingId))
+        {
+            _paymentFilterError = L["Filter.Booking.Invalid"];
+            return new TableData<PaymentInfo> { Items = [], TotalItems = 0 };
+        }
+
+        _paymentFilterError = null;
+        var filter = new PaymentListFilter(DateOf(_paymentFrom), DateOf(_paymentTo), _method, _paymentStatus, BookingId: bookingId);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<PaymentAdminQueries, Result<PaymentList>>((queries, ct) => queries.ListPaymentsAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<PaymentInfo> { Items = [], TotalItems = 0 };
+        }
+
+        _paymentTotals = result.Value.Totals;
+        return new TableData<PaymentInfo> { Items = result.Value.Page.Items, TotalItems = result.Value.Page.TotalCount };
+    }
+
+    private async Task<TableData<DepositInfo>> LoadDepositsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!TryBooking(_depositBooking, out var bookingId))
+        {
+            _depositFilterError = L["Filter.Booking.Invalid"];
+            return new TableData<DepositInfo> { Items = [], TotalItems = 0 };
+        }
+
+        _depositFilterError = null;
+        var filter = new DepositListFilter(DateOf(_depositFrom), DateOf(_depositTo), _mode, _depositStatus, bookingId);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<PaymentAdminQueries, Result<DepositList>>((queries, ct) => queries.ListDepositsAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<DepositInfo> { Items = [], TotalItems = 0 };
+        }
+
+        _depositTotals = result.Value.Totals;
+        return new TableData<DepositInfo> { Items = result.Value.Page.Items, TotalItems = result.Value.Page.TotalCount };
+    }
+
+    private Task SearchPaymentsAsync() => _payments?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task SearchDepositsAsync() => _deposits?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task ResetPaymentsAsync()
+    {
+        (_paymentFrom, _paymentTo, _method, _paymentStatus, _paymentBooking) = (null, null, null, null, null);
+        return SearchPaymentsAsync();
+    }
+
+    private Task ResetDepositsAsync()
+    {
+        (_depositFrom, _depositTo, _mode, _depositStatus, _depositBooking) = (null, null, null, null, null);
+        return SearchDepositsAsync();
+    }
+
+    private void OpenBooking()
+    {
+        if (!string.IsNullOrWhiteSpace(_lookup) && Guid.TryParse(_lookup.Trim(), out var bookingId))
+        {
+            _lookupError = null;
+            Navigation.NavigateTo($"/admin/payments/bookings/{bookingId}");
+            return;
+        }
+
+        _lookupError = L["Filter.Booking.Invalid"];
+    }
+
+    private void LookupKeyUp(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            OpenBooking();
+        }
+    }
+
+    private async Task ReleaseAsync(DepositInfo deposit)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Release.Title"],
+            L["Release.Message", PaymentsFormat.Amount(deposit.Amount), L[$"DepositMode.{deposit.Mode}"]],
+            yesText: L["Panel.Release"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await Runner.RunAsync<IDeposits, Result>((service, ct) => service.ReleaseAsync(deposit.Id, ct));
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(L["Release.Done"], Severity.Success);
+        await SearchDepositsAsync();
+    }
+
+    private async Task RetainAsync(DepositInfo deposit)
+    {
+        var parameters = new DialogParameters<RetainDepositDialog> { { d => d.Deposit, deposit } };
+        var dialog = await Dialogs.ShowAsync<RetainDepositDialog>(L["Retain.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Retain.Done"], Severity.Success);
+            await SearchDepositsAsync();
+        }
+    }
+}

@@ -591,4 +591,184 @@
   <data name="Error.fleet.vehicle.year_invalid" xml:space="preserve">
     <value>The year is between 1990 and 2100.</value>
   </data>
+  <data name="Error.payments.forbidden" xml:space="preserve">
+    <value>You are not allowed to record or read payments and deposits.</value>
+  </data>
+  <data name="Error.payments.agency_required" xml:space="preserve">
+    <value>An agency is required.</value>
+  </data>
+  <data name="Error.payments.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist or is no longer active.</value>
+  </data>
+  <data name="Error.payments.booking_required" xml:space="preserve">
+    <value>A booking is required.</value>
+  </data>
+  <data name="Error.payments.amount_invalid" xml:space="preserve">
+    <value>The amount is positive, in dinars with at most 3 decimals (millimes), and at most 1,000,000 TND.</value>
+  </data>
+  <data name="Error.payments.reference_too_long" xml:space="preserve">
+    <value>A reference has 100 characters at most.</value>
+  </data>
+  <data name="Error.payments.notes_too_long" xml:space="preserve">
+    <value>Notes have 500 characters at most.</value>
+  </data>
+  <data name="Error.payments.reason_required" xml:space="preserve">
+    <value>A reason of at least 3 characters is required.</value>
+  </data>
+  <data name="Error.payments.reason_too_long" xml:space="preserve">
+    <value>A reason has 500 characters at most.</value>
+  </data>
+  <data name="Error.payments.concurrent_update" xml:space="preserve">
+    <value>Someone changed this data in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.payments.method_invalid" xml:space="preserve">
+    <value>Unknown means of payment.</value>
+  </data>
+  <data name="Error.payments.method_not_counter" xml:space="preserve">
+    <value>A Clic to Pay payment comes from the online payment: it is not recorded at the counter.</value>
+  </data>
+  <data name="Error.payments.reference_required" xml:space="preserve">
+    <value>The cheque number, the transfer reference or the channel booking reference is required.</value>
+  </data>
+  <data name="Error.payments.confirmation_not_applicable" xml:space="preserve">
+    <value>Only a bank transfer or a cheque can await confirmation.</value>
+  </data>
+  <data name="Error.payments.cash_session_required" xml:space="preserve">
+    <value>Cash always goes through the open cash session of the agent.</value>
+  </data>
+  <data name="Error.payments.payment.not_found" xml:space="preserve">
+    <value>This payment does not exist.</value>
+  </data>
+  <data name="Error.payments.payment.not_pending" xml:space="preserve">
+    <value>Only a pending payment can be confirmed or cancelled.</value>
+  </data>
+  <data name="Error.payments.payment.online_status_from_gateway_only" xml:space="preserve">
+    <value>The status of a Clic to Pay payment only changes on the confirmation of the bank.</value>
+  </data>
+  <data name="Error.payments.payment.not_online" xml:space="preserve">
+    <value>This bank status only applies to a Clic to Pay payment.</value>
+  </data>
+  <data name="Error.payments.payment.gateway_transition_invalid" xml:space="preserve">
+    <value>The status confirmed by the bank does not follow the current status of the payment.</value>
+  </data>
+  <data name="Error.payments.payment.gateway_amount_invalid" xml:space="preserve">
+    <value>The amount confirmed by the bank is missing or exceeds the amount of the payment.</value>
+  </data>
+  <data name="Error.payments.refund.not_allowed" xml:space="preserve">
+    <value>Only a payment received can be refunded.</value>
+  </data>
+  <data name="Error.payments.refund.not_captured" xml:space="preserve">
+    <value>Only a captured payment can be refunded.</value>
+  </data>
+  <data name="Error.payments.refund.exceeds_captured" xml:space="preserve">
+    <value>The refunds of a payment cannot exceed the amount captured.</value>
+  </data>
+  <data name="Error.payments.refund.method_invalid" xml:space="preserve">
+    <value>Money is paid back at the counter in cash, by card (terminal), by cheque or by bank transfer.</value>
+  </data>
+  <data name="Error.payments.refund.reason_required" xml:space="preserve">
+    <value>The reason of the refund is required (3 to 500 characters).</value>
+  </data>
+  <data name="Error.payments.deposit.not_found" xml:space="preserve">
+    <value>This deposit does not exist.</value>
+  </data>
+  <data name="Error.payments.deposit.mode_invalid" xml:space="preserve">
+    <value>A deposit is taken as a card imprint, in cash or by cheque.</value>
+  </data>
+  <data name="Error.payments.deposit.reference_required" xml:space="preserve">
+    <value>The imprint authorization number or the cheque number is required.</value>
+  </data>
+  <data name="Error.payments.deposit.already_settled" xml:space="preserve">
+    <value>This deposit was already released or retained.</value>
+  </data>
+  <data name="Error.payments.deposit.retained_amount_invalid" xml:space="preserve">
+    <value>The retained amount is positive, in millimes at most, and at most the deposit (release it to retain nothing).</value>
+  </data>
+  <data name="Error.payments.deposit.justification_required" xml:space="preserve">
+    <value>A retention needs a justification of at least 3 characters.</value>
+  </data>
+  <data name="Error.payments.deposit.justification_too_long" xml:space="preserve">
+    <value>A justification has 1,000 characters at most.</value>
+  </data>
+  <data name="Error.payments.deposit.attachment_too_long" xml:space="preserve">
+    <value>A supporting document reference has 500 characters at most.</value>
+  </data>
+  <data name="Error.cash.forbidden" xml:space="preserve">
+    <value>You are not allowed to manage this cash session.</value>
+  </data>
+  <data name="Error.cash.agency_required" xml:space="preserve">
+    <value>An agency is required.</value>
+  </data>
+  <data name="Error.cash.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist or is no longer active.</value>
+  </data>
+  <data name="Error.cash.cashier_required" xml:space="preserve">
+    <value>A cash session belongs to a signed-in user.</value>
+  </data>
+  <data name="Error.cash.amount_invalid" xml:space="preserve">
+    <value>The amount is positive, in dinars with at most 3 decimals (millimes), and at most 1,000,000 TND.</value>
+  </data>
+  <data name="Error.cash.concurrent_update" xml:space="preserve">
+    <value>The cash session changed in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.cash.session.opening_float_invalid" xml:space="preserve">
+    <value>The opening float is zero or positive, in dinars with at most 3 decimals.</value>
+  </data>
+  <data name="Error.cash.session.not_found" xml:space="preserve">
+    <value>This cash session does not exist.</value>
+  </data>
+  <data name="Error.cash.session.not_owned" xml:space="preserve">
+    <value>This cash session belongs to another user.</value>
+  </data>
+  <data name="Error.cash.session.none_open" xml:space="preserve">
+    <value>Cash is recorded in your open cash session: open your cash session first.</value>
+  </data>
+  <data name="Error.cash.session.already_open" xml:space="preserve">
+    <value>You already have an open cash session: close it before opening another one.</value>
+  </data>
+  <data name="Error.cash.session.already_exists_for_day" xml:space="preserve">
+    <value>You already had a cash session today in this agency: a closed session is not reopened.</value>
+  </data>
+  <data name="Error.cash.session.agency_mismatch" xml:space="preserve">
+    <value>Your open cash session belongs to another agency.</value>
+  </data>
+  <data name="Error.cash.session.closed" xml:space="preserve">
+    <value>This cash session is closed: no more movement can be recorded in it.</value>
+  </data>
+  <data name="Error.cash.session.locked" xml:space="preserve">
+    <value>This cash session is locked: it no longer changes; correct it with an adjustment in an open session.</value>
+  </data>
+  <data name="Error.cash.session.not_closed" xml:space="preserve">
+    <value>Only a closed cash session can be locked.</value>
+  </data>
+  <data name="Error.cash.session.counted_amount_invalid" xml:space="preserve">
+    <value>A counted amount is zero or positive, in dinars with at most 3 decimals.</value>
+  </data>
+  <data name="Error.cash.session.variance_justification_required" xml:space="preserve">
+    <value>A difference between the count and the expected cash needs a justification of at least 3 characters.</value>
+  </data>
+  <data name="Error.cash.session.justification_too_long" xml:space="preserve">
+    <value>A justification has 500 characters at most.</value>
+  </data>
+  <data name="Error.cash.movement.reason_required" xml:space="preserve">
+    <value>A manual movement or an adjustment needs a reason of at least 3 characters.</value>
+  </data>
+  <data name="Error.cash.movement.reason_too_long" xml:space="preserve">
+    <value>A reason has 500 characters at most.</value>
+  </data>
+  <data name="Error.cash.movement.direction_invalid" xml:space="preserve">
+    <value>A manual movement goes in or out.</value>
+  </data>
+  <data name="Error.cash.movement.pocket_invalid" xml:space="preserve">
+    <value>Unknown cash pocket.</value>
+  </data>
+  <data name="Error.cash.movement.duplicate" xml:space="preserve">
+    <value>This payment or deposit is already recorded in the cash session.</value>
+  </data>
+  <data name="Error.cash.movement.insufficient_cash" xml:space="preserve">
+    <value>The expected cash of the session does not cover this outflow.</value>
+  </data>
+  <data name="Error.cash.adjustment.corrected_session_invalid" xml:space="preserve">
+    <value>The corrected session must be another closed or locked cash session.</value>
+  </data>
 </root>

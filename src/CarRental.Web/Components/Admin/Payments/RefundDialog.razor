@@ -1,0 +1,80 @@
+@* Pays money back on a captured payment (at most what remains refundable), with a mandatory reason. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">@L["Refund.Refundable", PaymentsFormat.Amount(Payment.RefundableAmount)]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="PaymentMethodInfo" @bind-Value="_method" Label="@L["Field.RefundMethod"]" ToStringFunc="@(m => L[$"Method.{m}"])">
+                    @foreach (var method in PaymentsFormat.RefundMethods)
+                    {
+                        <MudSelectItem T="PaymentMethodInfo" Value="@method">@L[$"Method.{method}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Max="@Payment.RefundableAmount.Amount" Format="N3"
+                                 Adornment="Adornment.End" AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.RefundReason"]" Lines="2" MaxLength="500" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L[$"Field.Reference.{_method}"]" MaxLength="100"
+                              Required="@PaymentsFormat.RequiresReference(_method)" RequiredError="@Shared["Validation.Required"]" autocomplete="off" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Refund.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private PaymentMethodInfo _method;
+    private decimal? _amount;
+    private string? _reason;
+    private string? _reference;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PaymentInfo Payment { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        _method = PaymentsFormat.RefundMethods.Contains(Payment.Method) ? Payment.Method : PaymentMethodInfo.Cash;
+        _amount = Payment.RefundableAmount.Amount;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CounterRefundRequest(Payment.Id, _method, PaymentsFormat.Value(_amount), _reason ?? string.Empty, _reference);
+        var result = await Runner.RunAsync<ICounterPayments, Result<Guid>>((payments, ct) => payments.RecordRefundAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Cash.Title" xml:space="preserve">
+    <value>Cash desk</value>
+  </data>
+  <data name="Cash.Intro" xml:space="preserve">
+    <value>One cash session per agent and per day: opening float, movements, closing count and justified variances. Cash deposits are counted apart. Tunis time.</value>
+  </data>
+  <data name="Cash.Tab.Mine" xml:space="preserve">
+    <value>My cash session</value>
+  </data>
+  <data name="Cash.Tab.All" xml:space="preserve">
+    <value>All cash sessions</value>
+  </data>
+  <data name="Cash.Tab.History" xml:space="preserve">
+    <value>My cash sessions</value>
+  </data>
+  <data name="Cash.Loading" xml:space="preserve">
+    <value>Loading the cash session</value>
+  </data>
+  <data name="Cash.ClosedToday" xml:space="preserve">
+    <value>Your cash session of the day is closed (cash variance: {0}). A closed session is not reopened the same day.</value>
+  </data>
+  <data name="Cash.ViewSession" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Cash.ViewSession.Label" xml:space="preserve">
+    <value>View the cash session of {0} by {1}</value>
+  </data>
+  <data name="Cash.Sessions" xml:space="preserve">
+    <value>Cash sessions</value>
+  </data>
+  <data name="Cash.NoSession" xml:space="preserve">
+    <value>No cash session matches these criteria.</value>
+  </data>
+  <data name="Open.Title" xml:space="preserve">
+    <value>Open my cash session</value>
+  </data>
+  <data name="Open.Hint" xml:space="preserve">
+    <value>Count the opening float before opening: the cash payments and deposits of the day are recorded in it.</value>
+  </data>
+  <data name="Open.Submit" xml:space="preserve">
+    <value>Open my cash session</value>
+  </data>
+  <data name="Open.Done" xml:space="preserve">
+    <value>Cash session opened.</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Field.OpeningFloat" xml:space="preserve">
+    <value>Opening float</value>
+  </data>
+  <data name="Field.OpeningFloat.Help" xml:space="preserve">
+    <value>Cash in the drawer at the opening.</value>
+  </data>
+  <data name="Field.Direction" xml:space="preserve">
+    <value>Direction of the movement</value>
+  </data>
+  <data name="Direction.In" xml:space="preserve">
+    <value>In</value>
+  </data>
+  <data name="Direction.Out" xml:space="preserve">
+    <value>Out</value>
+  </data>
+  <data name="Field.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Field.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Field.Reason.Help" xml:space="preserve">
+    <value>Required: bank deposit, change, small purchase…</value>
+  </data>
+  <data name="Field.CountedRevenue" xml:space="preserve">
+    <value>Cash counted (revenue)</value>
+  </data>
+  <data name="Field.CountedDeposit" xml:space="preserve">
+    <value>Cash deposits counted</value>
+  </data>
+  <data name="Field.Justification" xml:space="preserve">
+    <value>Justification of the variance</value>
+  </data>
+  <data name="Field.Justification.Required" xml:space="preserve">
+    <value>Required: the count differs from the expected cash.</value>
+  </data>
+  <data name="Field.Justification.Optional" xml:space="preserve">
+    <value>Optional: the count matches the expected cash.</value>
+  </data>
+  <data name="Field.Pocket" xml:space="preserve">
+    <value>Corrected pocket</value>
+  </data>
+  <data name="Pocket.Revenue" xml:space="preserve">
+    <value>Revenue cash</value>
+  </data>
+  <data name="Pocket.Deposit" xml:space="preserve">
+    <value>Cash deposits</value>
+  </data>
+  <data name="Field.SignedAmount" xml:space="preserve">
+    <value>Amount (negative for an outflow)</value>
+  </data>
+  <data name="Field.SignedAmount.Help" xml:space="preserve">
+    <value>For example -5.000 for a forgotten refund.</value>
+  </data>
+  <data name="Field.CorrectedSession" xml:space="preserve">
+    <value>Corrected session</value>
+  </data>
+  <data name="Status.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Status.Locked" xml:space="preserve">
+    <value>Locked</value>
+  </data>
+  <data name="Kind.PaymentReceived" xml:space="preserve">
+    <value>Payment received</value>
+  </data>
+  <data name="Kind.RefundPaid" xml:space="preserve">
+    <value>Refund paid</value>
+  </data>
+  <data name="Kind.DepositReceived" xml:space="preserve">
+    <value>Deposit received</value>
+  </data>
+  <data name="Kind.DepositReturned" xml:space="preserve">
+    <value>Deposit returned</value>
+  </data>
+  <data name="Kind.DepositRetained" xml:space="preserve">
+    <value>Deposit retained</value>
+  </data>
+  <data name="Kind.DepositTransferIn" xml:space="preserve">
+    <value>Deposit taken in (safe or other drawer)</value>
+  </data>
+  <data name="Kind.DepositTransferOut" xml:space="preserve">
+    <value>Deposit handed to another drawer</value>
+  </data>
+  <data name="Kind.ManualIn" xml:space="preserve">
+    <value>Manual in</value>
+  </data>
+  <data name="Kind.ManualOut" xml:space="preserve">
+    <value>Manual out</value>
+  </data>
+  <data name="Kind.Adjustment" xml:space="preserve">
+    <value>Adjustment</value>
+  </data>
+  <data name="Session.Heading" xml:space="preserve">
+    <value>Cash session of {0} — {1}</value>
+  </data>
+  <data name="Session.Title" xml:space="preserve">
+    <value>Cash session of {0} — {1}</value>
+  </data>
+  <data name="Session.TitleLoading" xml:space="preserve">
+    <value>Cash session</value>
+  </data>
+  <data name="Session.Back" xml:space="preserve">
+    <value>Back to the cash desk</value>
+  </data>
+  <data name="Session.ManualMovement" xml:space="preserve">
+    <value>Manual movement</value>
+  </data>
+  <data name="Session.Adjustment" xml:space="preserve">
+    <value>Adjustment</value>
+  </data>
+  <data name="Session.Close" xml:space="preserve">
+    <value>Close the session</value>
+  </data>
+  <data name="Session.Lock" xml:space="preserve">
+    <value>Lock</value>
+  </data>
+  <data name="Session.StaleWarning" xml:space="preserve">
+    <value>This cash session has been open since {0}: close it as soon as possible.</value>
+  </data>
+  <data name="Session.OpeningFloat" xml:space="preserve">
+    <value>Opening float</value>
+  </data>
+  <data name="Session.ExpectedRevenue" xml:space="preserve">
+    <value>Expected cash</value>
+  </data>
+  <data name="Session.ExpectedDeposit" xml:space="preserve">
+    <value>Expected cash deposits</value>
+  </data>
+  <data name="Session.CountedRevenue" xml:space="preserve">
+    <value>Cash counted</value>
+  </data>
+  <data name="Session.RevenueVariance" xml:space="preserve">
+    <value>Cash variance</value>
+  </data>
+  <data name="Session.CountedDeposit" xml:space="preserve">
+    <value>Deposits counted</value>
+  </data>
+  <data name="Session.DepositVariance" xml:space="preserve">
+    <value>Deposit variance</value>
+  </data>
+  <data name="Session.ClosedBy" xml:space="preserve">
+    <value>Closed on {0} by {1}.</value>
+  </data>
+  <data name="Session.Justification" xml:space="preserve">
+    <value>Justification: {0}</value>
+  </data>
+  <data name="Session.LockedBy" xml:space="preserve">
+    <value>Locked on {0} by {1}.</value>
+  </data>
+  <data name="Session.Movements" xml:space="preserve">
+    <value>Movements of the session</value>
+  </data>
+  <data name="Session.NoMovement" xml:space="preserve">
+    <value>No movement yet.</value>
+  </data>
+  <data name="Column.Sequence" xml:space="preserve">
+    <value>No.</value>
+  </data>
+  <data name="Column.Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Revenue" xml:space="preserve">
+    <value>Cash</value>
+  </data>
+  <data name="Column.Deposit" xml:space="preserve">
+    <value>Deposits</value>
+  </data>
+  <data name="Column.RevenueBalance" xml:space="preserve">
+    <value>Expected cash</value>
+  </data>
+  <data name="Column.DepositBalance" xml:space="preserve">
+    <value>Expected deposits</value>
+  </data>
+  <data name="Column.Detail" xml:space="preserve">
+    <value>Reason or booking</value>
+  </data>
+  <data name="Column.By" xml:space="preserve">
+    <value>By</value>
+  </data>
+  <data name="Column.BusinessDate" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="Column.Cashier" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Column.OpeningFloat" xml:space="preserve">
+    <value>Float</value>
+  </data>
+  <data name="Column.ExpectedRevenue" xml:space="preserve">
+    <value>Expected cash</value>
+  </data>
+  <data name="Column.CountedRevenue" xml:space="preserve">
+    <value>Cash counted</value>
+  </data>
+  <data name="Column.RevenueVariance" xml:space="preserve">
+    <value>Variance</value>
+  </data>
+  <data name="Column.ExpectedDeposit" xml:space="preserve">
+    <value>Expected deposits</value>
+  </data>
+  <data name="Column.DepositVariance" xml:space="preserve">
+    <value>Deposit variance</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Movement.Booking" xml:space="preserve">
+    <value>Booking {0}</value>
+  </data>
+  <data name="Movement.Booking.Label" xml:space="preserve">
+    <value>Payments of booking {0}</value>
+  </data>
+  <data name="Manual.Title" xml:space="preserve">
+    <value>Manual movement</value>
+  </data>
+  <data name="Manual.Submit" xml:space="preserve">
+    <value>Record</value>
+  </data>
+  <data name="Manual.Done" xml:space="preserve">
+    <value>Movement recorded.</value>
+  </data>
+  <data name="Adjustment.Title" xml:space="preserve">
+    <value>Cash adjustment</value>
+  </data>
+  <data name="Adjustment.Hint" xml:space="preserve">
+    <value>A locked session never changes: an error found afterwards is corrected here, in an open session, naming the corrected session.</value>
+  </data>
+  <data name="Adjustment.Submit" xml:space="preserve">
+    <value>Record the adjustment</value>
+  </data>
+  <data name="Adjustment.Done" xml:space="preserve">
+    <value>Adjustment recorded.</value>
+  </data>
+  <data name="Close.Title" xml:space="preserve">
+    <value>Close the cash session</value>
+  </data>
+  <data name="Close.Warning" xml:space="preserve">
+    <value>Closing is final: no more cash operation in this session, and no new session today in this agency.</value>
+  </data>
+  <data name="Close.Expected" xml:space="preserve">
+    <value>Expected: {0}</value>
+  </data>
+  <data name="Close.RevenueVariance" xml:space="preserve">
+    <value>Cash variance: {0}</value>
+  </data>
+  <data name="Close.DepositVariance" xml:space="preserve">
+    <value>Deposit variance: {0}</value>
+  </data>
+  <data name="Close.Submit" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Close.Done" xml:space="preserve">
+    <value>Cash session closed.</value>
+  </data>
+  <data name="Lock.Title" xml:space="preserve">
+    <value>Lock the cash session</value>
+  </data>
+  <data name="Lock.Message" xml:space="preserve">
+    <value>Lock the cash session of {0} by {1}? It can no longer be changed.</value>
+  </data>
+  <data name="Lock.Done" xml:space="preserve">
+    <value>Cash session locked.</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Filter.Cashier" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Filter.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Totals.Sessions" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="Totals.ExpectedRevenue" xml:space="preserve">
+    <value>Expected cash</value>
+  </data>
+  <data name="Totals.CountedRevenue" xml:space="preserve">
+    <value>Cash counted</value>
+  </data>
+  <data name="Totals.RevenueVariance" xml:space="preserve">
+    <value>Cash variances</value>
+  </data>
+  <data name="Totals.ExpectedDeposit" xml:space="preserve">
+    <value>Expected deposits</value>
+  </data>
+  <data name="Totals.DepositVariance" xml:space="preserve">
+    <value>Deposit variances</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} of {all_items}</value>
+  </data>
+</root>
