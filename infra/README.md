@@ -113,6 +113,10 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `Email__AcsEndpoint` | `https://<acs>.<zone>.communication.azure.com` (nom d'hôte de la ressource Communication Services) |
 | `Email__SenderAddress` | `DoNotReply@<guid>.azurecomm.net`, puis `noreply@<domaine de l'agence>` |
 | `Seed__Demo` | `true` en recette, `false` en prod |
+| `Identity__InitialManagerEmail` | paramètre `initialManagerEmail` : si aucun gérant n'existe, ce compte est créé au démarrage sans mot de passe ; le gérant le définit par « mot de passe oublié », puis enrôle sa double authentification |
+| `HostFiltering__CustomDomains` | paramètre `customDomains` (`www.agence.tn;agence.tn`) : l'application n'accepte que `*.azurewebsites.net`, `localhost` et ces domaines (réponse 400 sinon, sauf `/health*`) |
+| `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
+| `PublicSite__AgencyName`, `PublicSite__WhatsAppNumber` | paramètres `publicSiteAgencyName` et `publicSiteWhatsAppNumber` (bouton WhatsApp masqué si vide) |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` : l'application lit `X-Forwarded-Proto` et `X-Forwarded-For` posés par le frontal App Service |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` : le paquet publié est déployé tel quel |
 
@@ -311,6 +315,16 @@ az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AppSecret
 ```
 
 `--file` évite de laisser le secret dans l'historique du terminal ; supprimer le fichier ensuite.
+
+**Recette : comptes de démonstration.** Avec `Seed__Demo=true`, les trois comptes de démonstration (gérant, agent, comptable) ne sont créés que si ces deux secrets existent ; sinon ils sont ignorés avec un avertissement dans les journaux :
+
+```bash
+az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoUserPassword" --file ./demo-password.txt
+# Clé TOTP partagée des comptes de démonstration : Base32, au moins 16 caractères
+az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoAuthenticatorKey" --file ./demo-totp-key.txt
+```
+
+**Production : premier gérant.** Ne pas activer `Seed__Demo`. Renseigner `initialManagerEmail` au déploiement Bicep : au premier démarrage sans gérant, ce compte est créé sans mot de passe ; utiliser « mot de passe oublié » sur `/account/forgot-password`, puis enrôler l'application d'authentification (la double authentification est obligatoire pour accéder à `/admin`).
 
 ### 5.8 Premier déploiement de l'application
 

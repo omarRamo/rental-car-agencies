@@ -47,6 +47,21 @@ param appServicePlanSku string = 'B1'
 @description('Load the demo data set at startup (Seed__Demo). Recette only.')
 param seedDemoData bool = false
 
+@description('E-mail of the first manager account, created at startup without password when no manager exists (Identity__InitialManagerEmail). The manager sets the password with "forgot password".')
+param initialManagerEmail string = ''
+
+@description('Custom domains accepted by the host filter, separated by semicolons (HostFiltering__CustomDomains), e.g. "www.example.tn;example.tn". *.azurewebsites.net is always accepted.')
+param customDomains string = ''
+
+@description('Public base URL of the site (PublicSite__BaseUrl). Empty = the default azurewebsites.net host name.')
+param publicSiteBaseUrl string = ''
+
+@description('Agency name shown on the public site (PublicSite__AgencyName).')
+param publicSiteAgencyName string = 'CarRental'
+
+@description('WhatsApp number of the agency in international format without + (PublicSite__WhatsAppNumber). Empty = WhatsApp button hidden.')
+param publicSiteWhatsAppNumber string = ''
+
 // ---------------------------------------------------------------------------------------------
 // Azure SQL
 // ---------------------------------------------------------------------------------------------
@@ -223,6 +238,7 @@ var containerNames = [
   'documents' // identity documents and driving licences
   'inspections' // vehicle check-in / check-out photos
   'contracts' // rental contract PDFs
+  'invoices' // invoices and credit notes (PDF, TEIF XML)
   'exports' // accounting and Excel exports
   dataProtectionContainerName // ASP.NET Core Data Protection key ring
 ]
@@ -331,6 +347,11 @@ module web 'modules/appservice.bicep' = {
       Email__AcsEndpoint: communication.outputs.endpoint
       Email__SenderAddress: communication.outputs.senderAddress
       Seed__Demo: seedDemoData ? 'true' : 'false'
+      Identity__InitialManagerEmail: initialManagerEmail
+      HostFiltering__CustomDomains: customDomains
+      PublicSite__BaseUrl: empty(publicSiteBaseUrl) ? 'https://${names.webApp}.azurewebsites.net' : publicSiteBaseUrl
+      PublicSite__AgencyName: publicSiteAgencyName
+      PublicSite__WhatsAppNumber: publicSiteWhatsAppNumber
     }
   }
 }

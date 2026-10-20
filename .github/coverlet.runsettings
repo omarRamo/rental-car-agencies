@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Code coverage settings used by CI (dotnet test --collect "XPlat Code Coverage" --settings .github/coverlet.runsettings).
+  Code coverage settings used by CI: dotnet test with the "XPlat Code Coverage" collector and this settings file.
   Requires the coverlet.collector package in every test project.
   Only CarRental.* production assemblies are measured; generated code and EF Core migrations are excluded.
 -->
