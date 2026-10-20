@@ -1,0 +1,51 @@
+@* Cloudflare Turnstile widget for a public form (ADR-0037), to place inside the <form>: the widget fills the
+   cf-turnstile-response field, which the handler checks with ITurnstileVerifier. It needs JavaScript (a notice says so
+   without it) and extends the CSP of this response only (script and frame from challenges.cloudflare.com). Tests render
+   it offline with the dummy token of the Cloudflare test keys. Usage: <TurnstileWidget Action="booking_submit" /> *@
+@using CarRental.Web.Endpoints.PublicSite.Turnstile
+@inject IOptions<TurnstileOptions> Options
+@inject IStringLocalizer<PublicResources> L
+
+@if (Options.Value.OfflineTestWidget)
+{
+    <div class="turnstile turnstile--test">
+        <input type="hidden" name="@TurnstileOptions.ResponseFieldName" value="@TurnstileTestKeys.DummyToken" />
+        <p class="field-hint">@L["Turnstile.TestMode"]</p>
+    </div>
+}
+else if (Options.Value.IsConfigured)
+{
+    <div class="turnstile">
+        <div class="cf-turnstile" data-sitekey="@Options.Value.SiteKey" data-action="@Action" data-language="@_language"
+             data-theme="light" data-size="flexible" data-response-field-name="@TurnstileOptions.ResponseFieldName"></div>
+        <noscript><p class="field-hint">@L["Turnstile.NoScript"]</p></noscript>
+    </div>
+    <script src="@ScriptUrl" async defer></script>
+}
+else
+{
+    <p class="alert alert--error" role="alert">@L["Turnstile.Unavailable"]</p>
+}
+
+@code {
+    public const string Origin = "https://challenges.cloudflare.com";
+    public const string ScriptUrl = Origin + "/turnstile/v0/api.js";
+
+    private string _language = CultureCatalog.Default;
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    /// <summary>Action name checked by the verifier (letters, digits, '_' and '-', 32 at most), e.g. <c>booking_submit</c>.</summary>
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        _language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        if (HttpContext is not null && !Options.Value.OfflineTestWidget && Options.Value.IsConfigured)
+        {
+            ContentSecurityPolicyAdditions.For(HttpContext).AllowScript(Origin).AllowFrame(Origin);
+        }
+    }
+}

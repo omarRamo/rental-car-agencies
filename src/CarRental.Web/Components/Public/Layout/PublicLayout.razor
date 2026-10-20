@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@using CarRental.Web.Resources.Public
 @inject IStringLocalizer<PublicResources> L
 @inject IOptions<PublicSiteOptions> Site
 
@@ -7,11 +6,18 @@
 
 <header class="site-header">
     <div class="container site-header__inner">
-        <a class="site-brand" href="/@_culture">@Site.Value.AgencyName</a>
+        <a class="site-brand" href="@PublicRoutes.PathFor(PublicPage.Home, _culture)">@Site.Value.AgencyName</a>
         <nav class="site-nav" aria-label="@L["LanguageNav"]">
             <LanguageSwitcher />
         </nav>
     </div>
+    <nav class="site-menu" aria-label="@L["MainNav"]">
+        <ul class="container site-menu__list">
+            <li><a href="@($"{PublicRoutes.PathFor(PublicPage.Home, _culture)}#recherche")">@L["Nav.Book"]</a></li>
+            <li><a href="@PublicRoutes.PathFor(PublicPage.Agency, _culture)" aria-current="@Current(PublicPage.Agency)">@L["Nav.Agency"]</a></li>
+            <li><a href="@PublicRoutes.PathFor(PublicPage.Faq, _culture)" aria-current="@Current(PublicPage.Faq)">@L["Nav.Faq"]</a></li>
+        </ul>
+    </nav>
 </header>
 
 <main id="main" class="site-main container" tabindex="-1">
@@ -20,8 +26,17 @@
 
 <footer class="site-footer">
     <div class="container site-footer__inner">
+        <nav aria-label="@L["Footer.Nav"]">
+            <ul class="site-footer__links">
+                <li><a href="@PublicRoutes.PathFor(PublicPage.Agency, _culture)">@L["Nav.Agency"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(PublicPage.Faq, _culture)">@L["Nav.Faq"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(PublicPage.Terms, _culture)">@L["Footer.Terms"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(PublicPage.Privacy, _culture)">@L["Footer.Privacy"]</a></li>
+                <li><a href="/account/login">@L["StaffLogin"]</a></li>
+            </ul>
+        </nav>
+        <p>@L["Footer.Prices"]</p>
         <p>© @DateTime.UtcNow.Year @Site.Value.AgencyName</p>
-        <p><a href="/account/login">@L["StaffLogin"]</a></p>
     </div>
 </footer>
 
@@ -29,6 +44,20 @@
 
 @code {
     private string _culture = CultureCatalog.Default;
+    private PublicPage? _page;
 
-    protected override void OnParametersSet() => _culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        if (HttpContext is not null)
+        {
+            _page = PublicRoutes.PageOf(HttpContext.Request.Path.Value);
+            PublicPageCaching.Apply(HttpContext);
+        }
+    }
+
+    private string? Current(PublicPage page) => _page == page ? "page" : null;
 }

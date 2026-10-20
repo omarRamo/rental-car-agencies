@@ -1,0 +1,25 @@
+@* Photo of a category, sized to avoid layout shifts: decorative (the name and the model are in the text next to it).
+   The first photo of a list is the likely LCP element: fetched eagerly with high priority; the others are lazy.
+   Without photo, a car silhouette (the CarSymbol defined once in the page) takes the same room. *@
+<div class="category-media">
+    @if (!string.IsNullOrEmpty(Category.PhotoUrl))
+    {
+        <img src="@Category.PhotoUrl" alt="" width="480" height="320" decoding="async"
+             loading="@(Priority ? "eager" : "lazy")" fetchpriority="@(Priority ? "high" : null)" />
+    }
+    else
+    {
+        <svg class="category-media__placeholder" viewBox="0 0 120 80" width="480" height="320" aria-hidden="true" focusable="false">
+            <use href="#car-silhouette"></use>
+        </svg>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleCategoryInfo Category { get; set; } = default!;
+
+    /// <summary>First image of the list (above the fold on a phone).</summary>
+    [Parameter]
+    public bool Priority { get; set; }
+}

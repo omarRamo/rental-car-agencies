@@ -1,0 +1,83 @@
+@* An available category in the results: photo, model "or similar", features, total price TTC first, price per day
+   and indicative euro equivalent second, and the "Choose" button that posts the search and the category (antiforgery)
+   to the selection action of the booking funnel. *@
+@inject IStringLocalizer<PublicResources> L
+
+<li class="offer@(Highlighted ? " offer--highlighted" : string.Empty)">
+    <article class="offer__card" aria-labelledby="@_titleId">
+        <CategoryMedia Category="Offer.Category" Priority="Priority" />
+        <div class="offer__body">
+            @if (Highlighted)
+            {
+                <p class="offer__badge">@L["Results.Highlighted"]</p>
+            }
+            <h3 id="@_titleId" class="offer__title">@Offer.Category.Name <span class="offer__code">@Offer.Category.AcrissCode</span></h3>
+            <p class="offer__model">@L["Results.OrSimilar", Offer.Category.ExampleModel]</p>
+            <ul class="offer__features">
+                <li>@L["Results.Seats", Offer.Category.Seats]</li>
+                <li>@L["Results.Bags", Offer.Category.LargeBags, Offer.Category.SmallBags]</li>
+                <li>@(Offer.Category.Transmission == TransmissionInfo.Automatic ? L["Results.Gearbox.Automatic"] : L["Results.Gearbox.Manual"])</li>
+                @if (Offer.Category.AirConditioning)
+                {
+                    <li>@L["Results.AirConditioning"]</li>
+                }
+            </ul>
+            @if (Offer.Remaining is > 0 and <= 2)
+            {
+                <p class="offer__remaining">@(Offer.Remaining == 1 ? L["Results.Remaining.One"] : L["Results.Remaining.Other", Offer.Remaining])</p>
+            }
+        </div>
+        <div class="offer__price">
+            <p class="offer__total">
+                <span class="offer__total-label">@L["Results.Total"]</span>
+                <strong class="offer__amount">@PublicFormat.Price(Offer.Total)</strong>
+                <span class="offer__days">@(Offer.Days == 1 ? L["Results.ForDays.One"] : L["Results.ForDays.Other", Offer.Days])</span>
+            </p>
+            <p class="offer__daily">@L["Results.PerDay", PublicFormat.Price(Offer.PerDay)]</p>
+            @if (PublicFormat.EuroEquivalent(Offer.Total, EurRate) is { } euros)
+            {
+                <p class="offer__eur">@L["Results.Euro", PublicFormat.Euros(euros)]</p>
+            }
+            <form method="post" action="@PublicRoutes.SelectionPath(Culture)" class="offer__choose">
+                <AntiforgeryToken />
+                @foreach (var (name, value) in _fields)
+                {
+                    <input type="hidden" name="@name" value="@value" />
+                }
+                <button type="submit" class="button button--block">@L["Results.Choose"]<span class="visually-hidden"> — @Offer.Category.Name (@Offer.Category.AcrissCode)</span></button>
+            </form>
+        </div>
+    </article>
+</li>
+
+@code {
+    private string _titleId = string.Empty;
+    private IReadOnlyList<KeyValuePair<string, string?>> _fields = [];
+
+    [Parameter, EditorRequired]
+    public SearchOffer Offer { get; set; } = default!;
+
+    /// <summary>The validated search the offer answers (posted with the chosen category).</summary>
+    [Parameter, EditorRequired]
+    public SearchCriteria Criteria { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Culture { get; set; } = CultureCatalog.Default;
+
+    [Parameter]
+    public decimal EurRate { get; set; }
+
+    [Parameter]
+    public bool Highlighted { get; set; }
+
+    /// <summary>First offer of the list: its photo is fetched with high priority.</summary>
+    [Parameter]
+    public bool Priority { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _titleId = $"offer-{Offer.Category.AcrissCode.ToUpperInvariant()}";
+        var category = AcrissCode.Create(Offer.Category.AcrissCode);
+        _fields = (Criteria.Query with { Category = category.IsSuccess ? category.Value : null }).ToParameters();
+    }
+}

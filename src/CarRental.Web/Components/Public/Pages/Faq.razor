@@ -1,0 +1,27 @@
+@page "/{culture:length(2)}/faq"
+@* Frequently asked questions, with the figures the agency applies (settings, fleet, locations). *@
+@inherits PublicPageBase
+@attribute [CacheablePublicPage]
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<PublicResources> L
+
+<PublicHead Page="PublicPage.Faq" Title="@L["Faq.Title"]" Description="@L["Faq.Description"]" />
+
+<h1>@L["Faq.Title"]</h1>
+<p class="results-intro">@L["Faq.Intro"]</p>
+<FaqList Items="_items" />
+<p><a href="@($"{PublicRoutes.PathFor(PublicPage.Agency, Lang)}")">@L["Faq.Contact"]</a></p>
+
+@code {
+    private IReadOnlyList<FaqItem> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonical(PublicPage.Faq))
+        {
+            return;
+        }
+
+        _items = FaqContent.Build(L, await Directory.GetAsync(Aborted));
+    }
+}

@@ -1,0 +1,55 @@
+@* Address, phone, e-mail, opening hours and map link of the agency (home page and agency page). *@
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<dl class="agency-facts">
+    @if (!string.IsNullOrWhiteSpace(Agency.Agency.Address))
+    {
+        <div class="agency-facts__item">
+            <dt>@L["Agency.Address"]</dt>
+            <dd>
+                <address>@Agency.Agency.Address</address>
+                @if (AgencyLinks.MapUrl(Agency.Agency) is { } map)
+                {
+                    <a href="@map" target="_blank" rel="noopener noreferrer">@L["Agency.Map"] <span class="visually-hidden">@L["ExternalLink"]</span></a>
+                }
+            </dd>
+        </div>
+    }
+    @if (PublicFormat.TelephoneLink(Agency.Agency.Phone) is { } tel)
+    {
+        <div class="agency-facts__item">
+            <dt>@L["Agency.Phone"]</dt>
+            <dd><a href="@tel">@Agency.Agency.Phone</a></dd>
+        </div>
+    }
+    @if (ShowEmail && !string.IsNullOrWhiteSpace(Agency.Agency.Email))
+    {
+        <div class="agency-facts__item">
+            <dt>@L["Agency.Email"]</dt>
+            <dd><a href="mailto:@Agency.Agency.Email">@Agency.Agency.Email</a></dd>
+        </div>
+    }
+    @if (ShowWhatsApp && AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, L["WhatsApp.Message"]) is { } whatsApp)
+    {
+        <div class="agency-facts__item">
+            <dt>@L["Agency.WhatsApp"]</dt>
+            <dd><a href="@whatsApp" target="_blank" rel="noopener noreferrer">@L["Agency.WhatsAppAction"] <span class="visually-hidden">@L["ExternalLink"]</span></a></dd>
+        </div>
+    }
+    <div class="agency-facts__item">
+        <dt>@L["Agency.Hours"]</dt>
+        <dd>@L["Agency.HoursValue", PublicFormat.Time(Agency.OpeningHours.OpensAt), PublicFormat.Time(Agency.OpeningHours.ClosesAt)]</dd>
+    </div>
+</dl>
+
+@code {
+    [Parameter, EditorRequired]
+    public PublicAgency Agency { get; set; } = default!;
+
+    [Parameter]
+    public bool ShowEmail { get; set; }
+
+    [Parameter]
+    public bool ShowWhatsApp { get; set; }
+}

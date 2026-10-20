@@ -1,0 +1,15 @@
+@* Questions and answers as disclosure widgets (keyboard and screen reader friendly, no JavaScript). *@
+<div class="faq">
+    @foreach (var item in Items)
+    {
+        <details class="faq__item" id="@item.Id">
+            <summary class="faq__question">@item.Question</summary>
+            <p class="faq__answer">@item.Answer</p>
+        </details>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<FaqItem> Items { get; set; } = [];
+}

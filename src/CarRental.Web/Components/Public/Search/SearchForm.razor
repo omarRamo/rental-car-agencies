@@ -1,0 +1,161 @@
+@* The search form of the home and results pages: a plain GET form to the results page (no antiforgery, cacheable
+   page), named like the deep links. Server-side validation only (novalidate): errors are listed in a summary linked to
+   the fields and repeated next to each field, with or without JavaScript. "Return elsewhere" reveals the return
+   location with CSS (:has); a small optional module keeps the return after the pick-up. Dates are Tunis time. *@
+@inject IStringLocalizer<PublicResources> L
+
+<form class="search-form" method="get" action="@PublicRoutes.PathFor(PublicPage.Results, Culture)" novalidate data-search-form
+      aria-labelledby="@(Heading is null ? null : $"{IdPrefix}-heading")">
+    @if (Heading is not null)
+    {
+        <h2 id="@($"{IdPrefix}-heading")" class="search-form__title">@Heading</h2>
+    }
+
+    @if (_errors.Count > 0)
+    {
+        <div class="error-summary" role="alert" tabindex="-1" autofocus aria-labelledby="@($"{IdPrefix}-errors-title")">
+            <h2 id="@($"{IdPrefix}-errors-title")" class="error-summary__title">@L["Search.ErrorSummary"]</h2>
+            <ul class="error-summary__list">
+                @foreach (var error in _errors)
+                {
+                    <li><a href="@($"#{FieldId(error.Field)}")">@Message(error)</a></li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="form-field">
+        <label for="@FieldId(SearchParameters.PickupLocation)">@L["Search.PickupLocation"]</label>
+        <select id="@FieldId(SearchParameters.PickupLocation)" name="@SearchParameters.PickupLocation" required
+                aria-invalid="@Invalid(SearchParameters.PickupLocation)" aria-describedby="@ErrorIdIfAny(SearchParameters.PickupLocation)">
+            @foreach (var location in Agency.Locations)
+            {
+                <option value="@location.Code" selected="@(location.Code == _pickupLocation)">@location.Name</option>
+            }
+        </select>
+        <FieldMessage Id="@ErrorId(SearchParameters.PickupLocation)" Message="@MessageFor(SearchParameters.PickupLocation)" />
+    </div>
+
+    <div class="search-form__elsewhere form-check">
+        <input type="checkbox" id="@($"{IdPrefix}-elsewhere")" checked="@_returnElsewhere" data-return-elsewhere />
+        <label for="@($"{IdPrefix}-elsewhere")">@L["Search.ReturnElsewhere"]</label>
+    </div>
+
+    <div class="form-field search-form__return">
+        <label for="@FieldId(SearchParameters.ReturnLocation)">@L["Search.ReturnLocation"]</label>
+        <select id="@FieldId(SearchParameters.ReturnLocation)" name="@SearchParameters.ReturnLocation" data-return-location
+                aria-invalid="@Invalid(SearchParameters.ReturnLocation)" aria-describedby="@ErrorIdIfAny(SearchParameters.ReturnLocation)">
+            <option value="" selected="@(_returnLocation is null)">@L["Search.SameLocation"]</option>
+            @foreach (var location in Agency.Locations)
+            {
+                <option value="@location.Code" selected="@(location.Code == _returnLocation)">@location.Name</option>
+            }
+        </select>
+        <FieldMessage Id="@ErrorId(SearchParameters.ReturnLocation)" Message="@MessageFor(SearchParameters.ReturnLocation)" />
+    </div>
+
+    <div class="search-form__dates">
+        <div class="form-field">
+            <label for="@FieldId(SearchParameters.Pickup)">@L["Search.Pickup"]</label>
+            <input type="datetime-local" id="@FieldId(SearchParameters.Pickup)" name="@SearchParameters.Pickup" value="@_pickup"
+                   min="@_min" max="@_max" required data-pickup
+                   aria-invalid="@Invalid(SearchParameters.Pickup)" aria-describedby="@Describe(SearchParameters.Pickup)" />
+            <FieldMessage Id="@ErrorId(SearchParameters.Pickup)" Message="@MessageFor(SearchParameters.Pickup)" />
+        </div>
+        <div class="form-field">
+            <label for="@FieldId(SearchParameters.Return)">@L["Search.Return"]</label>
+            <input type="datetime-local" id="@FieldId(SearchParameters.Return)" name="@SearchParameters.Return" value="@_return"
+                   min="@_min" max="@_max" required data-return
+                   aria-invalid="@Invalid(SearchParameters.Return)" aria-describedby="@Describe(SearchParameters.Return)" />
+            <FieldMessage Id="@ErrorId(SearchParameters.Return)" Message="@MessageFor(SearchParameters.Return)" />
+        </div>
+    </div>
+    <p id="@($"{IdPrefix}-time-hint")" class="field-hint">@L["Search.TimeHint"]</p>
+
+    @foreach (var (name, value) in _hidden)
+    {
+        <input type="hidden" name="@name" value="@value" />
+    }
+
+    <button type="submit" class="button button--block">@L["Search.Submit"]</button>
+</form>
+<script type="module" src="@Assets["js/search-form.js"]"></script>
+
+@code {
+    private static readonly string[] VisibleFields =
+        [SearchParameters.PickupLocation, SearchParameters.ReturnLocation, SearchParameters.Pickup, SearchParameters.Return];
+
+    private IReadOnlyList<SearchError> _errors = [];
+    private IReadOnlyList<KeyValuePair<string, string?>> _hidden = [];
+    private string? _pickupLocation;
+    private string? _returnLocation;
+    private bool _returnElsewhere;
+    private string _pickup = string.Empty;
+    private string _return = string.Empty;
+    private string _min = string.Empty;
+    private string _max = string.Empty;
+
+    [Parameter, EditorRequired]
+    public PublicAgency Agency { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Culture { get; set; } = CultureCatalog.Default;
+
+    [Parameter, EditorRequired]
+    public DateTimeOffset Now { get; set; }
+
+    /// <summary>The search to show (prefilled fields, context carried in hidden fields: category, filters, quote, source).</summary>
+    [Parameter]
+    public SearchQuery Query { get; set; } = SearchQuery.Empty;
+
+    [Parameter]
+    public IReadOnlyList<SearchError>? Errors { get; set; }
+
+    /// <summary>Visible title of the form (h2), or none.</summary>
+    [Parameter]
+    public string? Heading { get; set; }
+
+    /// <summary>Prefix of the element ids, unique in the page.</summary>
+    [Parameter]
+    public string IdPrefix { get; set; } = "search";
+
+    protected override void OnParametersSet()
+    {
+        _errors = Errors ?? [];
+        _pickupLocation = Agency.FindLocation(Query.PickupLocation)?.Code ?? Agency.MainLocation?.Code;
+        _returnLocation = Agency.FindLocation(Query.ReturnLocation)?.Code;
+        _returnElsewhere = (_returnLocation is not null && _returnLocation != _pickupLocation) || MessageFor(SearchParameters.ReturnLocation) is not null;
+
+        var today = TunisTime.DateOf(Now);
+        var defaultPickup = TunisTime.FromLocal(today.AddDays(1), new TimeOnly(10, 0));
+        _pickup = Query.Pickup ?? SearchValidator.FormatLocal(defaultPickup);
+        _return = Query.Return ?? SearchValidator.FormatLocal(defaultPickup.AddDays(3));
+        _min = SearchValidator.FormatLocal(NextQuarterHour(Now));
+        _max = SearchValidator.FormatLocal(Now.AddDays(SearchValidator.MaxDaysAhead));
+        _hidden = [.. Query.ToParameters().Where(p => !VisibleFields.Contains(p.Key, StringComparer.Ordinal))];
+    }
+
+    private static DateTimeOffset NextQuarterHour(DateTimeOffset now)
+    {
+        var minutes = 15 - (TunisTime.ToTunis(now).Minute % 15);
+        var next = now.AddMinutes(minutes);
+        return next.AddSeconds(-next.Second).AddMilliseconds(-next.Millisecond);
+    }
+
+    private string FieldId(string field) => $"{IdPrefix}-{field.Replace('_', '-')}";
+
+    private string ErrorId(string field) => $"{FieldId(field)}-error";
+
+    private string? MessageFor(string field) => _errors.FirstOrDefault(e => e.Field == field) is { } error ? Message(error) : null;
+
+    private string Message(SearchError error) =>
+        error.Code == "rental_too_long" ? L[$"Search.Error.{error.Code}", SearchValidator.MaxRentalDays] : L[$"Search.Error.{error.Code}"];
+
+    private string? Invalid(string field) => MessageFor(field) is null ? null : "true";
+
+    private string? ErrorIdIfAny(string field) => MessageFor(field) is null ? null : ErrorId(field);
+
+    /// <summary>The time zone hint, plus the error when there is one.</summary>
+    private string Describe(string field) =>
+        MessageFor(field) is null ? $"{IdPrefix}-time-hint" : $"{ErrorId(field)} {IdPrefix}-time-hint";
+}

@@ -1,0 +1,89 @@
+@page "/{culture:length(2)}/confidentialite"
+@page "/{culture:length(2)}/privacy"
+@* Privacy policy (SPEC §14): purposes, identity documents and their retention, measurement of the funnel and its
+   cookie, hosting and transfer (INPDP), rights, cookies. Durations come from the settings. TODO(spec): to be validated
+   with the lawyer and the INPDP filing (authorization reference, legal retention of bookings and invoices). *@
+@inherits PublicPageBase
+@attribute [CacheablePublicPage]
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<PublicHead Page="PublicPage.Privacy" Title="@L["Privacy.Title"]" Description="@L["Privacy.Description"]" />
+
+<article class="legal" aria-labelledby="privacy-heading">
+    <h1 id="privacy-heading">@L["Privacy.Title"]</h1>
+    <p class="notice" role="note">@L["Privacy.Draft"]</p>
+
+    <section class="legal__section" aria-labelledby="privacy-controller">
+        <h2 id="privacy-controller">@L["Privacy.Controller.Title"]</h2>
+        <p>@L["Privacy.Controller.Text", Site.Value.AgencyName, _agency?.Agency.Address ?? _agency?.Agency.City ?? "Tunisie", _contact]</p>
+    </section>
+
+    <section class="legal__section" aria-labelledby="privacy-purposes">
+        <h2 id="privacy-purposes">@L["Privacy.Purposes.Title"]</h2>
+        <ul>
+            <li>@L["Privacy.Purposes.Booking"]</li>
+            <li>@L["Privacy.Purposes.Documents"]</li>
+            <li>@L["Privacy.Purposes.Payment"]</li>
+            <li>@L["Privacy.Purposes.Communications"]</li>
+            <li>@L["Privacy.Purposes.Marketing"]</li>
+            <li>@L["Privacy.Purposes.Measurement", _policies.FunnelEventRetentionDays]</li>
+            <li>@L["Privacy.Purposes.Security"]</li>
+        </ul>
+    </section>
+
+    <section class="legal__section" aria-labelledby="privacy-retention">
+        <h2 id="privacy-retention">@L["Privacy.Retention.Title"]</h2>
+        <ul>
+            <li>@(_policies.DocumentImageRetentionEnabled
+                    ? L["Privacy.Retention.Documents.Enabled", _policies.DocumentImageRetentionDays]
+                    : L["Privacy.Retention.Documents.Pending"])</li>
+            <li>@L["Privacy.Retention.Booking"]</li>
+            <li>@L["Privacy.Retention.Measurement", _policies.FunnelEventRetentionDays]</li>
+            <li>@L["Privacy.Retention.WhatsApp"]</li>
+        </ul>
+    </section>
+
+    <section class="legal__section" aria-labelledby="privacy-hosting">
+        <h2 id="privacy-hosting">@L["Privacy.Hosting.Title"]</h2>
+        <p>@L["Privacy.Hosting.Text"]</p>
+    </section>
+
+    <section class="legal__section" aria-labelledby="privacy-rights">
+        <h2 id="privacy-rights">@L["Privacy.Rights.Title"]</h2>
+        <p>@L["Privacy.Rights.Text", _contact]</p>
+    </section>
+
+    <section class="legal__section" aria-labelledby="privacy-cookies">
+        <h2 id="privacy-cookies">@L["Privacy.Cookies.Title"]</h2>
+        <p>@L["Privacy.Cookies.Intro"]</p>
+        <ul>
+            <li>@L["Privacy.Cookies.Antiforgery"]</li>
+            <li>@L["Privacy.Cookies.Visit"]</li>
+            <li>@L["Privacy.Cookies.Culture"]</li>
+            <li>@L["Privacy.Cookies.Staff"]</li>
+        </ul>
+    </section>
+</article>
+
+@code {
+    /// <summary>Defaults of the settings, shown when no agency is set up yet.</summary>
+    private static readonly PublicPolicies DefaultPolicies = new(21, 2, 25, 400, false, 400);
+
+    private PublicAgency? _agency;
+    private PublicPolicies _policies = DefaultPolicies;
+    private string _contact = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonical(PublicPage.Privacy))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        _policies = _agency?.Policies ?? DefaultPolicies;
+        _contact = _agency?.Agency.Email ?? _agency?.Agency.Phone ?? L["Privacy.ContactFallback"];
+    }
+}

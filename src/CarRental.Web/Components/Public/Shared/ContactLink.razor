@@ -1,0 +1,12 @@
+@* WhatsApp contact button of the empty and error states (hidden when no WhatsApp number is configured). *@
+@inject IStringLocalizer<PublicResources> L
+
+@if (!string.IsNullOrEmpty(Href))
+{
+    <p><a class="button button--whatsapp" href="@Href" target="_blank" rel="noopener noreferrer">@L["Results.Empty.Contact"] <span class="visually-hidden">@L["ExternalLink"]</span></a></p>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string? Href { get; set; }
+}

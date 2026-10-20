@@ -29,7 +29,10 @@
     {
         <ReconnectModal />
     }
-    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    @if (_loadBlazorScript)
+    {
+        <script src="@Assets["_framework/blazor.web.js"]"></script>
+    }
     @if (_isAdmin)
     {
         <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
@@ -40,6 +43,7 @@
 
 @code {
     private bool _isAdmin;
+    private bool _loadBlazorScript = true;
     private string _language = CultureCatalog.Default;
     private string _direction = "ltr";
 
@@ -52,6 +56,8 @@
     protected override void OnParametersSet()
     {
         _isAdmin = HttpContext.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
+        // Public pages are plain HTML forms rendered in one pass: no Blazor script (ADR-0036).
+        _loadBlazorScript = _isAdmin || Public.PublicPageScripts.NeedsBlazorScript(HttpContext);
         var culture = CultureInfo.CurrentUICulture;
         _language = culture.TwoLetterISOLanguageName;
         _direction = culture.TextInfo.IsRightToLeft ? "rtl" : "ltr";

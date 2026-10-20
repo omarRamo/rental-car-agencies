@@ -591,4 +591,7 @@
   <data name="Error.fleet.vehicle.year_invalid" xml:space="preserve">
     <value>L'année est comprise entre 1990 et 2100.</value>
   </data>
+  <data name="Error.referential.agency_coordinates_invalid" xml:space="preserve">
+    <value>Les coordonnées de l'agence demandent une latitude (-90 à 90) et une longitude (-180 à 180).</value>
+  </data>
 </root>
