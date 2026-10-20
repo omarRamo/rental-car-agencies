@@ -12,6 +12,8 @@ public static class PaymentsErrors
 
     public static readonly Error AgencyRequired = Error.Validation("payments.agency_required", "An agency is required.");
 
+    public static readonly Error AgencyNotFound = Error.NotFound("payments.agency_not_found", "The agency does not exist or is inactive.");
+
     public static readonly Error BookingRequired = Error.Validation("payments.booking_required", "A booking is required.");
 
     public static readonly Error AmountInvalid = Error.Validation(

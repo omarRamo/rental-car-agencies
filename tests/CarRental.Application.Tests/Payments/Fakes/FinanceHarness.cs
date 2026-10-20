@@ -1,0 +1,115 @@
+using CarRental.Application.Cash;
+using CarRental.Application.Cash.Contracts;
+using CarRental.Application.Common.Security;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Payments;
+using CarRental.Application.Payments.Administration;
+using CarRental.Application.Payments.Contracts;
+using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Tests.Fakes;
+using CarRental.Domain.Cash;
+using CarRental.Domain.Common;
+using CarRental.Domain.Payments;
+using Microsoft.Extensions.Time.Testing;
+
+namespace CarRental.Application.Tests.Payments.Fakes;
+
+/// <summary>
+/// The Payments and Cash services wired on one in-memory database, a fake clock (28/06/2027 09:00 in Tunis) and an
+/// active agency, acting as the users the tests choose.
+/// </summary>
+internal sealed class FinanceHarness
+{
+    public static readonly DateTimeOffset Start = new(2027, 6, 28, 8, 0, 0, TimeSpan.Zero);
+
+    public FinanceHarness(DateTimeOffset? start = null)
+    {
+        Time = new FakeTimeProvider(start ?? Start);
+        Referential.Agencies.Add(new AgencyInfo(AgencyId, "Agence Démo Tunis", "Tunis", null, null, IsActive: true));
+    }
+
+    public InMemoryFinanceDb Db { get; } = new();
+
+    public FakeTimeProvider Time { get; }
+
+    public FakeReferentialQueries Referential { get; } = new();
+
+    public FakeIdentityQueries Identity { get; } = new();
+
+    public InlineUnitOfWork UnitOfWork { get; } = new();
+
+    public Guid AgencyId { get; } = Guid.CreateVersion7();
+
+    /// <summary>A user holding the permissions of <paramref name="role"/>, with a display name known to the identity fake.</summary>
+    public ScopedUserContext User(string role, string? name = null)
+    {
+        var id = Guid.CreateVersion7();
+        var userName = $"{role.ToLowerInvariant()}-{id:N}@demo.local";
+        Identity.DisplayNames[id] = name ?? $"{role} {id.ToString()[..4]}";
+        return TestUsers.ContextFor(id, userName, role);
+    }
+
+    /// <summary>A user holding exactly <paramref name="permissions"/>.</summary>
+    public static ScopedUserContext UserWith(params string[] permissions)
+    {
+        var context = new ScopedUserContext([]);
+        context.Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), "custom@demo.local", permissions));
+        return context;
+    }
+
+    public ICashSessions Sessions(IUserContext user) => new CashSessionService(Db, UnitOfWork, user, Referential, Identity, Time);
+
+    public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time);
+
+    public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Time);
+
+    public IDeposits Deposits(IUserContext user) => new Deposits(Db, UnitOfWork, user, Drawer(user), Referential, Time);
+
+    public IPaymentsQueries PaymentsQueries() => new PaymentsQueries(Db);
+
+    public ICashQueries CashQueries() => new CashQueries(Db);
+
+    public PaymentAdminQueries Admin(IUserContext user) => new(Db, user);
+
+    /// <summary>Opens the session of <paramref name="user"/> and returns its id.</summary>
+    public async Task<Guid> OpenSessionAsync(IUserContext user, decimal openingFloat = 100m, Guid? agencyId = null, CancellationToken cancellationToken = default) =>
+        (await Sessions(user).OpenAsync(new OpenCashSessionRequest(agencyId ?? AgencyId, openingFloat), cancellationToken)).Value;
+
+    public CashSession Session(Guid sessionId) => Db.Rows<CashSession>().Single(s => s.Id == sessionId);
+
+    public Payment Payment(Guid paymentId) => Db.Rows<Payment>().Single(p => p.Id == paymentId);
+
+    public DepositHold Deposit(Guid depositId) => Db.Rows<DepositHold>().Single(d => d.Id == depositId);
+
+    public static CounterPaymentRequest CashPayment(Guid bookingId, Guid agencyId, decimal amount) =>
+        new(bookingId, agencyId, PaymentMethodInfo.Cash, amount);
+
+    public static Money Tnd(decimal amount) => Money.Tnd(amount);
+}
+
+internal sealed class FakeReferentialQueries : IReferentialQueries
+{
+    public List<AgencyInfo> Agencies { get; } = [];
+
+    public Task<IReadOnlyList<AgencyInfo>> GetAgenciesAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AgencyInfo>>([.. Agencies]);
+
+    public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<LocationInfo>>([]);
+
+    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+        Task.FromResult<LocationInfo?>(null);
+}
+
+internal sealed class FakeIdentityQueries : IIdentityQueries
+{
+    public Dictionary<Guid, string> DisplayNames { get; } = [];
+
+    public List<(string Role, UserContactInfo User)> UsersInRoles { get; } = [];
+
+    public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, string>>(DisplayNames.Where(n => userIds.Contains(n.Key)).ToDictionary(n => n.Key, n => n.Value));
+
+    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(string role, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<UserContactInfo>>([.. UsersInRoles.Where(u => u.Role == role).Select(u => u.User)]);
+}
