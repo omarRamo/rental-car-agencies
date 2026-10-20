@@ -13,7 +13,8 @@ namespace CarRental.Application.Fleet.Seeding;
 /// Demo fleet of the demo agency (development and recette only): 5 ACRISS categories and 30 fictitious vehicles with
 /// documents, an oil change plan and economics. Dates are relative to the first seeding day: one insurance expires
 /// within 7 days, one road tax within 30 days, one technical inspection has expired (vehicle not compliant), one
-/// maintenance is planned next week and one vehicle is out of service. Idempotent: missing categories and plates only.
+/// maintenance is planned next week, one oil change is due soon and one vehicle is out of service. Idempotent: missing
+/// categories and plates only.
 /// </summary>
 internal sealed partial class FleetDemoSeeder(
     IAppDbContext db,
@@ -44,6 +45,7 @@ internal sealed partial class FleetDemoSeeder(
     /// <summary>Index (0-29) of the vehicles with a particular situation.</summary>
     internal static class Special
     {
+        public const int OilChangeDueSoon = 5;
         public const int InsuranceWithin7Days = 3;
         public const int RoadTaxWithin30Days = 9;
         public const int ExpiredTechnicalInspection = 16;
@@ -139,7 +141,7 @@ internal sealed partial class FleetDemoSeeder(
                 10_000,
                 12,
                 LastDoneOn: Max(today.AddDays(-(index * 11 % 300)), inServiceOn),
-                LastDoneMileage: Math.Max(0, mileage - (index * 733 % 9_000)),
+                LastDoneMileage: index == Special.OilChangeDueSoon ? mileage - 9_600 : Math.Max(0, mileage - (index * 733 % 9_000)),
                 Label: "Vidange"),
             stamp);
 
