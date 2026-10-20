@@ -35,6 +35,7 @@ Le détail et la justification de chaque décision sont dans les [ADR](docs/adr/
 | [Décisions d'architecture](docs/adr/README.md) | Les ADR, une par décision structurante |
 | [Points ouverts](docs/points-ouverts.md) | Démarches de l'agence, décisions à obtenir, hypothèses à confirmer, incohérences à trancher |
 | [Conception de la phase 1](docs/conception/phase-1-exploitation.md) | Machine à états du dossier, occupation et capacité, sémantique du moteur de prix, découpage en lots |
+| [Conception de la phase 2](docs/conception/phase-2-vitrine-paiement.md) | Parcours public et liens profonds, brouillons de tunnel, flux Clic to Pay, Ma réservation, sécurité et performance du site |
 | [Règles du projet](CLAUDE.md) | Commandes, architecture, invariants, conventions et recettes de développement |
 | [Infrastructure Azure](infra/README.md) | Ressources, sécurité, coûts, premier déploiement, CI/CD, exploitation |
 
