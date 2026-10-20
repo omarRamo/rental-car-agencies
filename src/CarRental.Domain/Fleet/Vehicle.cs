@@ -130,11 +130,11 @@ public sealed class Vehicle : AggregateRoot
     public DateTimeOffset? CompliantUntil => VehicleCompliance.CompliantUntil(CurrentDocuments.Select(d => (d.Type, d.ExpiresOn)));
 
     /// <summary>Dated blocks of the maintenances that are not cancelled.</summary>
-    public IReadOnlyList<Period> MaintenanceBlocks =>
-        _maintenanceEvents.Select(e => e.Block).OfType<Period>().ToList();
+    public IReadOnlyList<Period> GetMaintenanceBlocks() =>
+        _maintenanceEvents.Select(e => e.GetBlock()).OfType<Period>().ToList();
 
-    public VehicleAvailabilityProfile AvailabilityProfile =>
-        new(InServiceOn, Status, SoldAtUtc, CompliantUntil, MaintenanceBlocks);
+    public VehicleAvailabilityProfile GetAvailabilityProfile() =>
+        new(InServiceOn, Status, SoldAtUtc, CompliantUntil, GetMaintenanceBlocks());
 
     public static Result<Vehicle> Register(Guid agencyId, Guid categoryId, VehicleDetails details, int mileage, ChangeStamp stamp)
     {
@@ -170,7 +170,7 @@ public sealed class Vehicle : AggregateRoot
 
     /// <summary>Rentable windows within <paramref name="range"/> at <paramref name="now"/> (see <see cref="VehicleAvailability"/>).</summary>
     public IReadOnlyList<Period> AvailabilityWindows(Period range, DateTimeOffset now) =>
-        VehicleAvailability.Windows(AvailabilityProfile, range, now);
+        VehicleAvailability.Windows(GetAvailabilityProfile(), range, now);
 
     public VehicleDocument? CurrentDocument(VehicleDocumentType type) => _documents.FirstOrDefault(d => d.IsCurrent && d.Type == type);
 
@@ -601,7 +601,7 @@ public sealed class Vehicle : AggregateRoot
             return FleetErrors.MaintenanceOverlap;
         }
 
-        var previous = maintenance.PlannedBlock;
+        var previous = maintenance.GetPlannedBlock();
         maintenance.Reschedule(block.Start, block.End);
         Touch();
         Record(VehicleHistoryKind.MaintenanceRescheduled, stamp, maintenance.Type.ToString(), Format(previous), Format(block));
@@ -648,8 +648,8 @@ public sealed class Vehicle : AggregateRoot
 
         maintenance.Start(stamp.At, end);
         Touch();
-        Record(VehicleHistoryKind.MaintenanceStarted, stamp, maintenance.Type.ToString(), newValue: Format(maintenance.PlannedBlock));
-        Raise(new MaintenanceStarted(Id, CategoryId, maintenance.Id, maintenance.PlannedBlock));
+        Record(VehicleHistoryKind.MaintenanceStarted, stamp, maintenance.Type.ToString(), newValue: Format(maintenance.GetPlannedBlock()));
+        Raise(new MaintenanceStarted(Id, CategoryId, maintenance.Id, maintenance.GetPlannedBlock()));
         if (Status != VehicleStatus.Maintenance)
         {
             SetStatus(VehicleStatus.Maintenance, maintenance.Description ?? maintenance.Type.ToString(), stamp);
@@ -748,7 +748,7 @@ public sealed class Vehicle : AggregateRoot
         var maintenance = found.Value;
         maintenance.Cancel(stamp.At, why);
         Touch();
-        Record(VehicleHistoryKind.MaintenanceCancelled, stamp, maintenance.Type.ToString(), Format(maintenance.PlannedBlock), reason: why);
+        Record(VehicleHistoryKind.MaintenanceCancelled, stamp, maintenance.Type.ToString(), Format(maintenance.GetPlannedBlock()), reason: why);
         Raise(new MaintenanceCancelled(Id, CategoryId, maintenance.Id));
         AvailabilityChanged();
         return Result.Success();
@@ -950,7 +950,7 @@ public sealed class Vehicle : AggregateRoot
     }
 
     private bool Overlaps(Period block, Guid? exceptId) =>
-        _maintenanceEvents.Any(e => e.Id != exceptId && e.Block is { } other && other.Overlaps(block));
+        _maintenanceEvents.Any(e => e.Id != exceptId && e.GetBlock() is { } other && other.Overlaps(block));
 
     private void Apply(VehicleDetails details)
     {

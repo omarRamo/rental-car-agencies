@@ -16,9 +16,9 @@ public sealed class MaintenanceTests
         var maintenance = vehicle.ScheduleMaintenance(Maintenance(NextWeek, NextWeek.AddHours(10)), Stamp()).Value;
 
         maintenance.Status.ShouldBe(MaintenanceStatus.Planned);
-        maintenance.Block.ShouldBe(P(NextWeek, NextWeek.AddHours(10)));
+        maintenance.GetBlock().ShouldBe(P(NextWeek, NextWeek.AddHours(10)));
         maintenance.Cost.ShouldBe(Money.Tnd(180m));
-        vehicle.MaintenanceBlocks.ShouldBe([P(NextWeek, NextWeek.AddHours(10))]);
+        vehicle.GetMaintenanceBlocks().ShouldBe([P(NextWeek, NextWeek.AddHours(10))]);
         vehicle.DomainEvents.OfType<MaintenanceScheduled>().ShouldHaveSingleItem().Block.ShouldBe(P(NextWeek, NextWeek.AddHours(10)));
         vehicle.DomainEvents.OfType<VehicleAvailabilityChanged>().ShouldHaveSingleItem();
         vehicle.Status.ShouldBe(VehicleStatus.Active);
@@ -48,8 +48,8 @@ public sealed class MaintenanceTests
 
         maintenance.Status.ShouldBe(MaintenanceStatus.Cancelled);
         maintenance.CancellationReason.ShouldBe("Pièces indisponibles");
-        maintenance.Block.ShouldBeNull();
-        vehicle.MaintenanceBlocks.ShouldBeEmpty();
+        maintenance.GetBlock().ShouldBeNull();
+        vehicle.GetMaintenanceBlocks().ShouldBeEmpty();
         vehicle.ScheduleMaintenance(Maintenance(NextWeek, NextWeek.AddHours(10)), Stamp()).IsSuccess.ShouldBeTrue();
         vehicle.DomainEvents.OfType<MaintenanceCancelled>().ShouldHaveSingleItem();
         vehicle.CancelMaintenance(maintenance.Id, "Encore", Stamp()).Error.ShouldBe(FleetErrors.MaintenanceInvalidTransition);
@@ -81,7 +81,7 @@ public sealed class MaintenanceTests
         vehicle.RescheduleMaintenance(Guid.CreateVersion7(), NextWeek, NextWeek.AddHours(1), Stamp()).Error.ShouldBe(FleetErrors.MaintenanceNotFound);
         vehicle.RescheduleMaintenance(first.Id, NextWeek.AddDays(1), NextWeek.AddDays(1).AddHours(4), Stamp()).IsSuccess.ShouldBeTrue();
 
-        first.Block.ShouldBe(P(NextWeek.AddDays(1), NextWeek.AddDays(1).AddHours(4)));
+        first.GetBlock().ShouldBe(P(NextWeek.AddDays(1), NextWeek.AddDays(1).AddHours(4)));
         vehicle.DomainEvents.OfType<MaintenanceRescheduled>().ShouldHaveSingleItem();
         vehicle.DomainEvents.OfType<VehicleAvailabilityChanged>().ShouldHaveSingleItem();
     }
@@ -97,7 +97,7 @@ public sealed class MaintenanceTests
 
         maintenance.Status.ShouldBe(MaintenanceStatus.InProgress);
         maintenance.StartedAtUtc.ShouldBe(Now);
-        maintenance.Block.ShouldBe(P(Now, NextWeek.AddDays(1)));
+        maintenance.GetBlock().ShouldBe(P(Now, NextWeek.AddDays(1)));
         vehicle.Status.ShouldBe(VehicleStatus.Maintenance);
         vehicle.StatusReason.ShouldBe("Vidange 10 000 km");
         vehicle.HasMaintenanceInProgress.ShouldBeTrue();
@@ -138,7 +138,7 @@ public sealed class MaintenanceTests
 
         maintenance.Status.ShouldBe(MaintenanceStatus.Completed);
         maintenance.CompletedAtUtc.ShouldBe(Now);
-        maintenance.Block.ShouldBe(P(Now.AddHours(-2), Now));
+        maintenance.GetBlock().ShouldBe(P(Now.AddHours(-2), Now));
         maintenance.Cost.ShouldBe(Money.Tnd(195.500m));
         maintenance.Mileage.ShouldBe(48_250);
         maintenance.CompletionNotes.ShouldBe("Filtre changé");
@@ -163,7 +163,7 @@ public sealed class MaintenanceTests
 
         vehicle.CompleteMaintenance(maintenance.Id, Now.AddDays(-2), 29_000, null, null, Stamp()).IsSuccess.ShouldBeTrue();
 
-        maintenance.Block.ShouldBe(P(Now.AddDays(-3), Now.AddDays(-2)));
+        maintenance.GetBlock().ShouldBe(P(Now.AddDays(-3), Now.AddDays(-2)));
         maintenance.StartedAtUtc.ShouldBe(Now.AddDays(-3));
         vehicle.Mileage.ShouldBe(30_000);
         vehicle.Status.ShouldBe(VehicleStatus.Active);

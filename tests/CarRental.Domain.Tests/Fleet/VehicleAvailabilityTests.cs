@@ -230,6 +230,6 @@ public sealed class VehicleAvailabilityTests
 
         vehicle.AvailabilityWindows(November, Now).ShouldBe([P(RangeStart, block.Start), P(block.End, RangeEnd)]);
         vehicle.CompliantUntil.ShouldBe(VehicleCompliance.EndOfTunisDay(new DateOnly(2027, 6, 30)));
-        vehicle.AvailabilityProfile.MaintenanceBlocks.ShouldBe([block]);
+        vehicle.GetAvailabilityProfile().MaintenanceBlocks.ShouldBe([block]);
     }
 }

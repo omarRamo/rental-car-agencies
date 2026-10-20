@@ -65,10 +65,24 @@ internal sealed partial class DeadlineAlertJob(
         var sent = 0;
         foreach (var alert in due)
         {
+            if (await SendAsync(alert, managers, now, cancellationToken))
+            {
+                sent++;
+            }
+        }
+
+        LogSent(sent, managers.Count);
+    }
+
+    /// <summary>Records the alert and queues its e-mails atomically; false when it was already sent.</summary>
+    private async Task<bool> SendAsync(DueAlert alert, IReadOnlyList<UserContactInfo> managers, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        try
+        {
             var outcome = await unitOfWork.ExecuteAsync(
                 async ct =>
                 {
-                    // Loaded inside the operation: a replay after a transient failure starts afresh.
+                    // Checked inside the operation: a replay after a transient failure starts afresh.
                     if (await db.Set<DeadlineAlert>().AnyAsync(a => a.DocumentId == alert.Document.Id && a.Level <= alert.Level, ct))
                     {
                         return Result.Success(false);
@@ -83,13 +97,14 @@ internal sealed partial class DeadlineAlertJob(
                     return Result.Success(true);
                 },
                 cancellationToken: cancellationToken);
-            if (outcome is { IsSuccess: true, Value: true })
-            {
-                sent++;
-            }
+            return outcome is { IsSuccess: true, Value: true };
         }
-
-        LogSent(sent, managers.Count);
+        catch (DbUpdateException exception)
+        {
+            // The unique (document, level) index: a concurrent run sent this alert first, and nothing was committed here.
+            LogAlreadySent(exception, alert.Document.Id, alert.Level);
+            return false;
+        }
     }
 
     /// <summary>The level to send today for each current document of the vehicles that are not sold.</summary>
@@ -147,6 +162,9 @@ internal sealed partial class DeadlineAlertJob(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Count} fleet deadline alerts sent to {Recipients} managers.")]
     private partial void LogSent(int count, int recipients);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Deadline alert of document {DocumentId} at level {Level} already sent by a concurrent run.")]
+    private partial void LogAlreadySent(Exception exception, Guid documentId, DeadlineAlertLevel level);
 
     internal sealed record DueAlert(VehicleDocument Document, Guid AgencyId, DeadlineAlertLevel Level, DeadlineAlertNotice Notice);
 }
