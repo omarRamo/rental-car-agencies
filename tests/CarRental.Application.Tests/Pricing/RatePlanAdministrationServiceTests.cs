@@ -167,6 +167,19 @@ public sealed class RatePlanAdministrationServiceTests
     }
 
     [Fact]
+    public async Task A_delivery_extra_must_target_a_location_of_the_plan_agency()
+    {
+        var draft = _world.Draft();
+        var service = AsManager();
+        ExtraDefinition Delivery(Guid? locationId) =>
+            new("DELIVERY", "Livraison", ExtraKind.LocationDelivery, ExtraPricingMode.PerRental, Money.Tnd(15m), LocationId: locationId);
+
+        (await service.UpdateExtrasAsync(draft.Id, draft.Revision, [Delivery(Guid.CreateVersion7())], Ct)).Error.ShouldBe(PricingErrors.ExtraInvalid);
+        (await service.UpdateExtrasAsync(draft.Id, draft.Revision, [Delivery(PricingWorld.Airport)], Ct)).IsSuccess.ShouldBeTrue();
+        (await _world.Administration(Roles.Agent).UpdateExtrasAsync(draft.Id, draft.Revision, [Delivery(Guid.CreateVersion7())], Ct)).Error.ShouldBe(PricingErrors.Forbidden);
+    }
+
+    [Fact]
     public async Task Publishing_gives_the_next_version_and_archives_the_previous_plan()
     {
         var first = _world.PublishDefault();

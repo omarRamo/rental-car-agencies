@@ -20,6 +20,9 @@ internal sealed class InMemoryRatePlanStore : IRatePlanStore
     public Task<bool> DraftExistsAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken) =>
         Task.FromResult(Plans.Exists(p => p.AgencyId == agencyId && p.Channel == channel && p.Status == RatePlanStatus.Draft));
 
+    public Task<Guid?> FindAgencyIdAsync(Guid planId, CancellationToken cancellationToken) =>
+        Task.FromResult(Plans.Find(p => p.Id == planId)?.AgencyId);
+
     public Task<int> GetLastVersionAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken) =>
         Task.FromResult(Plans.Where(p => p.AgencyId == agencyId && p.Channel == channel).Max(p => p.Version) ?? 0);
 

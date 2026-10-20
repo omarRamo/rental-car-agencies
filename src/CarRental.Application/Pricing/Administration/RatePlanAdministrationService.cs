@@ -114,7 +114,24 @@ public sealed class RatePlanAdministrationService
             return PricingErrors.AgencyNotFound;
         }
 
-        return await _unitOfWork.ExecuteAsync(
+        try
+        {
+            return await CreateDraftInTransactionAsync(request, cancellationToken);
+        }
+        catch (DbUpdateException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Two managers created the draft at the same time: the unique index kept one; report it as a business conflict.
+            if (await _store.DraftExistsAsync(request.AgencyId, request.Channel, cancellationToken))
+            {
+                return PricingErrors.DraftAlreadyExists;
+            }
+
+            throw;
+        }
+    }
+
+    private Task<Result<Guid>> CreateDraftInTransactionAsync(CreateDraftRequest request, CancellationToken cancellationToken) =>
+        _unitOfWork.ExecuteAsync(
             async ct =>
             {
                 if (await _store.DraftExistsAsync(request.AgencyId, request.Channel, ct))
@@ -148,7 +165,6 @@ public sealed class RatePlanAdministrationService
                 return draft.Value.Id;
             },
             cancellationToken: cancellationToken);
-    }
 
     public Task<Result<RatePlanDetail>> RenameAsync(Guid planId, int expectedRevision, string name, CancellationToken cancellationToken = default) =>
         EditAsync(planId, expectedRevision, (plan, now) => plan.Rename(name, now), cancellationToken);
@@ -195,14 +211,29 @@ public sealed class RatePlanAdministrationService
         return EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceTiers(tiers, categoryDiscounts, now), cancellationToken);
     }
 
-    public Task<Result<RatePlanDetail>> UpdateExtrasAsync(
+    /// <summary>Replaces the extras; a delivery extra must target a location of the plan's agency (otherwise it could never be charged).</summary>
+    public async Task<Result<RatePlanDetail>> UpdateExtrasAsync(
         Guid planId,
         int expectedRevision,
         IReadOnlyList<ExtraDefinition> extras,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(extras);
-        return EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceExtras(extras, now), cancellationToken);
+        if (!_user.HasPermission(Permissions.PricingManage))
+        {
+            return PricingErrors.Forbidden;
+        }
+
+        if (extras.Any(e => e.Kind == ExtraKind.LocationDelivery) && await _store.FindAgencyIdAsync(planId, cancellationToken) is { } agencyId)
+        {
+            var locations = (await _referential.GetLocationsAsync(agencyId, cancellationToken)).Select(l => l.Id).ToHashSet();
+            if (extras.Any(e => e.Kind == ExtraKind.LocationDelivery && (e.LocationId is not { } locationId || !locations.Contains(locationId))))
+            {
+                return PricingErrors.ExtraInvalid;
+            }
+        }
+
+        return await EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceExtras(extras, now), cancellationToken);
     }
 
     public Task<Result<RatePlanDetail>> UpdatePromotionsAsync(

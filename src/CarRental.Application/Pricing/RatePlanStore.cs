@@ -19,6 +19,9 @@ internal interface IRatePlanStore
 
     Task<bool> DraftExistsAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken);
 
+    /// <summary>The agency of a plan, read without tracking; <see langword="null"/> when the plan does not exist.</summary>
+    Task<Guid?> FindAgencyIdAsync(Guid planId, CancellationToken cancellationToken);
+
     /// <summary>The highest version ever published for the agency and channel (0 when none).</summary>
     Task<int> GetLastVersionAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken);
 
@@ -53,6 +56,9 @@ internal sealed class EfRatePlanStore(IAppDbContext db) : IRatePlanStore
 
     public Task<bool> DraftExistsAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken) =>
         db.Set<RatePlan>().AnyAsync(p => p.AgencyId == agencyId && p.Channel == channel && p.Status == RatePlanStatus.Draft, cancellationToken);
+
+    public Task<Guid?> FindAgencyIdAsync(Guid planId, CancellationToken cancellationToken) =>
+        db.Set<RatePlan>().AsNoTracking().Where(p => p.Id == planId).Select(p => (Guid?)p.AgencyId).FirstOrDefaultAsync(cancellationToken);
 
     public async Task<int> GetLastVersionAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken) =>
         await db.Set<RatePlan>()
