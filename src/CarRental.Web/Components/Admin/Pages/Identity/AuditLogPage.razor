@@ -49,7 +49,7 @@
     </MudGrid>
 </MudPaper>
 
-<MudTable @ref="_table" T="AuditLogEntry" ServerData="LoadAsync" Dense="true" Hover="true" Striped="true" Elevation="1"
+<MudTable @ref="_table" T="AuditLogEntry" ServerData="LoadAsync" RowsPerPage="25" Dense="true" Hover="true" Striped="true" Elevation="1"
           TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Audit.Title"].Value })" Breakpoint="Breakpoint.Sm">
     <HeaderContent>
         <MudTh>@L["Audit.Column.Date"]</MudTh>
@@ -99,12 +99,11 @@
         <MudText>@L["Audit.Empty"]</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudTablePager PageSizeOptions="PageSizes" RowsPerPageString="@L["Pager.RowsPerPage"]" InfoFormat="@L["Pager.Info"]" />
+        <AdminTablePager />
     </PagerContent>
 </MudTable>
 
 @code {
-    private static readonly int[] PageSizes = [25, 50, 100];
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     private readonly HashSet<long> _expanded = [];

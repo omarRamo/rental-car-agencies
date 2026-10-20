@@ -19,7 +19,7 @@
 <MudTextField T="string" @bind-Value="_search" Label="@L["Users.Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
               DebounceInterval="400" OnDebounceIntervalElapsed="SearchAsync" Clearable="true" Class="mb-4" />
 
-<MudTable @ref="_table" T="UserSummary" ServerData="LoadAsync" Hover="true" Elevation="1" TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Users.Title"].Value })" Breakpoint="Breakpoint.Sm">
+<MudTable @ref="_table" T="UserSummary" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Users.Title"].Value })" Breakpoint="Breakpoint.Sm">
     <HeaderContent>
         <MudTh>@L["Users.Column.Name"]</MudTh>
         <MudTh>@L["Users.Column.Email"]</MudTh>
@@ -63,12 +63,11 @@
         <MudText>@L["Users.Empty"]</MudText>
     </NoRecordsContent>
     <PagerContent>
-        <MudTablePager PageSizeOptions="PageSizes" RowsPerPageString="@L["Pager.RowsPerPage"]" InfoFormat="@L["Pager.Info"]" />
+        <AdminTablePager />
     </PagerContent>
 </MudTable>
 
 @code {
-    private static readonly int[] PageSizes = [25, 50, 100];
     private MudTable<UserSummary>? _table;
     private string? _search;
 

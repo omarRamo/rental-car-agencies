@@ -81,12 +81,6 @@
   <data name="Audit.Title" xml:space="preserve">
     <value>Audit log</value>
   </data>
-  <data name="Pager.Info" xml:space="preserve">
-    <value>{first_item}–{last_item} of {all_items}</value>
-  </data>
-  <data name="Pager.RowsPerPage" xml:space="preserve">
-    <value>Rows per page</value>
-  </data>
   <data name="Role.Accountant" xml:space="preserve">
     <value>Accountant</value>
   </data>

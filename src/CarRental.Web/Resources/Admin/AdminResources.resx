@@ -129,4 +129,124 @@
   <data name="UserMenu.TwoFactor" xml:space="preserve">
     <value>Double authentification</value>
   </data>
+  <data name="Pager.RowsPerPage" xml:space="preserve">
+    <value>Lignes par page</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} sur {all_items}</value>
+  </data>
+  <data name="Gallery.Title" xml:space="preserve">
+    <value>Galerie d'accessibilité</value>
+  </data>
+  <data name="Gallery.Intro" xml:space="preserve">
+    <value>Référence des couleurs et des composants du back office, vérifiée automatiquement (WCAG 2.2 AA). Page absente de la production.</value>
+  </data>
+  <data name="Gallery.Buttons" xml:space="preserve">
+    <value>Boutons</value>
+  </data>
+  <data name="Gallery.Chips" xml:space="preserve">
+    <value>Puces</value>
+  </data>
+  <data name="Gallery.Alerts" xml:space="preserve">
+    <value>Alertes</value>
+  </data>
+  <data name="Gallery.Fields" xml:space="preserve">
+    <value>Champs de saisie</value>
+  </data>
+  <data name="Gallery.Table" xml:space="preserve">
+    <value>Tableau paginé</value>
+  </data>
+  <data name="Gallery.Disabled" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="Gallery.Sample" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Gallery.Alert" xml:space="preserve">
+    <value>Message {0} ({1})</value>
+  </data>
+  <data name="Gallery.Row" xml:space="preserve">
+    <value>Ligne {0}</value>
+  </data>
+  <data name="Gallery.Column.Number" xml:space="preserve">
+    <value>N°</value>
+  </data>
+  <data name="Gallery.Column.Label" xml:space="preserve">
+    <value>Libellé</value>
+  </data>
+  <data name="Gallery.Column.Status" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Gallery.Color.Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Gallery.Color.Primary" xml:space="preserve">
+    <value>Primaire</value>
+  </data>
+  <data name="Gallery.Color.Secondary" xml:space="preserve">
+    <value>Secondaire</value>
+  </data>
+  <data name="Gallery.Color.Tertiary" xml:space="preserve">
+    <value>Tertiaire</value>
+  </data>
+  <data name="Gallery.Color.Info" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Gallery.Color.Success" xml:space="preserve">
+    <value>Succès</value>
+  </data>
+  <data name="Gallery.Color.Warning" xml:space="preserve">
+    <value>Avertissement</value>
+  </data>
+  <data name="Gallery.Color.Error" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="Gallery.Color.Dark" xml:space="preserve">
+    <value>Sombre</value>
+  </data>
+  <data name="Gallery.Variant.Filled" xml:space="preserve">
+    <value>plein</value>
+  </data>
+  <data name="Gallery.Variant.Outlined" xml:space="preserve">
+    <value>contour</value>
+  </data>
+  <data name="Gallery.Variant.Text" xml:space="preserve">
+    <value>texte</value>
+  </data>
+  <data name="Gallery.Severity.Normal" xml:space="preserve">
+    <value>neutre</value>
+  </data>
+  <data name="Gallery.Severity.Info" xml:space="preserve">
+    <value>d'information</value>
+  </data>
+  <data name="Gallery.Severity.Success" xml:space="preserve">
+    <value>de succès</value>
+  </data>
+  <data name="Gallery.Severity.Warning" xml:space="preserve">
+    <value>d'avertissement</value>
+  </data>
+  <data name="Gallery.Severity.Error" xml:space="preserve">
+    <value>d'erreur</value>
+  </data>
+  <data name="Gallery.Field.Text" xml:space="preserve">
+    <value>Texte</value>
+  </data>
+  <data name="Gallery.Field.Help" xml:space="preserve">
+    <value>Texte d'aide sous le champ</value>
+  </data>
+  <data name="Gallery.Field.Number" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Gallery.Field.Select" xml:space="preserve">
+    <value>Choix</value>
+  </data>
+  <data name="Gallery.Field.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Gallery.Field.Time" xml:space="preserve">
+    <value>Heure</value>
+  </data>
+  <data name="Gallery.Field.Switch" xml:space="preserve">
+    <value>Interrupteur</value>
+  </data>
 </root>
