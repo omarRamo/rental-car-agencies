@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Data;
 using System.Globalization;
 using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
@@ -314,13 +316,14 @@ internal sealed class FakeOccupancyReader(CallJournal journal) : IOccupancyReade
 }
 
 /// <summary>Preparation buffer per agency (2 h by default); other settings return their default.</summary>
-internal sealed class FakeSettingsReader : ISettingsReader
+internal sealed class FakeSettingsReader(CallJournal journal) : ISettingsReader
 {
     public Dictionary<Guid, TimeSpan> BufferByAgency { get; } = [];
 
     public Task<T> GetAsync<T>(SettingDefinition<T> definition, Guid? agencyId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        journal.Add(string.Create(CultureInfo.InvariantCulture, $"settings.{definition.Key}"));
         if (definition.Key == WellKnownSettings.PreparationBuffer.Key
             && agencyId is { } agency
             && BufferByAgency.TryGetValue(agency, out var buffer))
@@ -367,6 +370,95 @@ internal sealed class FakeAvailabilityLock(IUnitOfWork unitOfWork, CallJournal j
     }
 }
 
+/// <summary>The exclusive availability locks of a database: one per category, shared by every transaction.</summary>
+internal sealed class TransactionalLocks
+{
+    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _locks = new();
+
+    public SemaphoreSlim For(Guid categoryId) => _locks.GetOrAdd(categoryId, _ => new SemaphoreSlim(1, 1));
+}
+
+/// <summary>A transaction whose locks are released when it ends (commit or rollback), like <c>sp_getapplock</c> owned by the transaction.</summary>
+internal sealed class TransactionalUnitOfWork : IUnitOfWork
+{
+    private readonly List<SemaphoreSlim> _held = [];
+
+    public bool HasActiveTransaction { get; private set; }
+
+    public bool Holds(SemaphoreSlim semaphore) => _held.Contains(semaphore);
+
+    public void Hold(SemaphoreSlim semaphore) => _held.Add(semaphore);
+
+    public async Task<Result> ExecuteAsync(
+        Func<CancellationToken, Task<Result>> operation,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        CancellationToken cancellationToken = default)
+    {
+        HasActiveTransaction = true;
+        try
+        {
+            return await operation(cancellationToken);
+        }
+        finally
+        {
+            End();
+        }
+    }
+
+    public async Task<Result<T>> ExecuteAsync<T>(
+        Func<CancellationToken, Task<Result<T>>> operation,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        CancellationToken cancellationToken = default)
+    {
+        HasActiveTransaction = true;
+        try
+        {
+            return await operation(cancellationToken);
+        }
+        finally
+        {
+            End();
+        }
+    }
+
+    private void End()
+    {
+        foreach (var semaphore in _held)
+        {
+            semaphore.Release();
+        }
+
+        _held.Clear();
+        HasActiveTransaction = false;
+    }
+}
+
+/// <summary>Exclusive, re-entrant within its transaction, waits for the other transactions: the SQL lock semantics.</summary>
+internal sealed class ExclusiveAvailabilityLock(TransactionalUnitOfWork unitOfWork, TransactionalLocks locks) : IAvailabilityLock
+{
+    public async Task<Result> AcquireAsync(Guid categoryId, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    {
+        if (!unitOfWork.HasActiveTransaction)
+        {
+            throw new InvalidOperationException("The availability lock requires a transaction.");
+        }
+
+        var semaphore = locks.For(categoryId);
+        if (unitOfWork.Holds(semaphore))
+        {
+            return Result.Success();
+        }
+
+        if (!await semaphore.WaitAsync(timeout ?? IAvailabilityLock.DefaultTimeout, cancellationToken))
+        {
+            return AvailabilityLockErrors.Timeout;
+        }
+
+        unitOfWork.Hold(semaphore);
+        return Result.Success();
+    }
+}
+
 /// <summary>
 /// A small agency (Tunis) with fakes for every input of the availability engine, at a fixed "now" (1 July 2027
 /// 08:00 UTC, high season). Times are given in hours from now.
@@ -379,6 +471,7 @@ internal sealed class AvailabilityWorld
     {
         Fleet = new FakeFleetQueries(Journal);
         Occupancy = new FakeOccupancyReader(Journal);
+        Settings = new FakeSettingsReader(Journal);
         Channels = new FakeChannelPolicy(Journal);
         Lock = new FakeAvailabilityLock(UnitOfWork, Journal);
     }
@@ -393,7 +486,7 @@ internal sealed class AvailabilityWorld
 
     public FakeOccupancyReader Occupancy { get; }
 
-    public FakeSettingsReader Settings { get; } = new();
+    public FakeSettingsReader Settings { get; }
 
     public FakeChannelPolicy Channels { get; }
 

@@ -75,6 +75,145 @@ public sealed class AvailabilityGuardTests
     }
 
     [Fact]
+    public async Task A_category_change_checks_the_new_category_not_the_old_one()
+    {
+        var world = new AvailabilityWorld();
+        var economy = world.Category("ECMR", vehicles: 1);
+        var compact = world.Category("CDMR", vehicles: 1);
+        world.Book(economy, P(10, 20));
+        var movingId = world.Book(economy, P(30, 40));
+        var move = new AvailabilityRequest(compact.Id, SalesChannel.Phone, Planned(movingId, P(10, 20)));
+
+        // The old category is full at those dates, the new one is free.
+        (await InUnitOfWork(world, ct => world.Guard().EnsureAvailableAsync(move, economy.Id, ct))).IsSuccess.ShouldBeTrue();
+
+        world.Book(compact, P(15, 16));
+        (await InUnitOfWork(world, ct => world.Guard().EnsureAvailableAsync(move, economy.Id, ct))).Error.ShouldBe(AvailabilityErrors.NotAvailable);
+    }
+
+    [Fact]
+    public async Task Two_concurrent_writers_for_the_last_vehicle_get_one_success_and_one_refusal()
+    {
+        for (var round = 0; round < 20; round++)
+        {
+            var world = new AvailabilityWorld();
+            var category = world.Category(vehicles: 1);
+            var locks = new TransactionalLocks();
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task<Result> WriteAsync()
+            {
+                var unitOfWork = new TransactionalUnitOfWork();
+                var guard = new AvailabilityGuard(unitOfWork, new ExclusiveAvailabilityLock(unitOfWork, locks), world.Loader(), world.Fleet);
+                var booking = Planned(Guid.CreateVersion7(), P(10, 20));
+                await start.Task;
+                return await unitOfWork.ExecuteAsync(
+                    async ct =>
+                    {
+                        var available = await guard.EnsureAvailableAsync(new AvailabilityRequest(category.Id, SalesChannel.Web, booking), cancellationToken: ct);
+                        if (available.IsFailure)
+                        {
+                            return available;
+                        }
+
+                        // The write takes a while, inside the transaction that holds the lock.
+                        await Task.Delay(10, ct);
+                        world.Occupancy.Add(category.Id, booking);
+                        return Result.Success();
+                    },
+                    cancellationToken: Ct);
+            }
+
+            var writers = new[] { Task.Run(WriteAsync, Ct), Task.Run(WriteAsync, Ct) };
+            start.SetResult();
+            var results = await Task.WhenAll(writers);
+
+            results.Count(r => r.IsSuccess).ShouldBe(1);
+            results.Single(r => r.IsFailure).Error.ShouldBe(AvailabilityErrors.NotAvailable);
+            world.Occupancy.BookingsOf(category.Id).Count.ShouldBe(1);
+        }
+    }
+
+    [Fact]
+    public async Task A_booking_keeping_its_vehicle_needs_that_vehicle_free_even_when_the_category_has_room()
+    {
+        var world = new AvailabilityWorld();
+        var category = world.Category(vehicles: 0);
+        var pinned = world.Fleet.AddVehicle(category, "100 TU 0001", [Always]);
+        var other = world.Fleet.AddVehicle(category, "100 TU 0002", [Always]);
+        world.Book(category, P(10, 20), pinned.Id);
+        var guard = world.Guard();
+
+        // A second customer wants the same "guaranteed model" vehicle: the category still has a car, this one does not.
+        var samePinned = new AvailabilityRequest(category.Id, SalesChannel.Web, Planned(Guid.CreateVersion7(), P(12, 18), pinned.Id));
+        var otherPinned = samePinned with { Booking = Planned(Guid.CreateVersion7(), P(12, 18), other.Id) };
+        var unpinned = samePinned with { Booking = Planned(Guid.CreateVersion7(), P(12, 18)) };
+
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(samePinned, cancellationToken: ct))).Error.ShouldBe(AvailabilityErrors.VehicleOverlap);
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(otherPinned, cancellationToken: ct))).IsSuccess.ShouldBeTrue();
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(unpinned, cancellationToken: ct))).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Extending_a_rental_in_progress_keeps_its_vehicle_compliant_and_free()
+    {
+        // Vehicle 1 is insured until 30 h (Fleet cuts its window there); vehicle 2 gives the category room.
+        var world = new AvailabilityWorld();
+        var category = world.Category(vehicles: 0);
+        var insuredUntil30 = world.Fleet.AddVehicle(category, "100 TU 0001", [P(-1000, 30)], compliantUntil: At(30));
+        world.Fleet.AddVehicle(category, "100 TU 0002", [Always]);
+        var rentalId = Guid.CreateVersion7();
+        world.Occupancy.Add(category.Id, new BookingOccupancy(rentalId, OccupancyKind.InProgress, P(-5, 10), At(-5), assignedVehicleId: insuredUntil30.Id));
+        var extension = new AvailabilityRequest(
+            category.Id,
+            SalesChannel.Counter,
+            new BookingOccupancy(rentalId, OccupancyKind.InProgress, P(-5, 48), At(-5), assignedVehicleId: insuredUntil30.Id));
+        var guard = world.Guard();
+
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(extension, cancellationToken: ct))).Error.ShouldBe(AvailabilityErrors.VehicleNotCompliant);
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(extension with { ComplianceWaived = true }, cancellationToken: ct))).IsSuccess.ShouldBeTrue();
+
+        // The vehicle is promised to another customer at 25 h: no waiver allows an overlap.
+        world.Book(category, P(25, 28), insuredUntil30.Id);
+        (await InUnitOfWork(world, ct => guard.EnsureAvailableAsync(extension with { ComplianceWaived = true }, cancellationToken: ct)))
+            .Error.ShouldBe(AvailabilityErrors.VehicleOverlap);
+    }
+
+    [Fact]
+    public async Task A_category_change_must_release_or_replace_the_vehicle_of_the_old_category()
+    {
+        var world = new AvailabilityWorld();
+        var economy = world.Category("ECMR", vehicles: 0);
+        var compact = world.Category("CDMR", vehicles: 1);
+        var economyCar = world.Fleet.AddVehicle(economy, "100 TU 0001", [Always]);
+        var bookingId = world.Book(economy, P(10, 20), economyCar.Id);
+        var keepingTheCar = new AvailabilityRequest(compact.Id, SalesChannel.Phone, Planned(bookingId, P(10, 20), economyCar.Id));
+        var releasingTheCar = keepingTheCar with { Booking = Planned(bookingId, P(10, 20)) };
+
+        (await InUnitOfWork(world, ct => world.Guard().EnsureAvailableAsync(keepingTheCar, economy.Id, ct))).Error.ShouldBe(AvailabilityErrors.VehicleNotInCategory);
+        (await InUnitOfWork(world, ct => world.Guard().EnsureAvailableAsync(releasingTheCar, economy.Id, ct))).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task An_overdue_rental_cannot_move_to_a_vehicle_whose_documents_already_expired()
+    {
+        // Planned return 48 h ago and still out: the documents must be valid from now on, not only until the old return.
+        var world = new AvailabilityWorld();
+        var category = world.Category(vehicles: 0);
+        var expired = world.Fleet.AddVehicle(category, "100 TU 0001", [P(-1000, -24)], compliantUntil: At(-24));
+        var rental = new BookingOccupancy(Guid.CreateVersion7(), OccupancyKind.InProgress, P(-72, -48), At(-72));
+        var swap = new VehicleAssignmentRequest(category.Id, rental, expired.Id);
+
+        (await InUnitOfWork(world, ct => world.Guard().EnsureVehicleAssignableAsync(swap, ct))).Error.ShouldBe(AvailabilityErrors.VehicleNotCompliant);
+        (await InUnitOfWork(world, ct => world.Guard().EnsureVehicleAssignableAsync(swap with { ComplianceWaived = true }, ct))).IsSuccess.ShouldBeTrue();
+
+        // With a waiver nothing is left to check against the windows: a vehicle in the garage is still refused.
+        var inTheGarage = world.Fleet.AddVehicle(category, "100 TU 0002", [], compliantUntil: At(-24), status: VehicleStatusInfo.Maintenance);
+        (await InUnitOfWork(world, ct => world.Guard().EnsureVehicleAssignableAsync(new(category.Id, rental, inTheGarage.Id) { ComplianceWaived = true }, ct)))
+            .Error.ShouldBe(AvailabilityErrors.VehicleUnavailable);
+    }
+
+    [Fact]
     public async Task A_category_is_locked_once_and_empty_ids_are_bugs()
     {
         var world = new AvailabilityWorld();

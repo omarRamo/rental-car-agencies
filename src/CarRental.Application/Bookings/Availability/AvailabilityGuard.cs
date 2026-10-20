@@ -71,7 +71,21 @@ internal sealed class AvailabilityGuard(
         SalesChannel? channel = request.IgnoreChannelRestrictions ? null : request.Channel;
         IReadOnlyCollection<SalesChannel> channels = channel is { } sold ? [sold] : [];
         var snapshot = await loader.LoadSnapshotAsync(context, window, request.Booking.BookingId, channels, cancellationToken);
-        return snapshot.CalculatorFor(channel).CheckOccupancy(window, request.Booking.BookingId).ToResult();
+        var capacity = snapshot.CalculatorFor(channel).CheckOccupancy(window, request.Booking.BookingId).ToResult();
+        if (capacity.IsFailure || request.Booking.AssignedVehicleId is not { } vehicleId)
+        {
+            return capacity;
+        }
+
+        // The booking keeps (or is pinned to) a vehicle: that vehicle must carry the new occupancy too (invariants 1 and 3).
+        var vehicle = await fleet.GetVehicleAsync(vehicleId, cancellationToken);
+        return CheckVehicle(
+            new VehicleCheck(request.CategoryId, vehicleId, request.Booking, request.ComplianceWaived),
+            vehicle,
+            context.Basis,
+            window,
+            snapshot.Vehicles,
+            snapshot.Occupancy);
     }
 
     public async Task<Result> EnsureVehicleAssignableAsync(VehicleAssignmentRequest request, CancellationToken cancellationToken = default)
@@ -96,26 +110,60 @@ internal sealed class AvailabilityGuard(
             return AvailabilityErrors.VehicleNotInCategory;
         }
 
+        var window = AvailabilityWindows.FromNow(context.Basis.PeriodOf(request.Booking), context.Basis.Now);
+        if (window is null)
+        {
+            // Correcting the past: nothing to protect any more.
+            return Result.Success();
+        }
+
+        var vehicles = await loader.LoadVehiclesAsync(request.CategoryId, window, cancellationToken);
+        var occupancy = await loader.LoadOccupancyAsync(context, window, request.Booking.BookingId, cancellationToken);
+        return CheckVehicle(
+            new VehicleCheck(request.CategoryId, request.VehicleId, request.Booking, request.ComplianceWaived),
+            vehicle,
+            context.Basis,
+            window,
+            vehicles,
+            occupancy);
+    }
+
+    /// <summary>Whether the vehicle can carry the booking over <paramref name="window"/> (the part of its occupancy from now on).</summary>
+    private static Result CheckVehicle(
+        VehicleCheck check,
+        VehicleInfo? vehicle,
+        OccupancyBasis basis,
+        Period window,
+        IReadOnlyList<RentableVehicle> vehicles,
+        IReadOnlyList<OccupancyInterval> occupancy)
+    {
+        if (vehicle is null || vehicle.CategoryId != check.CategoryId)
+        {
+            return AvailabilityErrors.VehicleNotInCategory;
+        }
+
         if (vehicle.Status == VehicleStatusInfo.Sold)
         {
             return AvailabilityErrors.VehicleUnavailable;
         }
 
-        var window = AvailabilityWindows.FromNow(context.Basis.PeriodOf(request.Booking), context.Basis.Now);
-        if (window is null)
+        // Fleet publishes no window after the compliance end: with a waiver and nothing left to check against the
+        // windows, a vehicle in the garage or out of service must not slip through.
+        var windowsCheckable = vehicle.CompliantUntil is { } until && until > window.Start;
+        if (check.ComplianceWaived && !windowsCheckable && vehicle.Status != VehicleStatusInfo.Active)
         {
-            return Result.Success();
+            return AvailabilityErrors.VehicleUnavailable;
         }
 
-        var vehicles = await loader.LoadVehiclesAsync(request.CategoryId, window, cancellationToken);
-        var rentable = vehicles.FirstOrDefault(v => v.Id == request.VehicleId) ?? new RentableVehicle(vehicle.Id, vehicle.PlateNumber, []);
-        var occupancy = await loader.LoadOccupancyAsync(context, window, request.Booking.BookingId, cancellationToken);
+        var rentable = vehicles.FirstOrDefault(v => v.Id == check.VehicleId) ?? new RentableVehicle(vehicle.Id, vehicle.PlateNumber, []);
         return VehicleAssignmentRules.CanTake(
             rentable,
             vehicle.CompliantUntil,
-            new OccupancyInterval(request.Booking.BookingId, window, request.VehicleId),
-            request.Booking.Rental.End,
+            new OccupancyInterval(check.Booking.BookingId, window, check.VehicleId),
+            basis.VehicleBackAt(check.Booking),
             occupancy,
-            request.ComplianceWaived);
+            check.ComplianceWaived);
     }
+
+    private sealed record VehicleCheck(Guid CategoryId, Guid VehicleId, BookingOccupancy Booking, bool ComplianceWaived);
 }

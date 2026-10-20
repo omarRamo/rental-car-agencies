@@ -22,6 +22,7 @@ internal sealed class CategorySnapshot
         Context = context;
         Coverage = coverage;
         Vehicles = vehicles;
+        Occupancy = occupancy;
 
         var fleet = CapacityTimeline.Fleet(vehicles);
         var timeline = OccupancyTimeline.Of(occupancy);
@@ -40,7 +41,10 @@ internal sealed class CategorySnapshot
 
     public IReadOnlyList<RentableVehicle> Vehicles { get; }
 
-    public int IntervalCount => _wholeFleet.Occupancy.Intervals.Count;
+    /// <summary>The occupancy intervals loaded over <see cref="Coverage"/>, buffer included.</summary>
+    public IReadOnlyList<OccupancyInterval> Occupancy { get; }
+
+    public int IntervalCount => Occupancy.Count;
 
     public bool Covers(Period window) => Coverage.Contains(window);
 
