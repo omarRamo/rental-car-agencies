@@ -13,6 +13,7 @@ public static class ReferentialModule
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IReferentialQueries, ReferentialQueries>();
         services.AddScoped<ISettingsReader, SettingsReader>();
+        services.AddSettingDefinitions(WellKnownSettings.All);
         services.AddDataSeeder<ReferentialSettingsSeeder>();
         services.AddDataSeeder<ReferentialDemoSeeder>();
         return services;

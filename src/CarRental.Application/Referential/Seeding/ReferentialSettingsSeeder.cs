@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Application.Referential.Seeding;
 
-/// <summary>Creates the platform-wide value of every well-known setting that is missing (all environments; never overwrites).</summary>
-internal sealed class ReferentialSettingsSeeder(IAppDbContext db) : IDataSeeder
+/// <summary>Creates the platform-wide value of every declared setting that is missing (all environments; never overwrites).</summary>
+internal sealed class ReferentialSettingsSeeder(IAppDbContext db, ISettingDefinitionCatalog catalog) : IDataSeeder
 {
     public SeedStage Stage => SeedStage.Reference;
 
@@ -20,7 +20,7 @@ internal sealed class ReferentialSettingsSeeder(IAppDbContext db) : IDataSeeder
             .Select(s => s.Key)
             .ToListAsync(cancellationToken);
 
-        foreach (var definition in WellKnownSettings.All.Where(d => !existingKeys.Contains(d.Key)))
+        foreach (var definition in catalog.All.Where(d => !existingKeys.Contains(d.Key)))
         {
             db.Set<Setting>().Add(Setting.Create(definition.Key, definition.DefaultValue).Value);
         }
