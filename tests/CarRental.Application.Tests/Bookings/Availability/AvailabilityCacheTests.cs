@@ -279,6 +279,52 @@ public sealed class AvailabilityCacheTests
     }
 
     [Fact]
+    public async Task Concurrent_readers_never_go_back_to_an_older_snapshot()
+    {
+        // Eight readers race a writer that commits three bookings, each followed by its notification. Bookings only
+        // accumulate, so every reader must see a non-increasing number of vehicles left, and the last state at the end.
+        var world = new AvailabilityWorld();
+        var category = world.Category(vehicles: 3);
+        await using var services = world.Services();
+        var notifier = services.GetRequiredService<IAvailabilityChangeNotifier>();
+        var writerDone = 0;
+
+        var readers = Enumerable.Range(0, 8).Select(_ => Task.Run(async () =>
+        {
+            var seen = new List<int>();
+            for (var i = 0; i < 400 || Volatile.Read(ref writerDone) == 0; i++)
+            {
+                seen.Add((await ReadAsync(services, category.Id, P(10, 20)))!.Remaining);
+            }
+
+            return seen;
+        }, Ct)).ToList();
+        var writer = Task.Run(
+            async () =>
+            {
+                for (var booking = 0; booking < 3; booking++)
+                {
+                    await Task.Delay(5, Ct);
+                    world.Book(category, P(0, 30));
+                    notifier.CategoryChanged(category.Id);
+                }
+
+                Volatile.Write(ref writerDone, 1);
+            },
+            Ct);
+
+        await writer;
+        var observed = await Task.WhenAll(readers);
+
+        foreach (var seen in observed)
+        {
+            seen.Zip(seen.Skip(1)).ShouldAllBe(pair => pair.Second <= pair.First);
+        }
+
+        (await ReadAsync(services, category.Id, P(10, 20)))!.ShouldBe(new CategoryAvailabilityInfo(category.Id, false, 0, P(10, 22)));
+    }
+
+    [Fact]
     public async Task Unknown_categories_are_reported_as_missing()
     {
         var world = new AvailabilityWorld();

@@ -17,6 +17,35 @@ namespace CarRental.Application.Bookings.Availability;
 /// <para>Writes that only release capacity or record facts (cancellation, refusal, expiry, return) need no check.
 /// The lock is re-entrant within a transaction, so taking it again here is harmless.</para>
 /// </remarks>
+/// <example>
+/// Amending the dates or the category of a booking:
+/// <code>
+/// Guid? previousCategoryId = null;
+/// var result = await unitOfWork.ExecuteAsync(async ct =>
+/// {
+///     var booking = await db.Set&lt;Booking&gt;().SingleAsync(b => b.Id == bookingId, ct); // load inside: the delegate may be replayed
+///     previousCategoryId = booking.CategoryId == newCategoryId ? null : booking.CategoryId;
+///     var request = new AvailabilityRequest(newCategoryId, booking.Channel,
+///         new BookingOccupancy(booking.Id, OccupancyKind.Planned, newRental));
+///     var available = await guard.EnsureAvailableAsync(request, previousCategoryId, ct);
+///     if (available.IsFailure)
+///     {
+///         return available; // availability.not_available, or a lock error
+///     }
+///
+///     return booking.Amend(newCategoryId, newRental, ...); // written in the same transaction
+/// }, cancellationToken: cancellationToken);
+///
+/// if (result.IsSuccess)
+/// {
+///     notifier.CategoryChanged(newCategoryId); // after the commit, for every category touched
+///     if (previousCategoryId is { } previous)
+///     {
+///         notifier.CategoryChanged(previous);
+///     }
+/// }
+/// </code>
+/// </example>
 public interface IAvailabilityGuard
 {
     /// <summary>
