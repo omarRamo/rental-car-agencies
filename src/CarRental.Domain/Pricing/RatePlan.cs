@@ -553,6 +553,7 @@ public sealed class RatePlan : AggregateRoot
     /// </summary>
     public Result Publish(RatePlan? currentlyPublished, int lastVersion, DateTimeOffset now)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(lastVersion);
         if (!IsDraft)
         {
             return PricingErrors.PlanNotEditable;
@@ -581,7 +582,6 @@ public sealed class RatePlan : AggregateRoot
             currentlyPublished.ArchiveCore(now);
         }
 
-        ArgumentOutOfRangeException.ThrowIfNegative(lastVersion);
         Version = lastVersion + 1;
         Status = RatePlanStatus.Published;
         PublishedAtUtc = now.ToUniversalTime();
