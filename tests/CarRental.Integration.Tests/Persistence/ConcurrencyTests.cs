@@ -187,6 +187,49 @@ public sealed class ConcurrencyTests(IntegrationHost host)
         (await check.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Agency>().AnyAsync(a => a.Id == agency.Id, Ct)).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task A_transient_failure_replays_the_whole_operation_from_a_clean_state()
+    {
+        // The retrying SQL Server strategy treats a TimeoutException as transient. The first attempt fails after taking
+        // the lock, a number and adding an entity: the replay must start again from scratch.
+        var year = UniqueYear();
+        var categoryId = Guid.CreateVersion7();
+        var agencyName = $"Retry {Guid.NewGuid():N}";
+        var attempts = 0;
+        string? number = null;
+
+        await using (var scope = host.CreateScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var availabilityLock = scope.ServiceProvider.GetRequiredService<IAvailabilityLock>();
+            var generator = scope.ServiceProvider.GetRequiredService<IDocumentNumberGenerator>();
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+            var outcome = await unitOfWork.ExecuteAsync(
+                async ct =>
+                {
+                    attempts++;
+                    (await availabilityLock.AcquireAsync(categoryId, cancellationToken: ct)).IsSuccess.ShouldBeTrue();
+                    number = (await generator.NextAsync(DocumentType.Invoice, year, ct)).Value;
+                    db.Set<Agency>().Add(Agency.Register(new AgencyDetails(agencyName, "Sousse")).Value);
+                    if (attempts == 1)
+                    {
+                        throw new TimeoutException("Simulated transient failure.");
+                    }
+
+                    return Result.Success();
+                },
+                cancellationToken: Ct);
+
+            outcome.IsSuccess.ShouldBeTrue();
+        }
+
+        attempts.ShouldBe(2);
+        number.ShouldBe($"FAC-{year}-000001");
+        await using var check = host.CreateScope();
+        (await check.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Agency>().CountAsync(a => a.Name == agencyName, Ct)).ShouldBe(1);
+    }
+
     private async Task<string> NextInvoiceAsync(int year, bool commit)
     {
         await using var scope = host.CreateScope();
