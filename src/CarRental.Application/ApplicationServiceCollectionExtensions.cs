@@ -2,6 +2,7 @@ using CarRental.Application.Billing;
 using CarRental.Application.Bookings;
 using CarRental.Application.Cash;
 using CarRental.Application.Channels;
+using CarRental.Application.Common.Availability;
 using CarRental.Application.Common.Email;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Security;
@@ -31,6 +32,7 @@ public static class ApplicationServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<ScopedUserContext>();
         services.AddScoped<IUserContext>(sp => sp.GetRequiredService<ScopedUserContext>());
+        services.TryAddSingleton<IAvailabilityChangeNotifier, NullAvailabilityChangeNotifier>();
         services.AddScoped<IEmailQueue, EmailQueue>();
         services.AddOutboxHandler<EmailRequested, EmailRequestedHandler>();
 
