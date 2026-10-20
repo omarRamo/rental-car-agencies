@@ -18,6 +18,10 @@ public static class ReferentialErrors
 
     public static readonly Error AgencyEmailInvalid = Error.Validation("referential.agency_email_invalid", "The agency e-mail is invalid.");
 
+    public static readonly Error AgencyCoordinatesInvalid = Error.Validation(
+        "referential.agency_coordinates_invalid",
+        "The agency coordinates need both a latitude (-90 to 90) and a longitude (-180 to 180).");
+
     public static readonly Error LocationCodeInvalid = Error.Validation(
         "referential.location_code_invalid",
         $"A location code has {Location.CodeMinLength} to {Location.CodeMaxLength} characters: A-Z, 0-9 or '-'.");

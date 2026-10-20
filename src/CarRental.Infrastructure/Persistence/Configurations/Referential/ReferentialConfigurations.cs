@@ -18,6 +18,8 @@ internal sealed class AgencyConfiguration : IEntityTypeConfiguration<Agency>
         builder.Property(a => a.Address).HasMaxLength(Agency.AddressMaxLength);
         builder.Property(a => a.Phone).HasMaxLength(Agency.PhoneMaxLength);
         builder.Property(a => a.Email).HasMaxLength(Agency.EmailMaxLength);
+        builder.Property(a => a.Latitude).HasPrecision(9, Agency.CoordinateDecimals);
+        builder.Property(a => a.Longitude).HasPrecision(9, Agency.CoordinateDecimals);
     }
 }
 

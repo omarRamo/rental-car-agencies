@@ -11,7 +11,7 @@ internal sealed class ReferentialQueries(IAppDbContext db) : IReferentialQueries
         await db.Set<Agency>()
             .AsNoTracking()
             .OrderBy(a => a.Name)
-            .Select(a => new AgencyInfo(a.Id, a.Name, a.City, a.Phone, a.Email, a.IsActive))
+            .Select(a => new AgencyInfo(a.Id, a.Name, a.City, a.Phone, a.Email, a.IsActive, a.Address, a.Latitude, a.Longitude))
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default)

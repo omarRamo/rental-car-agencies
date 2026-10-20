@@ -26,7 +26,9 @@ internal sealed class ReferentialDemoSeeder(IAppDbContext db) : IDataSeeder
                 TaxIdentifier: "0000000/A/M/000",
                 Address: "1 avenue Habib Bourguiba, 1000 Tunis",
                 Phone: "+216 70 000 000",
-                Email: "contact@demo.local")).Value;
+                Email: "contact@demo.local",
+                Latitude: 36.799800m,
+                Longitude: 10.180100m)).Value;
             db.Set<Agency>().Add(agency);
         }
 
