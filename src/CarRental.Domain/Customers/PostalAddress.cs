@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using CarRental.Domain.Common;
 
 namespace CarRental.Domain.Customers;
 
 /// <summary>A postal address (person's address, billing address of a company): street line, city and country required.</summary>
+// [ComplexType] (BCL annotation): a value stored in the columns of its owner, never a table of its own.
+[ComplexType]
 public sealed record PostalAddress
 {
     public const int LineMaxLength = 200;
@@ -18,16 +21,16 @@ public sealed record PostalAddress
         Country = country;
     }
 
-    public string Line1 { get; }
+    public string Line1 { get; private init; }
 
-    public string? Line2 { get; }
+    public string? Line2 { get; private init; }
 
-    public string? PostalCode { get; }
+    public string? PostalCode { get; private init; }
 
-    public string City { get; }
+    public string City { get; private init; }
 
     /// <summary>ISO 3166-1 alpha-2 code.</summary>
-    public string Country { get; }
+    public string Country { get; private init; }
 
     public static Result<PostalAddress> Create(string? line1, string? line2, string? postalCode, string? city, string? country)
     {

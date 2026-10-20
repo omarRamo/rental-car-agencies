@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using CarRental.Domain.Common;
 
 namespace CarRental.Domain.Customers;
@@ -6,6 +7,8 @@ namespace CarRental.Domain.Customers;
 /// Reference to the image (or PDF) of one side of an identity document, stored in the private <c>documents</c> blob
 /// container. The path only contains identifiers, never personal data; the content type is the detected one.
 /// </summary>
+// [ComplexType] (BCL annotation): a value stored in the columns of its owner, never a table of its own.
+[ComplexType]
 public sealed record DocumentImage
 {
     /// <summary>10 MB: the browser compresses photos to about 1600 px, so real images are far smaller.</summary>
@@ -22,16 +25,16 @@ public sealed record DocumentImage
         UploadedAtUtc = uploadedAtUtc;
     }
 
-    /// <summary>Path in the <c>documents</c> container, e.g. <c>persons/{personId}/documents/{documentId}/front-{uploadId}.jpg</c>.</summary>
-    public string Path { get; }
+    /// <summary>Path in the <c>documents</c> container, e.g. <c>persons/{personId}/{uploadId}.jpg</c> (identifiers only).</summary>
+    public string Path { get; private init; }
 
-    public string ContentType { get; }
+    public string ContentType { get; private init; }
 
     /// <summary>Size in bytes.</summary>
-    public long Length { get; }
+    public long Length { get; private init; }
 
     /// <summary>Upload instant: the retention period of the image counts from it (or from the last closed rental).</summary>
-    public DateTimeOffset UploadedAtUtc { get; }
+    public DateTimeOffset UploadedAtUtc { get; private init; }
 
     public static Result<DocumentImage> Create(string path, string contentType, long length, DateTimeOffset uploadedAtUtc)
     {

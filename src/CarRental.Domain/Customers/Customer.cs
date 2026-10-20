@@ -30,6 +30,9 @@ public sealed class Customer : AggregateRoot
 
     public string? LegalName { get; private set; }
 
+    /// <summary>Normalized legal name used by the search (see <see cref="Customers.SearchText"/>).</summary>
+    public string? SearchName { get; private set; }
+
     /// <summary>As displayed, e.g. <c>1234567/A/M/000</c>.</summary>
     public string? TaxIdentifier { get; private set; }
 
@@ -96,6 +99,7 @@ public sealed class Customer : AggregateRoot
     private void Apply(CompanyFacts facts)
     {
         LegalName = facts.LegalName;
+        SearchName = SearchText.Normalize(facts.LegalName, LegalNameMaxLength);
         TaxIdentifier = facts.TaxIdentifier;
         TaxIdentifierKey = TaxIdentifiers.KeyOf(facts.TaxIdentifier);
         BillingAddress = facts.BillingAddress;

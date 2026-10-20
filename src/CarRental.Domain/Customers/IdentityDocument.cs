@@ -65,8 +65,8 @@ public sealed class IdentityDocument : Entity
 
     public bool IsVerified => VerifiedAtUtc is not null;
 
-    /// <summary>The front and back images that exist.</summary>
-    public IReadOnlyList<DocumentImage> Images =>
+    /// <summary>The front and back images that exist (a method, so that the persistence never maps it).</summary>
+    public IReadOnlyList<DocumentImage> ImageFiles() =>
         new[] { FrontImage, BackImage }.Where(image => image is not null).Select(image => image!).ToArray();
 
     /// <summary>True when the document is still valid on <paramref name="date"/> (expiry date included).</summary>

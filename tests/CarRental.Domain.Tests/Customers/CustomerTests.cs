@@ -40,6 +40,7 @@ public sealed class CustomerTests
         customer.Kind.ShouldBe(CustomerKind.Company);
         customer.PersonId.ShouldBeNull();
         customer.LegalName.ShouldBe("Société Tunisienne de Services SARL");
+        customer.SearchName.ShouldBe("societe tunisienne de services sarl");
         customer.TaxIdentifier.ShouldBe("1234567/A/M/000");
         customer.TaxIdentifierKey.ShouldBe("1234567AM000");
         customer.BillingAddress.ShouldBe(Address());

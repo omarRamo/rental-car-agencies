@@ -251,7 +251,7 @@ public sealed class Person : AggregateRoot
         }
 
         _documents.Remove(document);
-        Discard(document.Id, document.Images);
+        Discard(document.Id, document.ImageFiles());
         Touch(now);
         return Result.Success();
     }
@@ -405,7 +405,7 @@ public sealed class Person : AggregateRoot
 
         foreach (var document in _documents)
         {
-            Discard(document.Id, document.Images);
+            Discard(document.Id, document.ImageFiles());
         }
 
         _documents.Clear();
@@ -597,7 +597,7 @@ internal sealed record PersonFacts(
         return new PersonFacts(
             firstName!,
             lastName!,
-            SearchText.Normalize($"{firstName} {lastName}"),
+            SearchText.Normalize($"{firstName} {lastName}", Person.SearchNameMaxLength),
             nationality,
             details.BirthDate,
             phone,

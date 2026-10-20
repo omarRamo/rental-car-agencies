@@ -9,6 +9,13 @@ namespace CarRental.Domain.Customers;
 /// </summary>
 public static class SearchText
 {
+    /// <summary>The search text of <paramref name="value"/>, cut to <paramref name="maxLength"/> characters (decomposition can lengthen some scripts).</summary>
+    public static string Normalize(string? value, int maxLength)
+    {
+        var normalized = Normalize(value);
+        return normalized.Length <= maxLength ? normalized : normalized[..maxLength].TrimEnd();
+    }
+
     public static string Normalize(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
