@@ -21,5 +21,6 @@
 *.zip binary
 *.snk binary
 
-# Resource files only grow by appended <data> entries: keep both sides when parallel branches add entries.
-*.resx merge=union
+# Resource files: three-way merge of <data> entries by key (driver: tools/git/merge-resx.mjs, configured locally with
+#   git config merge.resx.driver "node tools/git/merge-resx.mjs %O %A %B"). Without the driver, git falls back to a text merge.
+*.resx merge=resx
