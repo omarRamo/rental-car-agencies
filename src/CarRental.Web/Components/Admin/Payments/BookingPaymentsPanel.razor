@@ -1,7 +1,8 @@
 @* Payments and security deposits of one booking, with the counter actions: record a payment ("encaisser"), refund,
    confirm or cancel a pending transfer or cheque, take a deposit, release it or retain part of it. Embedded by the
-   booking page and the departure and return screens (packages 1E and 1F-b) with the id of the booking; the actions
-   need payments.manage, cash needs the open cash session of the agent. *@
+   booking page and the departure and return screens (packages 1E and 1F-b) with the id of the booking. Without
+   payments.read it only shows a notice (a preparer on the return screen); the actions need payments.manage, cash needs
+   the open cash session of the agent. *@
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -9,6 +10,15 @@
 @inject IStringLocalizer<SharedResources> Shared
 
 <section class="booking-payments" data-testid="booking-payments" data-ready="@(Ready ? "true" : "false")" aria-labelledby="@($"payments-{_id}")">
+    @if (_canRead is false)
+    {
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="@($"payments-{_id}")">@L["Panel.Payments"]</MudText>
+            <FinanceNotice Class="mt-2">@L["Panel.NoAccess"]</FinanceNotice>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="pa-4 mb-4" Elevation="1">
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
             <MudText Typo="Typo.h6" HtmlTag="h2" id="@($"payments-{_id}")">@L["Panel.Payments"]</MudText>
@@ -165,6 +175,7 @@
             </MudTable>
         }
     </MudPaper>
+    }
 </section>
 
 @code {
@@ -173,6 +184,7 @@
     private BookingDeposits? _deposits;
     private IReadOnlyList<AgencyInfo> _agencies = [];
     private bool _canManage;
+    private bool? _canRead;
     private Guid? _loadedBookingId;
 
     [CascadingParameter]
@@ -205,17 +217,24 @@
     private bool CanAct => _canManage && !ReadOnly;
 
     /// <summary>Interactive and loaded: the actions respond (used by the browser tests).</summary>
-    private bool Ready => RendererInfo.IsInteractive && _payments is not null && _deposits is not null;
+    private bool Ready => RendererInfo.IsInteractive && (_canRead is false || (_payments is not null && _deposits is not null));
 
     protected override async Task OnInitializedAsync()
     {
-        _canManage = (await AuthenticationState).User.HasPermission(Permissions.PaymentsManage);
+        var user = (await AuthenticationState).User;
+        _canRead = user.HasPermission(Permissions.PaymentsRead);
+        _canManage = _canRead == true && user.HasPermission(Permissions.PaymentsManage);
+        if (_canRead != true)
+        {
+            return;
+        }
+
         var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
         _agencies = [.. agencies.Where(a => a.IsActive)];
     }
 
     /// <summary>Loads the lists for a new booking only: a re-render of the host with the same booking keeps them.</summary>
-    protected override Task OnParametersSetAsync() => BookingId == _loadedBookingId ? Task.CompletedTask : LoadAsync();
+    protected override Task OnParametersSetAsync() => _canRead != true || BookingId == _loadedBookingId ? Task.CompletedTask : LoadAsync();
 
     private async Task LoadAsync()
     {

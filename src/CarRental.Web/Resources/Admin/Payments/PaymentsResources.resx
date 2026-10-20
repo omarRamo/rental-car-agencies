@@ -447,4 +447,7 @@
   <data name="Retain.Done" xml:space="preserve">
     <value>Retenue enregistrée.</value>
   </data>
+  <data name="Panel.NoAccess" xml:space="preserve">
+    <value>Vos droits ne donnent pas accès aux paiements et aux cautions de ce dossier.</value>
+  </data>
 </root>

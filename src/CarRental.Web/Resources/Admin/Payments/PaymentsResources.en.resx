@@ -447,4 +447,7 @@
   <data name="Retain.Done" xml:space="preserve">
     <value>Retention recorded.</value>
   </data>
+  <data name="Panel.NoAccess" xml:space="preserve">
+    <value>Your rights do not give access to the payments and deposits of this booking.</value>
+  </data>
 </root>
