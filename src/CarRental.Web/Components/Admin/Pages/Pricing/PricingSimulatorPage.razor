@@ -1,0 +1,350 @@
+@page "/admin/pricing/simulator"
+@attribute [HasPermission(Permissions.PricingRead)]
+@using CarRental.Application.Fleet.Contracts
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Application.Pricing.Contracts
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Components.Admin.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject TimeProvider Clock
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Simulator.Title"]</PageTitle>
+<PricingStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(_ready && RendererInfo.IsInteractive ? "true" : "false")">@L["Simulator.Title"]</MudText>
+    <MudButton Href="/admin/pricing" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">@L["Simulator.BackToPlans"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Simulator.Intro"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <form @onsubmit="SimulateAsync" aria-label="@L["Simulator.Title"]">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="Guid" Value="_agencyId" ValueChanged="OnAgencyChangedAsync" Label="@L["Simulator.Agency"]" Variant="Variant.Outlined">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="SalesChannel" Value="_channel" ValueChanged="OnChannelChangedAsync" Label="@L["Simulator.Channel"]" Variant="Variant.Outlined">
+                    @foreach (var channel in Enum.GetValues<SalesChannel>())
+                    {
+                        <MudSelectItem T="SalesChannel" Value="@channel">@L[$"Channel.{channel}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="Guid" Value="_categoryId" ValueChanged="OnCategoryChangedAsync" Label="@L["Simulator.Category"]" Variant="Variant.Outlined">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">@category.AcrissCode — @category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_pickupAt" Label="@L["Simulator.PickupAt"]" InputType="InputType.DateTimeLocal"
+                              Variant="Variant.Outlined" ShrinkLabel="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_returnAt" Label="@L["Simulator.ReturnAt"]" InputType="InputType.DateTimeLocal"
+                              Variant="Variant.Outlined" ShrinkLabel="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="Guid" @bind-Value="_pickupLocationId" Label="@L["Simulator.PickupLocation"]" Variant="Variant.Outlined">
+                    @foreach (var location in _locations)
+                    {
+                        <MudSelectItem T="Guid" Value="@location.Id">@location.Code — @location.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="Guid" @bind-Value="_returnLocationId" Label="@L["Simulator.ReturnLocation"]" Variant="Variant.Outlined">
+                    @foreach (var location in _locations)
+                    {
+                        <MudSelectItem T="Guid" Value="@location.Id">@location.Code — @location.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_quotedAt" Label="@L["Simulator.QuotedAt"]" InputType="InputType.DateTimeLocal"
+                              HelperText="@L["Simulator.QuotedAt.Help"]" Variant="Variant.Outlined" ShrinkLabel="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_promoCode" Label="@L["Simulator.PromoCode"]" Variant="Variant.Outlined" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_mainDriverBirthDate" Label="@L["Simulator.MainDriverBirthDate"]" InputType="InputType.Date"
+                              Variant="Variant.Outlined" ShrinkLabel="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_secondDriverBirthDate" Label="@L["Simulator.SecondDriverBirthDate"]" InputType="InputType.Date"
+                              Variant="Variant.Outlined" ShrinkLabel="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="6">
+                <MudSelect T="Guid?" @bind-Value="_vehicleId" Label="@L["Simulator.GuaranteedVehicle"]" Variant="Variant.Outlined">
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["Simulator.NoVehicle"]</MudSelectItem>
+                    @foreach (var vehicle in _vehicles)
+                    {
+                        <MudSelectItem T="Guid?" Value="@vehicle.Id">@vehicle.Make @vehicle.Model (@vehicle.PlateNumber) — @PricingDisplay.Amount(vehicle.GuaranteedModelDailySupplement!.Value)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="6">
+                <MudSelect T="Guid?" @bind-Value="_comparedPlanId" Label="@L["Simulator.ComparedPlan"]" Variant="Variant.Outlined"
+                           HelperText="@L["Simulator.ComparedPlan.Help"]">
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["Simulator.NoComparison"]</MudSelectItem>
+                    @foreach (var plan in _plans.Where(p => p.Status != RatePlanStatus.Published))
+                    {
+                        <MudSelectItem T="Guid?" Value="@plan.Id">@PlanLabel(plan)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        @if (_extras.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mt-4 mb-2">@L["Simulator.Extras"]</MudText>
+            <MudGrid Spacing="2">
+                @foreach (var extra in _extras)
+                {
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField T="int" Value="@_quantities.GetValueOrDefault(extra.Code)" ValueChanged="@(value => _quantities[extra.Code] = value)"
+                                         Label="@ExtraLabel(extra)" HelperText="@ExtraRule(extra)" Min="0" Max="@PricingEngine.MaximumExtraQuantity"
+                                         Variant="Variant.Outlined" Immediate="true" />
+                    </MudItem>
+                }
+            </MudGrid>
+            @if (_automaticExtras.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">@L["Simulator.AutomaticExtras", string.Join(", ", _automaticExtras.Select(e => $"{ExtraLabel(e)} ({ExtraRule(e)})"))]</MudText>
+            }
+        }
+
+        @if (_formError is not null)
+        {
+            <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mt-3">@_formError</PricingNotice>
+        }
+
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Disabled="@(_busy || !_ready || !RendererInfo.IsInteractive)"
+                   StartIcon="@Icons.Material.Filled.Calculate">@L["Simulator.Calculate"]</MudButton>
+    </form>
+</MudPaper>
+
+@if (_result is not null)
+{
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="@(_result.Compared is null ? 12 : 6)">
+            <QuoteBreakdown Title="@L["Simulator.Published"]" Outcome="_result.Published" />
+        </MudItem>
+        @if (_result.Compared is not null)
+        {
+            <MudItem xs="12" lg="6">
+                <QuoteBreakdown Title="@L["Simulator.Compared", ComparedName()]" Outcome="_result.Compared" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private const string LocalFormat = "yyyy-MM-ddTHH:mm";
+
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private IReadOnlyList<VehicleCategoryInfo> _categories = [];
+    private IReadOnlyList<LocationInfo> _locations = [];
+    private IReadOnlyList<VehicleInfo> _vehicles = [];
+    private IReadOnlyList<RatePlanListItem> _plans = [];
+    private IReadOnlyList<ExtraOffer> _extras = [];
+    private IReadOnlyList<ExtraOffer> _automaticExtras = [];
+    private readonly Dictionary<string, int> _quantities = new(StringComparer.Ordinal);
+    private Guid _agencyId;
+    private SalesChannel _channel = SalesChannel.Web;
+    private Guid _categoryId;
+    private Guid _pickupLocationId;
+    private Guid _returnLocationId;
+    private Guid? _vehicleId;
+    private Guid? _comparedPlanId;
+    private string? _pickupAt;
+    private string? _returnAt;
+    private string? _quotedAt;
+    private string? _promoCode;
+    private string? _mainDriverBirthDate;
+    private string? _secondDriverBirthDate;
+    private string? _formError;
+    private bool _busy;
+    private bool _ready;
+    private SimulationResult? _result;
+
+    /// <summary>Optional deep link: agency id.</summary>
+    [SupplyParameterFromQuery(Name = "agence")]
+    public Guid? AgencyQuery { get; set; }
+
+    /// <summary>Optional deep link: ACRISS code of the category, e.g. <c>ECMR</c>.</summary>
+    [SupplyParameterFromQuery(Name = "cat")]
+    public string? CategoryQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "canal")]
+    public string? ChannelQuery { get; set; }
+
+    /// <summary>Pick-up and return (Tunis time), <c>yyyy-MM-ddTHH:mm</c>.</summary>
+    [SupplyParameterFromQuery(Name = "depart")]
+    public string? PickupQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "retour")]
+    public string? ReturnQuery { get; set; }
+
+    /// <summary>A plan to compare with the published plans (draft or old version).</summary>
+    [SupplyParameterFromQuery(Name = "comparer")]
+    public Guid? ComparedQuery { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Enum.TryParse<SalesChannel>(ChannelQuery, ignoreCase: true, out var channel) && Enum.IsDefined(channel))
+        {
+            _channel = channel;
+        }
+
+        var now = TunisTime.Now(Clock);
+        _quotedAt = now.ToString(LocalFormat, CultureInfo.InvariantCulture);
+        _pickupAt = PickupQuery ?? now.Date.AddDays(1).AddHours(10).ToString(LocalFormat, CultureInfo.InvariantCulture);
+        _returnAt = ReturnQuery ?? now.Date.AddDays(4).AddHours(10).ToString(LocalFormat, CultureInfo.InvariantCulture);
+        _comparedPlanId = ComparedQuery;
+
+        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((q, ct) => q.GetAgenciesAsync(ct));
+        _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadAgencyAsync();
+        _ready = true;
+    }
+
+    private async Task OnAgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        _comparedPlanId = null;
+        await LoadAgencyAsync();
+    }
+
+    private async Task OnChannelChangedAsync(SalesChannel channel)
+    {
+        _channel = channel;
+        await LoadExtrasAsync();
+    }
+
+    private async Task OnCategoryChangedAsync(Guid categoryId)
+    {
+        _categoryId = categoryId;
+        _vehicleId = null;
+        await LoadVehiclesAsync();
+    }
+
+    private async Task LoadAgencyAsync()
+    {
+        if (_agencyId == Guid.Empty)
+        {
+            return;
+        }
+
+        var agencyId = _agencyId;
+        _categories = await Runner.RunAsync<IFleetQueries, IReadOnlyList<VehicleCategoryInfo>>((q, ct) => q.GetCategoriesAsync(agencyId, cancellationToken: ct));
+        _locations = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<LocationInfo>>((q, ct) => q.GetLocationsAsync(agencyId, ct));
+        var plans = await Runner.RunAsync<RatePlanAdministrationService, Result<IReadOnlyList<RatePlanListItem>>>(
+            (s, ct) => s.ListAsync(agencyId, includeArchived: true, ct));
+        _plans = plans.IsSuccess ? plans.Value : [];
+
+        _categoryId = _categories.FirstOrDefault(c => string.Equals(c.AcrissCode, CategoryQuery, StringComparison.OrdinalIgnoreCase))?.Id
+            ?? _categories.FirstOrDefault()?.Id
+            ?? Guid.Empty;
+        var office = _locations.FirstOrDefault(l => l.Kind == LocationKindInfo.AgencyOffice) ?? _locations.FirstOrDefault();
+        _pickupLocationId = office?.Id ?? Guid.Empty;
+        _returnLocationId = _pickupLocationId;
+        await LoadExtrasAsync();
+        await LoadVehiclesAsync();
+    }
+
+    private async Task LoadExtrasAsync()
+    {
+        var (agencyId, channel) = (_agencyId, _channel);
+        var extras = await Runner.RunAsync<IPricingQueries, IReadOnlyList<ExtraOffer>>((q, ct) => q.GetExtrasAsync(agencyId, channel, ct));
+        _extras = [.. extras.Where(e => e.IsSelectable)];
+        _automaticExtras = [.. extras.Where(e => !e.IsSelectable)];
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        var categoryId = _categoryId;
+        var vehicles = categoryId == Guid.Empty
+            ? []
+            : await Runner.RunAsync<IFleetQueries, IReadOnlyList<VehicleInfo>>((q, ct) => q.GetVehiclesAsync(categoryId, ct));
+        _vehicles = [.. vehicles.Where(v => v.GuaranteedModelDailySupplement is { IsPositive: true } && v.Status != VehicleStatusInfo.Sold)];
+    }
+
+    private async Task SimulateAsync()
+    {
+        _formError = null;
+        if (ParseLocal(_pickupAt) is not { } pickupAt || ParseLocal(_returnAt) is not { } returnAt)
+        {
+            _formError = L["Simulator.DatesRequired"];
+            return;
+        }
+
+        if (_agencyId == Guid.Empty || _categoryId == Guid.Empty)
+        {
+            _formError = L["Simulator.CategoryRequired"];
+            return;
+        }
+
+        var drivers = new[] { _mainDriverBirthDate, _secondDriverBirthDate }
+            .Select(EditorValues.ParseDate)
+            .OfType<DateOnly>()
+            .ToList();
+        var request = new PriceRequest(
+            _agencyId,
+            _categoryId,
+            _pickupLocationId,
+            _returnLocationId,
+            pickupAt,
+            returnAt,
+            _channel,
+            [.. _quantities.Where(q => q.Value > 0 && _extras.Any(e => e.Code == q.Key)).Select(q => new SelectedExtra(q.Key, q.Value))],
+            drivers,
+            string.IsNullOrWhiteSpace(_promoCode) ? null : _promoCode,
+            _vehicleId);
+        var simulation = new SimulationRequest(request, ParseLocal(_quotedAt), _comparedPlanId);
+
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<SimulationResult>>((s, ct) => s.SimulateAsync(simulation, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _formError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        _result = result.Value;
+    }
+
+    private static DateTimeOffset? ParseLocal(string? value) =>
+        DateTime.TryParseExact(value?.Trim(), [LocalFormat, "yyyy-MM-ddTHH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
+            ? TunisTime.FromLocal(local)
+            : null;
+
+    private string PlanLabel(RatePlanListItem plan) => plan.Status == RatePlanStatus.Draft
+        ? L["Simulator.DraftPlan", plan.Name, L[PricingDisplay.ChannelKey(plan.Channel)]]
+        : L["Simulator.ArchivedPlan", plan.Name, plan.Version ?? 0, L[PricingDisplay.ChannelKey(plan.Channel)]];
+
+    private string ComparedName() => _plans.FirstOrDefault(p => p.Id == _comparedPlanId) is { } plan ? PlanLabel(plan) : string.Empty;
+
+    private static string ExtraLabel(ExtraOffer extra) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && extra.NameEn is { } english ? english : extra.Name;
+
+    private string ExtraRule(ExtraOffer extra) => extra.Mode == ExtraPricingModeInfo.PerDay
+        ? extra.CapPerUnit is { } cap
+            ? L["Extra.Rule.PerDayCapped", PricingDisplay.Amount(extra.Price), PricingDisplay.Amount(cap)]
+            : L["Extra.Rule.PerDay", PricingDisplay.Amount(extra.Price)]
+        : L["Extra.Rule.PerRental", PricingDisplay.Amount(extra.Price)];
+}

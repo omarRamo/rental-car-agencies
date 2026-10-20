@@ -1,0 +1,176 @@
+@* Extras catalogue of a plan, in display order: chosen ones (additional driver, child seat, franchise waiver…) and
+   automatic ones (young driver, delivery to a location, after-hours, one-way). Prices are VAT included. *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["Extras.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Extras.Hint"]</MudText>
+@foreach (var (row, index) in _extras.Select((row, index) => (row, index + 1)))
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-2">
+        <fieldset class="editor-row">
+        <legend class="editor-row-title">@L["Extras.Row", index]@NameSuffix(row.Name)</legend>
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="row.Code" Label="@L["Extras.Code"]" MaxLength="Extra.CodeMaxLength"
+                              HelperText="@L["Extras.Code.Help"]" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="row.Name" Label="@L["Extras.Name"]" MaxLength="Extra.NameMaxLength"
+                              Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="row.NameEn" Label="@L["Extras.NameEn"]" MaxLength="Extra.NameMaxLength"
+                              Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="ExtraKind" @bind-Value="row.Kind" Label="@L["Extras.Kind"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var kind in Enum.GetValues<ExtraKind>())
+                    {
+                        <MudSelectItem T="ExtraKind" Value="@kind">@L[$"ExtraKind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="ExtraPricingMode" @bind-Value="row.Mode" Label="@L["Extras.Mode"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var mode in Enum.GetValues<ExtraPricingMode>())
+                    {
+                        <MudSelectItem T="ExtraPricingMode" Value="@mode">@L[$"ExtraMode.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudNumericField T="decimal" @bind-Value="row.Price" Label="@L["Extras.Price"]" Min="0m" HideSpinButtons="true"
+                                 Adornment="Adornment.End" AdornmentText="TND" ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+            </MudItem>
+            @if (row.Mode == ExtraPricingMode.PerDay)
+            {
+                <MudItem xs="6" sm="3" md="2">
+                    <MudNumericField T="decimal?" @bind-Value="row.CapPerUnit" Label="@L["Extras.Cap"]" Min="0m" HideSpinButtons="true"
+                                     Adornment="Adornment.End" AdornmentText="TND" ShrinkLabel="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+                </MudItem>
+            }
+            @if (row.Kind == ExtraKind.LocationDelivery)
+            {
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="Guid?" @bind-Value="row.LocationId" Label="@L["Extras.Location"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                        @foreach (var location in Locations)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)location.Id)">@location.Code — @location.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6" md="2">
+                <MudSwitch T="bool" @bind-Value="row.IsActive" Color="Color.Primary" Label="@L["Extras.Active"]" Disabled="!CanEdit" />
+            </MudItem>
+            @if (CanEdit)
+            {
+                <MudItem xs="12" md="2" Class="d-flex justify-end gap-1">
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" aria-label="@L["Extras.MoveUp", index]" Disabled="index == 1"
+                                   OnClick="() => Move(row, -1)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" aria-label="@L["Extras.MoveDown", index]" Disabled="index == _extras.Count"
+                                   OnClick="() => Move(row, 1)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Class="pricing-danger" aria-label="@L["Extras.Remove", index]"
+                                   OnClick="() => _extras.Remove(row)" />
+                </MudItem>
+            }
+        </MudGrid>
+        </fieldset>
+    </MudPaper>
+}
+@if (_extras.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Extras.Empty"]</MudText>
+}
+<SectionActions CanEdit="CanEdit" Error="@_error" Busy="_busy" AddText="@L["Extras.Add"]" SaveText="@L["Extras.Save"]" OnAdd="Add" OnSave="SaveAsync" />
+
+@code {
+    private readonly List<ExtraRow> _extras = [];
+    private RatePlanDetail? _source;
+    private string? _error;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public RatePlanDetail Detail { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LocationInfo> Locations { get; set; } = [];
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<RatePlanDetail> OnSaved { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Detail, _source))
+        {
+            return;
+        }
+
+        _source = Detail;
+        _extras.Clear();
+        _extras.AddRange(Detail.Extras.Select(ExtraRow.From));
+    }
+
+    private void Add() => _extras.Add(new ExtraRow());
+
+    private void Move(ExtraRow row, int offset)
+    {
+        var index = _extras.IndexOf(row);
+        var target = index + offset;
+        if (target < 0 || target >= _extras.Count)
+        {
+            return;
+        }
+
+        (_extras[index], _extras[target]) = (_extras[target], _extras[index]);
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        var definitions = new List<ExtraDefinition>();
+        foreach (var row in _extras)
+        {
+            if (row.Mode == ExtraPricingMode.PerRental)
+            {
+                row.CapPerUnit = null;
+            }
+
+            var definition = row.ToDefinition();
+            if (definition.IsFailure)
+            {
+                _error = ErrorMessages.For(Shared, definition.Error);
+                return;
+            }
+
+            definitions.Add(definition.Value);
+        }
+
+        var (planId, revision) = (Detail.Plan.Id, Detail.Plan.Revision);
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>(
+            (service, ct) => service.UpdateExtrasAsync(planId, revision, definitions, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        // Normal (dark) snackbars keep a 4.5:1 contrast; the default success colour does not.
+        Snackbar.Add(L["Editor.Saved"], Severity.Normal);
+        await OnSaved.InvokeAsync(result.Value);
+    }
+
+    private static string NameSuffix(string? name) => string.IsNullOrWhiteSpace(name) ? string.Empty : $" — {name.Trim()}";
+}

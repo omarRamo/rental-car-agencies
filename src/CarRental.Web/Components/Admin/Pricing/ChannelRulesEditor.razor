@@ -1,0 +1,91 @@
+@* How each sales channel is priced (default plan only): parity, a markup on the daily prices (then dinar rounding), or
+   the channel's own published grid. *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudText Typo="Typo.h6" HtmlTag="h2">@L["Rules.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Rules.Hint"]</MudText>
+@foreach (var row in _rules)
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-2">
+        <fieldset class="editor-row">
+        <legend class="editor-row-title">@L[$"Channel.{row.Channel}"]</legend>
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="ChannelPricingMode" @bind-Value="row.Mode" Label="@L["Rules.Mode"]" Variant="Variant.Outlined" Disabled="!CanEdit">
+                    @foreach (var mode in Enum.GetValues<ChannelPricingMode>())
+                    {
+                        <MudSelectItem T="ChannelPricingMode" Value="@mode">@L[$"ChannelPricing.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (row.Mode == ChannelPricingMode.Markup)
+                {
+                    <MudNumericField T="decimal?" @bind-Value="row.MarkupPercent" Label="@L["Rules.Markup"]" Min="0m" Max="100m"
+                                     Adornment="Adornment.End" AdornmentText="%" ShrinkLabel="true" HideSpinButtons="true" Variant="Variant.Outlined" Disabled="!CanEdit" Immediate="true" />
+                }
+            </MudItem>
+        </MudGrid>
+        </fieldset>
+    </MudPaper>
+}
+<SectionActions CanEdit="CanEdit" Error="@_error" Busy="_busy" SaveText="@L["Rules.Save"]" OnSave="SaveAsync" />
+
+@code {
+    private List<ChannelRuleRow> _rules = [];
+    private RatePlanDetail? _source;
+    private string? _error;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public RatePlanDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<RatePlanDetail> OnSaved { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Detail, _source))
+        {
+            return;
+        }
+
+        _source = Detail;
+        _rules =
+        [
+            .. Enum.GetValues<SalesChannel>().Select(channel =>
+                Detail.ChannelRules.FirstOrDefault(r => r.Channel == channel) is { } rule
+                    ? new ChannelRuleRow { Channel = channel, Mode = rule.Mode, MarkupPercent = rule.MarkupPercent }
+                    : new ChannelRuleRow { Channel = channel }),
+        ];
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        var rules = _rules.Where(r => r.Mode != ChannelPricingMode.Parity).Select(r => r.ToDefinition()).ToList();
+        var (planId, revision) = (Detail.Plan.Id, Detail.Plan.Revision);
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>(
+            (service, ct) => service.UpdateChannelRulesAsync(planId, revision, rules, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        // Normal (dark) snackbars keep a 4.5:1 contrast; the default success colour does not.
+        Snackbar.Add(L["Editor.Saved"], Severity.Normal);
+        await OnSaved.InvokeAsync(result.Value);
+    }
+}

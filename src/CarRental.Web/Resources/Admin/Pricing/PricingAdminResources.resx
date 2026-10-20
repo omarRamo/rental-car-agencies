@@ -1,0 +1,801 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Calendar.Base" xml:space="preserve">
+    <value>Prix de base (hors saison)</value>
+  </data>
+  <data name="Calendar.Event" xml:space="preserve">
+    <value>Événement prioritaire</value>
+  </data>
+  <data name="Calendar.Title" xml:space="preserve">
+    <value>Calendrier</value>
+  </data>
+  <data name="Calendar.Year" xml:space="preserve">
+    <value>Année</value>
+  </data>
+  <data name="Channel.BookingCom" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+  <data name="Channel.Counter" xml:space="preserve">
+    <value>Comptoir</value>
+  </data>
+  <data name="Channel.Default" xml:space="preserve">
+    <value>Grille par défaut</value>
+  </data>
+  <data name="Channel.Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="Channel.Web" xml:space="preserve">
+    <value>Site web</value>
+  </data>
+  <data name="Channel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="ChannelPricing.Markup" xml:space="preserve">
+    <value>Majoration</value>
+  </data>
+  <data name="ChannelPricing.MarkupValue" xml:space="preserve">
+    <value>Majoration de {0}</value>
+  </data>
+  <data name="ChannelPricing.OwnGrid" xml:space="preserve">
+    <value>Grille propre</value>
+  </data>
+  <data name="ChannelPricing.Parity" xml:space="preserve">
+    <value>Parité</value>
+  </data>
+  <data name="CreateDraft.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="CreateDraft.Created" xml:space="preserve">
+    <value>Brouillon créé.</value>
+  </data>
+  <data name="CreateDraft.Hint" xml:space="preserve">
+    <value>Le brouillon reprend la grille publiée du canal choisi (ou la grille par défaut pour une première grille propre). Rien ne change pour les clients avant sa publication.</value>
+  </data>
+  <data name="CreateDraft.Name" xml:space="preserve">
+    <value>Nom du brouillon</value>
+  </data>
+  <data name="CreateDraft.Name.Help" xml:space="preserve">
+    <value>Facultatif : le nom de la grille copiée est repris.</value>
+  </data>
+  <data name="CreateDraft.Submit" xml:space="preserve">
+    <value>Créer le brouillon</value>
+  </data>
+  <data name="CreateDraft.Title" xml:space="preserve">
+    <value>Nouveau brouillon</value>
+  </data>
+  <data name="DiscountType.FixedAmount" xml:space="preserve">
+    <value>Montant fixe</value>
+  </data>
+  <data name="DiscountType.Percentage" xml:space="preserve">
+    <value>Pourcentage</value>
+  </data>
+  <data name="Editor.DatesRequired" xml:space="preserve">
+    <value>Indiquez la date de début et la date de fin de chaque ligne.</value>
+  </data>
+  <data name="Editor.Saved" xml:space="preserve">
+    <value>Modifications enregistrées.</value>
+  </data>
+  <data name="Error.MinimumDuration" xml:space="preserve">
+    <value>Durée minimale non atteinte pour ces dates : au moins {0} jours de location.</value>
+  </data>
+  <data name="Events.Add" xml:space="preserve">
+    <value>Ajouter un événement</value>
+  </data>
+  <data name="Events.Empty" xml:space="preserve">
+    <value>Aucun événement prioritaire.</value>
+  </data>
+  <data name="Events.End" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="Events.Hint" xml:space="preserve">
+    <value>Un événement (Aïd, fin d'année, festival) prime sur les saisons ; entre deux événements qui se chevauchent, la priorité la plus haute l'emporte. Une case vide de la grille reprend le prix de la saison.</value>
+  </data>
+  <data name="Events.MinimumDays" xml:space="preserve">
+    <value>Durée min. (jours)</value>
+  </data>
+  <data name="Events.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Events.Priority" xml:space="preserve">
+    <value>Priorité</value>
+  </data>
+  <data name="Events.Remove" xml:space="preserve">
+    <value>Supprimer l'événement {0}</value>
+  </data>
+  <data name="Events.Row" xml:space="preserve">
+    <value>Événement {0}</value>
+  </data>
+  <data name="Events.Save" xml:space="preserve">
+    <value>Enregistrer les événements</value>
+  </data>
+  <data name="Events.Start" xml:space="preserve">
+    <value>Début</value>
+  </data>
+  <data name="Events.Title" xml:space="preserve">
+    <value>Événements prioritaires</value>
+  </data>
+  <data name="Extra.Rule.PerDay" xml:space="preserve">
+    <value>{0} par jour</value>
+  </data>
+  <data name="Extra.Rule.PerDayCapped" xml:space="preserve">
+    <value>{0} par jour, plafonné à {1}</value>
+  </data>
+  <data name="Extra.Rule.PerRental" xml:space="preserve">
+    <value>{0} par location</value>
+  </data>
+  <data name="ExtraKind.AfterHours" xml:space="preserve">
+    <value>Hors horaires (automatique)</value>
+  </data>
+  <data name="ExtraKind.FranchiseWaiver" xml:space="preserve">
+    <value>Rachat de franchise (caution réduite)</value>
+  </data>
+  <data name="ExtraKind.LocationDelivery" xml:space="preserve">
+    <value>Livraison à un lieu (automatique)</value>
+  </data>
+  <data name="ExtraKind.OneWay" xml:space="preserve">
+    <value>Aller simple (automatique)</value>
+  </data>
+  <data name="ExtraKind.Optional" xml:space="preserve">
+    <value>Au choix du client</value>
+  </data>
+  <data name="ExtraKind.YoungDriver" xml:space="preserve">
+    <value>Jeune conducteur (automatique)</value>
+  </data>
+  <data name="ExtraMode.PerDay" xml:space="preserve">
+    <value>Par jour</value>
+  </data>
+  <data name="ExtraMode.PerRental" xml:space="preserve">
+    <value>Par location</value>
+  </data>
+  <data name="Extras.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Extras.Add" xml:space="preserve">
+    <value>Ajouter une option</value>
+  </data>
+  <data name="Extras.Cap" xml:space="preserve">
+    <value>Plafond par unité</value>
+  </data>
+  <data name="Extras.Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Extras.Code.Help" xml:space="preserve">
+    <value>Majuscules, chiffres et _</value>
+  </data>
+  <data name="Extras.Empty" xml:space="preserve">
+    <value>Aucune option.</value>
+  </data>
+  <data name="Extras.Hint" xml:space="preserve">
+    <value>Les options au choix sont proposées au client ; les options automatiques s’ajoutent selon les conducteurs, les lieux et les horaires. Prix TTC.</value>
+  </data>
+  <data name="Extras.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Extras.Location" xml:space="preserve">
+    <value>Lieu de livraison</value>
+  </data>
+  <data name="Extras.Mode" xml:space="preserve">
+    <value>Facturation</value>
+  </data>
+  <data name="Extras.MoveDown" xml:space="preserve">
+    <value>Descendre l'option {0}</value>
+  </data>
+  <data name="Extras.MoveUp" xml:space="preserve">
+    <value>Monter l'option {0}</value>
+  </data>
+  <data name="Extras.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Extras.NameEn" xml:space="preserve">
+    <value>Nom anglais</value>
+  </data>
+  <data name="Extras.Price" xml:space="preserve">
+    <value>Prix TTC</value>
+  </data>
+  <data name="Extras.Remove" xml:space="preserve">
+    <value>Supprimer l'option {0}</value>
+  </data>
+  <data name="Extras.Row" xml:space="preserve">
+    <value>Option {0}</value>
+  </data>
+  <data name="Extras.Save" xml:space="preserve">
+    <value>Enregistrer les options</value>
+  </data>
+  <data name="Extras.Title" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="Grid.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Grid.Cell" xml:space="preserve">
+    <value>Prix TTC par jour, {0}, {1}</value>
+  </data>
+  <data name="Grid.Hint" xml:space="preserve">
+    <value>Prix journaliers TTC. Une case vide reprend le niveau suivant : événement, puis saison, puis prix de base (obligatoire pour chaque catégorie tarifée).</value>
+  </data>
+  <data name="Grid.NoCategory" xml:space="preserve">
+    <value>Aucune catégorie de véhicule pour cette agence.</value>
+  </data>
+  <data name="Grid.Save" xml:space="preserve">
+    <value>Enregistrer la grille</value>
+  </data>
+  <data name="Grid.Title" xml:space="preserve">
+    <value>Grille tarifaire</value>
+  </data>
+  <data name="Grid.UnknownCategory" xml:space="preserve">
+    <value>Catégorie inconnue ({0})</value>
+  </data>
+  <data name="History.Archived" xml:space="preserve">
+    <value>Archivée le</value>
+  </data>
+  <data name="History.Current" xml:space="preserve">
+    <value>(version affichée)</value>
+  </data>
+  <data name="History.Hint" xml:space="preserve">
+    <value>Chaque publication crée une nouvelle version et archive la précédente ; les devis gardent la version utilisée.</value>
+  </data>
+  <data name="History.Title" xml:space="preserve">
+    <value>Historique des versions</value>
+  </data>
+  <data name="Issues.None" xml:space="preserve">
+    <value>Aucun problème détecté : la grille peut être publiée.</value>
+  </data>
+  <data name="Level.High" xml:space="preserve">
+    <value>Haute saison</value>
+  </data>
+  <data name="Level.Low" xml:space="preserve">
+    <value>Basse saison</value>
+  </data>
+  <data name="Level.Mid" xml:space="preserve">
+    <value>Moyenne saison</value>
+  </data>
+  <data name="Period.Base" xml:space="preserve">
+    <value>Prix de base</value>
+  </data>
+  <data name="Period.Event" xml:space="preserve">
+    <value>Événement</value>
+  </data>
+  <data name="Period.HighSeason" xml:space="preserve">
+    <value>Haute saison</value>
+  </data>
+  <data name="Period.LowSeason" xml:space="preserve">
+    <value>Basse saison</value>
+  </data>
+  <data name="Period.MidSeason" xml:space="preserve">
+    <value>Moyenne saison</value>
+  </data>
+  <data name="Plan.Abandon" xml:space="preserve">
+    <value>Abandonner le brouillon</value>
+  </data>
+  <data name="Plan.Abandon.Confirm.Message" xml:space="preserve">
+    <value>Le brouillon « {0} » sera archivé sans être publié.</value>
+  </data>
+  <data name="Plan.Abandon.Confirm.Title" xml:space="preserve">
+    <value>Abandonner le brouillon ?</value>
+  </data>
+  <data name="Plan.Archive" xml:space="preserve">
+    <value>Archiver</value>
+  </data>
+  <data name="Plan.Archive.Confirm.Message" xml:space="preserve">
+    <value>La grille « {0} » ne tarifera plus son canal : aucun prix ne pourra être calculé tant qu’une autre version n’est pas publiée.</value>
+  </data>
+  <data name="Plan.Archive.Confirm.Title" xml:space="preserve">
+    <value>Archiver la grille publiée ?</value>
+  </data>
+  <data name="Plan.Archived" xml:space="preserve">
+    <value>Grille archivée.</value>
+  </data>
+  <data name="Plan.Issue.channel_plan_missing" xml:space="preserve">
+    <value>{0} est tarifé avec sa grille propre, mais aucune grille n’est publiée pour ce canal.</value>
+  </data>
+  <data name="Plan.Issue.event_without_price" xml:space="preserve">
+    <value>L’événement « {0} » n’a aucun prix : il n’impose que sa durée minimale.</value>
+  </data>
+  <data name="Plan.Issue.no_price" xml:space="preserve">
+    <value>Aucune catégorie n’a de prix de base : la grille ne peut pas être publiée.</value>
+  </data>
+  <data name="Plan.Issue.no_season" xml:space="preserve">
+    <value>Aucune saison : tous les jours seront au prix de base.</value>
+  </data>
+  <data name="Plan.Issue.season_gap" xml:space="preserve">
+    <value>Du {0} au {1}, aucune saison : ces jours seront au prix de base.</value>
+  </data>
+  <data name="Plan.Loading" xml:space="preserve">
+    <value>Chargement de la grille</value>
+  </data>
+  <data name="Plan.Modified" xml:space="preserve">
+    <value>Modifiée le {0}</value>
+  </data>
+  <data name="Plan.Name" xml:space="preserve">
+    <value>Nom de la grille</value>
+  </data>
+  <data name="Plan.NewDraft" xml:space="preserve">
+    <value>Créer un brouillon</value>
+  </data>
+  <data name="Plan.Publish" xml:space="preserve">
+    <value>Publier</value>
+  </data>
+  <data name="Plan.Publish.Confirm.Message" xml:space="preserve">
+    <value>La grille « {0} » ({1}) deviendra la grille en vigueur ; la version publiée actuelle sera archivée.</value>
+  </data>
+  <data name="Plan.Publish.Confirm.Title" xml:space="preserve">
+    <value>Publier la grille ?</value>
+  </data>
+  <data name="Plan.Published" xml:space="preserve">
+    <value>Grille publiée.</value>
+  </data>
+  <data name="Plan.ReadOnly.Archived" xml:space="preserve">
+    <value>Version archivée, conservée pour l’historique et pour les devis qui l’utilisent.</value>
+  </data>
+  <data name="Plan.ReadOnly.Draft" xml:space="preserve">
+    <value>Brouillon en lecture seule : la permission de gérer les tarifs est nécessaire pour le modifier.</value>
+  </data>
+  <data name="Plan.ReadOnly.Published" xml:space="preserve">
+    <value>Grille publiée : elle ne se modifie plus. Créez un brouillon pour préparer une nouvelle version.</value>
+  </data>
+  <data name="Plan.Rename" xml:space="preserve">
+    <value>Renommer</value>
+  </data>
+  <data name="Plan.Restore" xml:space="preserve">
+    <value>Restaurer en brouillon</value>
+  </data>
+  <data name="Plan.Simulate" xml:space="preserve">
+    <value>Simuler</value>
+  </data>
+  <data name="Plan.Title" xml:space="preserve">
+    <value>Grille tarifaire</value>
+  </data>
+  <data name="Plan.Validation" xml:space="preserve">
+    <value>Contrôles avant publication</value>
+  </data>
+  <data name="Plans.Action.Label" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="Plans.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Plans.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Plans.Column.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Plans.Column.Modified" xml:space="preserve">
+    <value>Modifiée le</value>
+  </data>
+  <data name="Plans.Column.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Plans.Column.Published" xml:space="preserve">
+    <value>Publiée le</value>
+  </data>
+  <data name="Plans.Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Plans.Column.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Plans.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Plans.Empty" xml:space="preserve">
+    <value>Aucune grille tarifaire.</value>
+  </data>
+  <data name="Plans.Intro" xml:space="preserve">
+    <value>Une grille par défaut par agence, et une grille propre pour chaque canal qui en a besoin. Seul un brouillon se modifie ; sa publication crée une nouvelle version et archive la précédente.</value>
+  </data>
+  <data name="Plans.NewDraft" xml:space="preserve">
+    <value>Nouveau brouillon</value>
+  </data>
+  <data name="Plans.Open" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Plans.ShowArchived" xml:space="preserve">
+    <value>Afficher les versions archivées</value>
+  </data>
+  <data name="Plans.Simulator" xml:space="preserve">
+    <value>Simulateur de prix</value>
+  </data>
+  <data name="Plans.Title" xml:space="preserve">
+    <value>Tarifs et saisons</value>
+  </data>
+  <data name="Plans.Version" xml:space="preserve">
+    <value>v{0}</value>
+  </data>
+  <data name="PromoCode.Applied" xml:space="preserve">
+    <value>Code promo appliqué</value>
+  </data>
+  <data name="PromoCode.None" xml:space="preserve">
+    <value>Sans code promo</value>
+  </data>
+  <data name="PromoCode.NotApplicable" xml:space="preserve">
+    <value>Code promo non valable pour cette demande</value>
+  </data>
+  <data name="PromoCode.NotRetained" xml:space="preserve">
+    <value>Code valable, mais une promotion plus avantageuse s’applique</value>
+  </data>
+  <data name="PromoCode.Unknown" xml:space="preserve">
+    <value>Code promo inconnu</value>
+  </data>
+  <data name="PromotionKind.Code" xml:space="preserve">
+    <value>Code promo</value>
+  </data>
+  <data name="PromotionKind.EarlyBooking" xml:space="preserve">
+    <value>Réservation anticipée</value>
+  </data>
+  <data name="PromotionKind.LongStay" xml:space="preserve">
+    <value>Long séjour</value>
+  </data>
+  <data name="Promotions.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Promotions.Add" xml:space="preserve">
+    <value>Ajouter une promotion</value>
+  </data>
+  <data name="Promotions.AllCategories" xml:space="preserve">
+    <value>Toutes les catégories</value>
+  </data>
+  <data name="Promotions.AllChannels" xml:space="preserve">
+    <value>Tous les canaux</value>
+  </data>
+  <data name="Promotions.AllWhenEmpty" xml:space="preserve">
+    <value>Vide : toutes</value>
+  </data>
+  <data name="Promotions.BookableFrom" xml:space="preserve">
+    <value>Réservable à partir du</value>
+  </data>
+  <data name="Promotions.BookableUntil" xml:space="preserve">
+    <value>Réservable jusqu’au</value>
+  </data>
+  <data name="Promotions.Categories" xml:space="preserve">
+    <value>Catégories</value>
+  </data>
+  <data name="Promotions.Channels" xml:space="preserve">
+    <value>Canaux</value>
+  </data>
+  <data name="Promotions.Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Promotions.Combinable" xml:space="preserve">
+    <value>Cumulable</value>
+  </data>
+  <data name="Promotions.DiscountType" xml:space="preserve">
+    <value>Type de remise</value>
+  </data>
+  <data name="Promotions.DiscountValue" xml:space="preserve">
+    <value>Remise</value>
+  </data>
+  <data name="Promotions.Empty" xml:space="preserve">
+    <value>Aucune promotion.</value>
+  </data>
+  <data name="Promotions.Hint" xml:space="preserve">
+    <value>La remise porte sur le sous-total location après le palier. La promotion non cumulable la plus avantageuse s’applique, plus toutes les cumulables, sans jamais passer sous zéro.</value>
+  </data>
+  <data name="Promotions.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Promotions.MinimumDays.EarlyBooking" xml:space="preserve">
+    <value>Jours avant le départ (au moins)</value>
+  </data>
+  <data name="Promotions.MinimumDays.LongStay" xml:space="preserve">
+    <value>Jours de location (au moins)</value>
+  </data>
+  <data name="Promotions.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Promotions.PickupFrom" xml:space="preserve">
+    <value>Départ à partir du</value>
+  </data>
+  <data name="Promotions.PickupUntil" xml:space="preserve">
+    <value>Départ jusqu’au</value>
+  </data>
+  <data name="Promotions.Remove" xml:space="preserve">
+    <value>Supprimer la promotion {0}</value>
+  </data>
+  <data name="Promotions.Row" xml:space="preserve">
+    <value>Promotion {0}</value>
+  </data>
+  <data name="Promotions.Save" xml:space="preserve">
+    <value>Enregistrer les promotions</value>
+  </data>
+  <data name="Promotions.Title" xml:space="preserve">
+    <value>Promotions</value>
+  </data>
+  <data name="Quote.Caption" xml:space="preserve">
+    <value>Détail du devis : {0}</value>
+  </data>
+  <data name="Quote.Column.DailyPrice" xml:space="preserve">
+    <value>Prix du jour</value>
+  </data>
+  <data name="Quote.Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Quote.Column.ExclVat" xml:space="preserve">
+    <value>HT</value>
+  </data>
+  <data name="Quote.Column.GridPrice" xml:space="preserve">
+    <value>Prix de la grille</value>
+  </data>
+  <data name="Quote.Column.InclVat" xml:space="preserve">
+    <value>TTC</value>
+  </data>
+  <data name="Quote.Column.Label" xml:space="preserve">
+    <value>Ligne</value>
+  </data>
+  <data name="Quote.Column.Period" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Quote.Column.Quantity" xml:space="preserve">
+    <value>Quantité</value>
+  </data>
+  <data name="Quote.Column.UnitPrice" xml:space="preserve">
+    <value>Prix unitaire TTC</value>
+  </data>
+  <data name="Quote.Column.Vat" xml:space="preserve">
+    <value>TVA</value>
+  </data>
+  <data name="Quote.DailyRates" xml:space="preserve">
+    <value>Prix jour par jour ({0} jours)</value>
+  </data>
+  <data name="Quote.Days" xml:space="preserve">
+    <value>{0} jours facturés</value>
+  </data>
+  <data name="Quote.Deposit" xml:space="preserve">
+    <value>Caution</value>
+  </data>
+  <data name="Quote.Deposit.NotIncluded" xml:space="preserve">
+    <value>hors total</value>
+  </data>
+  <data name="Quote.Deposit.Reduced" xml:space="preserve">
+    <value>réduite par le rachat de franchise, hors total</value>
+  </data>
+  <data name="Quote.PlanDraft" xml:space="preserve">
+    <value>Grille non publiée</value>
+  </data>
+  <data name="Quote.PlanVersion" xml:space="preserve">
+    <value>Grille v{0}</value>
+  </data>
+  <data name="Quote.Promotion.Combinable" xml:space="preserve">
+    <value>cumulable</value>
+  </data>
+  <data name="Quote.Promotions" xml:space="preserve">
+    <value>Promotions appliquées</value>
+  </data>
+  <data name="Quote.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Quote.TotalExclVat" xml:space="preserve">
+    <value>Total HT</value>
+  </data>
+  <data name="Quote.TotalInclVat" xml:space="preserve">
+    <value>Total TTC</value>
+  </data>
+  <data name="Quote.TotalVat" xml:space="preserve">
+    <value>Dont TVA</value>
+  </data>
+  <data name="Rules.Hint" xml:space="preserve">
+    <value>Prix des canaux à partir de la grille par défaut : parité, majoration en % des prix journaliers (puis arrondi au dinar), ou grille propre publiée pour le canal. Un canal sans règle est en parité.</value>
+  </data>
+  <data name="Rules.Markup" xml:space="preserve">
+    <value>Majoration (%)</value>
+  </data>
+  <data name="Rules.Mode" xml:space="preserve">
+    <value>Règle de prix</value>
+  </data>
+  <data name="Rules.Save" xml:space="preserve">
+    <value>Enregistrer les règles</value>
+  </data>
+  <data name="Rules.Title" xml:space="preserve">
+    <value>Règles par canal</value>
+  </data>
+  <data name="Seasons.Add" xml:space="preserve">
+    <value>Ajouter une saison</value>
+  </data>
+  <data name="Seasons.Empty" xml:space="preserve">
+    <value>Aucune saison : tous les jours sont au prix de base.</value>
+  </data>
+  <data name="Seasons.End" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="Seasons.Hint" xml:space="preserve">
+    <value>Les saisons ne se chevauchent pas ; leurs prix se saisissent par niveau dans la grille. Une saison peut imposer une durée minimale (par exemple 3 jours en haute saison).</value>
+  </data>
+  <data name="Seasons.Level" xml:space="preserve">
+    <value>Niveau</value>
+  </data>
+  <data name="Seasons.MinimumDays" xml:space="preserve">
+    <value>Durée min. (jours)</value>
+  </data>
+  <data name="Seasons.Remove" xml:space="preserve">
+    <value>Supprimer la saison {0}</value>
+  </data>
+  <data name="Seasons.Row" xml:space="preserve">
+    <value>Saison {0}</value>
+  </data>
+  <data name="Seasons.Save" xml:space="preserve">
+    <value>Enregistrer les saisons</value>
+  </data>
+  <data name="Seasons.Start" xml:space="preserve">
+    <value>Début</value>
+  </data>
+  <data name="Seasons.Title" xml:space="preserve">
+    <value>Saisons</value>
+  </data>
+  <data name="Simulator.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Simulator.ArchivedPlan" xml:space="preserve">
+    <value>{0} — v{1} archivée ({2})</value>
+  </data>
+  <data name="Simulator.AutomaticExtras" xml:space="preserve">
+    <value>Ajoutées automatiquement quand elles s’appliquent : {0}.</value>
+  </data>
+  <data name="Simulator.BackToPlans" xml:space="preserve">
+    <value>Retour aux grilles</value>
+  </data>
+  <data name="Simulator.Calculate" xml:space="preserve">
+    <value>Calculer</value>
+  </data>
+  <data name="Simulator.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Simulator.CategoryRequired" xml:space="preserve">
+    <value>Choisissez une agence et une catégorie.</value>
+  </data>
+  <data name="Simulator.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Simulator.Compared" xml:space="preserve">
+    <value>Comparaison : {0}</value>
+  </data>
+  <data name="Simulator.ComparedPlan" xml:space="preserve">
+    <value>Comparer avec</value>
+  </data>
+  <data name="Simulator.ComparedPlan.Help" xml:space="preserve">
+    <value>Un brouillon ou une ancienne version, calculé à la place de la grille publiée.</value>
+  </data>
+  <data name="Simulator.DatesRequired" xml:space="preserve">
+    <value>Indiquez la date et l’heure de départ et de retour.</value>
+  </data>
+  <data name="Simulator.DraftPlan" xml:space="preserve">
+    <value>{0} — brouillon ({1})</value>
+  </data>
+  <data name="Simulator.Extras" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="Simulator.GuaranteedVehicle" xml:space="preserve">
+    <value>Modèle garanti</value>
+  </data>
+  <data name="Simulator.Intro" xml:space="preserve">
+    <value>Calcule le devis complet d’une demande avec le moteur de prix : grille publiée et, si vous le souhaitez, un brouillon ou une ancienne version côte à côte. Heures de Tunis.</value>
+  </data>
+  <data name="Simulator.MainDriverBirthDate" xml:space="preserve">
+    <value>Naissance du conducteur 1</value>
+  </data>
+  <data name="Simulator.NoComparison" xml:space="preserve">
+    <value>Aucune comparaison</value>
+  </data>
+  <data name="Simulator.NoVehicle" xml:space="preserve">
+    <value>Aucun (catégorie « ou similaire »)</value>
+  </data>
+  <data name="Simulator.PickupAt" xml:space="preserve">
+    <value>Départ</value>
+  </data>
+  <data name="Simulator.PickupLocation" xml:space="preserve">
+    <value>Lieu de départ</value>
+  </data>
+  <data name="Simulator.PromoCode" xml:space="preserve">
+    <value>Code promo</value>
+  </data>
+  <data name="Simulator.Published" xml:space="preserve">
+    <value>Grille publiée</value>
+  </data>
+  <data name="Simulator.QuotedAt" xml:space="preserve">
+    <value>Date de la demande</value>
+  </data>
+  <data name="Simulator.QuotedAt.Help" xml:space="preserve">
+    <value>Pour les promotions de réservation anticipée et les dates de réservation.</value>
+  </data>
+  <data name="Simulator.ReturnAt" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="Simulator.ReturnLocation" xml:space="preserve">
+    <value>Lieu de retour</value>
+  </data>
+  <data name="Simulator.SecondDriverBirthDate" xml:space="preserve">
+    <value>Naissance du conducteur 2</value>
+  </data>
+  <data name="Simulator.Title" xml:space="preserve">
+    <value>Simulateur de prix</value>
+  </data>
+  <data name="Status.Archived" xml:space="preserve">
+    <value>Archivée</value>
+  </data>
+  <data name="Status.Draft" xml:space="preserve">
+    <value>Brouillon</value>
+  </data>
+  <data name="Status.Published" xml:space="preserve">
+    <value>Publiée</value>
+  </data>
+  <data name="Tab.Extras" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="Tab.Grid" xml:space="preserve">
+    <value>Grille tarifaire</value>
+  </data>
+  <data name="Tab.History" xml:space="preserve">
+    <value>Historique</value>
+  </data>
+  <data name="Tab.Promotions" xml:space="preserve">
+    <value>Promotions</value>
+  </data>
+  <data name="Tab.Rules" xml:space="preserve">
+    <value>Règles par canal</value>
+  </data>
+  <data name="Tab.Seasons" xml:space="preserve">
+    <value>Saisons et événements</value>
+  </data>
+  <data name="Tab.Tiers" xml:space="preserve">
+    <value>Paliers de durée</value>
+  </data>
+  <data name="Tiers.Add" xml:space="preserve">
+    <value>Ajouter un palier</value>
+  </data>
+  <data name="Tiers.Discount" xml:space="preserve">
+    <value>Remise</value>
+  </data>
+  <data name="Tiers.Discount.Value" xml:space="preserve">
+    <value>remise de {0}</value>
+  </data>
+  <data name="Tiers.Empty" xml:space="preserve">
+    <value>Aucun palier : aucune remise de durée.</value>
+  </data>
+  <data name="Tiers.From" xml:space="preserve">
+    <value>À partir du jour</value>
+  </data>
+  <data name="Tiers.Hint" xml:space="preserve">
+    <value>Chaque palier commence au nombre de jours indiqué (le premier au jour 1) et dure jusqu’au palier suivant ; sa remise porte sur la somme des prix journaliers.</value>
+  </data>
+  <data name="Tiers.NoDiscount" xml:space="preserve">
+    <value>sans remise</value>
+  </data>
+  <data name="Tiers.Override.Cell" xml:space="preserve">
+    <value>Remise {0}, {1}</value>
+  </data>
+  <data name="Tiers.Overrides" xml:space="preserve">
+    <value>Remises propres à une catégorie</value>
+  </data>
+  <data name="Tiers.Overrides.Hint" xml:space="preserve">
+    <value>Une case vide applique le pourcentage du palier.</value>
+  </data>
+  <data name="Tiers.Range" xml:space="preserve">
+    <value>{0} à {1} jours : {2}</value>
+  </data>
+  <data name="Tiers.Range.Open" xml:space="preserve">
+    <value>{0} jours et plus : {1}</value>
+  </data>
+  <data name="Tiers.Remove" xml:space="preserve">
+    <value>Supprimer le palier {0}</value>
+  </data>
+  <data name="Tiers.Row" xml:space="preserve">
+    <value>Palier {0}</value>
+  </data>
+  <data name="Tiers.Save" xml:space="preserve">
+    <value>Enregistrer les paliers</value>
+  </data>
+  <data name="Tiers.Title" xml:space="preserve">
+    <value>Paliers de durée</value>
+  </data>
+</root>

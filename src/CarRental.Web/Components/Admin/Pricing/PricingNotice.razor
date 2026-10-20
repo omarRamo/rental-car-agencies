@@ -1,0 +1,30 @@
+@* A message of the pricing screens (information, success, warning, error) with WCAG AA contrast: the default MudBlazor
+   severity colours are not themed and are too light for text. Live errors are announced (role="alert"). *@
+
+<div class="pricing-notice pricing-notice-@Kind.ToString().ToLowerInvariant() @Class" role="@(Live ? "alert" : null)">
+    <MudIcon Icon="@Icon" Size="Size.Small" Class="pricing-notice-icon" />
+    <div class="pricing-notice-text">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter]
+    public NoticeKind Kind { get; set; } = NoticeKind.Info;
+
+    /// <summary>Announce the message to assistive technologies when it appears (form errors).</summary>
+    [Parameter]
+    public bool Live { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Icon => Kind switch
+    {
+        NoticeKind.Success => Icons.Material.Filled.CheckCircle,
+        NoticeKind.Warning => Icons.Material.Filled.Warning,
+        NoticeKind.Error => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.Info,
+    };
+}

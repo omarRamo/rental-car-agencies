@@ -1,0 +1,61 @@
+@* Creates the draft of an agency and channel: a copy of its published plan (or of the default plan for a first own grid). *@
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@L["CreateDraft.Hint"]</MudText>
+        <MudSelect T="SalesChannel?" @bind-Value="_channel" Label="@L["CreateDraft.Channel"]" Variant="Variant.Outlined">
+            <MudSelectItem T="SalesChannel?" Value="@((SalesChannel?)null)">@L["Channel.Default"]</MudSelectItem>
+            @foreach (var channel in Enum.GetValues<SalesChannel>())
+            {
+                <MudSelectItem T="SalesChannel?" Value="@((SalesChannel?)channel)">@L[$"Channel.{channel}"]</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_name" Label="@L["CreateDraft.Name"]" HelperText="@L["CreateDraft.Name.Help"]"
+                      MaxLength="CarRental.Domain.Pricing.RatePlan.NameMaxLength" Variant="Variant.Outlined" Class="mt-3" />
+        @if (_error is not null)
+        {
+            <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mt-3">@_error</PricingNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["CreateDraft.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private SalesChannel? _channel;
+    private string? _name;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CreateDraftRequest(AgencyId, _channel, string.IsNullOrWhiteSpace(_name) ? null : _name);
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<Guid>>((service, ct) => service.CreateDraftAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

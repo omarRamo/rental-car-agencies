@@ -1,0 +1,301 @@
+@page "/admin/pricing/plans/{PlanId:guid}"
+@attribute [HasPermission(Permissions.PricingRead)]
+@using CarRental.Application.Fleet.Contracts
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Components.Admin.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@(_detail?.Plan.Name ?? L["Plan.Title"])</PageTitle>
+<PricingStyles />
+
+@if (_loadError is not null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Plan.Title"]</MudText>
+    <PricingNotice Kind="NoticeKind.Error">@_loadError</PricingNotice>
+    <MudButton Href="/admin/pricing" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-3">@L["Simulator.BackToPlans"]</MudButton>
+}
+else if (_detail is null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Plan.Title"]</MudText>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@L["Plan.Loading"]" />
+}
+else
+{
+    var plan = _detail.Plan;
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+        <div>
+            <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@plan.Name</MudText>
+            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-1">
+                <PlanStatusChip Status="plan.Status" />
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Hub">@L[PricingDisplay.ChannelKey(plan.Channel)]</MudChip>
+                @if (plan.Version is { } version)
+                {
+                    <MudChip T="string" Size="Size.Small">@L["Plans.Version", version]</MudChip>
+                }
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Schedule">@L["Plan.Modified", PricingDisplay.Instant(plan.ModifiedAtUtc)]</MudChip>
+            </MudStack>
+        </div>
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            <MudButton Href="@SimulatorLink()" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Calculate">@L["Plan.Simulate"]</MudButton>
+            @if (_canManage)
+            {
+                @if (plan.Status == RatePlanStatus.Draft)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Publish" OnClick="PublishAsync"
+                               Disabled="@(!_detail.CanBePublished || _busy)">@L["Plan.Publish"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" Class="pricing-danger" StartIcon="@Icons.Material.Filled.DeleteOutline" OnClick="ArchiveAsync"
+                               Disabled="_busy">@L["Plan.Abandon"]</MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CreateDraftAsync"
+                               Disabled="_busy">@(plan.Status == RatePlanStatus.Published ? L["Plan.NewDraft"] : L["Plan.Restore"])</MudButton>
+                    @if (plan.Status == RatePlanStatus.Published)
+                    {
+                        <MudButton Variant="Variant.Outlined" Class="pricing-danger" StartIcon="@Icons.Material.Filled.Archive" OnClick="ArchiveAsync"
+                                   Disabled="_busy">@L["Plan.Archive"]</MudButton>
+                    }
+                }
+            }
+        </MudStack>
+    </MudStack>
+
+    @if (_actionError is not null)
+    {
+        <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mb-3">@_actionError</PricingNotice>
+    }
+
+    @if (!_detail.IsEditable)
+    {
+        <PricingNotice Kind="NoticeKind.Info" Class="mb-3">@L[$"Plan.ReadOnly.{plan.Status}"]</PricingNotice>
+    }
+
+    @if (_detail.IsEditable)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@L["Plan.Validation"]</MudText>
+            <PlanIssues Issues="_detail.Issues" />
+            @if (_canManage)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Wrap="Wrap.Wrap" Class="mt-4">
+                    <MudTextField T="string" @bind-Value="_name" Label="@L["Plan.Name"]" MaxLength="RatePlan.NameMaxLength" Variant="Variant.Outlined"
+                                  Style="min-inline-size: 18rem" Immediate="true" />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" OnClick="RenameAsync" Disabled="_busy">@L["Plan.Rename"]</MudButton>
+                </MudStack>
+                @if (_renameError is not null)
+                {
+                    <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mt-2">@_renameError</PricingNotice>
+                }
+            }
+        </MudPaper>
+    }
+
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4" KeepPanelsAlive="false" Border="true">
+        <MudTabPanel Text="@L["Tab.Seasons"]">
+            <SeasonsEditor Detail="_detail" CanEdit="CanEdit" OnSaved="OnSavedAsync" InitialYear="InitialYear()" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Grid"]">
+            <PriceGridEditor Detail="_detail" Categories="_categories" CanEdit="CanEdit" OnSaved="OnSavedAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Tiers"]">
+            <TiersEditor Detail="_detail" Categories="_categories" CanEdit="CanEdit" OnSaved="OnSavedAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Extras"]">
+            <ExtrasEditor Detail="_detail" Locations="_locations" CanEdit="CanEdit" OnSaved="OnSavedAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="@L["Tab.Promotions"]">
+            <PromotionsEditor Detail="_detail" Categories="_categories" CanEdit="CanEdit" OnSaved="OnSavedAsync" />
+        </MudTabPanel>
+        @if (plan.Channel is null)
+        {
+            <MudTabPanel Text="@L["Tab.Rules"]">
+                <ChannelRulesEditor Detail="_detail" CanEdit="CanEdit" OnSaved="OnSavedAsync" />
+            </MudTabPanel>
+        }
+        <MudTabPanel Text="@L["Tab.History"]">
+            <PlanHistory Versions="_history" CurrentPlanId="plan.Id" />
+        </MudTabPanel>
+    </MudTabs>
+}
+
+
+@code {
+    private RatePlanDetail? _detail;
+    private IReadOnlyList<VehicleCategoryInfo> _categories = [];
+    private IReadOnlyList<LocationInfo> _locations = [];
+    private IReadOnlyList<RatePlanListItem> _history = [];
+    private string? _loadError;
+    private string? _renameError;
+    private string? _actionError;
+    private string? _name;
+    private bool _canManage;
+    private bool _busy;
+
+    [Parameter]
+    public Guid PlanId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private bool CanEdit => _canManage && _detail?.IsEditable == true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.PricingManage);
+        _detail = null;
+        _loadError = null;
+        var planId = PlanId;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>((service, ct) => service.GetAsync(planId, ct));
+        if (result.IsFailure)
+        {
+            _loadError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        var agencyId = result.Value.Plan.AgencyId;
+        _categories = await Runner.RunAsync<IFleetQueries, IReadOnlyList<VehicleCategoryInfo>>(
+            (fleet, ct) => fleet.GetCategoriesAsync(agencyId, includeInactive: true, ct));
+        _locations = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<LocationInfo>>((referential, ct) => referential.GetLocationsAsync(agencyId, ct));
+        await ShowAsync(result.Value);
+    }
+
+    private async Task ShowAsync(RatePlanDetail detail)
+    {
+        _detail = detail;
+        _name = detail.Plan.Name;
+        var (agencyId, channel) = (detail.Plan.AgencyId, detail.Plan.Channel);
+        var history = await Runner.RunAsync<RatePlanAdministrationService, Result<IReadOnlyList<RatePlanListItem>>>(
+            (service, ct) => service.GetHistoryAsync(agencyId, channel, ct));
+        _history = history.IsSuccess ? history.Value : [];
+    }
+
+    private Task OnSavedAsync(RatePlanDetail detail) => ShowAsync(detail);
+
+    /// <summary>The current year when the seasons cover it, else the first year of the seasons.</summary>
+    private int InitialYear()
+    {
+        var today = TunisTime.Today(Clock).Year;
+        var years = _detail?.Seasons.SelectMany(s => new[] { s.StartDate.Year, s.EndDate.Year }).ToList() ?? [];
+        return years.Count == 0 || years.Contains(today) ? today : years.Min();
+    }
+
+    private string SimulatorLink() =>
+        _detail is { } detail
+            ? detail.Plan.Status == RatePlanStatus.Published
+                ? $"/admin/pricing/simulator?agence={detail.Plan.AgencyId}"
+                : $"/admin/pricing/simulator?agence={detail.Plan.AgencyId}&comparer={detail.Plan.Id}{(detail.Plan.Channel is { } channel ? $"&canal={channel}" : string.Empty)}"
+            : "/admin/pricing/simulator";
+
+    private async Task RenameAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        _renameError = null;
+        var (planId, revision, name) = (_detail.Plan.Id, _detail.Plan.Revision, _name ?? string.Empty);
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>((service, ct) => service.RenameAsync(planId, revision, name, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _renameError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        Snackbar.Add(L["Editor.Saved"], Severity.Normal);
+        await ShowAsync(result.Value);
+    }
+
+    private async Task PublishAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Plan.Publish.Confirm.Title"],
+            L["Plan.Publish.Confirm.Message", _detail.Plan.Name, L[PricingDisplay.ChannelKey(_detail.Plan.Channel)]],
+            yesText: L["Plan.Publish"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var (planId, revision) = (_detail.Plan.Id, _detail.Plan.Revision);
+        await ChangeAsync((service, ct) => service.PublishAsync(planId, revision, ct), L["Plan.Published"]);
+    }
+
+    private async Task ArchiveAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        var isDraft = _detail.Plan.Status == RatePlanStatus.Draft;
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            isDraft ? L["Plan.Abandon.Confirm.Title"] : L["Plan.Archive.Confirm.Title"],
+            isDraft ? L["Plan.Abandon.Confirm.Message", _detail.Plan.Name] : L["Plan.Archive.Confirm.Message", _detail.Plan.Name],
+            yesText: isDraft ? L["Plan.Abandon"] : L["Plan.Archive"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var planId = _detail.Plan.Id;
+        await ChangeAsync((service, ct) => service.ArchiveAsync(planId, ct), L["Plan.Archived"]);
+    }
+
+    private async Task CreateDraftAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        var request = new CreateDraftRequest(_detail.Plan.AgencyId, _detail.Plan.Channel, SourcePlanId: _detail.Plan.Id);
+        _actionError = null;
+        _busy = true;
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<Guid>>((service, ct) => service.CreateDraftAsync(request, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _actionError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        Snackbar.Add(L["CreateDraft.Created"], Severity.Normal);
+        Navigation.NavigateTo($"/admin/pricing/plans/{result.Value}");
+    }
+
+    private async Task ChangeAsync(Func<RatePlanAdministrationService, CancellationToken, Task<Result<RatePlanDetail>>> change, string success)
+    {
+        _actionError = null;
+        _busy = true;
+        var result = await Runner.RunAsync(change);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _actionError = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        Snackbar.Add(success, Severity.Normal);
+        var refreshed = await Runner.RunAsync<RatePlanAdministrationService, Result<RatePlanDetail>>((service, ct) => service.GetAsync(result.Value.Plan.Id, ct));
+        await ShowAsync(refreshed.IsSuccess ? refreshed.Value : result.Value);
+    }
+}

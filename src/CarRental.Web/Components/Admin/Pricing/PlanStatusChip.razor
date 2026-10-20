@@ -1,0 +1,19 @@
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<PricingAdminResources> L
+
+@* Primary (white on #0b57d0) and default chips keep a 4.5:1 contrast; the default success/info colours do not. *@
+<MudChip T="string" Size="Size.Small" Color="@(Status == RatePlanStatus.Published ? Color.Primary : Color.Default)"
+         Variant="@(Status == RatePlanStatus.Archived ? Variant.Outlined : Variant.Filled)" Icon="@IconOf(Status)">@L[$"Status.{Status}"]</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public RatePlanStatus Status { get; set; }
+
+    private static string IconOf(RatePlanStatus status) => status switch
+    {
+        RatePlanStatus.Published => Icons.Material.Filled.CheckCircle,
+        RatePlanStatus.Draft => Icons.Material.Filled.Edit,
+        _ => Icons.Material.Filled.Inventory2,
+    };
+}

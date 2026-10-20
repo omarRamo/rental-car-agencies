@@ -1,0 +1,147 @@
+@page "/admin/pricing"
+@attribute [HasPermission(Permissions.PricingRead)]
+@using CarRental.Application.Pricing.Administration
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Components.Admin.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<PricingAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Plans.Title"]</PageTitle>
+<PricingStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@ReadyFlag">@L["Plans.Title"]</MudText>
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
+        <MudButton Href="/admin/pricing/simulator" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Calculate">
+            @L["Plans.Simulator"]
+        </MudButton>
+        @if (_canManage)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateDraftAsync" Disabled="_agencyId == Guid.Empty">
+                @L["Plans.NewDraft"]
+            </MudButton>
+        }
+    </MudStack>
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Plans.Intro"]</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="4" Class="mb-4">
+    @if (_agencies.Count > 1)
+    {
+        <MudSelect T="Guid" Value="_agencyId" ValueChanged="OnAgencyChangedAsync" Label="@L["Plans.Agency"]" Variant="Variant.Outlined" Style="min-inline-size: 16rem">
+            @foreach (var agency in _agencies)
+            {
+                <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+    <MudSwitch T="bool" Value="_includeArchived" ValueChanged="OnArchivedChangedAsync" Color="Color.Primary" Label="@L["Plans.ShowArchived"]" />
+</MudStack>
+
+@if (_error is not null)
+{
+    <PricingNotice Kind="NoticeKind.Error" Live="true" Class="mb-3">@_error</PricingNotice>
+}
+
+<MudTable T="RatePlanListItem" Items="_plans" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" Loading="_loading"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Plans.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Plans.Column.Name"]</MudTh>
+        <MudTh>@L["Plans.Column.Channel"]</MudTh>
+        <MudTh>@L["Plans.Column.Version"]</MudTh>
+        <MudTh>@L["Plans.Column.Status"]</MudTh>
+        <MudTh>@L["Plans.Column.Published"]</MudTh>
+        <MudTh>@L["Plans.Column.Modified"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Plans.Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Plans.Column.Name"]"><MudLink Href="@($"/admin/pricing/plans/{context.Id}")">@context.Name</MudLink></MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Channel"]">@L[PricingDisplay.ChannelKey(context.Channel)]</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Version"]">@(context.Version is { } version ? L["Plans.Version", version] : "—")</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Status"]"><PlanStatusChip Status="context.Status" /></MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Published"]">@(context.PublishedAtUtc is { } published ? PricingDisplay.Instant(published) : "—")</MudTd>
+        <MudTd DataLabel="@L["Plans.Column.Modified"]">@PricingDisplay.Instant(context.ModifiedAtUtc)</MudTd>
+        <MudTd>
+            @{
+                var action = context.Status == RatePlanStatus.Draft && _canManage ? L["Plans.Edit"].Value : L["Plans.Open"].Value;
+            }
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" Href="@($"/admin/pricing/plans/{context.Id}")"
+                       aria-label="@L["Plans.Action.Label", action, context.Name]">@action</MudButton>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Plans.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private IReadOnlyList<RatePlanListItem> _plans = [];
+    private Guid _agencyId;
+    private bool _includeArchived;
+    private bool _canManage;
+    private bool _loading = true;
+    private string? _error;
+
+    /// <summary>"true" once the page is interactive and loaded (prerendered markup is replaced by the circuit).</summary>
+    private string ReadyFlag => RendererInfo.IsInteractive && !_loading ? "true" : "false";
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.PricingManage);
+        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((q, ct) => q.GetAgenciesAsync(ct));
+        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadAsync();
+    }
+
+    private async Task OnAgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        await LoadAsync();
+    }
+
+    private async Task OnArchivedChangedAsync(bool includeArchived)
+    {
+        _includeArchived = includeArchived;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var (agencyId, includeArchived) = (_agencyId, _includeArchived);
+        var result = await Runner.RunAsync<RatePlanAdministrationService, Result<IReadOnlyList<RatePlanListItem>>>(
+            (service, ct) => service.ListAsync(agencyId == Guid.Empty ? null : agencyId, includeArchived, ct));
+        _loading = false;
+        _error = null;
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            _plans = [];
+            return;
+        }
+
+        _plans = result.Value;
+    }
+
+    private async Task CreateDraftAsync()
+    {
+        var parameters = new DialogParameters<CreateDraftDialog> { { d => d.AgencyId, _agencyId } };
+        var dialog = await Dialogs.ShowAsync<CreateDraftDialog>(L["CreateDraft.Title"], parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var outcome = await dialog.Result;
+        if (outcome is { Canceled: false, Data: Guid draftId })
+        {
+            Snackbar.Add(L["CreateDraft.Created"], Severity.Normal);
+            Navigation.NavigateTo($"/admin/pricing/plans/{draftId}");
+        }
+    }
+}

@@ -1,0 +1,33 @@
+@* Validation of a plan: blocking issues prevent the publication, warnings point at probable mistakes. *@
+@using CarRental.Domain.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<PricingAdminResources> L
+
+@if (Issues.Count == 0)
+{
+    <PricingNotice Kind="NoticeKind.Success">@L["Issues.None"]</PricingNotice>
+}
+else
+{
+    <MudStack Spacing="1">
+        @foreach (var issue in Issues.OrderByDescending(i => i.IsBlocking))
+        {
+            <PricingNotice Kind="@(issue.IsBlocking ? NoticeKind.Error : NoticeKind.Warning)">@Text(issue)</PricingNotice>
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PlanValidationIssue> Issues { get; set; } = [];
+
+    private string Text(PlanValidationIssue issue) => issue.Code switch
+    {
+        PlanValidationCodes.SeasonGap => L[$"Plan.Issue.{issue.Code}", FormatDate(issue.Arguments[0]), FormatDate(issue.Arguments[1])],
+        PlanValidationCodes.ChannelPlanMissing => L[$"Plan.Issue.{issue.Code}", L[$"Channel.{issue.Arguments[0]}"]],
+        _ => L[$"Plan.Issue.{issue.Code}", [.. issue.Arguments]],
+    };
+
+    private static string FormatDate(string value) =>
+        EditorValues.ParseDate(value) is { } date ? PricingDisplay.Date(date) : value;
+}
