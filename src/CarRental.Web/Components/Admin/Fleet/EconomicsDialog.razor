@@ -1,0 +1,124 @@
+@* Purchase, financing and depreciation of a vehicle. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_purchasePrice" Label="@L["Economics.Field.PurchasePrice"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_purchasedOn" Label="@L["Economics.Field.PurchasedOn"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="FinancingType" @bind-Value="_financing" Label="@L["Economics.Field.Financing"]" ToStringFunc="@(f => L[$"Financing.{f}"])">
+                    @foreach (var financing in Enum.GetValues<FinancingType>())
+                    {
+                        <MudSelectItem T="FinancingType" Value="@financing">@L[$"Financing.{financing}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (_financing != FinancingType.Cash)
+            {
+                <MudItem xs="6" sm="4">
+                    <MudNumericField T="decimal?" @bind-Value="_monthlyPayment" Label="@L["Economics.Field.MonthlyPayment"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudNumericField T="int?" @bind-Value="_financingMonths" Label="@L["Economics.Field.FinancingMonths"]" Min="1" Max="VehicleEconomics.MaxFinancingMonths" />
+                </MudItem>
+            }
+            <MudItem xs="6">
+                <MudNumericField T="int" @bind-Value="_depreciationYears" Label="@L["Economics.Field.DepreciationYears"]" Min="1" Max="VehicleEconomics.MaxDepreciationYears" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="decimal" @bind-Value="_residualValue" Label="@L["Economics.Field.ResidualValue"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Economics.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private decimal _purchasePrice;
+    private DateTime? _purchasedOn;
+    private FinancingType _financing = FinancingType.Cash;
+    private decimal? _monthlyPayment;
+    private int? _financingMonths;
+    private int _depreciationYears = 5;
+    private decimal _residualValue;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public DateOnly InServiceOn { get; set; }
+
+    [Parameter]
+    public VehicleEconomicsItem? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } economics)
+        {
+            _purchasePrice = economics.PurchasePrice.Amount;
+            _purchasedOn = economics.PurchasedOn.ToDateTime(TimeOnly.MinValue);
+            _financing = economics.Financing;
+            _monthlyPayment = economics.MonthlyPayment?.Amount;
+            _financingMonths = economics.FinancingMonths;
+            _depreciationYears = economics.DepreciationYears;
+            _residualValue = economics.ResidualValue.Amount;
+        }
+        else
+        {
+            _purchasedOn = InServiceOn.ToDateTime(TimeOnly.MinValue);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_purchasedOn is not { } purchasedOn)
+        {
+            _error = Shared["Validation.Required"];
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var cash = _financing == FinancingType.Cash;
+        var form = new EconomicsForm(
+            _purchasePrice,
+            DateOnly.FromDateTime(purchasedOn),
+            _financing,
+            cash ? null : _monthlyPayment,
+            cash ? null : _financingMonths,
+            _depreciationYears,
+            _residualValue);
+        var result = await Runner.RunAsync<VehicleService, Result>((service, ct) => service.SetEconomicsAsync(VehicleId, form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -504,6 +504,594 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                             }));
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Fleet.DeadlineAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("ExpiresOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("SentAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("DocumentId", "Level")
+                        .IsUnique();
+
+                    b.ToTable("DeadlineAlerts", "fleet");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.MaintenanceEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("CancelledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CompletionNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("EndsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("Mileage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset?>("StartedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "StartsAtUtc");
+
+                    b.ToTable("MaintenanceEvents", "fleet");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.MaintenancePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("IntervalKm")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IntervalMonths")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("LastDoneMileage")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("LastDoneOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("MaintenancePlans", "fleet");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.Vehicle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Buyer")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateOnly?>("FirstRegistrationOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Fuel")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("GuaranteedModelDailySupplement")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateOnly>("InServiceOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LargeBags")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LastHistorySequence")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<string>("Make")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Mileage")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("MileageUpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("PlateNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal?>("SalePrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("Seats")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SmallBags")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("SoldAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("StatusChangedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Transmission")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgencyId", "PlateNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CategoryId", "Status");
+
+                    b.ToTable("Vehicles", "fleet");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("VehiclesHistory", "fleet");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AirConditioning")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(4)");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("Deposit")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Doors")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExampleModel")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("Fuel")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LargeBags")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("PhotoContentType")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("PhotoHash")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("PhotoPath")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<decimal>("ReducedDeposit")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Seats")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SmallBags")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Transmission")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgencyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("VehicleCategories", "fleet");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("VehicleCategoriesHistory", "fleet");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleCost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateOnly>("IncurredOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "IncurredOn");
+
+                    b.ToTable("VehicleCosts", "fleet");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateOnly?>("ExpiresOn")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateOnly?>("IssuedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("SupersededAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresOn")
+                        .HasFilter("[IsCurrent] = 1");
+
+                    b.HasIndex("VehicleId", "Type", "IsCurrent");
+
+                    b.ToTable("VehicleDocuments", "fleet");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleEconomics", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DepreciationYears")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Financing")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FinancingMonths")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MonthlyPayment")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("PurchasePrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateOnly>("PurchasedOn")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("ResidualValue")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId")
+                        .IsUnique();
+
+                    b.ToTable("VehicleEconomics", "fleet");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Actor")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PreviousValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "Sequence");
+
+                    b.ToTable("VehicleHistory", "fleet");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehiclePhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<DateTimeOffset>("UploadedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("VehiclePhotos", "fleet");
+                });
+
             modelBuilder.Entity("CarRental.Domain.Identity.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1737,6 +2325,102 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Fleet.DeadlineAlert", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.VehicleDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.MaintenanceEvent", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("MaintenanceEvents")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.MaintenancePlan", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("MaintenancePlans")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.Vehicle", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarRental.Domain.Fleet.VehicleCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleCategory", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleCost", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("Costs")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleDocument", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleEconomics", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithOne("Economics")
+                        .HasForeignKey("CarRental.Domain.Fleet.VehicleEconomics", "VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehicleHistoryEntry", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("History")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.VehiclePhoto", b =>
+                {
+                    b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
+                        .WithMany("Photos")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarRental.Domain.Pricing.CategoryPrice", b =>
                 {
                     b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
@@ -1898,6 +2582,23 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Navigation("Consents");
 
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Fleet.Vehicle", b =>
+                {
+                    b.Navigation("Costs");
+
+                    b.Navigation("Documents");
+
+                    b.Navigation("Economics");
+
+                    b.Navigation("History");
+
+                    b.Navigation("MaintenanceEvents");
+
+                    b.Navigation("MaintenancePlans");
+
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("CarRental.Domain.Pricing.RatePlan", b =>

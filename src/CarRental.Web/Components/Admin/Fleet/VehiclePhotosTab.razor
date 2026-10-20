@@ -1,0 +1,113 @@
+@* Photos of the vehicle (private, back office only): JPEG, PNG or WebP of 10 MB at most, checked on the server. *@
+@using Microsoft.AspNetCore.Components.Forms
+@using CarRental.Application.Fleet.Photos
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Photos.Heading"]</MudText>
+    @if (CanManage && Detail.Status != VehicleStatus.Sold && Detail.Photos.Count < Vehicle.MaxPhotos)
+    {
+        <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp" FilesChanged="UploadAsync">
+            <CustomContent>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddAPhoto" Disabled="_busy"
+                           OnClick="@context.OpenFilePickerAsync">@L["Photos.Add"]</MudButton>
+            </CustomContent>
+        </MudFileUpload>
+    }
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Photos.Hint", Vehicle.MaxPhotos]</MudText>
+
+@if (_busy)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-3" />
+}
+
+@if (Detail.Photos.Count == 0)
+{
+    <MudText>@L["Photos.Empty"]</MudText>
+}
+else
+{
+    <MudGrid Spacing="2">
+        @foreach (var photo in Detail.Photos)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1">
+                    <img src="@photo.Url" alt="@L["Photos.Alt", Detail.PlateNumber, FleetFormat.Instant(photo.UploadedAtUtc)]" loading="lazy"
+                         style="display:block;inline-size:100%;block-size:12rem;object-fit:cover" />
+                    <MudCardActions>
+                        <MudText Typo="Typo.caption" Class="flex-grow-1">@FleetFormat.Instant(photo.UploadedAtUtc)</MudText>
+                        @if (CanManage)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Default" Size="Size.Small" aria-label="@L["Photos.Remove"]"
+                                           OnClick="() => RemoveAsync(photo)" />
+                        }
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private async Task UploadAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+
+        if (file.Size > StoredPhoto.MaxLength)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, FleetErrors.PhotoTooLarge), Severity.Error);
+            return;
+        }
+
+        _busy = true;
+        var vehicleId = Detail.Id;
+        Result<Guid> result;
+        await using (var content = file.OpenReadStream(StoredPhoto.MaxLength))
+        {
+            result = await Runner.RunAsync<FleetPhotoService, Result<Guid>>((service, ct) => service.UploadVehiclePhotoAsync(vehicleId, content, ct));
+        }
+
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Photos.Added"], Severity.Success);
+            await Changed.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(VehiclePhotoItem photo)
+    {
+        var (vehicleId, photoId) = (Detail.Id, photo.Id);
+        var result = await Runner.RunAsync<FleetPhotoService, Result>((service, ct) => service.RemoveVehiclePhotoAsync(vehicleId, photoId, ct));
+        if (result.IsSuccess)
+        {
+            await Changed.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,891 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Action.Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Categories.Activate" xml:space="preserve">
+    <value>Activer</value>
+  </data>
+  <data name="Categories.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Categories.AirConditioning" xml:space="preserve">
+    <value>Climatisée</value>
+  </data>
+  <data name="Categories.Column.Features" xml:space="preserve">
+    <value>Caractéristiques</value>
+  </data>
+  <data name="Categories.Column.Photo" xml:space="preserve">
+    <value>Photo</value>
+  </data>
+  <data name="Categories.Column.Vehicles" xml:space="preserve">
+    <value>Véhicules</value>
+  </data>
+  <data name="Categories.Create" xml:space="preserve">
+    <value>Nouvelle catégorie</value>
+  </data>
+  <data name="Categories.Deactivate" xml:space="preserve">
+    <value>Désactiver</value>
+  </data>
+  <data name="Categories.Delete.Message" xml:space="preserve">
+    <value>Supprimer la catégorie {0} ? Elle n'a aucun véhicule.</value>
+  </data>
+  <data name="Categories.Delete.Title" xml:space="preserve">
+    <value>Supprimer la catégorie</value>
+  </data>
+  <data name="Categories.Empty" xml:space="preserve">
+    <value>Aucune catégorie.</value>
+  </data>
+  <data name="Categories.Features" xml:space="preserve">
+    <value>{0} places · {1} portes · bagages {2} + {3}</value>
+  </data>
+  <data name="Categories.Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Categories.NoAirConditioning" xml:space="preserve">
+    <value>Sans climatisation</value>
+  </data>
+  <data name="Categories.NoPhoto" xml:space="preserve">
+    <value>Aucune photo</value>
+  </data>
+  <data name="Categories.OrSimilar" xml:space="preserve">
+    <value>{0} ou similaire</value>
+  </data>
+  <data name="Categories.Photo" xml:space="preserve">
+    <value>Photo</value>
+  </data>
+  <data name="Categories.PhotoAlt" xml:space="preserve">
+    <value>{0} ou similaire</value>
+  </data>
+  <data name="Categories.Reduced" xml:space="preserve">
+    <value>Avec rachat de franchise : {0}</value>
+  </data>
+  <data name="Categories.RemovePhoto" xml:space="preserve">
+    <value>Retirer la photo</value>
+  </data>
+  <data name="Categories.Title" xml:space="preserve">
+    <value>Catégories de véhicules</value>
+  </data>
+  <data name="Category.Field.Code" xml:space="preserve">
+    <value>Code ACRISS</value>
+  </data>
+  <data name="Category.Field.Code.Help" xml:space="preserve">
+    <value>4 lettres, par exemple ECMR</value>
+  </data>
+  <data name="Category.Field.Deposit" xml:space="preserve">
+    <value>Caution</value>
+  </data>
+  <data name="Category.Field.DisplayOrder" xml:space="preserve">
+    <value>Ordre d'affichage</value>
+  </data>
+  <data name="Category.Field.Doors" xml:space="preserve">
+    <value>Portes</value>
+  </data>
+  <data name="Category.Field.ExampleModel" xml:space="preserve">
+    <value>Modèle d'exemple</value>
+  </data>
+  <data name="Category.Field.ExampleModel.Help" xml:space="preserve">
+    <value>Présenté « ou similaire »</value>
+  </data>
+  <data name="Category.Field.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Category.Field.ReducedDeposit" xml:space="preserve">
+    <value>Caution réduite</value>
+  </data>
+  <data name="Category.Field.ReducedDeposit.Help" xml:space="preserve">
+    <value>Avec rachat de franchise</value>
+  </data>
+  <data name="Category.Hint" xml:space="preserve">
+    <value>La boîte et la climatisation découlent du code ACRISS ; le carburant doit correspondre à sa 4e lettre quand elle l'indique.</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Cost.Field.Amount" xml:space="preserve">
+    <value>Montant TTC</value>
+  </data>
+  <data name="Cost.Field.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Cost.Field.Label" xml:space="preserve">
+    <value>Libellé</value>
+  </data>
+  <data name="Costs.Add" xml:space="preserve">
+    <value>Ajouter un coût</value>
+  </data>
+  <data name="Costs.Empty" xml:space="preserve">
+    <value>Aucun autre coût.</value>
+  </data>
+  <data name="Costs.Heading" xml:space="preserve">
+    <value>Autres coûts</value>
+  </data>
+  <data name="Deadline.Badge.Days" xml:space="preserve">
+    <value>{0} : J-{1}</value>
+  </data>
+  <data name="Deadline.Badge.Expired" xml:space="preserve">
+    <value>{0} expirée le {1}</value>
+  </data>
+  <data name="Deadline.Badge.Missing" xml:space="preserve">
+    <value>{0} manquante</value>
+  </data>
+  <data name="Deadline.Compact.Days" xml:space="preserve">
+    <value>J-{0}</value>
+  </data>
+  <data name="Deadline.Compact.Expired" xml:space="preserve">
+    <value>Expiré</value>
+  </data>
+  <data name="Deadline.Compact.Missing" xml:space="preserve">
+    <value>Manquant</value>
+  </data>
+  <data name="Deadline.Compact.Ok" xml:space="preserve">
+    <value>Valide</value>
+  </data>
+  <data name="Deadline.Critical" xml:space="preserve">
+    <value>Échéance sous 7 jours</value>
+  </data>
+  <data name="Deadline.DueSoon" xml:space="preserve">
+    <value>Échéance sous 30 jours</value>
+  </data>
+  <data name="Deadline.Expired" xml:space="preserve">
+    <value>Échéance dépassée</value>
+  </data>
+  <data name="Deadline.Missing" xml:space="preserve">
+    <value>Document manquant</value>
+  </data>
+  <data name="Deadline.NextOk" xml:space="preserve">
+    <value>{0} jusqu'au {1}</value>
+  </data>
+  <data name="Deadline.Ok" xml:space="preserve">
+    <value>À jour</value>
+  </data>
+  <data name="Deadlines.Empty" xml:space="preserve">
+    <value>Aucune échéance sur la période.</value>
+  </data>
+  <data name="Deadlines.Hint" xml:space="preserve">
+    <value>Documents manquants, expirés ou expirant dans la période ; rouge : bloquant ou sous 7 jours, orange : sous 30 jours.</value>
+  </data>
+  <data name="Deadlines.Horizon" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Deadlines.Horizon.Days" xml:space="preserve">
+    <value>{0} prochains jours</value>
+  </data>
+  <data name="Deadlines.Title" xml:space="preserve">
+    <value>Échéances de la flotte</value>
+  </data>
+  <data name="Dialog.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Document.Field.Cost" xml:space="preserve">
+    <value>Coût TTC</value>
+  </data>
+  <data name="Document.Field.ExpiresOn" xml:space="preserve">
+    <value>Expire le</value>
+  </data>
+  <data name="Document.Field.ExpiresOn.Help" xml:space="preserve">
+    <value>Dernier jour de validité</value>
+  </data>
+  <data name="Document.Field.IssuedOn" xml:space="preserve">
+    <value>Délivré le</value>
+  </data>
+  <data name="Document.Field.Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Document.Field.Number" xml:space="preserve">
+    <value>Numéro</value>
+  </data>
+  <data name="Document.Field.Provider" xml:space="preserve">
+    <value>Assureur ou organisme</value>
+  </data>
+  <data name="Document.Field.Type" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="Document.Renew.Hint" xml:space="preserve">
+    <value>Le document actuel passera dans l'historique des renouvellements.</value>
+  </data>
+  <data name="Documents.Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Documents.Column.ReplacedAt" xml:space="preserve">
+    <value>Remplacé le</value>
+  </data>
+  <data name="Documents.Column.State" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Documents.Correct" xml:space="preserve">
+    <value>Corriger</value>
+  </data>
+  <data name="Documents.Current" xml:space="preserve">
+    <value>Documents en vigueur</value>
+  </data>
+  <data name="Documents.History" xml:space="preserve">
+    <value>Historique des renouvellements</value>
+  </data>
+  <data name="Documents.NoExpiry" xml:space="preserve">
+    <value>Sans échéance</value>
+  </data>
+  <data name="Documents.None" xml:space="preserve">
+    <value>Non renseigné</value>
+  </data>
+  <data name="Documents.Renew" xml:space="preserve">
+    <value>Renouveler</value>
+  </data>
+  <data name="DocumentType.Insurance" xml:space="preserve">
+    <value>Assurance</value>
+  </data>
+  <data name="DocumentType.RegistrationCard" xml:space="preserve">
+    <value>Carte grise</value>
+  </data>
+  <data name="DocumentType.RoadTax" xml:space="preserve">
+    <value>Vignette</value>
+  </data>
+  <data name="DocumentType.TechnicalInspection" xml:space="preserve">
+    <value>Visite technique</value>
+  </data>
+  <data name="Due.DueSoon" xml:space="preserve">
+    <value>Bientôt dû</value>
+  </data>
+  <data name="Due.Ok" xml:space="preserve">
+    <value>À jour</value>
+  </data>
+  <data name="Due.Overdue" xml:space="preserve">
+    <value>En retard</value>
+  </data>
+  <data name="Economics.Accumulated" xml:space="preserve">
+    <value>Amortissement cumulé</value>
+  </data>
+  <data name="Economics.BookValue" xml:space="preserve">
+    <value>Valeur nette comptable</value>
+  </data>
+  <data name="Economics.Column.Depreciation" xml:space="preserve">
+    <value>Amortissement</value>
+  </data>
+  <data name="Economics.Column.Financing" xml:space="preserve">
+    <value>Échéance de financement</value>
+  </data>
+  <data name="Economics.Column.Month" xml:space="preserve">
+    <value>Mois</value>
+  </data>
+  <data name="Economics.Depreciable" xml:space="preserve">
+    <value>Base amortissable</value>
+  </data>
+  <data name="Economics.Empty" xml:space="preserve">
+    <value>Aucune donnée économique.</value>
+  </data>
+  <data name="Economics.Field.DepreciationYears" xml:space="preserve">
+    <value>Durée d'amortissement (ans)</value>
+  </data>
+  <data name="Economics.Field.Financing" xml:space="preserve">
+    <value>Financement</value>
+  </data>
+  <data name="Economics.Field.FinancingMonths" xml:space="preserve">
+    <value>Durée (mois)</value>
+  </data>
+  <data name="Economics.Field.MonthlyPayment" xml:space="preserve">
+    <value>Mensualité</value>
+  </data>
+  <data name="Economics.Field.PurchasedOn" xml:space="preserve">
+    <value>Date d'achat</value>
+  </data>
+  <data name="Economics.Field.PurchasePrice" xml:space="preserve">
+    <value>Prix d'achat</value>
+  </data>
+  <data name="Economics.Field.ResidualValue" xml:space="preserve">
+    <value>Valeur résiduelle</value>
+  </data>
+  <data name="Economics.Heading" xml:space="preserve">
+    <value>Données économiques</value>
+  </data>
+  <data name="Economics.Hint" xml:space="preserve">
+    <value>Amortissement linéaire au prorata des jours, arrêté à la vente.</value>
+  </data>
+  <data name="Economics.Payment" xml:space="preserve">
+    <value>{0} × {1} mois</value>
+  </data>
+  <data name="Economics.Schedule" xml:space="preserve">
+    <value>Échéancier de l'année</value>
+  </data>
+  <data name="Economics.Years" xml:space="preserve">
+    <value>{0} ans (jusqu'au {1})</value>
+  </data>
+  <data name="Email.Deadline.Action" xml:space="preserve">
+    <value>Ouvrir la fiche du véhicule</value>
+  </data>
+  <data name="Email.Deadline.Body" xml:space="preserve">
+    <value>{0} n° {1} du véhicule {2} : expiration le {3}, dans {4} jour(s).</value>
+  </data>
+  <data name="Email.Deadline.Body.Expired" xml:space="preserve">
+    <value>{0} n° {1} du véhicule {2} : expirée le {3}.</value>
+  </data>
+  <data name="Email.Deadline.Greeting" xml:space="preserve">
+    <value>Bonjour {0},</value>
+  </data>
+  <data name="Email.Deadline.Rule" xml:space="preserve">
+    <value>Un véhicule dont l'assurance, la vignette ou la visite technique a expiré ne peut pas être loué : pensez au renouvellement.</value>
+  </data>
+  <data name="Email.Deadline.Subject" xml:space="preserve">
+    <value>Échéance : {0} du véhicule {1} dans {2} jour(s)</value>
+  </data>
+  <data name="Email.Deadline.Subject.Expired" xml:space="preserve">
+    <value>Échéance dépassée : {0} du véhicule {1}</value>
+  </data>
+  <data name="Field.Reason" xml:space="preserve">
+    <value>Motif</value>
+  </data>
+  <data name="Financing.Cash" xml:space="preserve">
+    <value>Comptant</value>
+  </data>
+  <data name="Financing.Credit" xml:space="preserve">
+    <value>Crédit</value>
+  </data>
+  <data name="Financing.Leasing" xml:space="preserve">
+    <value>Leasing</value>
+  </data>
+  <data name="Fleet.Title" xml:space="preserve">
+    <value>Flotte et échéances</value>
+  </data>
+  <data name="Fuel.Diesel" xml:space="preserve">
+    <value>Diesel</value>
+  </data>
+  <data name="Fuel.Electric" xml:space="preserve">
+    <value>Électrique</value>
+  </data>
+  <data name="Fuel.Hybrid" xml:space="preserve">
+    <value>Hybride</value>
+  </data>
+  <data name="Fuel.Lpg" xml:space="preserve">
+    <value>GPL</value>
+  </data>
+  <data name="Fuel.Petrol" xml:space="preserve">
+    <value>Essence</value>
+  </data>
+  <data name="History.CategoryChanged" xml:space="preserve">
+    <value>Changement de catégorie</value>
+  </data>
+  <data name="History.Column.Author" xml:space="preserve">
+    <value>Auteur</value>
+  </data>
+  <data name="History.Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="History.Column.Details" xml:space="preserve">
+    <value>Détails</value>
+  </data>
+  <data name="History.Column.Event" xml:space="preserve">
+    <value>Événement</value>
+  </data>
+  <data name="History.CostAdded" xml:space="preserve">
+    <value>Coût ajouté</value>
+  </data>
+  <data name="History.CostRemoved" xml:space="preserve">
+    <value>Coût supprimé</value>
+  </data>
+  <data name="History.DetailsUpdated" xml:space="preserve">
+    <value>Identité modifiée</value>
+  </data>
+  <data name="History.DocumentCorrected" xml:space="preserve">
+    <value>Document corrigé</value>
+  </data>
+  <data name="History.DocumentRecorded" xml:space="preserve">
+    <value>Document enregistré</value>
+  </data>
+  <data name="History.EconomicsUpdated" xml:space="preserve">
+    <value>Données économiques modifiées</value>
+  </data>
+  <data name="History.Empty" xml:space="preserve">
+    <value>Aucun historique.</value>
+  </data>
+  <data name="History.MaintenanceCancelled" xml:space="preserve">
+    <value>Entretien annulé</value>
+  </data>
+  <data name="History.MaintenanceCompleted" xml:space="preserve">
+    <value>Entretien terminé</value>
+  </data>
+  <data name="History.MaintenancePlanChanged" xml:space="preserve">
+    <value>Plan d'entretien modifié</value>
+  </data>
+  <data name="History.MaintenancePlanRemoved" xml:space="preserve">
+    <value>Plan d'entretien supprimé</value>
+  </data>
+  <data name="History.MaintenanceRescheduled" xml:space="preserve">
+    <value>Entretien déplacé</value>
+  </data>
+  <data name="History.MaintenanceScheduled" xml:space="preserve">
+    <value>Entretien planifié</value>
+  </data>
+  <data name="History.MaintenanceStarted" xml:space="preserve">
+    <value>Entretien commencé</value>
+  </data>
+  <data name="History.MileageCorrected" xml:space="preserve">
+    <value>Kilométrage corrigé</value>
+  </data>
+  <data name="History.MileageRecorded" xml:space="preserve">
+    <value>Relevé kilométrique</value>
+  </data>
+  <data name="History.Pair" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="History.PhotoAdded" xml:space="preserve">
+    <value>Photo ajoutée</value>
+  </data>
+  <data name="History.PhotoRemoved" xml:space="preserve">
+    <value>Photo supprimée</value>
+  </data>
+  <data name="History.Reason" xml:space="preserve">
+    <value>Motif : {0}</value>
+  </data>
+  <data name="History.Registered" xml:space="preserve">
+    <value>Véhicule enregistré</value>
+  </data>
+  <data name="History.Sold" xml:space="preserve">
+    <value>Véhicule vendu</value>
+  </data>
+  <data name="History.StatusChanged" xml:space="preserve">
+    <value>Changement de statut</value>
+  </data>
+  <data name="History.SupplementChanged" xml:space="preserve">
+    <value>Supplément modèle garanti modifié</value>
+  </data>
+  <data name="Identity.Capacity" xml:space="preserve">
+    <value>Capacité</value>
+  </data>
+  <data name="Identity.Capacity.Value" xml:space="preserve">
+    <value>{0} places · grands bagages : {1} · petits bagages : {2}</value>
+  </data>
+  <data name="Identity.CompliantUntil" xml:space="preserve">
+    <value>Conforme jusqu'au</value>
+  </data>
+  <data name="Identity.Heading" xml:space="preserve">
+    <value>Identité</value>
+  </data>
+  <data name="Identity.NotCompliant" xml:space="preserve">
+    <value>Non conforme (document obligatoire manquant)</value>
+  </data>
+  <data name="Identity.NotOffered" xml:space="preserve">
+    <value>Non proposé</value>
+  </data>
+  <data name="Identity.NoWindow" xml:space="preserve">
+    <value>Non louable dans les 30 prochains jours (document manquant ou expiré, statut ou entretien).</value>
+  </data>
+  <data name="Identity.PerDay" xml:space="preserve">
+    <value>{0} par jour</value>
+  </data>
+  <data name="Identity.Since" xml:space="preserve">
+    <value>Depuis le</value>
+  </data>
+  <data name="Identity.StatusHeading" xml:space="preserve">
+    <value>Statut et conformité</value>
+  </data>
+  <data name="Identity.Window" xml:space="preserve">
+    <value>du {0} au {1}</value>
+  </data>
+  <data name="Identity.Windows" xml:space="preserve">
+    <value>Disponibilité sur 30 jours</value>
+  </data>
+  <data name="Maintenance.Block.Hint" xml:space="preserve">
+    <value>Le véhicule est indisponible pendant tout le créneau (heure de Tunis).</value>
+  </data>
+  <data name="Maintenance.Complete" xml:space="preserve">
+    <value>Terminer</value>
+  </data>
+  <data name="Maintenance.Field.ActualCost" xml:space="preserve">
+    <value>Coût réel TTC</value>
+  </data>
+  <data name="Maintenance.Field.CompletedDate" xml:space="preserve">
+    <value>Terminé le</value>
+  </data>
+  <data name="Maintenance.Field.CompletedTime" xml:space="preserve">
+    <value>Heure</value>
+  </data>
+  <data name="Maintenance.Field.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Maintenance.Field.EndDate" xml:space="preserve">
+    <value>Fin le</value>
+  </data>
+  <data name="Maintenance.Field.EndTime" xml:space="preserve">
+    <value>Heure de fin</value>
+  </data>
+  <data name="Maintenance.Field.EstimatedCost" xml:space="preserve">
+    <value>Coût estimé TTC</value>
+  </data>
+  <data name="Maintenance.Field.Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Maintenance.Field.Provider" xml:space="preserve">
+    <value>Garage</value>
+  </data>
+  <data name="Maintenance.Field.StartDate" xml:space="preserve">
+    <value>Début le</value>
+  </data>
+  <data name="Maintenance.Field.StartTime" xml:space="preserve">
+    <value>Heure de début</value>
+  </data>
+  <data name="Maintenance.Field.Type" xml:space="preserve">
+    <value>Type d'entretien</value>
+  </data>
+  <data name="Maintenances.Cancel" xml:space="preserve">
+    <value>Annuler l'entretien</value>
+  </data>
+  <data name="Maintenances.CancelledBySale" xml:space="preserve">
+    <value>Annulé par la vente</value>
+  </data>
+  <data name="Maintenances.Column.Block" xml:space="preserve">
+    <value>Créneau</value>
+  </data>
+  <data name="Maintenances.Column.Cost" xml:space="preserve">
+    <value>Coût</value>
+  </data>
+  <data name="Maintenances.Empty" xml:space="preserve">
+    <value>Aucun entretien.</value>
+  </data>
+  <data name="Maintenances.Heading" xml:space="preserve">
+    <value>Entretiens</value>
+  </data>
+  <data name="Maintenances.Reschedule" xml:space="preserve">
+    <value>Déplacer</value>
+  </data>
+  <data name="Maintenances.Schedule" xml:space="preserve">
+    <value>Planifier un entretien</value>
+  </data>
+  <data name="Maintenances.Start" xml:space="preserve">
+    <value>Commencer</value>
+  </data>
+  <data name="MaintenanceStatus.Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="MaintenanceStatus.Completed" xml:space="preserve">
+    <value>Terminé</value>
+  </data>
+  <data name="MaintenanceStatus.InProgress" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="MaintenanceStatus.Planned" xml:space="preserve">
+    <value>Planifié</value>
+  </data>
+  <data name="MaintenanceType.Brakes" xml:space="preserve">
+    <value>Freins</value>
+  </data>
+  <data name="MaintenanceType.OilChange" xml:space="preserve">
+    <value>Vidange</value>
+  </data>
+  <data name="MaintenanceType.Other" xml:space="preserve">
+    <value>Autre</value>
+  </data>
+  <data name="MaintenanceType.Repair" xml:space="preserve">
+    <value>Réparation</value>
+  </data>
+  <data name="MaintenanceType.Tyres" xml:space="preserve">
+    <value>Pneus</value>
+  </data>
+  <data name="Mileage.Current" xml:space="preserve">
+    <value>Kilométrage actuel : {0}</value>
+  </data>
+  <data name="Photos.Add" xml:space="preserve">
+    <value>Ajouter une photo</value>
+  </data>
+  <data name="Photos.Added" xml:space="preserve">
+    <value>Photo ajoutée.</value>
+  </data>
+  <data name="Photos.Alt" xml:space="preserve">
+    <value>Photo du véhicule {0} du {1}</value>
+  </data>
+  <data name="Photos.Empty" xml:space="preserve">
+    <value>Aucune photo.</value>
+  </data>
+  <data name="Photos.Heading" xml:space="preserve">
+    <value>Photos</value>
+  </data>
+  <data name="Photos.Hint" xml:space="preserve">
+    <value>JPEG, PNG ou WebP de 10 Mo au plus ; {0} photos par véhicule.</value>
+  </data>
+  <data name="Photos.Remove" xml:space="preserve">
+    <value>Supprimer la photo</value>
+  </data>
+  <data name="Plan.Field.IntervalKm" xml:space="preserve">
+    <value>Tous les (km)</value>
+  </data>
+  <data name="Plan.Field.IntervalMonths" xml:space="preserve">
+    <value>Tous les (mois)</value>
+  </data>
+  <data name="Plan.Field.Label" xml:space="preserve">
+    <value>Libellé</value>
+  </data>
+  <data name="Plan.Field.LastDoneMileage" xml:space="preserve">
+    <value>Dernière fois à</value>
+  </data>
+  <data name="Plan.Field.LastDoneOn" xml:space="preserve">
+    <value>Dernière fois le</value>
+  </data>
+  <data name="Plan.Hint" xml:space="preserve">
+    <value>Le premier seuil atteint (kilomètres ou mois) rend l'entretien dû ; terminer un entretien du même type repart de zéro.</value>
+  </data>
+  <data name="Plans.Add" xml:space="preserve">
+    <value>Ajouter un plan</value>
+  </data>
+  <data name="Plans.Column.Interval" xml:space="preserve">
+    <value>Fréquence</value>
+  </data>
+  <data name="Plans.Column.LastDone" xml:space="preserve">
+    <value>Dernière fois</value>
+  </data>
+  <data name="Plans.Column.NextDue" xml:space="preserve">
+    <value>Prochaine échéance</value>
+  </data>
+  <data name="Plans.Empty" xml:space="preserve">
+    <value>Aucun plan d'entretien.</value>
+  </data>
+  <data name="Plans.Heading" xml:space="preserve">
+    <value>Plans d'entretien</value>
+  </data>
+  <data name="Plans.Interval.Both" xml:space="preserve">
+    <value>tous les {0} ou {1} mois</value>
+  </data>
+  <data name="Plans.Interval.Km" xml:space="preserve">
+    <value>tous les {0}</value>
+  </data>
+  <data name="Plans.Interval.Months" xml:space="preserve">
+    <value>tous les {0} mois</value>
+  </data>
+  <data name="Sale.Field.Buyer" xml:space="preserve">
+    <value>Acheteur</value>
+  </data>
+  <data name="Sale.Field.Date" xml:space="preserve">
+    <value>Date de vente</value>
+  </data>
+  <data name="Sale.Field.Price" xml:space="preserve">
+    <value>Prix de vente</value>
+  </data>
+  <data name="Sale.Field.Time" xml:space="preserve">
+    <value>Heure</value>
+  </data>
+  <data name="Sale.Submit" xml:space="preserve">
+    <value>Enregistrer la vente</value>
+  </data>
+  <data name="Sale.Warning" xml:space="preserve">
+    <value>Un véhicule vendu quitte la flotte : il ne pourra plus être modifié ni loué.</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Modifications enregistrées.</value>
+  </data>
+  <data name="Status.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Status.Field.New" xml:space="preserve">
+    <value>Nouveau statut</value>
+  </data>
+  <data name="Status.Hint.Active" xml:space="preserve">
+    <value>Le véhicule redevient louable, sauf document expiré ou entretien daté.</value>
+  </data>
+  <data name="Status.Hint.Maintenance" xml:space="preserve">
+    <value>Le véhicule est indisponible dès maintenant et sans fin, sauf si un entretien daté le couvre.</value>
+  </data>
+  <data name="Status.Hint.OutOfService" xml:space="preserve">
+    <value>Le véhicule est indisponible dès maintenant et sans fin (panne, sinistre, expertise).</value>
+  </data>
+  <data name="Status.Maintenance" xml:space="preserve">
+    <value>En maintenance</value>
+  </data>
+  <data name="Status.OutOfService" xml:space="preserve">
+    <value>Hors service</value>
+  </data>
+  <data name="Status.Sold" xml:space="preserve">
+    <value>Vendu</value>
+  </data>
+  <data name="SubNav.Categories" xml:space="preserve">
+    <value>Catégories</value>
+  </data>
+  <data name="SubNav.Deadlines" xml:space="preserve">
+    <value>Échéances</value>
+  </data>
+  <data name="SubNav.Label" xml:space="preserve">
+    <value>Sections de la flotte</value>
+  </data>
+  <data name="SubNav.Vehicles" xml:space="preserve">
+    <value>Véhicules</value>
+  </data>
+  <data name="Tab.Documents" xml:space="preserve">
+    <value>Documents et échéances</value>
+  </data>
+  <data name="Tab.Economics" xml:space="preserve">
+    <value>Économie</value>
+  </data>
+  <data name="Tab.History" xml:space="preserve">
+    <value>Historique</value>
+  </data>
+  <data name="Tab.Identity" xml:space="preserve">
+    <value>Identité</value>
+  </data>
+  <data name="Tab.Maintenance" xml:space="preserve">
+    <value>Entretien</value>
+  </data>
+  <data name="Tab.Photos" xml:space="preserve">
+    <value>Photos</value>
+  </data>
+  <data name="Transmission.Automatic" xml:space="preserve">
+    <value>Automatique</value>
+  </data>
+  <data name="Transmission.Manual" xml:space="preserve">
+    <value>Manuelle</value>
+  </data>
+  <data name="Vehicle.Back" xml:space="preserve">
+    <value>Retour à la flotte</value>
+  </data>
+  <data name="Vehicle.ChangeStatus" xml:space="preserve">
+    <value>Changer le statut</value>
+  </data>
+  <data name="Vehicle.CorrectMileage" xml:space="preserve">
+    <value>Corriger le kilométrage</value>
+  </data>
+  <data name="Vehicle.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Vehicle.Field.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Vehicle.Field.Color" xml:space="preserve">
+    <value>Couleur</value>
+  </data>
+  <data name="Vehicle.Field.FirstRegistration" xml:space="preserve">
+    <value>Première mise en circulation</value>
+  </data>
+  <data name="Vehicle.Field.Fuel" xml:space="preserve">
+    <value>Carburant</value>
+  </data>
+  <data name="Vehicle.Field.InService" xml:space="preserve">
+    <value>Mise en service (flotte)</value>
+  </data>
+  <data name="Vehicle.Field.InService.Help" xml:space="preserve">
+    <value>Louable à partir de ce jour</value>
+  </data>
+  <data name="Vehicle.Field.LargeBags" xml:space="preserve">
+    <value>Grands bagages</value>
+  </data>
+  <data name="Vehicle.Field.Make" xml:space="preserve">
+    <value>Marque</value>
+  </data>
+  <data name="Vehicle.Field.Mileage" xml:space="preserve">
+    <value>Kilométrage</value>
+  </data>
+  <data name="Vehicle.Field.Model" xml:space="preserve">
+    <value>Modèle</value>
+  </data>
+  <data name="Vehicle.Field.Plate" xml:space="preserve">
+    <value>Immatriculation</value>
+  </data>
+  <data name="Vehicle.Field.Plate.Help" xml:space="preserve">
+    <value>Par exemple 215 TU 4512</value>
+  </data>
+  <data name="Vehicle.Field.Seats" xml:space="preserve">
+    <value>Places</value>
+  </data>
+  <data name="Vehicle.Field.SmallBags" xml:space="preserve">
+    <value>Petits bagages</value>
+  </data>
+  <data name="Vehicle.Field.Supplement" xml:space="preserve">
+    <value>Supplément modèle garanti</value>
+  </data>
+  <data name="Vehicle.Field.Supplement.Help" xml:space="preserve">
+    <value>TTC par jour ; vide si non proposé</value>
+  </data>
+  <data name="Vehicle.Field.Transmission" xml:space="preserve">
+    <value>Boîte de vitesses</value>
+  </data>
+  <data name="Vehicle.Field.Year" xml:space="preserve">
+    <value>Année</value>
+  </data>
+  <data name="Vehicle.NotFound" xml:space="preserve">
+    <value>Ce véhicule n'existe pas.</value>
+  </data>
+  <data name="Vehicle.RecordMileage" xml:space="preserve">
+    <value>Relever le kilométrage</value>
+  </data>
+  <data name="Vehicle.Sell" xml:space="preserve">
+    <value>Vendre</value>
+  </data>
+  <data name="Vehicle.Title" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Vehicles.Column.Deadline" xml:space="preserve">
+    <value>Échéance</value>
+  </data>
+  <data name="Vehicles.Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Vehicles.Column.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Vehicles.Create" xml:space="preserve">
+    <value>Ajouter un véhicule</value>
+  </data>
+  <data name="Vehicles.Created" xml:space="preserve">
+    <value>Véhicule ajouté.</value>
+  </data>
+  <data name="Vehicles.Empty" xml:space="preserve">
+    <value>Aucun véhicule ne correspond aux filtres.</value>
+  </data>
+  <data name="Vehicles.Filter.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Vehicles.Filter.Deadline" xml:space="preserve">
+    <value>Échéances</value>
+  </data>
+  <data name="Vehicles.Filter.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Vehicles.Filter.Search.Placeholder" xml:space="preserve">
+    <value>Immatriculation, marque ou modèle</value>
+  </data>
+  <data name="Vehicles.Filter.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Vehicles.MaintenanceDue" xml:space="preserve">
+    <value>Entretien dû</value>
+  </data>
+  <data name="Vehicles.Table" xml:space="preserve">
+    <value>Véhicules de la flotte</value>
+  </data>
+  <data name="Widget.Alerts" xml:space="preserve">
+    <value>Échéances à surveiller ({0})</value>
+  </data>
+  <data name="Widget.AllDeadlines" xml:space="preserve">
+    <value>Voir les {0} échéances</value>
+  </data>
+  <data name="Widget.Availability" xml:space="preserve">
+    <value>{0} véhicules louables maintenant sur {1}</value>
+  </data>
+  <data name="Widget.ExpectedBack" xml:space="preserve">
+    <value> (retour prévu le {0})</value>
+  </data>
+  <data name="Widget.NoAlert" xml:space="preserve">
+    <value>Aucune échéance dans les 30 jours.</value>
+  </data>
+  <data name="Widget.NoUnavailable" xml:space="preserve">
+    <value>Tous les véhicules sont en service.</value>
+  </data>
+  <data name="Widget.Title" xml:space="preserve">
+    <value>Flotte</value>
+  </data>
+  <data name="Widget.Unavailable" xml:space="preserve">
+    <value>Hors location ({0})</value>
+  </data>
+  <data name="Widget.Unavailable.Error" xml:space="preserve">
+    <value>Les données de la flotte ne sont pas disponibles.</value>
+  </data>
+</root>

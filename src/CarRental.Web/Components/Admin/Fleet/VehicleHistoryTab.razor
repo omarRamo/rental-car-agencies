@@ -1,0 +1,88 @@
+@* Readable history of the vehicle (most recent first); every change is also in the audit log. *@
+@using System.Globalization
+@inject IStringLocalizer<FleetResources> L
+
+@if (Detail.History.Count == 0)
+{
+    <MudText>@L["History.Empty"]</MudText>
+}
+else
+{
+    <MudTable T="VehicleHistoryItem" Items="Detail.History" Dense="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Tab.History"].Value })">
+        <HeaderContent>
+            <MudTh>@L["History.Column.Date"]</MudTh>
+            <MudTh>@L["History.Column.Event"]</MudTh>
+            <MudTh>@L["History.Column.Details"]</MudTh>
+            <MudTh>@L["History.Column.Author"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["History.Column.Date"]">@FleetFormat.Instant(context.OccurredAtUtc)</MudTd>
+            <MudTd DataLabel="@L["History.Column.Event"]">@L[$"History.{context.Kind}"]</MudTd>
+            <MudTd DataLabel="@L["History.Column.Details"]">
+                @Describe(context)
+                @if (!string.IsNullOrEmpty(context.Reason))
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@L["History.Reason", context.Reason]</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["History.Column.Author"]">@(context.Actor ?? "—")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<CategoryAdminItem> Categories { get; set; } = [];
+
+    /// <summary>Formats the invariant values of a history line in the user's language.</summary>
+    private string Describe(VehicleHistoryItem entry) => entry.Kind switch
+    {
+        VehicleHistoryKind.StatusChanged => Transition(Localized("Status", entry.PreviousValue), Localized("Status", entry.NewValue)),
+        VehicleHistoryKind.CategoryChanged => Transition(Category(entry.PreviousValue), Category(entry.NewValue)),
+        VehicleHistoryKind.MileageRecorded or VehicleHistoryKind.MileageCorrected => Transition(Km(entry.PreviousValue), Km(entry.NewValue)),
+        VehicleHistoryKind.DocumentRecorded or VehicleHistoryKind.DocumentCorrected => Pair(
+            Localized("DocumentType", entry.Subject),
+            entry is { PreviousValue: null, NewValue: null } ? L["Documents.NoExpiry"] : Transition(Day(entry.PreviousValue), Day(entry.NewValue))),
+        VehicleHistoryKind.MaintenanceScheduled or VehicleHistoryKind.MaintenanceRescheduled or VehicleHistoryKind.MaintenanceStarted
+            or VehicleHistoryKind.MaintenanceCancelled => Pair(Localized("MaintenanceType", entry.Subject), Block(entry.NewValue ?? entry.PreviousValue)),
+        VehicleHistoryKind.MaintenanceCompleted => Pair(Localized("MaintenanceType", entry.Subject), Amount(entry.NewValue)),
+        VehicleHistoryKind.MaintenancePlanChanged or VehicleHistoryKind.MaintenancePlanRemoved => Localized("MaintenanceType", entry.Subject),
+        VehicleHistoryKind.EconomicsUpdated => Pair(Localized("Financing", entry.Subject), Amount(entry.NewValue)),
+        VehicleHistoryKind.CostAdded or VehicleHistoryKind.CostRemoved => Pair(entry.Subject ?? string.Empty, Amount(entry.NewValue ?? entry.PreviousValue)),
+        VehicleHistoryKind.SupplementChanged => Transition(Amount(entry.PreviousValue), Amount(entry.NewValue)),
+        VehicleHistoryKind.Sold => $"{Amount(entry.NewValue)}{(entry.Subject is { } buyer ? $" · {buyer}" : string.Empty)}",
+        _ => entry.NewValue ?? string.Empty,
+    };
+
+    private static string Transition(string from, string to) => $"{from} → {to}";
+
+    private string Pair(string subject, string value) => L["History.Pair", subject, value];
+
+    private string Localized(string prefix, string? value) => value is null ? "—" : L[$"{prefix}.{value}"];
+
+    private string Category(string? id) =>
+        Guid.TryParse(id, out var categoryId) && Categories.FirstOrDefault(c => c.Id == categoryId) is { } category ? category.Code : "—";
+
+    private static string Km(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var km) ? FleetFormat.Kilometres(km) : "—";
+
+    private static string Day(string? value) =>
+        DateOnly.TryParseExact(value, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? FleetFormat.Date(date) : "—";
+
+    private static string Amount(string? value) =>
+        decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) ? FleetFormat.Amount(Money.Tnd(amount)) : "—";
+
+    private static string Block(string? value)
+    {
+        var parts = value?.Split('/');
+        return parts is [var start, var end]
+               && DateTimeOffset.TryParse(start, CultureInfo.InvariantCulture, DateTimeStyles.None, out var from)
+               && DateTimeOffset.TryParse(end, CultureInfo.InvariantCulture, DateTimeStyles.None, out var to)
+            ? $"{FleetFormat.Instant(from)} → {FleetFormat.Instant(to)}"
+            : "—";
+    }
+}

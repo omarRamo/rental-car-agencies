@@ -1,0 +1,135 @@
+@* Creation or edition of a vehicle category (ACRISS code, features, deposits). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_code" Label="@L["Category.Field.Code"]" HelperText="@L["Category.Field.Code.Help"]"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="4" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_name" Label="@L["Category.Field.Name"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              MaxLength="VehicleCategory.NameMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_exampleModel" Label="@L["Category.Field.ExampleModel"]" HelperText="@L["Category.Field.ExampleModel.Help"]"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="VehicleCategory.ExampleModelMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="FuelType" @bind-Value="_fuel" Label="@L["Vehicle.Field.Fuel"]" ToStringFunc="@(f => L[$"Fuel.{f}"])">
+                    @foreach (var fuel in Enum.GetValues<FuelType>())
+                    {
+                        <MudSelectItem T="FuelType" Value="@fuel">@L[$"Fuel.{fuel}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_seats" Label="@L["Vehicle.Field.Seats"]" Min="1" Max="VehicleCategory.MaxSeats" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_doors" Label="@L["Category.Field.Doors"]" Min="2" Max="VehicleCategory.MaxDoors" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_largeBags" Label="@L["Vehicle.Field.LargeBags"]" Min="0" Max="VehicleCategory.MaxBags" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_smallBags" Label="@L["Vehicle.Field.SmallBags"]" Min="0" Max="VehicleCategory.MaxBags" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal" @bind-Value="_deposit" Label="@L["Category.Field.Deposit"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal" @bind-Value="_reducedDeposit" Label="@L["Category.Field.ReducedDeposit"]" HelperText="@L["Category.Field.ReducedDeposit.Help"]"
+                                 Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="int" @bind-Value="_displayOrder" Label="@L["Category.Field.DisplayOrder"]" Min="0" Max="VehicleCategory.MaxDisplayOrder" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Category.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _code;
+    private string? _name;
+    private string? _exampleModel;
+    private FuelType _fuel = FuelType.Petrol;
+    private int _seats = 5;
+    private int _doors = 5;
+    private int _largeBags = 1;
+    private int _smallBags = 1;
+    private decimal _deposit;
+    private decimal _reducedDeposit;
+    private int _displayOrder;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter]
+    public CategoryAdminItem? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } category)
+        {
+            _code = category.Code;
+            _name = category.Name;
+            _exampleModel = category.ExampleModel;
+            _fuel = category.Fuel;
+            _seats = category.Seats;
+            _doors = category.Doors;
+            _largeBags = category.LargeBags;
+            _smallBags = category.SmallBags;
+            _deposit = category.Deposit.Amount;
+            _reducedDeposit = category.ReducedDeposit.Amount;
+            _displayOrder = category.DisplayOrder;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var form = new CategoryForm(
+            _code ?? string.Empty,
+            _name ?? string.Empty,
+            _exampleModel ?? string.Empty,
+            _seats,
+            _doors,
+            _largeBags,
+            _smallBags,
+            _fuel,
+            _deposit,
+            _reducedDeposit,
+            _displayOrder,
+            Existing?.AgencyId);
+        var result = Existing is { } category
+            ? await Runner.RunAsync<VehicleCategoryService, Result>((service, ct) => service.UpdateAsync(category.Id, form, ct))
+            : await Runner.RunAsync<VehicleCategoryService, Result<Guid>>((service, ct) => service.CreateAsync(form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

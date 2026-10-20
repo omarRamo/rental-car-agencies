@@ -1,0 +1,201 @@
+@page "/admin/fleet/categories"
+@attribute [HasPermission(Permissions.FleetRead)]
+@using Microsoft.AspNetCore.Components.Forms
+@using CarRental.Application.Fleet.Photos
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Categories.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Categories.Title"]</MudText>
+    @if (_canManage)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => EditAsync(null)">@L["Categories.Create"]</MudButton>
+    }
+</MudStack>
+
+<FleetSubNav Current="FleetSection.Categories" />
+
+<MudTable T="CategoryAdminItem" Items="_categories" Loading="_loading" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Categories.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Categories.Column.Photo"]</MudTh>
+        <MudTh>@L["Category.Field.Code"]</MudTh>
+        <MudTh>@L["Category.Field.Name"]</MudTh>
+        <MudTh>@L["Categories.Column.Features"]</MudTh>
+        <MudTh>@L["Category.Field.Deposit"]</MudTh>
+        <MudTh>@L["Categories.Column.Vehicles"]</MudTh>
+        <MudTh>@L["Vehicles.Column.Status"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Categories.Column.Photo"]">
+            @if (context.PhotoUrl is { } url)
+            {
+                <img src="@url" alt="@L["Categories.PhotoAlt", context.ExampleModel]" style="inline-size:6rem;block-size:4rem;object-fit:cover;border-radius:0.25rem" />
+            }
+            else
+            {
+                <span class="mud-text-secondary">@L["Categories.NoPhoto"]</span>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Category.Field.Code"]"><strong>@context.Code</strong></MudTd>
+        <MudTd DataLabel="@L["Category.Field.Name"]">
+            @context.Name
+            <MudText Typo="Typo.caption" Class="d-block">@L["Categories.OrSimilar", context.ExampleModel]</MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Categories.Column.Features"]">
+            @L["Categories.Features", context.Seats, context.Doors, context.LargeBags, context.SmallBags]
+            <MudText Typo="Typo.caption" Class="d-block">
+                @L[$"Transmission.{context.Transmission}"] · @L[$"Fuel.{context.Fuel}"] · @(context.AirConditioning ? L["Categories.AirConditioning"] : L["Categories.NoAirConditioning"])
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Category.Field.Deposit"]">
+            @FleetFormat.Amount(context.Deposit)
+            <MudText Typo="Typo.caption" Class="d-block">@L["Categories.Reduced", FleetFormat.Amount(context.ReducedDeposit)]</MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Categories.Column.Vehicles"]">@context.VehicleCount</MudTd>
+        <MudTd DataLabel="@L["Vehicles.Column.Status"]">
+            <FleetBadge Tone="@(context.IsActive ? BadgeTone.Success : BadgeTone.Neutral)">@(context.IsActive ? L["Categories.Active"] : L["Categories.Inactive"])</FleetBadge>
+        </MudTd>
+        <MudTd>
+            @if (_canManage)
+            {
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => EditAsync(context)">@L["Action.Edit"]</MudButton>
+                    <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp" FilesChanged="file => UploadAsync(context, file)">
+                        <CustomContent Context="upload">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@upload.OpenFilePickerAsync">@L["Categories.Photo"]</MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+                    @if (context.PhotoUrl is not null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" OnClick="() => RemovePhotoAsync(context)">@L["Categories.RemovePhoto"]</MudButton>
+                    }
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => ToggleAsync(context)">@(context.IsActive ? L["Categories.Deactivate"] : L["Categories.Activate"])</MudButton>
+                    @if (context.VehicleCount == 0)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" OnClick="() => DeleteAsync(context)">@L["Action.Remove"]</MudButton>
+                    }
+                </MudStack>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Categories.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<CategoryAdminItem> _categories = [];
+    private bool _loading = true;
+    private bool _canManage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.FleetManage);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await Runner.RunAsync<FleetAdminQueries, Result<IReadOnlyList<CategoryAdminItem>>>((queries, ct) => queries.ListCategoriesAsync(true, ct));
+        _loading = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _categories = result.Value;
+    }
+
+    private async Task EditAsync(CategoryAdminItem? category)
+    {
+        var dialog = await Dialogs.ShowAsync<CategoryDialog>(
+            category is null ? L["Categories.Create"] : L["Action.Edit"],
+            new DialogParameters { [nameof(CategoryDialog.Existing)] = category },
+            FleetFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task UploadAsync(CategoryAdminItem category, IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+
+        if (file.Size > StoredPhoto.MaxLength)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, FleetErrors.PhotoTooLarge), Severity.Error);
+            return;
+        }
+
+        Result result;
+        await using (var content = file.OpenReadStream(StoredPhoto.MaxLength))
+        {
+            var categoryId = category.Id;
+            result = await Runner.RunAsync<FleetPhotoService, Result>((service, ct) => service.UploadCategoryPhotoAsync(categoryId, content, ct));
+        }
+
+        await NotifyAsync(result, L["Photos.Added"]);
+    }
+
+    private async Task RemovePhotoAsync(CategoryAdminItem category)
+    {
+        var categoryId = category.Id;
+        var result = await Runner.RunAsync<FleetPhotoService, Result>((service, ct) => service.RemoveCategoryPhotoAsync(categoryId, ct));
+        await NotifyAsync(result, L["Saved"]);
+    }
+
+    private async Task ToggleAsync(CategoryAdminItem category)
+    {
+        var (categoryId, active) = (category.Id, !category.IsActive);
+        var result = await Runner.RunAsync<VehicleCategoryService, Result>((service, ct) => service.SetActiveAsync(categoryId, active, ct));
+        await NotifyAsync(result, L["Saved"]);
+    }
+
+    private async Task DeleteAsync(CategoryAdminItem category)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Categories.Delete.Title"],
+            L["Categories.Delete.Message", category.Code],
+            yesText: L["Action.Remove"],
+            cancelText: Shared["Cancel"],
+            options: FleetFormat.Dialog(MaxWidth.ExtraSmall));
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var categoryId = category.Id;
+        var result = await Runner.RunAsync<VehicleCategoryService, Result>((service, ct) => service.DeleteAsync(categoryId, ct));
+        await NotifyAsync(result, L["Saved"]);
+    }
+
+    private async Task NotifyAsync(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

@@ -3,7 +3,6 @@ using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 using CarRental.Domain.Pricing;
 using CarRental.Infrastructure.Persistence;
-using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Pricing.PricingScenario;
@@ -38,17 +37,17 @@ public sealed class RatePlanPersistenceTests(IntegrationHost host)
             draftId,
             detail.Plan.Revision,
             [
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.Base, Money.Tnd(100.5m)),
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.Low), Money.Tnd(90m)),
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.ForEvent(eventId), Money.Tnd(155.250m)),
-                new CategoryPriceDefinition(StubFleetQueries.Mcmr, RatePeriodKey.Base, Money.Tnd(80m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.Base, Money.Tnd(100.5m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.Low), Money.Tnd(90m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.ForEvent(eventId), Money.Tnd(155.250m)),
+                new CategoryPriceDefinition(agency.Mcmr, RatePeriodKey.Base, Money.Tnd(80m)),
             ],
             Ct));
         detail = await AdministerAsync(host, s => s.UpdateTiersAsync(
             draftId,
             detail.Plan.Revision,
             [new(1, 0m), new(3, 5m), new(7, 12.5m)],
-            [new(7, StubFleetQueries.Ecmr, 14.75m)],
+            [new(7, agency.Ecmr, 14.75m)],
             Ct));
         detail = await AdministerAsync(host, s => s.UpdateExtrasAsync(
             draftId,
@@ -73,7 +72,7 @@ public sealed class RatePlanPersistenceTests(IntegrationHost host)
                     BookableUntil: new DateOnly(2027, 6, 30),
                     PickupFrom: new DateOnly(2027, 7, 1),
                     PickupUntil: new DateOnly(2027, 8, 31),
-                    CategoryIds: [StubFleetQueries.Ecmr, StubFleetQueries.Mcmr],
+                    CategoryIds: [agency.Ecmr, agency.Mcmr],
                     Channels: [SalesChannel.Web, SalesChannel.WhatsApp]),
                 new PromotionDefinition("Long séjour", PromotionKind.LongStay, PromotionDiscountType.Percentage, DiscountPercent: 7.5m, MinimumDays: 14, IsCombinable: true),
             ],
@@ -91,9 +90,9 @@ public sealed class RatePlanPersistenceTests(IntegrationHost host)
         reloaded.Seasons.ShouldBe(detail.Seasons);
         reloaded.Events.ShouldBe(detail.Events);
         reloaded.Prices.ShouldBe(detail.Prices, ignoreOrder: true);
-        reloaded.Prices.ShouldContain(new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.ForEvent(eventId), Money.Tnd(155.250m)));
+        reloaded.Prices.ShouldContain(new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.ForEvent(eventId), Money.Tnd(155.250m)));
         reloaded.Tiers.ShouldBe([new(1, 0m), new(3, 5m), new(7, 12.5m)]);
-        reloaded.TierCategoryDiscounts.ShouldBe([new(7, StubFleetQueries.Ecmr, 14.75m)]);
+        reloaded.TierCategoryDiscounts.ShouldBe([new(7, agency.Ecmr, 14.75m)]);
         reloaded.Extras.Select(e => (e.Code, e.Price, e.CapPerUnit, e.LocationId, e.IsActive, e.NameEn)).ShouldBe(
         [
             ("CHILD_SEAT", Money.Tnd(8m), (Money?)Money.Tnd(50m), (Guid?)null, true, "Child seat"),
@@ -103,7 +102,7 @@ public sealed class RatePlanPersistenceTests(IntegrationHost host)
         var summer = reloaded.Promotions[0];
         summer.Code.ShouldBe("ETE2027");
         summer.DiscountAmount.ShouldBe(Money.Tnd(25.5m));
-        summer.CategoryIds!.ShouldBe([StubFleetQueries.Ecmr, StubFleetQueries.Mcmr], ignoreOrder: true);
+        summer.CategoryIds!.ShouldBe([agency.Ecmr, agency.Mcmr], ignoreOrder: true);
         summer.Channels!.ShouldBe([SalesChannel.Web, SalesChannel.WhatsApp]);
         (summer.BookableFrom, summer.BookableUntil, summer.PickupFrom, summer.PickupUntil).ShouldBe(
             (new DateOnly(2027, 1, 1), new DateOnly(2027, 6, 30), new DateOnly(2027, 7, 1), new DateOnly(2027, 8, 31)));

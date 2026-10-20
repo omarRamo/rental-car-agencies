@@ -1,0 +1,72 @@
+@* Status change of a vehicle with its reason (required when leaving the active status). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="VehicleStatus" @bind-Value="_status" Label="@L["Status.Field.New"]" ToStringFunc="@(s => L[$"Status.{s}"])">
+            @foreach (var status in Targets)
+            {
+                <MudSelectItem T="VehicleStatus" Value="@status">@L[$"Status.{status}"]</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.Reason"]" Lines="3" MaxLength="Vehicle.ReasonMaxLength"
+                      Required="@(_status != VehicleStatus.Active)" RequiredError="@Shared["Validation.Required"]" Class="mt-2" />
+        <MudText Typo="Typo.body2" Class="mt-3">@L[$"Status.Hint.{_status}"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private VehicleStatus _status;
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public VehicleStatus Current { get; set; }
+
+    /// <summary>Without <c>fleet.manage</c>, only the moves between active and maintenance are offered.</summary>
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    private IEnumerable<VehicleStatus> Targets =>
+        new[] { VehicleStatus.Active, VehicleStatus.Maintenance, VehicleStatus.OutOfService }
+            .Where(s => s != Current)
+            .Where(s => CanManage || (s, Current) is (VehicleStatus.Active, VehicleStatus.Maintenance) or (VehicleStatus.Maintenance, VehicleStatus.Active));
+
+    protected override void OnInitialized() => _status = Targets.FirstOrDefault(VehicleStatus.Active);
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (status, reason) = (_status, _reason);
+        var result = await Runner.RunAsync<VehicleService, Result>((service, ct) => service.ChangeStatusAsync(VehicleId, status, reason, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

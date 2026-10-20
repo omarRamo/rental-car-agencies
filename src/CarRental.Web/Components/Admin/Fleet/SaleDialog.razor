@@ -1,0 +1,80 @@
+@* Sale of a vehicle: it leaves the fleet (its planned maintenances are cancelled). *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <p class="mb-3" style="@FleetFormat.NoticeStyle"><strong>@L["Sale.Warning"]</strong></p>
+        <MudGrid Spacing="2">
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_date" Label="@L["Sale.Field.Date"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTimePicker @bind-Time="_time" Label="@L["Sale.Field.Time"]" Editable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_price" Label="@L["Sale.Field.Price"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_buyer" Label="@L["Sale.Field.Buyer"]" MaxLength="Vehicle.BuyerMaxLength" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Sale.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DateTime? _date;
+    private TimeSpan? _time;
+    private decimal _price;
+    private string? _buyer;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var now = Time.GetUtcNow();
+        _date = FleetFormat.ToPickerDate(now);
+        _time = FleetFormat.ToPickerTime(now);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_date is not { } date)
+        {
+            _error = Shared["Validation.Required"];
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var form = new SaleForm(FleetFormat.ToInstant(date, _time), _price, _buyer);
+        var result = await Runner.RunAsync<VehicleService, Result>((service, ct) => service.SellAsync(VehicleId, form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

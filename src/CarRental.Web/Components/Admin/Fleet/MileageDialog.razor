@@ -1,0 +1,66 @@
+@* New odometer reading, or correction of a wrong one (with a reason, possibly downwards). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">@L["Mileage.Current", FleetFormat.Kilometres(CurrentMileage)]</MudText>
+        <MudNumericField T="int" @bind-Value="_mileage" Label="@L["Vehicle.Field.Mileage"]" Min="0" Max="Vehicle.MaxMileage" Adornment="Adornment.End" AdornmentText="km" />
+        @if (Correction)
+        {
+            <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.Reason"]" Lines="2" MaxLength="Vehicle.ReasonMaxLength" Required="true"
+                          RequiredError="@Shared["Validation.Required"]" Class="mt-2" />
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Dialog.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private int _mileage;
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public int CurrentMileage { get; set; }
+
+    [Parameter]
+    public bool Correction { get; set; }
+
+    protected override void OnInitialized() => _mileage = CurrentMileage;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (mileage, reason) = (_mileage, _reason);
+        var result = Correction
+            ? await Runner.RunAsync<VehicleService, Result>((service, ct) => service.CorrectMileageAsync(VehicleId, mileage, reason, ct))
+            : await Runner.RunAsync<VehicleService, Result>((service, ct) => service.RecordMileageAsync(VehicleId, mileage, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

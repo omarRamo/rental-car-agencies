@@ -40,7 +40,7 @@ public sealed class BackOfficeTests(E2EHost host) : BrowserTest(host)
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Flotte et échéances" }).ClickAsync();
 
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/fleet$"));
-        await Expect(Page.GetByText("À venir")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Flotte et échéances");
     }
 
     [Fact]

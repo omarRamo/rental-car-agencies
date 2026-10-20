@@ -44,6 +44,9 @@ internal sealed class CallJournal
 internal sealed class FakeFleetQueries(CallJournal journal) : IFleetQueries
 {
     private readonly Lock _gate = new();
+
+    public Task<IReadOnlyList<VehicleDeadlineInfo>> GetDeadlinesAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<VehicleDeadlineInfo>>([]);
     private readonly List<VehicleCategoryInfo> _categories = [];
     private readonly List<(VehicleInfo Vehicle, Period[] Windows)> _vehicles = [];
     private int _categoryReads;

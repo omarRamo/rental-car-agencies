@@ -18,5 +18,8 @@ public static class FileContainers
     /// <summary>Accounting and report exports.</summary>
     public const string Exports = "exports";
 
-    public static IReadOnlyList<string> All { get; } = [Documents, Inspections, Contracts, Invoices, Exports];
+    /// <summary>Fleet photos: category photos (served anonymously by the app) and vehicle photos (back office only).</summary>
+    public const string Fleet = "fleet";
+
+    public static IReadOnlyList<string> All { get; } = [Documents, Inspections, Contracts, Invoices, Exports, Fleet];
 }

@@ -39,6 +39,32 @@ public interface IFleetQueries
         Guid categoryId,
         Period range,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deadlines of a vehicle: its current document of each type (ordered by type), so that a booking can explain which
+    /// document stops an assignment (invariant 3). A missing mandatory type is absent; empty for an unknown vehicle.
+    /// </summary>
+    Task<IReadOnlyList<VehicleDeadlineInfo>> GetDeadlinesAsync(Guid vehicleId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The current document of a type. <c>ValidUntil</c> is the end (exclusive) of its validity: the end of the Tunis day of
+/// <c>ExpiresOn</c>; both are <see langword="null"/> for a document without expiry (registration card).
+/// </summary>
+public sealed record VehicleDeadlineInfo(
+    VehicleDocumentTypeInfo Type,
+    string Number,
+    DateOnly? ExpiresOn,
+    DateTimeOffset? ValidUntil,
+    bool IsMandatory);
+
+/// <summary>Type of a vehicle document, as exposed to other modules (same values as the domain enum).</summary>
+public enum VehicleDocumentTypeInfo
+{
+    Insurance = 1,
+    RoadTax = 2,
+    TechnicalInspection = 3,
+    RegistrationCard = 4,
 }
 
 /// <summary>

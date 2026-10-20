@@ -1,11 +1,11 @@
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Pricing.Administration;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Pricing;
 using CarRental.Infrastructure.Persistence;
-using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Pricing.PricingScenario;
@@ -52,7 +52,7 @@ public sealed class PricingServiceIntegrationTests(IntegrationHost host)
         {
             PickupLocationId = agency.AirportId,
             Extras = [new SelectedExtra("FRANCHISE_WAIVER", 1)],
-            GuaranteedVehicleId = StubFleetQueries.GuaranteedEcmrVehicle,
+            GuaranteedVehicleId = agency.GuaranteedEcmrVehicle,
         };
 
         var quote = (await pricing.QuoteAsync(request, Ct)).Value;
@@ -61,11 +61,11 @@ public sealed class PricingServiceIntegrationTests(IntegrationHost host)
         quote.Lines.Single(l => l.Kind == QuoteLineKind.GuaranteedModel).InclVat.ShouldBe(Money.Tnd(75m));
         quote.Lines.Single(l => l.Kind == QuoteLineKind.Delivery).InclVat.ShouldBe(Money.Tnd(15m));
         quote.Lines.Single(l => l.Kind == QuoteLineKind.FranchiseWaiver).InclVat.ShouldBe(Money.Tnd(100m));
-        (await pricing.QuoteAsync(request with { GuaranteedVehicleId = StubFleetQueries.PlainEcmrVehicle }, Ct)).Error
+        (await pricing.QuoteAsync(request with { GuaranteedVehicleId = agency.PlainEcmrVehicle }, Ct)).Error
             .ShouldBe(PricingErrors.GuaranteedModelNotOffered);
         (await pricing.QuoteAsync(request with { PickupLocationId = Guid.CreateVersion7() }, Ct)).Error.ShouldBe(PricingErrors.LocationNotFound);
-        (await pricing.QuoteAsync(request with { CategoryId = StubFleetQueries.Ifmr }, Ct)).Error.ShouldBe(PricingErrors.GuaranteedVehicleCategoryMismatch);
-        (await pricing.QuoteAsync(request with { CategoryId = StubFleetQueries.Ifmr, GuaranteedVehicleId = null }, Ct)).Error
+        (await pricing.QuoteAsync(request with { CategoryId = agency.Ifmr }, Ct)).Error.ShouldBe(PricingErrors.GuaranteedVehicleCategoryMismatch);
+        (await pricing.QuoteAsync(request with { CategoryId = agency.Ifmr, GuaranteedVehicleId = null }, Ct)).Error
             .ShouldBe(PricingErrors.CategoryNotPriced);
         var tooShort = await pricing.QuoteAsync(request with { PickupAt = Tunis(2027, 7, 10), ReturnAt = Tunis(2027, 7, 12) }, Ct);
         PricingErrorCodes.TryGetRequiredMinimumDays(tooShort.Error, out var minimum).ShouldBeTrue();
@@ -133,12 +133,13 @@ public sealed class PricingServiceIntegrationTests(IntegrationHost host)
         var agency = (await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct)).Single(a => a.Name == DemoAgencyName);
         var queries = scope.ServiceProvider.GetRequiredService<IPricingQueries>();
 
+        var demoEcmr = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().FindCategoryByCodeAsync(agency.Id, "ECMR", Ct))!.Id;
         var summary = await queries.GetPublishedPlanAsync(agency.Id, cancellationToken: Ct);
 
         summary.ShouldNotBeNull();
         summary.Version.ShouldBe(1);
         summary.CategoryRates.Count.ShouldBe(5);
-        summary.CategoryRates.Single(r => r.CategoryId == StubFleetQueries.Ecmr).ShouldSatisfyAllConditions(
+        summary.CategoryRates.Single(r => r.CategoryId == demoEcmr).ShouldSatisfyAllConditions(
             r => r.LowSeasonPrice.ShouldBe(Money.Tnd(100m)),
             r => r.MidSeasonPrice.ShouldBe(Money.Tnd(110m)),
             r => r.HighSeasonPrice.ShouldBe(Money.Tnd(140m)));
@@ -165,9 +166,10 @@ public sealed class PricingServiceIntegrationTests(IntegrationHost host)
         var referential = scope.ServiceProvider.GetRequiredService<IReferentialQueries>();
         var agency = (await referential.GetAgenciesAsync(Ct)).Single(a => a.Name == DemoAgencyName);
         var office = (await referential.FindLocationByCodeAsync("AGC", Ct))!;
+        var demoEcmr = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().FindCategoryByCodeAsync(agency.Id, "ECMR", Ct))!.Id;
         var request = new PriceRequest(
             agency.Id,
-            StubFleetQueries.Ecmr,
+            demoEcmr,
             office.Id,
             office.Id,
             Tunis(2027, 6, 28),

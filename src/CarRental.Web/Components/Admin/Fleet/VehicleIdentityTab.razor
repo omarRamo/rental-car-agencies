@@ -1,0 +1,61 @@
+@* Identity, status and rentable windows of the next 30 days. *@
+@inject IStringLocalizer<FleetResources> L
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Identity.Heading"]</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr><th scope="row">@L["Vehicle.Field.Plate"]</th><td>@Detail.PlateNumber</td></tr>
+                <tr><th scope="row">@L["Vehicles.Column.Vehicle"]</th><td>@Detail.Make @Detail.Model</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Year"]</th><td>@Detail.Year</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Color"]</th><td>@(Detail.Color ?? "—")</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Category"]</th><td>@Detail.CategoryCode — @Detail.CategoryName</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Transmission"]</th><td>@L[$"Transmission.{Detail.Transmission}"]</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Fuel"]</th><td>@L[$"Fuel.{Detail.Fuel}"]</td></tr>
+                <tr><th scope="row">@L["Identity.Capacity"]</th><td>@L["Identity.Capacity.Value", Detail.Seats, Detail.LargeBags, Detail.SmallBags]</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Mileage"]</th><td>@FleetFormat.Kilometres(Detail.Mileage) <span class="mud-text-secondary">(@FleetFormat.Instant(Detail.MileageUpdatedAtUtc))</span></td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.InService"]</th><td>@FleetFormat.Date(Detail.InServiceOn)</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.FirstRegistration"]</th><td>@FleetFormat.Date(Detail.FirstRegistrationOn)</td></tr>
+                <tr><th scope="row">@L["Vehicle.Field.Supplement"]</th><td>@(Detail.GuaranteedModelDailySupplement is { } supplement ? L["Identity.PerDay", FleetFormat.Amount(supplement)] : L["Identity.NotOffered"])</td></tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Identity.StatusHeading"]</MudText>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr><th scope="row">@L["Vehicles.Column.Status"]</th><td><FleetBadge Tone="FleetFormat.ToneOf(Detail.Status)">@L[$"Status.{Detail.Status}"]</FleetBadge></td></tr>
+                <tr><th scope="row">@L["Identity.Since"]</th><td>@FleetFormat.Instant(Detail.StatusChangedAtUtc)</td></tr>
+                <tr><th scope="row">@L["Field.Reason"]</th><td>@(Detail.StatusReason ?? "—")</td></tr>
+                <tr><th scope="row">@L["Identity.CompliantUntil"]</th><td>@(Detail.CompliantUntil is { } until ? FleetFormat.LastDay(until) : L["Identity.NotCompliant"])</td></tr>
+                @if (Detail.SoldAtUtc is { } soldAt)
+                {
+                    <tr><th scope="row">@L["Sale.Field.Date"]</th><td>@FleetFormat.Instant(soldAt)</td></tr>
+                    <tr><th scope="row">@L["Sale.Field.Price"]</th><td>@FleetFormat.Amount(Detail.SalePrice)</td></tr>
+                    <tr><th scope="row">@L["Sale.Field.Buyer"]</th><td>@(Detail.Buyer ?? "—")</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-4" GutterBottom="true">@L["Identity.Windows"]</MudText>
+        @if (Detail.AvailabilityNext30Days.Count == 0)
+        {
+            <p style="@FleetFormat.NoticeStyle">@L["Identity.NoWindow"]</p>
+        }
+        else
+        {
+            <ul class="ps-5">
+                @foreach (var window in Detail.AvailabilityNext30Days)
+                {
+                    <li>@L["Identity.Window", FleetFormat.Instant(window.Start), FleetFormat.Instant(window.End)]</li>
+                }
+            </ul>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDetail Detail { get; set; } = default!;
+}

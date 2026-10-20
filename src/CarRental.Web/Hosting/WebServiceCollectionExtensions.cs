@@ -2,6 +2,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
 using CarRental.Web.Components.Account;
+using CarRental.Web.Endpoints;
 using CarRental.Web.Localization;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -45,6 +46,7 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<IOperationRunner, OperationRunner>();
         services.AddScoped<AppUrls>();
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();
+        services.AddFleetWeb();
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
         services.AddScoped<SignInRecorder>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();

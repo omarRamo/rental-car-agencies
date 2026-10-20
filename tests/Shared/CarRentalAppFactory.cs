@@ -1,11 +1,9 @@
-using CarRental.Application.Fleet.Contracts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CarRental.Testing;
 
@@ -70,9 +68,6 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("PublicSite:WhatsAppNumber", "21600000000");
         builder.UseSetting("BackgroundJobs:WorkerCount", "2");
 
-        // Until the Fleet module registers its implementation, the Fleet contract is served by an in-memory stub
-        // (TryAdd after the application's registrations: the real implementation wins once it exists).
-        builder.ConfigureTestServices(services => services.TryAddScoped<IFleetQueries, StubFleetQueries>());
 
         if (_configureServices is not null)
         {

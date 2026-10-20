@@ -240,6 +240,7 @@ var containerNames = [
   'contracts' // rental contract PDFs
   'invoices' // invoices and credit notes (PDF, TEIF XML)
   'exports' // accounting and Excel exports
+  'fleet' // category photos (served anonymously by the app) and vehicle photos
   dataProtectionContainerName // ASP.NET Core Data Protection key ring
 ]
 

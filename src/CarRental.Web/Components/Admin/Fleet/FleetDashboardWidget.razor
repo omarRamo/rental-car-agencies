@@ -1,0 +1,105 @@
+@* Fleet part of the daily dashboard: urgent deadlines and vehicles out of the rental pool (fleet.read only). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<FleetResources> L
+
+<AuthorizeView Policy="@PermissionPolicy.For(Permissions.FleetRead)">
+    <Authorized>
+        <section aria-labelledby="fleet-widget-title" class="mt-6">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="fleet-widget-title">@L["Widget.Title"]</MudText>
+                    @if (_dashboard is { } summary)
+                    {
+                        <MudText Typo="Typo.body2">@L["Widget.Availability", summary.AvailableNowCount, summary.VehicleCount]</MudText>
+                    }
+                </MudStack>
+                @if (_dashboard is null)
+                {
+                    @if (_failed)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@L["Widget.Unavailable.Error"]</MudText>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Indeterminate="true" Class="mt-3" />
+                    }
+                }
+                else
+                {
+                    <MudGrid Spacing="3" Class="mt-1">
+                        <MudItem xs="12" md="7">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Alerts", _dashboard.AlertCount]</MudText>
+                            @if (_dashboard.Alerts.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Widget.NoAlert"]</MudText>
+                            }
+                            else
+                            {
+                                <ul class="ps-0" style="list-style:none;margin:0">
+                                    @foreach (var alert in _dashboard.Alerts)
+                                    {
+                                        <li class="d-flex flex-wrap align-center gap-2 py-1">
+                                            <DeadlineBadge Deadline="@(new VehicleDeadline(alert.Type, alert.ExpiresOn, alert.DaysLeft, alert.State))" />
+                                            <MudLink Href="@($"/admin/fleet/vehicles/{alert.VehicleId}")">@alert.PlateNumber</MudLink>
+                                            <span>@alert.Make @alert.Model</span>
+                                        </li>
+                                    }
+                                </ul>
+                                @if (_dashboard.AlertCount > _dashboard.Alerts.Count)
+                                {
+                                    <MudLink Href="/admin/fleet/deadlines" Class="d-inline-block mt-2">@L["Widget.AllDeadlines", _dashboard.AlertCount]</MudLink>
+                                }
+                            }
+                        </MudItem>
+                        <MudItem xs="12" md="5">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Unavailable", _dashboard.Unavailable.Count]</MudText>
+                            @if (_dashboard.Unavailable.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Widget.NoUnavailable"]</MudText>
+                            }
+                            else
+                            {
+                                <ul class="ps-0" style="list-style:none;margin:0">
+                                    @foreach (var vehicle in _dashboard.Unavailable)
+                                    {
+                                        <li class="py-1">
+                                            <MudLink Href="@($"/admin/fleet/vehicles/{vehicle.VehicleId}")">@vehicle.PlateNumber</MudLink>
+                                            <FleetBadge Tone="FleetFormat.ToneOf(vehicle.Status)">@L[$"Status.{vehicle.Status}"]</FleetBadge>
+                                            <MudText Typo="Typo.caption" Class="d-block">
+                                                @(vehicle.Reason ?? string.Empty)
+                                                @if (vehicle.ExpectedBackAtUtc is { } back)
+                                                {
+                                                    @L["Widget.ExpectedBack", FleetFormat.Instant(back)]
+                                                }
+                                            </MudText>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                }
+            </MudPaper>
+        </section>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private FleetDashboard? _dashboard;
+    private bool _failed;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!(await AuthenticationState).User.HasPermission(Permissions.FleetRead))
+        {
+            return;
+        }
+
+        var result = await Runner.RunAsync<FleetAdminQueries, Result<FleetDashboard>>((queries, ct) => queries.GetDashboardAsync(ct));
+        _dashboard = result.IsSuccess ? result.Value : null;
+        _failed = result.IsFailure;
+    }
+}

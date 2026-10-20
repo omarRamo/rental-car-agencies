@@ -1,0 +1,35 @@
+@* Asks for a reason (and an optional date) before an action; the caller runs the action with the returned text. *@
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">@Message</MudText>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.Reason"]" Lines="3" MaxLength="Vehicle.ReasonMaxLength"
+                      Required="true" RequiredError="@Shared["Validation.Required"]" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm" Disabled="@string.IsNullOrWhiteSpace(_reason)">@ConfirmText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter, EditorRequired]
+    public string ConfirmText { get; set; } = string.Empty;
+
+    private void Confirm() => Dialog.Close(DialogResult.Ok(_reason!.Trim()));
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,96 @@
+@* Completion of a maintenance: actual end (now by default), odometer, actual cost and notes. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<FleetResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="7">
+                <MudDatePicker @bind-Date="_date" Label="@L["Maintenance.Field.CompletedDate"]" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="5">
+                <MudTimePicker @bind-Time="_time" Label="@L["Maintenance.Field.CompletedTime"]" Editable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int?" @bind-Value="_mileage" Label="@L["Vehicle.Field.Mileage"]" Min="0" Max="Vehicle.MaxMileage" Adornment="Adornment.End" AdornmentText="km" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal?" @bind-Value="_cost" Label="@L["Maintenance.Field.ActualCost"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Maintenance.Field.Notes"]" Lines="2" MaxLength="Vehicle.ReasonMaxLength" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Maintenance.Complete"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DateTime? _date;
+    private TimeSpan? _time;
+    private int? _mileage;
+    private decimal? _cost;
+    private string? _notes;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid MaintenanceId { get; set; }
+
+    [Parameter]
+    public int CurrentMileage { get; set; }
+
+    [Parameter]
+    public decimal? EstimatedCost { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var now = Time.GetUtcNow();
+        _date = FleetFormat.ToPickerDate(now);
+        _time = FleetFormat.ToPickerTime(now);
+        _mileage = CurrentMileage;
+        _cost = EstimatedCost;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_date is not { } date)
+        {
+            _error = Shared["Validation.Required"];
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var completedAt = FleetFormat.ToInstant(date, _time);
+        var now = Time.GetUtcNow();
+        var form = new MaintenanceCompletionForm(completedAt > now ? now : completedAt, _mileage, _cost, _notes);
+        var result = await Runner.RunAsync<VehicleMaintenanceService, Result>((service, ct) => service.CompleteAsync(VehicleId, MaintenanceId, form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

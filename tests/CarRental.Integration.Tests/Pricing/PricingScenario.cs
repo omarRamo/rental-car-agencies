@@ -6,13 +6,22 @@ using CarRental.Application.Pricing.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Pricing;
 using CarRental.Domain.Referential;
-using CarRental.Testing;
+using CarRental.Integration.Tests.Fleet;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Pricing;
 
 /// <summary>A dedicated agency per test (tests run in parallel on one database) and the SPEC §7 reference plan.</summary>
-internal sealed record PricingAgency(Guid AgencyId, Guid OfficeId, Guid AirportId);
+/// <summary>A test agency with its own locations and fleet: MCMR, ECMR and IFMR categories, two ECMR vehicles (one offered as a guaranteed model at 15.000 TND per day).</summary>
+internal sealed record PricingAgency(
+    Guid AgencyId,
+    Guid OfficeId,
+    Guid AirportId,
+    Guid Mcmr,
+    Guid Ecmr,
+    Guid Ifmr,
+    Guid GuaranteedEcmrVehicle,
+    Guid PlainEcmrVehicle);
 
 internal static class PricingScenario
 {
@@ -41,7 +50,13 @@ internal static class PricingScenario
         db.Set<Agency>().Add(agency);
         db.Set<Location>().AddRange(office, airport);
         await db.SaveChangesAsync(cancellationToken);
-        return new PricingAgency(agency.Id, office.Id, airport.Id);
+
+        var mcmr = await FleetData.NewCategoryAsync(host, agency.Id, "MCMR", cancellationToken, displayOrder: 1);
+        var ecmr = await FleetData.NewCategoryAsync(host, agency.Id, "ECMR", cancellationToken, displayOrder: 2);
+        var ifmr = await FleetData.NewCategoryAsync(host, agency.Id, "IFMR", cancellationToken, displayOrder: 3);
+        var guaranteed = await FleetData.NewVehicleAsync(host, ecmr, cancellationToken, guaranteedSupplement: 15m);
+        var plain = await FleetData.NewVehicleAsync(host, ecmr, cancellationToken);
+        return new PricingAgency(agency.Id, office.Id, airport.Id, mcmr, ecmr, ifmr, guaranteed, plain);
     }
 
     /// <summary>Runs an administration call in its own scope, like the back office does for each operation.</summary>
@@ -75,9 +90,9 @@ internal static class PricingScenario
             draftId,
             detail.Plan.Revision,
             [
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.Base, Money.Tnd(100m)),
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.Mid), Money.Tnd(110m)),
-                new CategoryPriceDefinition(StubFleetQueries.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.High), Money.Tnd(140m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.Base, Money.Tnd(100m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.Mid), Money.Tnd(110m)),
+                new CategoryPriceDefinition(agency.Ecmr, RatePeriodKey.ForSeason(SeasonLevel.High), Money.Tnd(140m)),
             ],
             cancellationToken));
         detail = await AdministerAsync(host, s => s.UpdateTiersAsync(
@@ -101,7 +116,7 @@ internal static class PricingScenario
 
     public static PriceRequest ReferenceRequest(PricingAgency agency, SalesChannel channel = SalesChannel.Web) => new(
         agency.AgencyId,
-        StubFleetQueries.Ecmr,
+        agency.Ecmr,
         agency.OfficeId,
         agency.OfficeId,
         Tunis(2027, 6, 28),

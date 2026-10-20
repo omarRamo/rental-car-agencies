@@ -387,4 +387,208 @@
   <data name="Error.pricing.vehicle_not_found" xml:space="preserve">
     <value>Vehicle not found or sold.</value>
   </data>
+  <data name="Error.fleet.agency_required" xml:space="preserve">
+    <value>An agency is required.</value>
+  </data>
+  <data name="Error.fleet.amount_invalid" xml:space="preserve">
+    <value>The amount must be zero or positive, in dinars, with three decimals at most.</value>
+  </data>
+  <data name="Error.fleet.availability_busy" xml:space="preserve">
+    <value>Another operation is updating the availability of this category; try again.</value>
+  </data>
+  <data name="Error.fleet.category.agency_mismatch" xml:space="preserve">
+    <value>The category belongs to another agency.</value>
+  </data>
+  <data name="Error.fleet.category.capacity_invalid" xml:space="preserve">
+    <value>Seats (1-9), doors (2-5) or bags (0-10) out of range.</value>
+  </data>
+  <data name="Error.fleet.category.code_invalid" xml:space="preserve">
+    <value>The ACRISS code has four letters valid for their position (e.g. ECMR).</value>
+  </data>
+  <data name="Error.fleet.category.code_taken" xml:space="preserve">
+    <value>Another category of the agency already uses this ACRISS code.</value>
+  </data>
+  <data name="Error.fleet.category.deposit_invalid" xml:space="preserve">
+    <value>Deposits are zero or positive amounts and the reduced deposit cannot exceed the deposit.</value>
+  </data>
+  <data name="Error.fleet.category.display_order_invalid" xml:space="preserve">
+    <value>The display order is between 0 and 9999.</value>
+  </data>
+  <data name="Error.fleet.category.example_model_invalid" xml:space="preserve">
+    <value>The example model is required (120 characters at most).</value>
+  </data>
+  <data name="Error.fleet.category.fuel_invalid" xml:space="preserve">
+    <value>Unknown fuel.</value>
+  </data>
+  <data name="Error.fleet.category.fuel_mismatch" xml:space="preserve">
+    <value>The fuel does not match the 4th letter of the ACRISS code.</value>
+  </data>
+  <data name="Error.fleet.category.has_vehicles" xml:space="preserve">
+    <value>A category with vehicles cannot be deleted: deactivate it.</value>
+  </data>
+  <data name="Error.fleet.category.name_invalid" xml:space="preserve">
+    <value>The name is required (80 characters at most).</value>
+  </data>
+  <data name="Error.fleet.category.not_found" xml:space="preserve">
+    <value>This category does not exist.</value>
+  </data>
+  <data name="Error.fleet.concurrent_update" xml:space="preserve">
+    <value>The record was changed by someone else in the meantime: reload it and try again.</value>
+  </data>
+  <data name="Error.fleet.cost.label_invalid" xml:space="preserve">
+    <value>A cost has a label (120 characters at most) and a positive amount.</value>
+  </data>
+  <data name="Error.fleet.cost.not_found" xml:space="preserve">
+    <value>This cost does not exist.</value>
+  </data>
+  <data name="Error.fleet.document.dates_invalid" xml:space="preserve">
+    <value>The expiry date cannot precede the issue date.</value>
+  </data>
+  <data name="Error.fleet.document.expiry_required" xml:space="preserve">
+    <value>Insurance, road tax and technical inspection need an expiry date.</value>
+  </data>
+  <data name="Error.fleet.document.not_current" xml:space="preserve">
+    <value>Only the current document can be corrected.</value>
+  </data>
+  <data name="Error.fleet.document.not_found" xml:space="preserve">
+    <value>This document does not exist.</value>
+  </data>
+  <data name="Error.fleet.document.number_invalid" xml:space="preserve">
+    <value>The number is required (60 characters at most).</value>
+  </data>
+  <data name="Error.fleet.document.text_too_long" xml:space="preserve">
+    <value>The issuer has 120 characters and the notes 500 characters at most.</value>
+  </data>
+  <data name="Error.fleet.document.type_invalid" xml:space="preserve">
+    <value>Unknown or different document type.</value>
+  </data>
+  <data name="Error.fleet.economics.depreciation_years_invalid" xml:space="preserve">
+    <value>The depreciation lasts 1 to 20 years.</value>
+  </data>
+  <data name="Error.fleet.economics.financing_invalid" xml:space="preserve">
+    <value>A credit or a leasing has a positive monthly payment and a term of 1 to 120 months; a cash purchase has neither.</value>
+  </data>
+  <data name="Error.fleet.economics.purchase_price_invalid" xml:space="preserve">
+    <value>The purchase price is a positive amount in dinars.</value>
+  </data>
+  <data name="Error.fleet.economics.residual_value_invalid" xml:space="preserve">
+    <value>The residual value is between zero and the purchase price.</value>
+  </data>
+  <data name="Error.fleet.forbidden" xml:space="preserve">
+    <value>You lack the required fleet permission.</value>
+  </data>
+  <data name="Error.fleet.maintenance.already_in_progress" xml:space="preserve">
+    <value>Another maintenance of the vehicle is already in progress.</value>
+  </data>
+  <data name="Error.fleet.maintenance.block_invalid" xml:space="preserve">
+    <value>A maintenance block ends after it starts and lasts one year at most.</value>
+  </data>
+  <data name="Error.fleet.maintenance.end_in_past" xml:space="preserve">
+    <value>The expected end of the maintenance must be in the future.</value>
+  </data>
+  <data name="Error.fleet.maintenance.invalid_transition" xml:space="preserve">
+    <value>This maintenance cannot be changed in its current state.</value>
+  </data>
+  <data name="Error.fleet.maintenance.not_found" xml:space="preserve">
+    <value>This maintenance does not exist.</value>
+  </data>
+  <data name="Error.fleet.maintenance.not_started" xml:space="preserve">
+    <value>A maintenance completes after it starts and not in the future.</value>
+  </data>
+  <data name="Error.fleet.maintenance.overlap" xml:space="preserve">
+    <value>This block overlaps another maintenance of the vehicle.</value>
+  </data>
+  <data name="Error.fleet.maintenance.plan_invalid" xml:space="preserve">
+    <value>A maintenance plan has an interval in km (100-200,000) and/or in months (1-120).</value>
+  </data>
+  <data name="Error.fleet.maintenance.plan_not_found" xml:space="preserve">
+    <value>This maintenance plan does not exist.</value>
+  </data>
+  <data name="Error.fleet.maintenance.text_too_long" xml:space="preserve">
+    <value>The description has 500 characters and the garage 120 characters at most.</value>
+  </data>
+  <data name="Error.fleet.maintenance.type_invalid" xml:space="preserve">
+    <value>Unknown maintenance type.</value>
+  </data>
+  <data name="Error.fleet.photo.empty" xml:space="preserve">
+    <value>The file is empty.</value>
+  </data>
+  <data name="Error.fleet.photo.not_found" xml:space="preserve">
+    <value>This photo does not exist.</value>
+  </data>
+  <data name="Error.fleet.photo.too_large" xml:space="preserve">
+    <value>A photo is 10 MB at most.</value>
+  </data>
+  <data name="Error.fleet.photo.unsupported_format" xml:space="preserve">
+    <value>Only JPEG, PNG and WebP photos are accepted.</value>
+  </data>
+  <data name="Error.fleet.reason_required" xml:space="preserve">
+    <value>A reason is required for this change.</value>
+  </data>
+  <data name="Error.fleet.reason_too_long" xml:space="preserve">
+    <value>The reason has 500 characters at most.</value>
+  </data>
+  <data name="Error.fleet.vehicle.buyer_too_long" xml:space="preserve">
+    <value>The buyer has 200 characters at most.</value>
+  </data>
+  <data name="Error.fleet.vehicle.capacity_invalid" xml:space="preserve">
+    <value>Seats (1-9) or bags (0-10) out of range.</value>
+  </data>
+  <data name="Error.fleet.vehicle.color_invalid" xml:space="preserve">
+    <value>The color has 30 characters at most.</value>
+  </data>
+  <data name="Error.fleet.vehicle.fuel_invalid" xml:space="preserve">
+    <value>Unknown fuel.</value>
+  </data>
+  <data name="Error.fleet.vehicle.in_service_date_invalid" xml:space="preserve">
+    <value>The date put in service cannot precede the first registration.</value>
+  </data>
+  <data name="Error.fleet.vehicle.invalid_status_transition" xml:space="preserve">
+    <value>This status change is not allowed.</value>
+  </data>
+  <data name="Error.fleet.vehicle.maintenance_in_progress" xml:space="preserve">
+    <value>A maintenance is in progress: complete it first.</value>
+  </data>
+  <data name="Error.fleet.vehicle.make_invalid" xml:space="preserve">
+    <value>The make is required (50 characters at most).</value>
+  </data>
+  <data name="Error.fleet.vehicle.mileage_decrease" xml:space="preserve">
+    <value>The mileage never decreases: use a correction with a reason.</value>
+  </data>
+  <data name="Error.fleet.vehicle.mileage_invalid" xml:space="preserve">
+    <value>The mileage is between 0 and 2,000,000 km.</value>
+  </data>
+  <data name="Error.fleet.vehicle.mileage_unchanged" xml:space="preserve">
+    <value>The corrected mileage is the current one.</value>
+  </data>
+  <data name="Error.fleet.vehicle.model_invalid" xml:space="preserve">
+    <value>The model is required (60 characters at most).</value>
+  </data>
+  <data name="Error.fleet.vehicle.not_found" xml:space="preserve">
+    <value>This vehicle does not exist.</value>
+  </data>
+  <data name="Error.fleet.vehicle.plate_invalid" xml:space="preserve">
+    <value>The plate number has 2 to 20 characters: letters, digits, spaces or dashes.</value>
+  </data>
+  <data name="Error.fleet.vehicle.plate_taken" xml:space="preserve">
+    <value>Another vehicle of the agency already has this plate number.</value>
+  </data>
+  <data name="Error.fleet.vehicle.sale_date_invalid" xml:space="preserve">
+    <value>The sale date can be neither in the future nor before the vehicle was put in service.</value>
+  </data>
+  <data name="Error.fleet.vehicle.same_category" xml:space="preserve">
+    <value>The vehicle is already in this category.</value>
+  </data>
+  <data name="Error.fleet.vehicle.sold" xml:space="preserve">
+    <value>The vehicle is sold: it can no longer be changed.</value>
+  </data>
+  <data name="Error.fleet.vehicle.too_many_photos" xml:space="preserve">
+    <value>A vehicle has 12 photos at most.</value>
+  </data>
+  <data name="Error.fleet.vehicle.transmission_invalid" xml:space="preserve">
+    <value>Unknown gearbox.</value>
+  </data>
+  <data name="Error.fleet.vehicle.year_invalid" xml:space="preserve">
+    <value>The year is between 1990 and 2100.</value>
+  </data>
 </root>

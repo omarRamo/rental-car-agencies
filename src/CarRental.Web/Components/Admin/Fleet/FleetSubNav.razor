@@ -1,0 +1,24 @@
+@* Secondary navigation of the fleet screens (the main menu has a single "Fleet and deadlines" entry). *@
+@inject IStringLocalizer<FleetResources> L
+
+<nav aria-label="@L["SubNav.Label"]" class="mb-4">
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+        @foreach (var (section, href, key, icon) in Sections)
+        {
+            <MudButton Href="@href" Variant="@(section == Current ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                       StartIcon="@icon" aria-current="@(section == Current ? "page" : null)">@L[key]</MudButton>
+        }
+    </MudStack>
+</nav>
+
+@code {
+    private static readonly (FleetSection Section, string Href, string Key, string Icon)[] Sections =
+    [
+        (FleetSection.Vehicles, "/admin/fleet", "SubNav.Vehicles", Icons.Material.Outlined.DirectionsCar),
+        (FleetSection.Categories, "/admin/fleet/categories", "SubNav.Categories", Icons.Material.Outlined.Category),
+        (FleetSection.Deadlines, "/admin/fleet/deadlines", "SubNav.Deadlines", Icons.Material.Outlined.EventBusy),
+    ];
+
+    [Parameter]
+    public FleetSection Current { get; set; }
+}

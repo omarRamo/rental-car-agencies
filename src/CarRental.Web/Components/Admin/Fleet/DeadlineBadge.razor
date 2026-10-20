@@ -1,0 +1,31 @@
+@* The most urgent deadline of a vehicle: red when expired, missing or within 7 days, orange within 30 days. *@
+@inject IStringLocalizer<FleetResources> L
+
+@if (Deadline.State == DeadlineState.Ok && !Compact)
+{
+    <span>@L["Deadline.NextOk", L[$"DocumentType.{Deadline.Type}"], FleetFormat.Date(Deadline.ExpiresOn)]</span>
+}
+else
+{
+    <FleetBadge Tone="FleetFormat.ToneOf(Deadline.State)">@Text</FleetBadge>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleDeadline Deadline { get; set; } = default!;
+
+    /// <summary>Short text without the document type nor the date, for a row that already shows them.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private string Text => (Deadline.State, Compact) switch
+    {
+        (DeadlineState.Ok, _) => L["Deadline.Compact.Ok"],
+        (DeadlineState.Missing, true) => L["Deadline.Compact.Missing"],
+        (DeadlineState.Missing, false) => L["Deadline.Badge.Missing", L[$"DocumentType.{Deadline.Type}"]],
+        (DeadlineState.Expired, true) => L["Deadline.Compact.Expired"],
+        (DeadlineState.Expired, false) => L["Deadline.Badge.Expired", L[$"DocumentType.{Deadline.Type}"], FleetFormat.Date(Deadline.ExpiresOn)],
+        (_, true) => L["Deadline.Compact.Days", Deadline.DaysLeft ?? 0],
+        _ => L["Deadline.Badge.Days", L[$"DocumentType.{Deadline.Type}"], Deadline.DaysLeft ?? 0],
+    };
+}

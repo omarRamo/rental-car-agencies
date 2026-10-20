@@ -42,6 +42,9 @@ internal sealed class FakeFleetQueries : IFleetQueries
 {
     public List<VehicleCategoryInfo> Categories { get; } = [];
 
+    public Task<IReadOnlyList<VehicleDeadlineInfo>> GetDeadlinesAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<VehicleDeadlineInfo>>([]);
+
     public List<VehicleInfo> Vehicles { get; } = [];
 
     public VehicleCategoryInfo AddCategory(Guid id, Guid agencyId, string code, decimal deposit, decimal reducedDeposit, bool active = true)
