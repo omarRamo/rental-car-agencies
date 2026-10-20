@@ -2,7 +2,7 @@
 
 Plateforme de location de voitures pour une agence tunisienne de 30 véhicules. Elle centralise toutes les locations (site, téléphone, comptoir, WhatsApp et Booking.com) dans une seule application, avec une traçabilité complète et un hébergement Azure à coût minimal.
 
-> **Statut : phase de spécification.** Le dépôt ne contient pas encore de code. Le développement commencera avec le lot 0 (socle technique).
+> **Statut : lot 0 (socle technique) terminé.** Solution .NET 10, comptes avec double authentification obligatoire, rôles et permissions, journal d'audit, outbox, santé, localisation français et anglais, mises en page publique et back office, données de démonstration, CI et infrastructure Azure décrites en Bicep. Le déploiement de la recette attend l'abonnement Azure ([points ouverts](docs/points-ouverts.md), écart n° 7). Prochaine étape : lot 1 (exploitation).
 
 ## Ce que couvre la plateforme
 
@@ -34,6 +34,8 @@ Le détail et la justification de chaque décision sont dans les [ADR](docs/adr/
 | [Spécifications (PDF d'origine)](docs/specifications-2026-10-20.pdf) | Version de référence figée |
 | [Décisions d'architecture](docs/adr/README.md) | Les ADR, une par décision structurante |
 | [Points ouverts](docs/points-ouverts.md) | Démarches de l'agence, décisions à obtenir, hypothèses à confirmer, incohérences à trancher |
+| [Règles du projet](CLAUDE.md) | Commandes, architecture, invariants, conventions et recettes de développement |
+| [Infrastructure Azure](infra/README.md) | Ressources, sécurité, coûts, premier déploiement, CI/CD, exploitation |
 
 ## Feuille de route
 
@@ -48,28 +50,47 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | S15–S17 | Lot 4 — WhatsApp IA : bot, boîte partagée, modèles Meta, jeu de tests | Bot WhatsApp en ligne |
 | S18–S20 | Lot 5 — Booking.com : module Canaux, connecteur XML/API, certification | Vente sur Booking.com |
 
-## Structure prévue du dépôt
+
+## Structure du dépôt
 
 ```text
 /src
-  CarRental.Web             hôte ASP.NET Core : vitrine (SSR), back office (/admin),
-                            API d'intégration, webhooks, tâches de fond
-  CarRental.Application     cas d'usage par module : commandes, requêtes, règles
-  CarRental.Domain          agrégats, objets valeur (Money en TND, Period), invariants
-  CarRental.Infrastructure  EF Core / SQL, Blob, e-mail, Clic to Pay, WhatsApp,
-                            Claude, TTN, Booking.com
-/tests                      unitaires, intégration (SQL réel en conteneur),
-                            bout en bout (Playwright)
-/infra                      Bicep
-/docs                       spécifications, ADR, points ouverts
-/.github/workflows          intégration et déploiement continus
+  CarRental.Web             hôte ASP.NET Core : vitrine (rendu statique, /fr et /en),
+                            back office (/admin, interactif, MudBlazor), comptes (/account),
+                            santé (/health, /health/ready), tableau de bord Hangfire (/admin/jobs)
+  CarRental.Application     cas d'usage par module, ports (IAppDbContext, IUnitOfWork...)
+  CarRental.Domain          noyau commun (Result, Money en TND, Period, AcrissCode), agrégats
+  CarRental.Infrastructure  EF Core / SQL Server, Identity, outbox et Hangfire, Blob, e-mail,
+                            Data Protection, migrations
+/tests                      domaine, application, architecture, intégration (SQL Server et
+                            Azurite en conteneurs), bout en bout (Playwright)
+/infra                      Bicep (voir infra/README.md)
+/docs                       spécifications, prompt, ADR, points ouverts
+/.github/workflows          intégration continue, CodeQL, déploiement
 ```
 
-Seul `/docs` existe pour l'instant.
+Les règles de travail (commandes, conventions, recettes pour ajouter une entité, un écran ou un test) sont dans [CLAUDE.md](CLAUDE.md).
 
 ## Démarrage
+
+Prérequis : SDK .NET 10 (version fixée par `global.json`) et Docker.
 
 ```bash
 git clone https://github.com/omarRamo/rental-car-agencies.git
 cd rental-car-agencies
+dotnet tool restore                        # dotnet-ef
+docker compose up -d                       # SQL Server 2022 (localhost,14333) et Azurite
+dotnet run --project src/CarRental.Web     # https://localhost:7180
 ```
+
+En développement, l'application applique les migrations et charge les données de démonstration au démarrage : une agence, trois lieux (agence, aéroports TUN et NBE), les paramètres par défaut et trois comptes, `gerant@demo.local`, `agent@demo.local` et `comptable@demo.local`. Leur mot de passe et leur clé TOTP (à saisir dans une application d'authentification) sont dans `src/CarRental.Web/appsettings.Development.json`, valeurs réservées au développement. Les e-mails sont écrits en fichiers `.eml` dans `src/CarRental.Web/App_Data/mail`.
+
+## Tests
+
+```bash
+dotnet format --verify-no-changes
+dotnet build -warnaserror
+dotnet test                                # Docker requis pour l'intégration et le bout en bout
+```
+
+Les tests d'intégration et de bout en bout démarrent eux-mêmes SQL Server et Azurite (Testcontainers) ainsi que l'application ; les tests de bout en bout installent Chromium au premier lancement.

@@ -16,6 +16,16 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0008](0008-booking-com-module-canaux.md) | Booking.com via candidature fournisseur et module Canaux | Acceptée |
 | [0009](0009-whatsapp-cloud-api-claude-haiku.md) | Bot WhatsApp en Cloud API directe avec Claude Haiku 5.5 et outils | Acceptée |
 | [0010](0010-conformite-ttn-inpdp.md) | Conformité intégrée : facture électronique TTN, contribution journalière, INPDP | Acceptée |
+| [0011](0011-services-applicatifs-et-result.md) | Cas d'usage en services applicatifs explicites, erreurs métier par `Result` | Acceptée |
+| [0012](0012-dbcontext-unique-et-frontieres-de-modules.md) | Un seul DbContext derrière le port `IAppDbContext`, frontières de modules vérifiées | Acceptée |
+| [0013](0013-outbox-traitee-par-hangfire.md) | Outbox transactionnelle traitée par Hangfire | Acceptée |
+| [0014](0014-identite-2fa-permissions.md) | Identité : double authentification obligatoire, rôles en préréglages de permissions | Acceptée |
+| [0015](0015-localisation-routes-par-culture.md) | Localisation par ressources .resx, routes publiques préfixées par la culture | Acceptée |
+| [0016](0016-numerotation-continue-table-de-compteurs.md) | Numérotation continue des pièces par table de compteurs | Acceptée |
+| [0017](0017-execution-cas-usage-portee-transactions.md) | Exécution d'un cas d'usage : portée par opération, contexte utilisateur, transactions résilientes | Acceptée |
+| [0018](0018-journal-audit-ajout-seul.md) | Journal d'audit applicatif en ajout seul, complété par les tables temporelles | Acceptée |
+| [0019](0019-strategie-de-tests.md) | Stratégie de tests : xUnit v3 sur VSTest, conteneurs partagés, Playwright | Acceptée |
+| [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée |
 
 ## Modèle
 

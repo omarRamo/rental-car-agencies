@@ -73,3 +73,4 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | 8 | Double authentification obligatoire : comment se connectent les tests E2E ? | Utilisateurs de démonstration avec clé TOTP connue, uniquement en développement et en test. |
 | 9 | Valeur du droit de timbre. | Paramètre à 0,000 TND par défaut, `TODO(spec)` : valeur à fournir par l'expert-comptable. |
 | 10 | Licence QuestPDF Community (seuil de chiffre d'affaires). | Utilisée en Community ; à confirmer avec le chiffre d'affaires de l'agence. |
+| 11 | Le prompt prévoit des séquences SQL pour les numéros `LOC`, `FAC`, `AV` ; la spec exige des factures « numérotées sans trou par exercice », ce qu'une séquence ne garantit pas (valeurs perdues à l'annulation et au redémarrage). | Table de compteurs incrémentée dans la transaction de l'appelant ([ADR-0016](adr/0016-numerotation-continue-table-de-compteurs.md)). |
