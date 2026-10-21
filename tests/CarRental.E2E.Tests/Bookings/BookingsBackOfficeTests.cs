@@ -30,6 +30,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     private const string RequestsAgent = "agent-demandes-e2e@demo.local";
     private const string PlanningManager = "gerant-planning-e2e@demo.local";
     private const string ListManager = "gerant-dossiers-e2e@demo.local";
+    private const string DragManager = "gerant-glisser-e2e@demo.local";
 
     private static readonly LocatorAssertionsToBeVisibleOptions Slow = new() { Timeout = 30_000 };
 
@@ -128,6 +129,30 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(unassigned).ToHaveCountAsync(0);
         var summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(booking.BookingId));
         summary.ShouldNotBeNull().AssignedVehicleId.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task A_manager_drags_a_file_onto_a_vehicle_then_back_onto_the_lane_of_its_category()
+    {
+        var pickupDay = TunisTime.Today(TimeProvider.System).AddDays(52);
+        var booking = await CreateConfirmedAsync("CDMR", pickupDay);
+        await SignInAsync(DragManager, Roles.Manager, $"/admin/planning?from={pickupDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+
+        var unassigned = Page.Locator($"[data-lane='CDMR'] button[data-booking='{booking.Number}']");
+        await Expect(unassigned).ToBeVisibleAsync(Slow);
+        var vehicleRow = Page.Locator("[data-category='CDMR'] ~ [data-vehicle]").First;
+        var plate = await vehicleRow.GetAttributeAsync("data-vehicle");
+        await unassigned.DragToAsync(vehicleRow.Locator(".planning-track"));
+
+        var assigned = Page.Locator($"[data-vehicle='{plate}'] button[data-booking='{booking.Number}']");
+        await Expect(assigned).ToBeVisibleAsync(Slow);
+        var summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(booking.BookingId));
+        summary.ShouldNotBeNull().AssignedVehicleId.ShouldNotBeNull();
+
+        await assigned.DragToAsync(Page.Locator("[data-lane='CDMR'] .planning-track"));
+        await Expect(unassigned).ToBeVisibleAsync(Slow);
+        summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(booking.BookingId));
+        summary.ShouldNotBeNull().AssignedVehicleId.ShouldBeNull();
     }
 
     [Fact]
