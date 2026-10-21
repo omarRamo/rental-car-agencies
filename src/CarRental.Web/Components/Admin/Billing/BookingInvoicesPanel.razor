@@ -1,0 +1,61 @@
+@* The invoices of a rental file, on its page (invoices.read): number (to the invoice page), kind, date, totals, what the
+   credit notes took back, and the PDF. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BillingResources> L
+
+<MudPaper Elevation="1" Class="pa-4" data-testid="booking-invoices">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["BookingInvoices.Title"]</MudText>
+    @if (_invoices is null)
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+    else if (_invoices.Count == 0)
+    {
+        <MudText Typo="Typo.body2">@L[Closed ? "BookingInvoices.NoneYet" : "BookingInvoices.None"]</MudText>
+    }
+    else
+    {
+        <ul class="ma-0 pa-0" style="list-style:none">
+            @foreach (var invoice in _invoices)
+            {
+                <li class="mb-1">
+                    <MudLink Href="@($"/admin/invoices/{invoice.Id:D}")" Underline="Underline.Always" data-testid="booking-invoice-link">@invoice.Number</MudLink>
+                    <span>— @L[$"Kind.{invoice.Kind}"] · @BillingFormat.Date(invoice.IssueDate) · @BillingFormat.Amount(invoice.TotalDue)</span>
+                    @if (!invoice.Credited.IsZero)
+                    {
+                        <span class="billing-muted"> · @L["BookingInvoices.Credited", BillingFormat.Amount(invoice.Credited)]</span>
+                    }
+                    @if (invoice.HasPdf)
+                    {
+                        <span> · <MudLink Href="@BillingFormat.InvoicePdfUrl(invoice.Id)" Target="_blank" rel="noopener" Underline="Underline.Always">@L["Pdf.Download.Short"]</MudLink></span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</MudPaper>
+
+@code {
+    private IReadOnlyList<InvoiceListItem>? _invoices;
+    private Guid? _loaded;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    /// <summary>Whether the file is closed (its final invoice is then due).</summary>
+    [Parameter]
+    public bool Closed { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!RendererInfo.IsInteractive || _loaded == BookingId)
+        {
+            return;
+        }
+
+        var bookingId = BookingId;
+        var result = await Runner.RunAsync<BillingAdministrationQueries, Result<IReadOnlyList<InvoiceListItem>>>((queries, ct) => queries.GetInvoicesOfBookingAsync(bookingId, ct));
+        _invoices = result.IsSuccess ? result.Value : [];
+        _loaded = bookingId;
+    }
+}

@@ -1,0 +1,162 @@
+@* Opens a claim (claims.manage) for a vehicle of the agency and, optionally, the file during which the accident happened
+   (its number) — or, with Claim, edits the details of an open claim: instant (Tunis time) and place of the accident,
+   description, insurer and its claim number, franchise. Closes with the id of the claim. *@
+@using CarRental.Application.Fleet.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            @if (Claim is null)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_vehicleId" Label="@L["Claim.Field.Vehicle"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                               Disabled="@(_vehicles is null)" ToStringFunc="VehicleLabel" data-testid="claim-vehicle">
+                        @foreach (var vehicle in _vehicles ?? [])
+                        {
+                            <MudSelectItem T="Guid?" Value="@vehicle.Id">@VehicleLabel(vehicle.Id)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_bookingNumber" Label="@L["Claim.Field.Booking"]" HelperText="@L["Claim.Field.Booking.Help"]"
+                                  MaxLength="CarRental.Domain.Billing.Claim.BookingNumberMaxLength" autocomplete="off" data-testid="claim-booking" />
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_accidentAt" Label="@L["Claim.Field.AccidentAt"]" HelperText="@L["Field.TunisTime"]" InputType="InputType.DateTimeLocal"
+                              ShrinkLabel="true" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="claim-accident-at" data-testid="claim-accident-at" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_place" Label="@L["Claim.Field.Place"]" MaxLength="CarRental.Domain.Billing.Claim.PlaceMaxLength" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_description" Label="@L["Claim.Field.Description"]" Lines="4" MaxLength="CarRental.Domain.Billing.Claim.DescriptionMaxLength"
+                              Counter="CarRental.Domain.Billing.Claim.DescriptionMaxLength" Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true"
+                              data-testid="claim-description" />
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudTextField T="string" @bind-Value="_insurer" Label="@L["Claim.Field.Insurer"]" MaxLength="CarRental.Domain.Billing.Claim.InsurerMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_insurerClaimNumber" Label="@L["Claim.Field.InsurerClaimNumber"]" MaxLength="CarRental.Domain.Billing.Claim.ClaimNumberMaxLength" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudNumericField T="decimal?" @bind-Value="_franchise" Label="@L["Claim.Field.Franchise"]" Min="0m" Max="CarRental.Domain.Billing.Claim.MaxAmount" Format="N3" HideSpinButtons="true" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dialog.Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="@(!CanSubmit || _busy)" data-testid="claim-submit">
+            @(Claim is null ? L["Claim.Open.Submit"] : L["Claim.Edit.Submit"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<VehicleInfo>? _vehicles;
+    private Guid? _vehicleId;
+    private string? _bookingNumber;
+    private string? _accidentAt;
+    private string? _place;
+    private string? _description;
+    private string? _insurer;
+    private string? _insurerClaimNumber;
+    private decimal? _franchise;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    /// <summary>The claim to edit; <see langword="null"/> to open one.</summary>
+    [Parameter]
+    public ClaimDetail? Claim { get; set; }
+
+    private bool CanSubmit =>
+        (Claim is not null || _vehicleId is not null)
+        && BillingFormat.FromLocalInput(_accidentAt) is not null
+        && (_description?.Trim().Length ?? 0) >= CarRental.Domain.Billing.Claim.DescriptionMinLength;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Claim is { } claim)
+        {
+            _accidentAt = BillingFormat.ToLocalInput(claim.AccidentAtUtc);
+            _place = claim.Place;
+            _description = claim.Description;
+            _insurer = claim.Insurer;
+            _insurerClaimNumber = claim.InsurerClaimNumber;
+            _franchise = claim.Franchise.Amount;
+            return;
+        }
+
+        var agencyId = AgencyId;
+        var vehicles = await Runner.RunAsync<IFleetQueries, List<VehicleInfo>>(async (fleet, ct) =>
+        {
+            var all = new List<VehicleInfo>();
+            foreach (var category in await fleet.GetCategoriesAsync(agencyId, includeInactive: true, ct))
+            {
+                all.AddRange(await fleet.GetVehiclesAsync(category.Id, ct));
+            }
+
+            return [.. all.OrderBy(v => v.PlateNumber, StringComparer.Ordinal)];
+        });
+        _vehicles = vehicles;
+    }
+
+    private string VehicleLabel(Guid? vehicleId) =>
+        _vehicles?.FirstOrDefault(v => v.Id == vehicleId) is { } vehicle ? $"{vehicle.PlateNumber} · {vehicle.Make} {vehicle.Model}" : string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        if (BillingFormat.FromLocalInput(_accidentAt) is not { } accidentAt)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var franchise = _franchise ?? 0m;
+            Result<Guid> saved;
+            if (Claim is { } claim)
+            {
+                var claimId = claim.Id;
+                var details = new ClaimDetails(accidentAt, _place, _description, _insurer, _insurerClaimNumber, franchise);
+                var updated = await Runner.RunAsync<ClaimService, Result>((service, ct) => service.UpdateAsync(claimId, details, ct));
+                saved = updated.IsSuccess ? claimId : updated.Error;
+            }
+            else
+            {
+                var form = new ClaimForm(AgencyId, _vehicleId!.Value, _bookingNumber, accidentAt, _place, _description, _insurer, _insurerClaimNumber, franchise);
+                saved = await Runner.RunAsync<ClaimService, Result<Guid>>((service, ct) => service.OpenAsync(form, ct));
+            }
+
+            if (saved.IsSuccess)
+            {
+                Dialog.Close(DialogResult.Ok(saved.Value));
+                return;
+            }
+
+            _error = ErrorMessages.For(Shared, saved.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

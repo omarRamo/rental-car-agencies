@@ -1,0 +1,103 @@
+@* Records a traffic fine notice (fines.manage): the number and the authority of the notice, the instant (Tunis time) and
+   the place of the offence, the plate, the amount and notes. The service looks for the rental that had the vehicle at that
+   instant; the dialog closes with the id of the recorded fine. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_ticket" Label="@L["Fine.Field.Ticket"]" MaxLength="Fine.TicketMaxLength" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" Immediate="true" autocomplete="off" data-testid="fine-ticket" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_authority" Label="@L["Fine.Field.Authority"]" HelperText="@L["Fine.Field.Authority.Help"]"
+                              MaxLength="Fine.AuthorityMaxLength" Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" data-testid="fine-authority" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_offenceAt" Label="@L["Fine.Field.OffenceAt"]" HelperText="@L["Field.TunisTime"]" InputType="InputType.DateTimeLocal"
+                              ShrinkLabel="true" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="fine-offence-at" data-testid="fine-offence-at" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_plate" Label="@L["Fine.Field.Plate"]" HelperText="@L["Fine.Field.Plate.Help"]" MaxLength="Fine.PlateMaxLength"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" autocomplete="off" data-testid="fine-plate" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_place" Label="@L["Fine.Field.Place"]" MaxLength="Fine.PlaceMaxLength" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" Immediate="true" data-testid="fine-place" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Fine.Field.Amount"]" Min="0m" Max="Fine.MaxAmount" Format="N3" HideSpinButtons="true"
+                                 Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" data-testid="fine-amount" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Fine.Field.Notes"]" Lines="3" MaxLength="Fine.NotesMaxLength" Counter="Fine.NotesMaxLength" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dialog.Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="@(!CanSubmit || _busy)" data-testid="fine-submit">@L["Fine.Record.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _ticket;
+    private string? _authority;
+    private string? _offenceAt;
+    private string? _plate;
+    private string? _place;
+    private decimal? _amount;
+    private string? _notes;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    private bool CanSubmit =>
+        !string.IsNullOrWhiteSpace(_ticket)
+        && !string.IsNullOrWhiteSpace(_authority)
+        && BillingFormat.FromLocalInput(_offenceAt) is not null
+        && !string.IsNullOrWhiteSpace(_plate)
+        && !string.IsNullOrWhiteSpace(_place)
+        && _amount is > 0m;
+
+    private async Task SubmitAsync()
+    {
+        if (BillingFormat.FromLocalInput(_offenceAt) is not { } offenceAt || _amount is not { } amount)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var form = new FineForm(AgencyId, _ticket, _authority, offenceAt, _place, _plate, amount, string.IsNullOrWhiteSpace(_notes) ? null : _notes);
+            var recorded = await Runner.RunAsync<FineService, Result<Guid>>((service, ct) => service.RecordAsync(form, ct));
+            if (recorded.IsSuccess)
+            {
+                Dialog.Close(DialogResult.Ok(recorded.Value));
+                return;
+            }
+
+            _error = ErrorMessages.For(Shared, recorded.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

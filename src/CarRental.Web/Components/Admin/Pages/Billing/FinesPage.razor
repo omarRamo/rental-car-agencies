@@ -1,0 +1,168 @@
+@page "/admin/fines"
+@attribute [HasPermission(Permissions.FinesManage)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Fines.Title"]</PageTitle>
+<BillingStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Fines.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="RecordAsync" Disabled="@(_agencyId is null)"
+               data-testid="fine-new">@L["Fines.Record"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Fines.Intro"]</MudText>
+
+<MudGrid Spacing="2" Class="mb-3">
+    @if (_agencies.Count > 1)
+    {
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Guid?" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]">
+                @foreach (var agency in _agencies)
+                {
+                    <MudSelectItem T="Guid?" Value="@agency.Id">@agency.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+    <MudItem xs="12" sm="6" md="3">
+        <MudSelect T="FineStatus?" Value="_status" ValueChanged="StatusChangedAsync" Label="@L["Filter.Status"]" ToStringFunc="@(s => s is { } status ? L[$"FineStatus.{status}"] : L["Filter.All"])">
+            <MudSelectItem T="FineStatus?" Value="@((FineStatus?)null)">@L["Filter.All"]</MudSelectItem>
+            @foreach (var status in Enum.GetValues<FineStatus>())
+            {
+                <MudSelectItem T="FineStatus?" Value="@status">@L[$"FineStatus.{status}"]</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudTextField T="string" @bind-Value="_search" Label="@L["Fines.Search"]" HelperText="@L["Fines.Search.Help"]" DebounceInterval="350" OnDebounceIntervalElapsed="ReloadAsync"
+                      Clearable="true" OnClearButtonClick="ReloadAsync" autocomplete="off" InputId="fines-search" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+        <MudCheckBox T="bool" Value="_onlyToAssign" ValueChanged="OnlyToAssignChangedAsync" Label="@L["Fines.OnlyToAssign"]" />
+    </MudItem>
+</MudGrid>
+
+<MudTable @ref="_table" T="FineListItem" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Fines.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.OffenceAt"]</MudTh>
+        <MudTh>@L["Column.Ticket"]</MudTh>
+        <MudTh>@L["Column.Authority"]</MudTh>
+        <MudTh>@L["Column.Plate"]</MudTh>
+        <MudTh Style="text-align:end">@L["Column.Amount"]</MudTh>
+        <MudTh>@L["Column.Status"]</MudTh>
+        <MudTh>@L["Column.Booking"]</MudTh>
+        <MudTh>@L["Column.Invoice"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.OffenceAt"]">@BillingFormat.Instant(context.OffenceAtUtc)</MudTd>
+        <MudTd DataLabel="@L["Column.Ticket"]"><MudLink Href="@($"/admin/fines/{context.Id:D}")" data-testid="fine-link">@context.TicketNumber</MudLink></MudTd>
+        <MudTd DataLabel="@L["Column.Authority"]">@context.Authority</MudTd>
+        <MudTd DataLabel="@L["Column.Plate"]">@context.PlateNumber</MudTd>
+        <MudTd DataLabel="@L["Column.Amount"]" Class="billing-number">@BillingFormat.Amount(context.Amount)</MudTd>
+        <MudTd DataLabel="@L["Column.Status"]">
+            <FineStatusChip Status="context.Status" />
+            @if (context.Status == FineStatus.Recorded && context.Match is FineMatch.Ambiguous or FineMatch.NoRental or FineMatch.UnknownVehicle)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@L[$"FineMatch.{context.Match}"]</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Booking"]">
+            @if (context.BookingId is { } bookingId)
+            {
+                <MudLink Href="@($"/admin/bookings/{bookingId:D}")">@context.BookingNumber</MudLink>
+            }
+            else
+            {
+                <span class="billing-muted">—</span>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Invoice"]">@(context.InvoiceNumber ?? "—")</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Fines.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<FineListItem>? _table;
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private Guid? _agencyId;
+    private FineStatus? _status;
+    private string? _search;
+    private bool _onlyToAssign;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
+        _agencyId = _agencies.FirstOrDefault()?.Id;
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task<TableData<FineListItem>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (_agencyId is null)
+        {
+            return new TableData<FineListItem> { Items = [], TotalItems = 0 };
+        }
+
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var filter = new FineListFilter(_agencyId, _status, _onlyToAssign, _search);
+        var result = await Runner.RunAsync<FineService, Result<PagedResult<FineListItem>>>((service, ct) => service.ListAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<FineListItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<FineListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private Task ReloadAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task AgencyChangedAsync(Guid? agencyId)
+    {
+        _agencyId = agencyId;
+        return ReloadAsync();
+    }
+
+    private Task StatusChangedAsync(FineStatus? status)
+    {
+        _status = status;
+        return ReloadAsync();
+    }
+
+    private Task OnlyToAssignChangedAsync(bool value)
+    {
+        _onlyToAssign = value;
+        return ReloadAsync();
+    }
+
+    private async Task RecordAsync()
+    {
+        if (_agencyId is not { } agencyId)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<FineFormDialog> { { d => d.AgencyId, agencyId } };
+        var dialog = await Dialogs.ShowAsync<FineFormDialog>(L["Fines.Record"], parameters, BillingFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false, Data: Guid fineId })
+        {
+            Snackbar.Add(L["Fines.Recorded"], Severity.Success);
+            Navigation.NavigateTo($"/admin/fines/{fineId:D}");
+        }
+    }
+}

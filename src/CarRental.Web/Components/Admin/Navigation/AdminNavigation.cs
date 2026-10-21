@@ -38,6 +38,8 @@ public static class AdminNavigation
         [
             new("/admin/payments", "Nav.Payments", Icons.Material.Outlined.Payments, Permissions.PaymentsRead),
             new("/admin/invoices", "Nav.Invoices", Icons.Material.Outlined.ReceiptLong, Permissions.InvoicesRead),
+            new("/admin/fines", "Nav.Fines", Icons.Material.Outlined.Gavel, Permissions.FinesManage),
+            new("/admin/claims", "Nav.Claims", Icons.Material.Outlined.CarCrash, Permissions.ClaimsManage),
             new("/admin/cash", "Nav.Cash", Icons.Material.Outlined.PointOfSale, Permissions.CashOwn),
             new("/admin/expenses", "Nav.Expenses", Icons.Material.Outlined.MoneyOff, Permissions.ExpensesManage),
             new("/admin/reconciliation", "Nav.Reconciliation", Icons.Material.Outlined.CompareArrows, Permissions.ReconciliationManage),
@@ -47,6 +49,7 @@ public static class AdminNavigation
         new("Nav.Group.Administration", Icons.Material.Outlined.AdminPanelSettings,
         [
             new("/admin/users", "Nav.Users", Icons.Material.Outlined.ManageAccounts, Permissions.UsersManage),
+            new("/admin/agency", "Nav.Agency", Icons.Material.Outlined.Storefront, Permissions.SettingsManage),
             new("/admin/settings", "Nav.Settings", Icons.Material.Outlined.Settings, Permissions.SettingsManage),
             new("/admin/audit", "Nav.Audit", Icons.Material.Outlined.History, Permissions.AuditRead),
             new("/admin/outbox", "Nav.Outbox", Icons.Material.Outlined.Outbox, Permissions.OutboxManage),

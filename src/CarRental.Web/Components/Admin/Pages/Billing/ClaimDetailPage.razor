@@ -1,0 +1,395 @@
+@page "/admin/claims/{Id:guid}"
+@attribute [HasPermission(Permissions.ClaimsManage)]
+@using CarRental.Web.Components.Admin.Bookings
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<BillingStyles />
+
+<MudLink Href="/admin/claims" Class="d-inline-flex align-center gap-1 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" aria-hidden="true" />@L["Claim.BackToList"]
+</MudLink>
+
+@if (_claim is not { } claim)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@Title</MudText>
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+}
+else
+{
+    var open = claim.Status != ClaimStatus.Closed;
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
+        <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
+        <ClaimStatusChip Status="claim.Status" />
+    </MudStack>
+    <MudText Typo="Typo.body2" Class="mb-3">@L["Claim.OpenedBy", BillingFormat.Instant(claim.OpenedAtUtc), claim.OpenedBy]</MudText>
+
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
+        @if (open)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync" Disabled="_busy">@L["Claim.Edit"]</MudButton>
+        }
+        @if (claim.Status == ClaimStatus.Open)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" OnClick="SendToInsurerAsync" Disabled="_busy">@L["Claim.SendToInsurer"]</MudButton>
+        }
+        @if (claim.Status == ClaimStatus.AtInsurer)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Undo" OnClick="ReopenAsync" Disabled="_busy">@L["Claim.Reopen"]</MudButton>
+        }
+        @if (open)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Lock" OnClick="CloseAsync" Disabled="_busy">@L["Claim.Close"]</MudButton>
+        }
+    </MudStack>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Claim.Accident"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Column.Vehicle"]</dt>
+                    <dd>@claim.VehicleLabel</dd>
+                    <dt>@L["Column.Booking"]</dt>
+                    <dd>
+                        @if (claim.BookingId is { } bookingId)
+                        {
+                            <MudLink Href="@($"/admin/bookings/{bookingId:D}")" Underline="Underline.Always">@claim.BookingNumber</MudLink>
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </dd>
+                    <dt>@L["Column.AccidentAt"]</dt>
+                    <dd>@BillingFormat.Instant(claim.AccidentAtUtc)</dd>
+                    <dt>@L["Claim.Field.Place"]</dt>
+                    <dd>@(claim.Place ?? "—")</dd>
+                    <dt>@L["Claim.Field.Description"]</dt>
+                    <dd style="white-space:pre-line">@claim.Description</dd>
+                    <dt>@L["Column.Insurer"]</dt>
+                    <dd>@(claim.Insurer ?? "—")</dd>
+                    <dt>@L["Claim.Field.InsurerClaimNumber"]</dt>
+                    <dd>@(claim.InsurerClaimNumber ?? "—")</dd>
+                    @if (claim.ClosedAtUtc is { } closedAt)
+                    {
+                        <dt>@L["Claim.ClosedAt"]</dt>
+                        <dd>@BillingFormat.Instant(closedAt)</dd>
+                    }
+                </dl>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Claim.Money"]</MudText>
+                <dl class="billing-totals" style="max-inline-size:none" data-testid="claim-totals">
+                    <dt>@L["Claim.Field.Franchise"]</dt>
+                    <dd>@BillingFormat.Amount(claim.Franchise)</dd>
+                    <dt>@L["Column.Costs"]</dt>
+                    <dd>@BillingFormat.Amount(claim.TotalCosts)</dd>
+                    <dt>@L["Column.Reimbursements"]</dt>
+                    <dd>@BillingFormat.Amount(claim.TotalReimbursements)</dd>
+                    <dt class="billing-total">@L["Column.NetCost"]</dt>
+                    <dd class="billing-total" data-testid="claim-net-cost">@BillingFormat.Amount(claim.NetCost)</dd>
+                </dl>
+                <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Claim.Money.Help"]</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @foreach (var reimbursement in new[] { false, true })
+    {
+        var entries = reimbursement ? claim.Reimbursements : claim.Costs;
+        var headingId = reimbursement ? "claim-reimbursements" : "claim-costs";
+        <section aria-labelledby="@headingId" class="mb-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="@headingId">@L[reimbursement ? "Claim.Reimbursements" : "Claim.Costs"]</MudText>
+                @if (open)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Disabled="_busy"
+                               OnClick="() => AddEntryAsync(reimbursement)" data-testid="@(reimbursement ? "claim-add-reimbursement" : "claim-add-cost")">
+                        @L[reimbursement ? "Claim.Reimbursement.Add" : "Claim.Cost.Add"]
+                    </MudButton>
+                }
+            </MudStack>
+            @if (entries.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@L[reimbursement ? "Claim.Reimbursements.None" : "Claim.Costs.None"]</MudText>
+            }
+            else
+            {
+                <div class="billing-scroll" tabindex="0" role="region" aria-labelledby="@headingId">
+                    <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="@headingId">
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Date"]</th>
+                                <th scope="col">@L["Column.Label"]</th>
+                                <th scope="col">@L["Claim.Entry.Reference"]</th>
+                                <th scope="col" class="billing-number">@L["Column.Amount"]</th>
+                                <th scope="col">@L["Column.RecordedBy"]</th>
+                                @if (open)
+                                {
+                                    <th scope="col">@L["Column.Actions"]</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in entries)
+                            {
+                                <tr>
+                                    <td>@BillingFormat.Date(entry.Date)</td>
+                                    <td>@entry.Label</td>
+                                    <td>@(entry.Reference ?? "—")</td>
+                                    <td class="billing-number">@BillingFormat.Amount(entry.Amount)</td>
+                                    <td>@entry.RecordedBy</td>
+                                    @if (open)
+                                    {
+                                        <td>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Delete" Disabled="_busy"
+                                                       OnClick="() => RemoveEntryAsync(entry, reimbursement)" aria-label="@L["Claim.Entry.Remove.Label", entry.Label]">@L["Claim.Entry.Remove"]</MudButton>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            }
+        </section>
+    }
+
+    <section aria-labelledby="claim-documents" class="mb-4">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="claim-documents" GutterBottom="true">@L["Claim.Documents"]</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@L["Claim.Documents.Help", ClaimService.MaxFileBytes / (1024 * 1024)]</MudText>
+        @if (open)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-3">
+                <MudSelect T="ClaimDocumentKind" @bind-Value="_uploadKind" Label="@L["Claim.Document.Kind"]" Style="min-inline-size:14rem"
+                           ToStringFunc="@(k => L[$"ClaimDocumentKind.{k}"])">
+                    @foreach (var kind in Enum.GetValues<ClaimDocumentKind>())
+                    {
+                        <MudSelectItem T="ClaimDocumentKind" Value="@kind">@L[$"ClaimDocumentKind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp,.pdf" FilesChanged="UploadAsync">
+                    <CustomContent Context="upload">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="_busy"
+                                   OnClick="@upload.OpenFilePickerAsync" data-testid="claim-upload">@L["Claim.Document.Upload"]</MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+            </MudStack>
+        }
+        @if (claim.Documents.Count == 0)
+        {
+            <MudText Typo="Typo.body2">@L["Claim.Documents.None"]</MudText>
+        }
+        else
+        {
+            <div class="billing-scroll" tabindex="0" role="region" aria-labelledby="claim-documents">
+                <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="claim-documents">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Claim.Document.Kind"]</th>
+                            <th scope="col">@L["Claim.Document.Name"]</th>
+                            <th scope="col" class="billing-number">@L["Claim.Document.Size"]</th>
+                            <th scope="col">@L["Claim.Document.UploadedAt"]</th>
+                            @if (open)
+                            {
+                                <th scope="col">@L["Column.Actions"]</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var document in claim.Documents)
+                        {
+                            <tr data-testid="claim-document">
+                                <td>@L[$"ClaimDocumentKind.{document.Kind}"]</td>
+                                <td><MudLink Href="@BillingFormat.ClaimFileUrl(document.Id)" Target="_blank" rel="noopener" Underline="Underline.Always">@document.FileName</MudLink></td>
+                                <td class="billing-number">@FileSize(document.Length)</td>
+                                <td>@L["Fine.By", BillingFormat.Instant(document.UploadedAtUtc), document.UploadedBy]</td>
+                                @if (open)
+                                {
+                                    <td>
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Delete" Disabled="_busy"
+                                                   OnClick="() => RemoveDocumentAsync(document)" aria-label="@L["Claim.Document.Remove.Label", document.FileName]">@L["Claim.Entry.Remove"]</MudButton>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private ClaimDetail? _claim;
+    private string? _error;
+    private ClaimDocumentKind _uploadKind = ClaimDocumentKind.AccidentReport;
+    private bool _busy;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string Title => _claim is { } claim
+        ? L["Claim.Title", BillingFormat.Date(TunisTime.DateOf(claim.AccidentAtUtc)), claim.VehicleLabel]
+        : L["Claim.Title.Loading"];
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var id = Id;
+        var result = await Runner.RunAsync<ClaimService, Result<ClaimDetail>>((service, ct) => service.GetAsync(id, ct));
+        if (result.IsSuccess)
+        {
+            _claim = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _claim = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task EditAsync()
+    {
+        if (_claim is not { } claim)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<ClaimFormDialog> { { d => d.AgencyId, claim.AgencyId }, { d => d.Claim, claim } };
+        var dialog = await Dialogs.ShowAsync<ClaimFormDialog>(L["Claim.Edit"], parameters, BillingFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Claim.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task AddEntryAsync(bool reimbursement)
+    {
+        var parameters = new DialogParameters<ClaimEntryDialog> { { d => d.ClaimId, Id }, { d => d.Reimbursement, reimbursement } };
+        var dialog = await Dialogs.ShowAsync<ClaimEntryDialog>(L[reimbursement ? "Claim.Reimbursement.Add" : "Claim.Cost.Add"], parameters, BillingFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Claim.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task RemoveEntryAsync(ClaimEntryView entry, bool reimbursement)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Claim.Entry.Remove"], L["Claim.Entry.Remove.Message", entry.Label, BillingFormat.Amount(entry.Amount)], L["Claim.Entry.Remove"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var (claimId, entryId) = (Id, entry.Id);
+        await RunAsync(
+            () => Runner.RunAsync<ClaimService, Result>((service, ct) => reimbursement ? service.RemoveReimbursementAsync(claimId, entryId, ct) : service.RemoveCostAsync(claimId, entryId, ct)),
+            L["Claim.Saved"]);
+    }
+
+    private async Task SendToInsurerAsync()
+    {
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<ClaimService, Result>((service, ct) => service.SendToInsurerAsync(id, ct)), L["Claim.SendToInsurer.Done"]);
+    }
+
+    private async Task ReopenAsync()
+    {
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<ClaimService, Result>((service, ct) => service.ReopenAsync(id, ct)), L["Claim.Reopen.Done"]);
+    }
+
+    private async Task CloseAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Claim.Close"], L["Claim.Close.Message"], L["Claim.Close"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<ClaimService, Result>((service, ct) => service.CloseAsync(id, ct)), L["Claim.Close.Done"]);
+    }
+
+    private async Task UploadAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+
+        if (file.Size > ClaimService.MaxFileBytes)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, BillingErrors.ClaimFileInvalid), Severity.Error);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var (claimId, kind, name) = (Id, _uploadKind, file.Name);
+            Result<Guid> uploaded;
+            await using (var content = file.OpenReadStream(ClaimService.MaxFileBytes))
+            {
+                uploaded = await Runner.RunAsync<ClaimService, Result<Guid>>((service, ct) => service.UploadAsync(claimId, kind, name, content, ct));
+            }
+
+            Snackbar.Add(uploaded.IsSuccess ? L["Claim.Document.Uploaded"] : ErrorMessages.For(Shared, uploaded.Error), uploaded.IsSuccess ? Severity.Success : Severity.Error);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveDocumentAsync(ClaimDocumentView document)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Claim.Entry.Remove"], L["Claim.Document.Remove.Message", document.FileName], L["Claim.Entry.Remove"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var (claimId, documentId) = (Id, document.Id);
+        await RunAsync(() => Runner.RunAsync<ClaimService, Result>((service, ct) => service.RemoveDocumentAsync(claimId, documentId, ct)), L["Claim.Saved"]);
+    }
+
+    private async Task RunAsync(Func<Task<Result>> action, string success)
+    {
+        _busy = true;
+        try
+        {
+            var result = await action();
+            Snackbar.Add(result.IsSuccess ? success : ErrorMessages.For(Shared, result.Error), result.IsSuccess ? Severity.Success : Severity.Error);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private string FileSize(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => L["Size.Megabytes", (bytes / (1024d * 1024d)).ToString("0.#", CultureInfo.CurrentCulture)],
+        >= 1024 => L["Size.Kilobytes", (bytes / 1024d).ToString("0", CultureInfo.CurrentCulture)],
+        _ => L["Size.Bytes", bytes],
+    };
+}

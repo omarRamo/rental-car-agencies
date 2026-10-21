@@ -1,0 +1,9 @@
+@* The status of a fine: an icon and its text (never the colour alone). *@
+@inject IStringLocalizer<BillingResources> L
+
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@BillingFormat.FineIcon(Status)" data-testid="fine-status">@L[$"FineStatus.{Status}"]</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public FineStatus Status { get; set; }
+}

@@ -1,0 +1,9 @@
+@* The status of a claim: an icon and its text (never the colour alone). *@
+@inject IStringLocalizer<BillingResources> L
+
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@BillingFormat.ClaimIcon(Status)" data-testid="claim-status">@L[$"ClaimStatus.{Status}"]</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClaimStatus Status { get; set; }
+}

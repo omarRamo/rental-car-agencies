@@ -1,0 +1,432 @@
+@page "/admin/invoices"
+@attribute [HasPermission(Permissions.InvoicesRead)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Invoices.Title"]</PageTitle>
+<BillingStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Invoices.Title"]</MudText>
+    @if (_agencies.Count > 1)
+    {
+        <MudSelect T="Guid?" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" Style="min-inline-size:14rem">
+            @foreach (var agency in _agencies)
+            {
+                <MudSelectItem T="Guid?" Value="@agency.Id">@agency.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Invoices.Intro"]</MudText>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pa-3" @bind-ActivePanelIndex="_tab" aria-label="@L["Invoices.Tabs"]">
+    <MudTabPanel Text="@L["Tab.Invoices"]" data-testid="tab-invoices">
+        <MudGrid Spacing="2" Class="mb-3">
+            <MudItem xs="6" md="2">
+                <MudTextField T="string" Value="_from" ValueChanged="FromChangedAsync" Label="@L["Filter.From"]" InputType="InputType.Date" ShrinkLabel="true" InputId="invoices-from" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudTextField T="string" Value="_to" ValueChanged="ToChangedAsync" Label="@L["Filter.To"]" InputType="InputType.Date" ShrinkLabel="true" InputId="invoices-to" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_customer" Label="@L["Filter.Customer"]" DebounceInterval="350" OnDebounceIntervalElapsed="ReloadInvoicesAsync"
+                              Clearable="true" OnClearButtonClick="ReloadInvoicesAsync" autocomplete="off" InputId="invoices-customer" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" @bind-Value="_number" Label="@L["Filter.Number"]" HelperText="@L["Filter.Number.Help"]" DebounceInterval="350"
+                              OnDebounceIntervalElapsed="ReloadInvoicesAsync" Clearable="true" OnClearButtonClick="ReloadInvoicesAsync" autocomplete="off" InputId="invoices-number" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect T="InvoiceKind?" Value="_kind" ValueChanged="KindChangedAsync" Label="@L["Filter.Kind"]" ToStringFunc="@(k => k is { } kind ? L[$"Kind.{kind}"] : L["Filter.All"])">
+                    <MudSelectItem T="InvoiceKind?" Value="@((InvoiceKind?)null)">@L["Filter.All"]</MudSelectItem>
+                    @foreach (var kind in Enum.GetValues<InvoiceKind>())
+                    {
+                        <MudSelectItem T="InvoiceKind?" Value="@kind">@L[$"Kind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="EInvoiceStatus?" Value="_status" ValueChanged="StatusChangedAsync" Label="@L["Filter.EInvoice"]" ToStringFunc="@(s => s is { } status ? L[$"EInvoiceStatus.{status}"] : L["Filter.All"])">
+                    <MudSelectItem T="EInvoiceStatus?" Value="@((EInvoiceStatus?)null)">@L["Filter.All"]</MudSelectItem>
+                    @foreach (var status in Enum.GetValues<EInvoiceStatus>())
+                    {
+                        <MudSelectItem T="EInvoiceStatus?" Value="@status">@L[$"EInvoiceStatus.{status}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                <MudCheckBox T="bool" Value="_onlyRemaining" ValueChanged="OnlyRemainingChangedAsync" Label="@L["Filter.OnlyRemaining"]" />
+            </MudItem>
+        </MudGrid>
+        <MudTable @ref="_invoices" T="InvoiceListItem" ServerData="LoadInvoicesAsync" RowsPerPage="25" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Tab.Invoices"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Number"]</MudTh>
+                <MudTh>@L["Column.Date"]</MudTh>
+                <MudTh>@L["Column.Kind"]</MudTh>
+                <MudTh>@L["Column.Customer"]</MudTh>
+                <MudTh>@L["Column.Booking"]</MudTh>
+                <MudTh Style="text-align:end">@L["Column.TotalDue"]</MudTh>
+                <MudTh Style="text-align:end">@L["Column.Credited"]</MudTh>
+                <MudTh>@L["Column.EInvoice"]</MudTh>
+                <MudTh>@L["Column.Pdf"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Number"]"><MudLink Href="@($"/admin/invoices/{context.Id:D}")" data-testid="invoice-link">@context.Number</MudLink></MudTd>
+                <MudTd DataLabel="@L["Column.Date"]">@BillingFormat.Date(context.IssueDate)</MudTd>
+                <MudTd DataLabel="@L["Column.Kind"]">@L[$"Kind.{context.Kind}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Customer"]">@context.BuyerName</MudTd>
+                <MudTd DataLabel="@L["Column.Booking"]">
+                    @if (context.BookingId is { } bookingId)
+                    {
+                        <MudLink Href="@($"/admin/bookings/{bookingId:D}")">@context.BookingNumber</MudLink>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["Column.TotalDue"]" Class="billing-number">@BillingFormat.Amount(context.TotalDue)</MudTd>
+                <MudTd DataLabel="@L["Column.Credited"]" Class="billing-number">@(context.Credited.IsZero ? "—" : BillingFormat.Amount(context.Credited))</MudTd>
+                <MudTd DataLabel="@L["Column.EInvoice"]"><EInvoiceStatusChip Status="context.EInvoiceStatus" /></MudTd>
+                <MudTd DataLabel="@L["Column.Pdf"]">
+                    @if (context.HasPdf)
+                    {
+                        <MudLink Href="@BillingFormat.InvoicePdfUrl(context.Id)" Target="_blank" rel="noopener" aria-label="@L["Pdf.Download.Of", context.Number]">@L["Pdf.Download.Short"]</MudLink>
+                    }
+                    else
+                    {
+                        <span class="billing-muted">@L["Pdf.Pending"]</span>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Invoices.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <AdminTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Tab.CreditNotes"]" data-testid="tab-credit-notes">
+        <MudTable @ref="_creditNotes" T="CreditNoteListItem" ServerData="LoadCreditNotesAsync" RowsPerPage="25" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Tab.CreditNotes"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Number"]</MudTh>
+                <MudTh>@L["Column.Date"]</MudTh>
+                <MudTh>@L["Column.Invoice"]</MudTh>
+                <MudTh>@L["Column.Scope"]</MudTh>
+                <MudTh>@L["Column.Reason"]</MudTh>
+                <MudTh>@L["Column.Customer"]</MudTh>
+                <MudTh Style="text-align:end">@L["Column.Total"]</MudTh>
+                <MudTh>@L["Column.EInvoice"]</MudTh>
+                <MudTh>@L["Column.Pdf"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Number"]">@context.Number</MudTd>
+                <MudTd DataLabel="@L["Column.Date"]">@BillingFormat.Date(context.IssueDate)</MudTd>
+                <MudTd DataLabel="@L["Column.Invoice"]"><MudLink Href="@($"/admin/invoices/{context.InvoiceId:D}")">@context.InvoiceNumber</MudLink></MudTd>
+                <MudTd DataLabel="@L["Column.Scope"]">@L[$"Scope.{context.Scope}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Reason"]">@context.Reason</MudTd>
+                <MudTd DataLabel="@L["Column.Customer"]">@context.BuyerName</MudTd>
+                <MudTd DataLabel="@L["Column.Total"]" Class="billing-number">@BillingFormat.Amount(context.TotalInclVat)</MudTd>
+                <MudTd DataLabel="@L["Column.EInvoice"]"><EInvoiceStatusChip Status="context.EInvoiceStatus" /></MudTd>
+                <MudTd DataLabel="@L["Column.Pdf"]">
+                    @if (context.HasPdf)
+                    {
+                        <MudLink Href="@BillingFormat.CreditNotePdfUrl(context.Id)" Target="_blank" rel="noopener" aria-label="@L["Pdf.Download.Of", context.Number]">@L["Pdf.Download.Short"]</MudLink>
+                    }
+                    else
+                    {
+                        <span class="billing-muted">@L["Pdf.Pending"]</span>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["CreditNotes.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <AdminTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Tab.ToInvoice"]" BadgeData="@(_toInvoice.Count > 0 ? _toInvoice.Count : null)" BadgeColor="Color.Warning" data-testid="tab-to-invoice">
+        <MudText Typo="Typo.body2" Class="mb-3">@L["ToInvoice.Intro"]</MudText>
+        @if (_toInvoice.FirstOrDefault()?.BlockingErrorCode is { } blocking)
+        {
+            <Notice Kind="NoticeKind.Warning" Class="mb-3" Role="status">
+                @Shared[$"Error.{blocking}"]
+                <AuthorizeView Policy="@PermissionPolicy.For(Permissions.SettingsManage)">
+                    <MudLink Href="/admin/agency" Underline="Underline.Always" Class="ms-1">@L["ToInvoice.CompleteIdentity"]</MudLink>
+                </AuthorizeView>
+            </Notice>
+        }
+        @if (_toInvoice.Count == 0)
+        {
+            <MudText>@L["ToInvoice.Empty"]</MudText>
+        }
+        else
+        {
+            <div class="billing-scroll" tabindex="0" role="region" aria-label="@L["Tab.ToInvoice"]">
+                <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Tab.ToInvoice"]">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Booking"]</th>
+                            <th scope="col">@L["Column.Kind"]</th>
+                            <th scope="col">@L["Column.StatusChanged"]</th>
+                            <th scope="col" class="billing-number">@L["Column.Amount"]</th>
+                            <th scope="col">@L["Column.Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var file in _toInvoice)
+                        {
+                            <tr>
+                                <td><MudLink Href="@($"/admin/bookings/{file.BookingId:D}")">@file.Number</MudLink></td>
+                                <td>@L[$"Kind.{file.Kind}"]</td>
+                                <td>@BillingFormat.Instant(file.StatusChangedAtUtc)</td>
+                                <td class="billing-number">@BillingFormat.Amount(file.Amount)</td>
+                                <td>
+                                    <AuthorizeView Policy="@PermissionPolicy.For(Permissions.InvoicesIssue)">
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ReceiptLong"
+                                                   Disabled="@(_busy || file.BlockingErrorCode is not null)" OnClick="() => IssueAsync(file)"
+                                                   aria-label="@L["ToInvoice.Issue.Label", file.Number]" data-testid="issue-now">@L["ToInvoice.Issue"]</MudButton>
+                                    </AuthorizeView>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Tab.EInvoice"]" BadgeData="@(_queue.Count(q => q.Status == EInvoiceStatus.Failed) is > 0 and var failed ? failed : null)" BadgeColor="Color.Error" data-testid="tab-einvoice">
+        <MudText Typo="Typo.body2" Class="mb-3">@L["EInvoice.Intro"]</MudText>
+        @if (_queue.Count == 0)
+        {
+            <MudText>@L["EInvoice.Empty"]</MudText>
+        }
+        else
+        {
+            <div class="billing-scroll" tabindex="0" role="region" aria-label="@L["Tab.EInvoice"]">
+                <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Tab.EInvoice"]">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Number"]</th>
+                            <th scope="col">@L["Column.Date"]</th>
+                            <th scope="col">@L["Column.Customer"]</th>
+                            <th scope="col" class="billing-number">@L["Column.TotalDue"]</th>
+                            <th scope="col">@L["Column.EInvoice"]</th>
+                            <th scope="col">@L["Column.Attempts"]</th>
+                            <th scope="col">@L["Column.LastError"]</th>
+                            <th scope="col">@L["Column.Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _queue)
+                        {
+                            <tr>
+                                <td>
+                                    @if (item.Type == BillingDocumentType.Invoice)
+                                    {
+                                        <MudLink Href="@($"/admin/invoices/{item.Id:D}")">@item.Number</MudLink>
+                                    }
+                                    else
+                                    {
+                                        @item.Number
+                                    }
+                                </td>
+                                <td>@BillingFormat.Date(item.IssueDate)</td>
+                                <td>@item.BuyerName</td>
+                                <td class="billing-number">@BillingFormat.Amount(item.TotalDue)</td>
+                                <td><EInvoiceStatusChip Status="item.Status" /></td>
+                                <td>@item.Attempts</td>
+                                <td>@(item.LastError ?? "—")</td>
+                                <td>
+                                    @if (item.Status == EInvoiceStatus.Failed)
+                                    {
+                                        <AuthorizeView Policy="@PermissionPolicy.For(Permissions.InvoicesManage)">
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay"
+                                                       Disabled="_busy" OnClick="() => RetryAsync(item)" aria-label="@L["EInvoice.Retry.Label", item.Number]">@L["EInvoice.Retry"]</MudButton>
+                                        </AuthorizeView>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<InvoiceListItem>? _invoices;
+    private MudTable<CreditNoteListItem>? _creditNotes;
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private IReadOnlyList<FileToInvoice> _toInvoice = [];
+    private IReadOnlyList<EInvoiceQueueItem> _queue = [];
+    private Guid? _agencyId;
+    private string? _from;
+    private string? _to;
+    private string? _customer;
+    private string? _number;
+    private InvoiceKind? _kind;
+    private EInvoiceStatus? _status;
+    private bool _onlyRemaining;
+    private int _tab;
+    private bool _busy;
+
+    /// <summary>The tab to open: <c>to-invoice</c> or <c>einvoice</c> (links of the dashboard and of the booking page).</summary>
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? TabQuery { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tab = TabQuery switch
+        {
+            "credit-notes" => 1,
+            "to-invoice" => 2,
+            "einvoice" => 3,
+            _ => 0,
+        };
+        var agencies = await Runner.RunAsync<BillingAdministrationQueries, Result<IReadOnlyList<AgencyInfo>>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        if (agencies.IsSuccess)
+        {
+            _agencies = agencies.Value;
+            _agencyId = _agencies.FirstOrDefault()?.Id;
+        }
+
+        await LoadListsAsync();
+    }
+
+    private async Task LoadListsAsync()
+    {
+        if (_agencyId is not { } agencyId)
+        {
+            return;
+        }
+
+        var files = await Runner.RunAsync<BillingAdministrationQueries, Result<IReadOnlyList<FileToInvoice>>>((queries, ct) => queries.GetFilesToInvoiceAsync(agencyId, ct));
+        _toInvoice = files.IsSuccess ? files.Value : [];
+        var queue = await Runner.RunAsync<BillingAdministrationQueries, Result<IReadOnlyList<EInvoiceQueueItem>>>((queries, ct) => queries.GetEInvoiceQueueAsync(agencyId, ct));
+        _queue = queue.IsSuccess ? queue.Value : [];
+    }
+
+    private async Task<TableData<InvoiceListItem>> LoadInvoicesAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var filter = new InvoiceListFilter(_agencyId, BillingFormat.ParseDate(_from), BillingFormat.ParseDate(_to), _customer, _number, _kind, _status, _onlyRemaining);
+        var result = await Runner.RunAsync<BillingAdministrationQueries, Result<PagedResult<InvoiceListItem>>>((queries, ct) => queries.ListInvoicesAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<InvoiceListItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<InvoiceListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task<TableData<CreditNoteListItem>> LoadCreditNotesAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var (agencyId, from, to) = (_agencyId, BillingFormat.ParseDate(_from), BillingFormat.ParseDate(_to));
+        var result = await Runner.RunAsync<BillingAdministrationQueries, Result<PagedResult<CreditNoteListItem>>>((queries, ct) => queries.ListCreditNotesAsync(agencyId, from, to, page, ct), cancellationToken);
+        return result.IsSuccess
+            ? new TableData<CreditNoteListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount }
+            : new TableData<CreditNoteListItem> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task ReloadInvoicesAsync()
+    {
+        if (_invoices is not null)
+        {
+            await _invoices.ReloadServerData();
+        }
+
+        if (_creditNotes is not null)
+        {
+            await _creditNotes.ReloadServerData();
+        }
+    }
+
+    private async Task AgencyChangedAsync(Guid? agencyId)
+    {
+        _agencyId = agencyId;
+        await LoadListsAsync();
+        await ReloadInvoicesAsync();
+    }
+
+    private Task FromChangedAsync(string? value)
+    {
+        _from = value;
+        return ReloadInvoicesAsync();
+    }
+
+    private Task ToChangedAsync(string? value)
+    {
+        _to = value;
+        return ReloadInvoicesAsync();
+    }
+
+    private Task KindChangedAsync(InvoiceKind? kind)
+    {
+        _kind = kind;
+        return ReloadInvoicesAsync();
+    }
+
+    private Task StatusChangedAsync(EInvoiceStatus? status)
+    {
+        _status = status;
+        return ReloadInvoicesAsync();
+    }
+
+    private Task OnlyRemainingChangedAsync(bool value)
+    {
+        _onlyRemaining = value;
+        return ReloadInvoicesAsync();
+    }
+
+    private async Task IssueAsync(FileToInvoice file)
+    {
+        _busy = true;
+        try
+        {
+            var bookingId = file.BookingId;
+            var issued = file.Kind == InvoiceKind.Rental
+                ? await Runner.RunAsync<InvoicingService, Result<IssuedDocument>>((service, ct) => service.IssueRentalInvoiceAsync(bookingId, ct))
+                : await Runner.RunAsync<InvoicingService, Result<IssuedDocument>>((service, ct) => service.IssueCancellationInvoiceAsync(bookingId, ct));
+            if (issued.IsFailure)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, issued.Error), Severity.Error);
+                return;
+            }
+
+            Snackbar.Add(L["ToInvoice.Issued", issued.Value.Number], Severity.Success);
+            Navigation.NavigateTo($"/admin/invoices/{issued.Value.Id:D}");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RetryAsync(EInvoiceQueueItem item)
+    {
+        _busy = true;
+        try
+        {
+            var (type, id) = (item.Type, item.Id);
+            var retried = await Runner.RunAsync<BillingAdministrationQueries, Result>((queries, ct) => queries.RetryTransmissionAsync(type, id, ct));
+            Snackbar.Add(retried.IsSuccess ? L["EInvoice.Retried", item.Number] : ErrorMessages.For(Shared, retried.Error), retried.IsSuccess ? Severity.Success : Severity.Error);
+            await LoadListsAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

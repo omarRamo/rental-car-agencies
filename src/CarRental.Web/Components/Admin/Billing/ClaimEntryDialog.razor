@@ -1,0 +1,91 @@
+@* Adds a cost (repair, towing, expertise…) or a reimbursement (insurer, third party…) to a claim: date, label, amount and
+   an optional reference (quote, invoice, transfer). Closes once the claim saved it. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Clock
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="5">
+                <MudTextField T="string" @bind-Value="_date" Label="@L["Claim.Entry.Date"]" InputType="InputType.Date" ShrinkLabel="true" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" InputId="claim-entry-date" />
+            </MudItem>
+            <MudItem xs="12" sm="7">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Claim.Entry.Amount"]" Min="0m" Max="CarRental.Domain.Billing.Claim.MaxAmount" Format="N3"
+                                 HideSpinButtons="true" Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" data-testid="claim-entry-amount" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_label" Label="@L["Claim.Entry.Label"]" HelperText="@L[Reimbursement ? "Claim.Entry.Label.Reimbursement.Help" : "Claim.Entry.Label.Cost.Help"]"
+                              MaxLength="CarRental.Domain.Billing.Claim.LabelMaxLength" Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true"
+                              data-testid="claim-entry-label" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L["Claim.Entry.Reference"]" MaxLength="CarRental.Domain.Billing.Claim.ReferenceMaxLength" autocomplete="off" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dialog.Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="@(!CanSubmit || _busy)" data-testid="claim-entry-submit">@L["Claim.Entry.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _date;
+    private decimal? _amount;
+    private string? _label;
+    private string? _reference;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid ClaimId { get; set; }
+
+    /// <summary>A reimbursement rather than a cost.</summary>
+    [Parameter]
+    public bool Reimbursement { get; set; }
+
+    private bool CanSubmit => BillingFormat.ParseDate(_date) is not null && _amount is > 0m && !string.IsNullOrWhiteSpace(_label);
+
+    protected override void OnInitialized() => _date = BillingFormat.ToDateInput(TunisTime.DateOf(Clock.GetUtcNow()));
+
+    private async Task SubmitAsync()
+    {
+        if (BillingFormat.ParseDate(_date) is not { } date || _amount is not { } amount)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var (claimId, reimbursement) = (ClaimId, Reimbursement);
+            var input = new ClaimEntryInput(date, _label, amount, string.IsNullOrWhiteSpace(_reference) ? null : _reference);
+            var saved = await Runner.RunAsync<ClaimService, Result>((service, ct) =>
+                reimbursement ? service.AddReimbursementAsync(claimId, input, ct) : service.AddCostAsync(claimId, input, ct));
+            if (saved.IsSuccess)
+            {
+                Dialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _error = ErrorMessages.For(Shared, saved.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}
