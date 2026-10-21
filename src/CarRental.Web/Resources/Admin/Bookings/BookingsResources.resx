@@ -1440,4 +1440,7 @@
   <data name="Widget.Unassigned" xml:space="preserve">
     <value>Sans véhicule sous 48 h ({0})</value>
   </data>
+  <data name="Reason.booking.reason.channel" xml:space="preserve">
+    <value>Modifiée ou annulée par le canal de vente.</value>
+  </data>
 </root>

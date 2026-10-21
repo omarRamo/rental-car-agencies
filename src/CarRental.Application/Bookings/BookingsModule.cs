@@ -37,6 +37,7 @@ public static class BookingsModule
         services.AddScoped<IBookingsQueries, BookingsQueries>();
         services.AddScoped<IBookingRequests, BookingRequestService>();
         services.AddScoped<IBookingPaymentStatus, BookingPaymentStatus>();
+        services.AddScoped<IChannelBookings, ChannelBookingService>();
 
         // Internals, one instance per operation scope.
         services.AddScoped<BookingWriter>();
