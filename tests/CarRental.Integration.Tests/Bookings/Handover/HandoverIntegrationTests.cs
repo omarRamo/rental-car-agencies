@@ -7,6 +7,7 @@ using CarRental.Application.Common.Files;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Payments.Contracts;
+using CarRental.Application.Reporting.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Bookings.Handover;
 using CarRental.Domain.Common;
@@ -177,6 +178,15 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         revised.Lines.ShouldNotContain(l => l.Kind == ReturnChargeKindInfo.FranchiseCap);
         revised.TotalInclVat.ShouldBe(revisedPreview.ProposalTotal + Money.Tnd(180m));
         revised.TotalInclVat.ShouldBeLessThan(file.Deposit);
+
+        // The indicators see the same charges (the Reporting port is served by the return charges).
+        var reported = await RunAsync<IBookingChargesSource, IReadOnlyDictionary<Guid, Money>>(
+            host,
+            agent,
+            source => source.GetChargesDueAsync(file.Agency.AgencyId, [file.BookingId, Guid.NewGuid()], Ct));
+        var reportedCharges = reported.ShouldHaveSingleItem();
+        reportedCharges.Key.ShouldBe(file.BookingId);
+        reportedCharges.Value.ShouldBe(revised.TotalInclVat);
 
         (await RunAsync<ReturnService, Result>(host, agent, s => s.CloseAsync(file.BookingId, Ct))).Error.ShouldBe(HandoverErrors.CloseBalanceDue);
 

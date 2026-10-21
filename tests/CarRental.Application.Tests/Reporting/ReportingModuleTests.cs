@@ -33,14 +33,14 @@ public sealed class ReportingModuleTests
     }
 
     [Fact]
-    public void The_fleet_costs_and_the_channel_commissions_have_their_source_and_the_other_ports_are_empty_until_their_provider_comes()
+    public void The_fleet_costs_the_channel_commissions_and_the_return_charges_have_their_source_and_invoicing_waits_for_billing()
     {
         var services = new ServiceCollection().AddApplication();
 
         services.Where(d => d.ServiceType == typeof(IVehicleCostsSource)).Select(d => d.ImplementationType).ShouldBe([typeof(FleetVehicleCostsSource)]);
         services.Single(d => d.ServiceType == typeof(IChannelCommissionSource)).ImplementationType.ShouldBe(typeof(CarRental.Application.Channels.Queries.ChannelCommissionReportingSource));
         services.Single(d => d.ServiceType == typeof(IInvoicedAmountsSource)).ImplementationType.ShouldBe(typeof(UnconnectedInvoicedAmounts));
-        services.Single(d => d.ServiceType == typeof(IBookingChargesSource)).ImplementationType.ShouldBe(typeof(UnconnectedBookingCharges));
+        services.Single(d => d.ServiceType == typeof(IBookingChargesSource)).ImplementationType.ShouldBe(typeof(CarRental.Application.Bookings.Handover.ReturnChargesReportingSource));
     }
 
     [Fact]

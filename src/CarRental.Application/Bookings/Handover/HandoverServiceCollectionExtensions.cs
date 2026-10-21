@@ -6,6 +6,7 @@ using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Reporting.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Application.Bookings.Handover;
@@ -25,6 +26,7 @@ internal static class HandoverServiceCollectionExtensions
         services.AddScoped<ReturnChargesCalculator>();
         services.AddScoped<ContractDocumentBuilder>();
         services.AddScoped<IHandoverQueries, HandoverContractQueries>();
+        services.AddScoped<IBookingChargesSource, ReturnChargesReportingSource>();
 
         // Back office services (their constructors are internal: built here).
         services.AddScoped(sp => new HandoverInspectionService(sp.GetRequiredService<HandoverStore>()));
