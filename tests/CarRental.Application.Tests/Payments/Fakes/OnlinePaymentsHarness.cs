@@ -69,7 +69,7 @@ internal sealed class OnlinePaymentsHarness
     public OnlinePayments Online(IUserContext? user = null, IClicToPayGateway? gateway = null) =>
         new(Db, UnitOfWork, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance);
 
-    public OnlinePaymentAdministration Admin(IUserContext user) => new(Db, UnitOfWork, user, Online(user));
+    public OnlinePaymentAdministration Admin(IUserContext user) => new(Db, UnitOfWork, user, Online(user), Settings);
 
     public OnlinePaymentCatchUpJob CatchUpJob() =>
         new(Db, Online(System()), Gateway, Time, NullLogger<OnlinePaymentCatchUpJob>.Instance);

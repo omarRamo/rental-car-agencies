@@ -2,6 +2,8 @@ using System.Globalization;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Domain.Common;
+using CarRental.Web.Endpoints;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace CarRental.Web.Components.Admin.Payments;
@@ -115,6 +117,17 @@ public static class PaymentsFormat
     {
         ArgumentNullException.ThrowIfNull(payment);
         return payment.IsPaymentLink ? "Flow.Link" : $"Flow.{payment.Flow}";
+    }
+
+    /// <summary>
+    /// A payment page address to show or copy: the address of the gateway as it is, a page of the site (simulated
+    /// gateway) made absolute under the base address of the site.
+    /// </summary>
+    public static string AbsoluteUrl(NavigationManager navigation, string url)
+    {
+        ArgumentNullException.ThrowIfNull(navigation);
+        ArgumentNullException.ThrowIfNull(url);
+        return ClicToPayEndpoints.IsWebAddress(url) ? url : navigation.ToAbsoluteUri(url.TrimStart('/')).ToString();
     }
 
     /// <summary>

@@ -11,7 +11,10 @@ namespace CarRental.Application.Payments.Online;
 /// pending, or with a capture, a reversal or a refund not confirmed, recorded more than 2 minutes ago (customers who
 /// close the tab before the return), applies the confirmed statuses, closes the unpaid orders past their validity
 /// (payment links included — TODO(spec): no operation to cancel an unpaid order at the gateway is known), sends again the
-/// releases left without answer and flags what stays unconfirmed. Each payment is processed on its own.
+/// releases left without answer and flags what stays unconfirmed. Orders closed as expired are read for a day more
+/// (late payments). A pending payment still unresolved a day after its validity (status code unknown, gateway silent)
+/// is left to the daily reconciliation, so that it never crowds out the newer ones; the newest come first. Each payment
+/// is processed on its own.
 /// </summary>
 internal sealed partial class OnlinePaymentCatchUpJob(
     IAppDbContext db,
@@ -20,13 +23,17 @@ internal sealed partial class OnlinePaymentCatchUpJob(
     TimeProvider timeProvider,
     ILogger<OnlinePaymentCatchUpJob> logger) : IRecurringJob
 {
-    public const int BatchSize = 100;
+    /// <summary>Most payments processed by one run (a run takes the newest first; the next run, 15 minutes later, continues).</summary>
+    public const int MaxPerRun = 500;
 
     /// <summary>Payments younger than this are left to the return of the browser.</summary>
     public static readonly TimeSpan MinimumAge = TimeSpan.FromMinutes(2);
 
     /// <summary>Older payments are left to the daily reconciliation and the back office.</summary>
     public static readonly TimeSpan Window = TimeSpan.FromDays(30);
+
+    /// <summary>After its validity, an order is still read this long (late payment, unknown status) before the reconciliation takes over.</summary>
+    public static readonly TimeSpan AfterValidity = TimeSpan.FromHours(24);
 
     public static string JobId => "payments.online_catch_up";
 
@@ -42,23 +49,26 @@ internal sealed partial class OnlinePaymentCatchUpJob(
         var now = timeProvider.GetUtcNow();
         var before = now - MinimumAge;
         var since = now - Window;
+        var lately = now - AfterValidity;
         var incoming = await db.Set<Payment>()
             .AsNoTracking()
             .Where(p => p.Method == PaymentMethod.ClicToPay && p.Direction == PaymentDirection.Incoming
                         && p.RecordedAtUtc <= before && p.RecordedAtUtc >= since
-                        && (p.Status == PaymentStatus.Pending || p.PendingGatewayOperation != null))
-            .OrderBy(p => p.RecordedAtUtc)
+                        && (p.PendingGatewayOperation != null
+                            || (p.Status == PaymentStatus.Pending && (p.OnlineExpiresAtUtc == null || p.OnlineExpiresAtUtc >= lately))
+                            || (p.Status == PaymentStatus.Cancelled && p.ExpiredAtUtc != null && p.ExpiredAtUtc >= lately)))
+            .OrderByDescending(p => p.RecordedAtUtc)
             .Select(p => p.Id)
-            .Take(BatchSize)
+            .Take(MaxPerRun)
             .ToListAsync(cancellationToken);
         var refunded = await db.Set<Payment>()
             .AsNoTracking()
             .Where(r => r.Method == PaymentMethod.ClicToPay && r.Direction == PaymentDirection.Refund && r.Status == PaymentStatus.Pending
                         && r.PendingGatewayOperation == PendingGatewayOperation.Refund && r.PendingGatewaySinceUtc <= before
                         && r.OriginalPaymentId != null)
+            .OrderByDescending(r => r.PendingGatewaySinceUtc)
             .Select(r => r.OriginalPaymentId!.Value)
-            .Distinct()
-            .Take(BatchSize)
+            .Take(MaxPerRun)
             .ToListAsync(cancellationToken);
 
         foreach (var paymentId in incoming.Concat(refunded).Distinct())
@@ -82,9 +92,10 @@ internal sealed partial class OnlinePaymentCatchUpJob(
 
 /// <summary>
 /// Daily reconciliation of the online payments with the gateway (SPEC §9): the status of every online payment of the
-/// last days is read and compared with the recorded one (status, captured and refunded amounts when reported);
-/// differences are flagged for the back office. TODO(spec): no merchant statement format of SMT is known yet, so the
-/// statement itself is not imported (settlements and commissions are reconciled in Phase 3).
+/// last days, newest first, is read and compared with the recorded one (status, captured and refunded amounts when
+/// reported) — including the pending ones the catch-up left aside; differences are flagged for the back office.
+/// TODO(spec): no merchant statement format of SMT is known yet, so the statement itself is not imported (settlements
+/// and commissions are reconciled in Phase 3).
 /// </summary>
 internal sealed partial class OnlinePaymentReconciliationJob(
     IAppDbContext db,
@@ -113,8 +124,8 @@ internal sealed partial class OnlinePaymentReconciliationJob(
         var since = timeProvider.GetUtcNow() - Window;
         var ids = await db.Set<Payment>()
             .AsNoTracking()
-            .Where(p => p.Method == PaymentMethod.ClicToPay && p.Direction == PaymentDirection.Incoming && p.RecordedAtUtc >= since && p.Status != PaymentStatus.Pending)
-            .OrderBy(p => p.RecordedAtUtc)
+            .Where(p => p.Method == PaymentMethod.ClicToPay && p.Direction == PaymentDirection.Incoming && p.RecordedAtUtc >= since)
+            .OrderByDescending(p => p.RecordedAtUtc)
             .Select(p => p.Id)
             .Take(BatchSize)
             .ToListAsync(cancellationToken);

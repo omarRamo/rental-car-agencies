@@ -99,7 +99,7 @@ internal sealed partial class OnlinePayments(
             var parsed = PaymentInput.Amount(value);
             if (parsed.IsFailure)
             {
-                return PaymentsErrors.OnlineCaptureExceedsAuthorization;
+                return parsed.Error;
             }
 
             requested = parsed.Value;
@@ -111,7 +111,7 @@ internal sealed partial class OnlinePayments(
             return current.Error;
         }
 
-        var payment = current.Value;
+        var (payment, readError) = current.Value;
         if (payment.OnlineFlow != OnlinePaymentFlow.PreAuthorization)
         {
             return PaymentsErrors.OnlineCaptureNotApplicable;
@@ -120,6 +120,12 @@ internal sealed partial class OnlinePayments(
         if (payment.Status is PaymentStatus.Captured or PaymentStatus.Refunded)
         {
             return await InfoAsync(payment, cancellationToken);
+        }
+
+        if (readError is not null)
+        {
+            // The status could not be read: nothing is sent on the faith of a state that may be out of date.
+            return readError;
         }
 
         if (payment.Status != PaymentStatus.PreAuthorized)
@@ -196,7 +202,7 @@ internal sealed partial class OnlinePayments(
             return current.Error;
         }
 
-        var reversed = await ReverseCoreAsync(current.Value, cancellationToken);
+        var reversed = await ReleaseAsync(current.Value, cancellationToken);
         return reversed.IsFailure ? reversed.Error : await InfoAsync(reversed.Value, cancellationToken);
     }
 
@@ -229,7 +235,7 @@ internal sealed partial class OnlinePayments(
             var current = await CurrentAsync(id, cancellationToken);
             if (current.IsSuccess)
             {
-                var reversed = await ReverseCoreAsync(current.Value, cancellationToken);
+                var reversed = await ReleaseAsync(current.Value, cancellationToken);
                 if (reversed.IsFailure)
                 {
                     LogReleaseDeferred(id, reversed.Error.Code);
@@ -261,7 +267,7 @@ internal sealed partial class OnlinePayments(
             return current.Error;
         }
 
-        var threshold = await settings.GetAsync(PaymentSettings.OnlineRefundApprovalThreshold, current.Value.AgencyId, cancellationToken);
+        var threshold = await settings.GetAsync(PaymentSettings.OnlineRefundApprovalThreshold, current.Value.Payment.AgencyId, cancellationToken);
         var canApprove = CanApprove;
         var created = await ChangeAsync<Guid>(
             async ct =>
@@ -451,10 +457,8 @@ internal sealed partial class OnlinePayments(
                 await ChangeAsync(payment.Id, p => p.FlagGatewayAttention(GatewayAttention.ReversalNotConfirmed, "reverse.do acknowledged, status still pre-authorized", now), cancellationToken);
                 break;
             case (PaymentStatus.PreAuthorized, PendingGatewayOperation.Capture, false) when age >= OperationGrace:
-                await ChangeAsync(
-                    payment.Id,
-                    p => p.AbandonGatewayOperation(PendingGatewayOperation.Capture, GatewayAttention.CaptureNotConfirmed, "deposit.do without answer, status still pre-authorized", now),
-                    cancellationToken);
+                // Kept with its amount (a late deposit is then recorded with it); the validation decides to send it again.
+                await ChangeAsync(payment.Id, p => p.FlagGatewayAttention(GatewayAttention.CaptureNotConfirmed, "deposit.do without answer, status still pre-authorized", now), cancellationToken);
                 break;
             case (PaymentStatus.PreAuthorized, PendingGatewayOperation.Capture, true) when age >= UnconfirmedOperationDelay:
                 await ChangeAsync(payment.Id, p => p.FlagGatewayAttention(GatewayAttention.CaptureNotConfirmed, "deposit.do acknowledged, status still pre-authorized", now), cancellationToken);
@@ -522,16 +526,18 @@ internal sealed partial class OnlinePayments(
         return Result.Success();
     }
 
-    /// <summary>The back office checked a flagged payment: the flag is cleared.</summary>
-    internal Task<Result> ClearAttentionAsync(Guid paymentId, CancellationToken cancellationToken) =>
-        ChangeAsync(paymentId, p => p.ClearGatewayAttention(), cancellationToken);
-
     private static string Amounts(string what, Money gateway, Money recorded) =>
         FormattableString.Invariant($"{what} {gateway:F} at the gateway, {recorded:F} recorded");
 
-    /// <summary>Whether the return must read the status (anything not settled in a confirmed state yet).</summary>
+    /// <summary>
+    /// Whether the return must read the status: anything not settled in a confirmed state yet, and an order closed as
+    /// expired (the customer may have paid late on a page still open).
+    /// </summary>
     private static bool NeedsStatusRead(Payment payment) =>
-        payment.Status == PaymentStatus.Pending || payment.PendingGatewayOperation is not null || payment.GatewayAttention == GatewayAttention.UnknownStatus;
+        payment.Status == PaymentStatus.Pending
+        || payment.PendingGatewayOperation is not null
+        || payment.GatewayAttention == GatewayAttention.UnknownStatus
+        || (payment.Status == PaymentStatus.Cancelled && payment.ExpiredAtUtc is not null);
 
     private static string? LanguageOf(string? culture)
     {
@@ -673,6 +679,15 @@ internal sealed partial class OnlinePayments(
         var marked = await ChangeAsync(payment.Id, p => p.RequestGatewayCapture(target, now), cancellationToken);
         return marked.IsFailure ? marked.Error : target;
     }
+
+    /// <summary>
+    /// The release of a payment from a caller: when its status could not be read, only a release of a payment not made
+    /// yet is recorded; nothing is sent to the gateway on the faith of a state that may be out of date.
+    /// </summary>
+    private Task<Result<Payment>> ReleaseAsync(Snapshot snapshot, CancellationToken cancellationToken) =>
+        snapshot.ReadError is { } readError && snapshot.Payment.Status != PaymentStatus.Pending
+            ? Task.FromResult<Result<Payment>>(readError)
+            : ReverseCoreAsync(snapshot.Payment, cancellationToken);
 
     /// <summary>The release of one payment: recorded, sent when pre-authorized, then confirmed by a status read.</summary>
     private async Task<Result<Payment>> ReverseCoreAsync(Payment payment, CancellationToken cancellationToken)
@@ -842,6 +857,14 @@ internal sealed partial class OnlinePayments(
 
                 var now = timeProvider.GetUtcNow();
                 payment.RecordGatewayStatusCode(status.StatusCode);
+
+                // A pre-authorization debited without any capture of ours and without the debited amount (outside the
+                // platform, or a capture given up): the order amount is assumed, and flagged.
+                var assumedAmount = status.State is GatewayOrderState.Deposited or GatewayOrderState.Refunded
+                                    && status.DepositedAmount is null
+                                    && payment.OnlineFlow == OnlinePaymentFlow.PreAuthorization
+                                    && payment.Status is not (PaymentStatus.Captured or PaymentStatus.Refunded)
+                                    && payment.PendingGatewayOperation != PendingGatewayOperation.Capture;
                 var confirmed = GatewayStatusInterpreter.Interpret(payment, status, now);
                 if (confirmed is null)
                 {
@@ -857,6 +880,10 @@ internal sealed partial class OnlinePayments(
                     {
                         var attention = applied.Error == PaymentsErrors.GatewayAmountInvalid ? GatewayAttention.AmountMismatch : GatewayAttention.StatusMismatch;
                         payment.FlagGatewayAttention(attention, $"{GatewayStatusInterpreter.Detail(status)}; recorded {payment.Status}", now);
+                    }
+                    else if (assumedAmount)
+                    {
+                        payment.FlagGatewayAttention(GatewayAttention.AmountMismatch, $"{GatewayStatusInterpreter.Detail(status)}; debited amount not reported, order amount assumed", now);
                     }
                     else
                     {
@@ -946,8 +973,11 @@ internal sealed partial class OnlinePayments(
         }
     }
 
-    /// <summary>The payment after a status read when something is unresolved (re-running after a time-out reads first).</summary>
-    private async Task<Result<Payment>> CurrentAsync(Guid paymentId, CancellationToken cancellationToken)
+    /// <summary>
+    /// The payment after a status read when something is unresolved (re-running after a time-out reads first). When that
+    /// read fails, the snapshot carries its error: the caller must not send anything on the faith of a stale state.
+    /// </summary>
+    private async Task<Result<Snapshot>> CurrentAsync(Guid paymentId, CancellationToken cancellationToken)
     {
         var payment = await LoadAsync(paymentId, cancellationToken);
         if (payment is null)
@@ -957,11 +987,11 @@ internal sealed partial class OnlinePayments(
 
         if (payment.Status != PaymentStatus.Pending && payment.PendingGatewayOperation is null)
         {
-            return payment;
+            return new Snapshot(payment, null);
         }
 
         var refreshed = await RefreshCoreAsync(paymentId, cancellationToken);
-        return refreshed.IsSuccess ? refreshed.Value : payment;
+        return refreshed.IsSuccess ? new Snapshot(refreshed.Value, null) : new Snapshot(payment, refreshed.Error);
     }
 
     private async Task<Result<OnlinePaymentInfo>> InfoAsync(Payment payment, CancellationToken cancellationToken)
@@ -1045,6 +1075,9 @@ internal sealed partial class OnlinePayments(
                 "Online payment operations call the payment gateway and must not run inside a unit of work: commit first, then call them.");
         }
     }
+
+    /// <summary>A payment as read, with the error of the status read that should have refreshed it, if it failed.</summary>
+    private sealed record Snapshot(Payment Payment, Error? ReadError);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Return from the payment page for payment {PaymentId} with a gateway order id that does not match the recorded one; the recorded order is used.")]
     private partial void LogReturnMismatch(Guid paymentId);

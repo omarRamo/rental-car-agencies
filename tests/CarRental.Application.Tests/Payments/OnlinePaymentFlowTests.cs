@@ -138,7 +138,7 @@ public sealed class OnlinePaymentFlowTests
         var online = _harness.Online(OnlinePaymentsHarness.User(Roles.Agent));
 
         (await online.CaptureAsync(payment.Id, 681.401m, Ct)).Error.ShouldBe(PaymentsErrors.OnlineCaptureExceedsAuthorization);
-        (await online.CaptureAsync(payment.Id, 0m, Ct)).Error.ShouldBe(PaymentsErrors.OnlineCaptureExceedsAuthorization);
+        (await online.CaptureAsync(payment.Id, 0m, Ct)).Error.ShouldBe(PaymentsErrors.AmountInvalid);
         var captured = await online.CaptureAsync(payment.Id, 650m, Ct);
 
         captured.Value.Status.ShouldBe(PaymentStatusInfo.Captured);
@@ -198,6 +198,64 @@ public sealed class OnlinePaymentFlowTests
 
         captured.Value.CapturedAmount.ShouldBe(Money.Tnd(450m));
         _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(2, "the first request never reached the gateway");
+    }
+
+    [Fact]
+    public async Task A_capture_left_without_answer_is_not_sent_again_while_the_status_cannot_be_read()
+    {
+        var payment = await _harness.PreAuthorizedAsync(500m, Ct);
+        _harness.Gateway.AddFault(new FakeGatewayFault(GatewayOperation.Deposit, FakeFaultKind.Unavailable, c => c.OrderNumber == payment.OrderNumber));
+        var online = _harness.Online(OnlinePaymentsHarness.User(Roles.Agent));
+        (await online.CaptureAsync(payment.Id, cancellationToken: Ct)).Error.ShouldBe(PaymentsErrors.GatewayUnavailable);
+        _harness.Time.Advance(TimeSpan.FromMinutes(3));
+        _harness.Gateway.AddFault(new FakeGatewayFault(GatewayOperation.GetOrderStatusExtended, FakeFaultKind.Unavailable, c => c.OrderNumber == payment.OrderNumber));
+
+        var blind = await online.CaptureAsync(payment.Id, cancellationToken: Ct);
+
+        blind.Error.ShouldBe(PaymentsErrors.GatewayUnavailable);
+        _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(1, "nothing is sent on the faith of a state that may be out of date");
+        payment.PendingGatewayOperation.ShouldBe(PendingGatewayOperation.Capture);
+        (await online.CaptureAsync(payment.Id, cancellationToken: Ct)).Value.Status.ShouldBe(PaymentStatusInfo.Captured);
+        _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task The_job_flags_a_capture_left_without_answer_and_keeps_it_for_the_next_validation()
+    {
+        var payment = await _harness.PreAuthorizedAsync(500m, Ct);
+        _harness.Gateway.AddFault(new FakeGatewayFault(GatewayOperation.Deposit, FakeFaultKind.Unavailable, c => c.OrderNumber == payment.OrderNumber));
+        var online = _harness.Online(OnlinePaymentsHarness.User(Roles.Agent));
+        (await online.CaptureAsync(payment.Id, 450m, Ct)).Error.ShouldBe(PaymentsErrors.GatewayUnavailable);
+
+        _harness.Time.Advance(TimeSpan.FromMinutes(3));
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+
+        payment.Status.ShouldBe(PaymentStatus.PreAuthorized);
+        payment.PendingGatewayOperation.ShouldBe(PendingGatewayOperation.Capture, "kept with its amount: a late deposit is recorded with it");
+        payment.PendingGatewayAmount.ShouldBe(Money.Tnd(450m));
+        payment.GatewayAttention.ShouldBe(GatewayAttention.CaptureNotConfirmed);
+        _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(1, "the job never sends a capture");
+
+        var captured = await online.CaptureAsync(payment.Id, 450m, Ct);
+
+        captured.Value.CapturedAmount.ShouldBe(Money.Tnd(450m));
+        payment.GatewayAttention.ShouldBeNull();
+        _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_pre_authorization_debited_outside_the_platform_without_its_amount_is_recorded_and_flagged()
+    {
+        var payment = await _harness.PreAuthorizedAsync(300m, Ct);
+        _harness.Gateway.ReportsAmountDetails = false;
+        _harness.Gateway.OverrideStatus(payment.OrderNumber, 2).IsSuccess.ShouldBeTrue();
+
+        var refreshed = await _harness.Online(OnlinePaymentsHarness.User(Roles.Agent)).RefreshStatusAsync(payment.Id, Ct);
+
+        refreshed.Value.Status.ShouldBe(PaymentStatusInfo.Captured);
+        payment.CapturedAmount.ShouldBe(Money.Tnd(300m));
+        payment.GatewayAttention.ShouldBe(GatewayAttention.AmountMismatch);
+        payment.GatewayAttentionDetail.ShouldNotBeNull().ShouldContain("order amount assumed");
     }
 
     [Fact]
@@ -333,6 +391,44 @@ public sealed class OnlinePaymentFlowTests
         payment.Status.ShouldBe(PaymentStatus.Cancelled);
         payment.ExpiredAtUtc.ShouldBe(_harness.Time.GetUtcNow());
         payment.DomainEvents.OfType<OnlinePaymentExpired>().ShouldHaveSingleItem().BookingId.ShouldBe(payment.BookingId);
+    }
+
+    [Fact]
+    public async Task A_payment_made_late_on_a_page_left_open_is_recorded_by_the_return_and_flagged()
+    {
+        var online = _harness.Online();
+        var started = (await online.StartPreAuthorizationAsync(_harness.Request(681.4m), Ct)).Value;
+        var payment = _harness.Payment(started.PaymentId);
+        _harness.Time.Advance(TimeSpan.FromMinutes(61));
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+        payment.Status.ShouldBe(PaymentStatus.Cancelled);
+
+        _harness.Gateway.Pay(payment.ExternalReference!).IsSuccess.ShouldBeTrue();
+        var returned = (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, payment.ExternalReference, false), Ct)).Value;
+
+        returned.Status.ShouldBe(PaymentStatusInfo.PreAuthorized, "an order closed as expired is read again: the money is held");
+        returned.StatusConfirmed.ShouldBeTrue();
+        returned.RedirectPath.ShouldBe(OnlinePaymentsHarness.ReturnPath);
+        payment.Status.ShouldBe(PaymentStatus.PreAuthorized);
+        payment.GatewayAttention.ShouldBe(GatewayAttention.LatePayment);
+    }
+
+    [Fact]
+    public async Task The_job_records_a_late_payment_of_an_expired_payment_link_for_a_day()
+    {
+        var link = (await _harness.Online(OnlinePaymentsHarness.User(Roles.Agent)).StartPaymentAsync(_harness.Request(350m, isLink: true), Ct)).Value;
+        var payment = _harness.Payment(link.PaymentId);
+        _harness.Time.Advance(TimeSpan.FromHours(25));
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+        payment.Status.ShouldBe(PaymentStatus.Cancelled);
+
+        _harness.Gateway.Pay(payment.ExternalReference!);
+        _harness.Time.Advance(TimeSpan.FromHours(2));
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+
+        payment.Status.ShouldBe(PaymentStatus.Captured);
+        payment.CapturedAmount.ShouldBe(Money.Tnd(350m));
+        payment.GatewayAttention.ShouldBe(GatewayAttention.LatePayment);
     }
 
     [Fact]

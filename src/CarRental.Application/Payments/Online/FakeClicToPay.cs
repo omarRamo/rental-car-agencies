@@ -38,6 +38,7 @@ public sealed class FakeClicToPay(IOptions<ClicToPayOptions> options, IGatewayCa
     public const string ApprovedActionCode = "0";
     public const string DeclinedActionCode = "116";
 
+    private readonly Lazy<ClicToPayStatusMap> _statusMap = new(() => ClicToPayStatusMap.From(options.Value));
     private readonly ConcurrentDictionary<string, FakeOrder> _orders = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, FakeOrder> _ordersByNumber = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<FakeGatewayCall> _calls = new();
@@ -258,7 +259,7 @@ public sealed class FakeClicToPay(IOptions<ClicToPayOptions> options, IGatewayCa
             }
         }
 
-        var map = ClicToPayStatusMap.From(options.Value);
+        var map = _statusMap.Value;
         var details = ReportsAmountDetails;
         var status = new GatewayOrderStatus(
             map.Classify(view.StatusCode),

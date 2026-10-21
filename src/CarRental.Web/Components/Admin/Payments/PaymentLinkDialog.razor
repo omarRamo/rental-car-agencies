@@ -86,16 +86,24 @@
     [Parameter]
     public decimal? SuggestedAmount { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
         _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
+
+        // The validity proposed is the one of the agency (payments.payment_link_validity), 24 h by default.
+        var agencyId = _agencyId;
+        var validity = await Runner.RunAsync<OnlinePaymentAdministration, Result<TimeSpan>>((admin, ct) => admin.GetPaymentLinkValidityAsync(agencyId, ct));
+        if (validity.IsSuccess && validity.Value >= TimeSpan.FromHours(1))
+        {
+            _hours = (int)Math.Min(720, Math.Round(validity.Value.TotalHours));
+        }
     }
 
     private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
 
     /// <summary>The simulated gateway gives a page of the site (relative): the link shown is always absolute.</summary>
-    private string AbsoluteUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out _) ? url : Navigation.ToAbsoluteUri(url).ToString();
+    private string AbsoluteUrl(string url) => PaymentsFormat.AbsoluteUrl(Navigation, url);
 
     private async Task SubmitAsync()
     {

@@ -124,7 +124,7 @@ Pour chaque essai : noter la date, la personne, le numéro de commande (32 carac
 ### R12 — Durée de vie d'une pré-autorisation et d'une page de paiement
 
 - **Étapes** : demander à SMT la durée de vie d'une pré-autorisation (fixée par la banque émettrice) ; essayer de capturer une pré-autorisation de plus de 7 jours ; ouvrir la page d'un lien de paiement après 30 minutes, 2 heures et 24 heures.
-- **Attendu** : durée de pré-autorisation connue (elle borne le blocage de 24 h d'une demande et la caution, qui se prend au comptoir tant qu'elle n'est pas confirmée) ; si la page d'un lien expire avant 24 h, confirmer avec SMT le paramètre `sessionTimeoutSecs` et activer `ClicToPay:SendSessionTimeout` ; noter s'il existe une opération pour **annuler une commande impayée** (sinon le lien expire seulement chez nous).
+- **Attendu** : durée de pré-autorisation connue (elle borne le blocage de 24 h d'une demande et la caution, qui se prend au comptoir tant qu'elle n'est pas confirmée) ; si la page d'un lien expire avant 24 h, confirmer avec SMT le paramètre `sessionTimeoutSecs` et activer `ClicToPay:SendSessionTimeout` ; noter s'il existe une opération pour **annuler une commande impayée** (sinon le lien expire seulement chez nous) ; si une page reste payable après l'expiration chez nous, payer quand même : le paiement tardif est enregistré (au retour, ou par la tâche dans les 24 h) et signalé « Payé après l'expiration ».
 
 | Date | Testeur | Constat | Décision | Conforme |
 |---|---|---|---|---|

@@ -29,6 +29,9 @@ internal sealed partial class ClicToPayClient(
         "carrental.clictopay.calls",
         description: "Calls to the Clic to Pay API by operation and outcome.");
 
+    /// <summary>The status codes of the options (validated at start), built once per client.</summary>
+    private readonly ClicToPayStatusMap _statusMap = ClicToPayStatusMap.From(options.Value);
+
     public bool IsEnabled => true;
 
     public Task<Result<GatewayRegisteredOrder>> RegisterAsync(GatewayRegistration registration, CancellationToken cancellationToken = default) =>
@@ -93,12 +96,12 @@ internal sealed partial class ClicToPayClient(
         }
     }
 
-    private static GatewayOrderStatus ToStatus(GatewayOrderReference order, StatusFields fields, ClicToPayOptions settings)
+    private GatewayOrderStatus ToStatus(GatewayOrderReference order, StatusFields fields, ClicToPayOptions settings)
     {
         var multiplier = settings.AmountMultiplier;
         Money? Amount(long? minor) => minor is { } value and >= 0 ? ClicToPayProtocol.FromMinorUnits(value, multiplier) : null;
         return new GatewayOrderStatus(
-            ClicToPayStatusMap.From(settings).Classify(fields.OrderStatus),
+            _statusMap.Classify(fields.OrderStatus),
             fields.OrderStatus,
             fields.OrderNumber,
             order.GatewayOrderId,

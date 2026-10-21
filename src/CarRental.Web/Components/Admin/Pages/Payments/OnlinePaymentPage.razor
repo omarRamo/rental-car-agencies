@@ -234,7 +234,7 @@ else
         _view = result.Value;
     }
 
-    private string AbsoluteUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out _) ? url : Navigation.ToAbsoluteUri(url).ToString();
+    private string AbsoluteUrl(string url) => PaymentsFormat.AbsoluteUrl(Navigation, url);
 
     private async Task CopyAsync(string url)
     {

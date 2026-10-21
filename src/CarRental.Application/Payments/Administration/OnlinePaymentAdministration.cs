@@ -4,6 +4,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,12 @@ namespace CarRental.Application.Payments.Administration;
 /// approve or reject a refund above the threshold, create a payment link, mark a flagged payment as checked. Reads need
 /// <c>payments.read</c>, actions <c>payments.manage</c>, approvals <c>payments.refunds.approve</c>.
 /// </summary>
-public sealed class OnlinePaymentAdministration(IAppDbContext db, IUnitOfWork unitOfWork, IUserContext userContext, IOnlinePayments online)
+public sealed class OnlinePaymentAdministration(
+    IAppDbContext db,
+    IUnitOfWork unitOfWork,
+    IUserContext userContext,
+    IOnlinePayments online,
+    ISettingsReader settings)
 {
     /// <summary>Calls shown in the history of a payment (most recent first).</summary>
     public const int CallHistoryLength = 200;
@@ -133,6 +139,10 @@ public sealed class OnlinePaymentAdministration(IAppDbContext db, IUnitOfWork un
 
     public Task<Result> RejectRefundAsync(Guid refundId, string reason, CancellationToken cancellationToken = default) =>
         CanApprove ? online.RejectRefundAsync(refundId, reason, cancellationToken) : Task.FromResult<Result>(PaymentsErrors.RefundApprovalForbidden);
+
+    /// <summary>The validity a new payment link of the agency gets by default (<c>payments.payment_link_validity</c>).</summary>
+    public async Task<Result<TimeSpan>> GetPaymentLinkValidityAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
+        CanManage ? await settings.GetAsync(PaymentSettings.PaymentLinkValidity, agencyId, cancellationToken) : PaymentsErrors.Forbidden;
 
     /// <summary>Creates a one-step payment link for a booking (to copy; e-mail and WhatsApp sending come later).</summary>
     public Task<Result<OnlinePaymentRedirect>> CreatePaymentLinkAsync(OnlinePaymentRequest request, CancellationToken cancellationToken = default)

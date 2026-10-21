@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
@@ -87,11 +88,27 @@ public static class ClicToPayEndpoints
         return Results.LocalRedirect(handled.IsSuccess && LocalUrls.IsLocal(handled.Value.RedirectPath) ? handled.Value.RedirectPath : "/");
     }
 
+    /// <summary>
+    /// Whether <paramref name="url"/> is an absolute web address (http or https). A local path such as <c>/dev/…</c> is not,
+    /// although <see cref="Uri.TryCreate(string, UriKind, out Uri)"/> takes it for an absolute file address on Linux.
+    /// </summary>
+    public static bool IsWebAddress([NotNullWhen(true)] string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
     private static string? Identifier(Microsoft.Extensions.Primitives.StringValues values) =>
         values.Count == 1 && values[0] is { Length: > 0 and <= MaxIdentifierLength } value ? value : null;
 
-    private static string Absolute(Uri baseUrl, string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out _) ? url : new Uri(baseUrl, url).ToString();
+    /// <summary>A relative return address under the public base address, its path included (<c>https://host/app/</c>).</summary>
+    private static string Absolute(Uri baseUrl, string url)
+    {
+        if (IsWebAddress(url))
+        {
+            return url;
+        }
+
+        var root = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl : new Uri(baseUrl.AbsoluteUri + "/");
+        return new Uri(root, url.TrimStart('/')).ToString();
+    }
 
     private static void MapDevelopmentPages(IEndpointRouteBuilder endpoints)
     {

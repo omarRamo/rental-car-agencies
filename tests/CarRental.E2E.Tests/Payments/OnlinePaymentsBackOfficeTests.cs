@@ -107,7 +107,7 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
         await linkDialog.GetByLabel("Montant", new LocatorGetByLabelOptions { Exact = true }).FillAsync("80");
         await AssertAccessibleAsync(Page);
         await linkDialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Créer le lien" }).ClickAsync();
-        await Expect(linkDialog.GetByLabel("Adresse du lien")).ToHaveValueAsync(new Regex("/dev/clictopay/pay/[0-9a-f-]{36}$"), new LocatorAssertionsToHaveValueOptions { Timeout = 30_000 });
+        await Expect(linkDialog.GetByLabel("Adresse du lien")).ToHaveValueAsync(new Regex("^https?://[^/]+/dev/clictopay/pay/[0-9a-f-]{36}$"), new LocatorAssertionsToHaveValueOptions { Timeout = 30_000 });
         await AssertAccessibleAsync(Page);
         await linkDialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Terminer" }).ClickAsync();
         await Expect(linkDialog).ToHaveCountAsync(0);
