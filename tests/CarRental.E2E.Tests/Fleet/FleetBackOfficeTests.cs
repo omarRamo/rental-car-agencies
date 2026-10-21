@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CarRental.E2E.Tests.Support;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
@@ -64,6 +65,7 @@ public sealed class FleetBackOfficeTests(E2EHost host) : BrowserTest(host)
 
     private async Task ExpectNoSeriousAccessibilityViolationAsync()
     {
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

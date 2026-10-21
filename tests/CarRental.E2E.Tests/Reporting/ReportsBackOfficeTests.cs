@@ -142,6 +142,7 @@ public sealed class ReportsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(tile.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Ouvrir les rapports" })).ToHaveAttributeAsync("href", new Regex("^/admin/reports\\?agency="));
 
         // The tile only: the other widgets of the dashboard belong to their own modules and tests.
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await tile.RunAxe();
         result.Violations.Where(v => v.Impact is "critical" or "serious").Select(v => v.Id).ShouldBeEmpty();
     }

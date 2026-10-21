@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using CarRental.Domain.Common;
+using CarRental.E2E.Tests.Support;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -25,6 +26,7 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
 
     private async Task ShouldHaveNoSeriousAccessibilityViolationAsync()
     {
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

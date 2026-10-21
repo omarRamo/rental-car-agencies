@@ -6,6 +6,7 @@ using CarRental.Application.Payments.Online;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
+using CarRental.E2E.Tests.Support;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Testing;
@@ -172,6 +173,7 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
         }
 
         await Expect(page.Locator(".mud-snackbar")).ToHaveCountAsync(0);
+        await BackOfficeSession.WaitForTransitionsAsync(page);
         var result = await page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

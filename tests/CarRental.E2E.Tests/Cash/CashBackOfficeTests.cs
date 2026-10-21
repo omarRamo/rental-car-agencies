@@ -4,6 +4,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Cash;
 using CarRental.Domain.Common;
+using CarRental.E2E.Tests.Support;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Testing;
@@ -186,6 +187,7 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
         }
 
         await Expect(Page.Locator(".mud-snackbar")).ToHaveCountAsync(0);
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

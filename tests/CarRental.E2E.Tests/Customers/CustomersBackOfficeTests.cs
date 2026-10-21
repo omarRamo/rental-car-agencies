@@ -3,6 +3,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Customers;
 using CarRental.Domain.Identity;
+using CarRental.E2E.Tests.Support;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Testing;
@@ -113,6 +114,7 @@ public sealed partial class CustomersBackOfficeTests(E2EHost host) : BrowserTest
 
     private async Task AssertNoSeriousViolationAsync()
     {
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

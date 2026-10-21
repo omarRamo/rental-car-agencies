@@ -10,6 +10,7 @@ using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.E2E.Tests.Fleet;
+using CarRental.E2E.Tests.Support;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Extensions.DependencyInjection;
@@ -177,6 +178,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Page.GotoAsync("/admin");
         var widget = Page.Locator("section[aria-labelledby='bookings-widget-title']");
         await Expect(widget.GetByRole(AriaRole.Heading, new LocatorGetByRoleOptions { Name = "Retours en retard (1)" })).ToBeVisibleAsync(Slow);
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await widget.RunAxe();
         result.Violations.Where(v => v.Impact is "critical" or "serious").Select(v => v.Id).ShouldBeEmpty();
     }
@@ -243,6 +245,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
 
     private async Task ExpectNoSeriousAccessibilityViolationAsync()
     {
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

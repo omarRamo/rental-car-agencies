@@ -5,6 +5,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
+using CarRental.E2E.Tests.Support;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Extensions.DependencyInjection;
@@ -197,6 +198,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     {
         var overflow = await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > window.innerWidth");
         overflow.ShouldBeFalse($"{Page.Url} scrolls horizontally at 390 px.");
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

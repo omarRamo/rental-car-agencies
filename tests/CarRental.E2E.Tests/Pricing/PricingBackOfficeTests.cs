@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CarRental.E2E.Tests.Support;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
@@ -131,6 +132,7 @@ public sealed class PricingBackOfficeTests(E2EHost host) : BrowserTest(host)
         }
 
         await Expect(Page.Locator(".mud-snackbar")).ToHaveCountAsync(0);
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await Page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

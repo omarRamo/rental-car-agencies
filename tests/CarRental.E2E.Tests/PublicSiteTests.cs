@@ -1,3 +1,4 @@
+using CarRental.E2E.Tests.Support;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -31,6 +32,8 @@ public sealed class PublicSiteTests(E2EHost host) : BrowserTest(host)
     public async Task Home_page_has_no_critical_or_serious_accessibility_violation(string culture)
     {
         await Page.GotoAsync($"/{culture}");
+
+        await BackOfficeSession.WaitForTransitionsAsync(Page);
 
         var result = await Page.RunAxe();
 

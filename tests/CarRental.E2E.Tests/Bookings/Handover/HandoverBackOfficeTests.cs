@@ -272,6 +272,7 @@ internal static class HandoverAccessibility
     {
         // Toasts fade in and out (transient blended colours): closed first, the page content is what is checked.
         await CloseToastsAsync(page);
+        await BackOfficeSession.WaitForTransitionsAsync(page);
         var result = await page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")

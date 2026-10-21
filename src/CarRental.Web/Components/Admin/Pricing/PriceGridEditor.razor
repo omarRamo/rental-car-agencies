@@ -1,5 +1,6 @@
 @* The price grid: daily prices TTC per category (rows) and period (base price, season levels, events). An empty season
    or event cell inherits the next level (event, then season level, then base price). *@
+@using System.Globalization
 @using CarRental.Application.Fleet.Contracts
 @using CarRental.Application.Pricing.Administration
 @using CarRental.Domain.Pricing
@@ -37,7 +38,7 @@
                             <MudNumericField T="decimal?" InputId="@id" Value="@_cells.GetValueOrDefault((category.Id, column.Key))"
                                              ValueChanged="@(value => _cells[(category.Id, column.Key)] = value)"
                                              HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m"
-                                             Disabled="!CanEdit" Immediate="true" />
+                                             Disabled="!CanEdit" Immediate="true" Culture="@_culture" />
                         </td>
                     }
                 </tr>
@@ -58,6 +59,10 @@
     private RatePlanDetail? _source;
     private string? _error;
     private bool _busy;
+
+    // The culture of the circuit, fixed when the editor is created: a render triggered from elsewhere cannot then show
+    // the amounts with another decimal separator than the labels around them.
+    private readonly CultureInfo _culture = CultureInfo.CurrentCulture;
 
     [Parameter, EditorRequired]
     public RatePlanDetail Detail { get; set; } = default!;
