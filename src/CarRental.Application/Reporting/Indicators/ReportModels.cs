@@ -118,7 +118,19 @@ public sealed record FunnelRow(SalesChannel? Channel, string? Source, int Search
 }
 
 /// <summary>The funnel rows (website and WhatsApp, by source) and their total.</summary>
-public sealed record FunnelReport(IReadOnlyList<FunnelRow> Rows, FunnelRow Total);
+public sealed record FunnelReport(IReadOnlyList<FunnelRow> Rows, FunnelRow Total)
+{
+    /// <summary>The channels that have a row, in channel order (the website, then WhatsApp: the bot).</summary>
+    public IReadOnlyList<SalesChannel> Channels =>
+        [.. Rows.Select(r => r.Channel).OfType<SalesChannel>().Distinct().Order()];
+
+    /// <summary>The funnel of one channel, all sources together (its source is <see langword="null"/>).</summary>
+    public FunnelRow TotalOf(SalesChannel channel)
+    {
+        var rows = Rows.Where(r => r.Channel == channel).ToList();
+        return new FunnelRow(channel, null, rows.Sum(r => r.Searches), rows.Sum(r => r.Results), rows.Sum(r => r.Requests), rows.Sum(r => r.Confirmed));
+    }
+}
 
 /// <summary>
 /// The handling of the requests submitted in the period (ADR-0046): outcomes, the median time they waited for an agent
@@ -200,12 +212,28 @@ public sealed record CashReport(
 /// <summary>Which ports are connected to a provider (the reports say when a figure is still structurally zero).</summary>
 public sealed record ReportSources(bool InvoicingConnected, bool CommissionsConnected, bool ChargesConnected, IReadOnlyList<string> CostSources);
 
-/// <summary>Everything the reports screen and its exports show for an agency and a period.</summary>
+/// <summary>
+/// The reports tile of the daily dashboard: the fleet indicators of the default period of the reports (ADR-0046) up to
+/// yesterday, compared with the same days of the previous month.
+/// </summary>
+public sealed record ReportHeadline(
+    Guid AgencyId,
+    string AgencyName,
+    ReportPeriodInfo Period,
+    ReportCoverage Coverage,
+    FleetDayTotals Fleet,
+    FleetDayTotals PreviousFleet);
+
+/// <summary>
+/// Everything the reports screen and its exports show for an agency and a period; <see cref="PreviousCoverage"/> says
+/// how many days of the comparison period have their snapshots (the fleet comparison is partial otherwise).
+/// </summary>
 public sealed record ReportDashboard(
     Guid AgencyId,
     string AgencyName,
     ReportPeriodInfo Period,
     ReportCoverage Coverage,
+    ReportCoverage? PreviousCoverage,
     FleetDayTotals Fleet,
     FleetDayTotals? PreviousFleet,
     IReadOnlyList<DailyFleetIndicators> Daily,

@@ -46,6 +46,12 @@ public sealed record ReportPeriod
     /// <summary>The calendar month of <paramref name="day"/>.</summary>
     public static ReportPeriod MonthOf(DateOnly day) => Month(day.Year, day.Month);
 
+    /// <summary>
+    /// The period the reports open on (ADR-0046): the current month, or the previous one on the first day of a month,
+    /// when the current month has no elapsed day yet.
+    /// </summary>
+    public static ReportPeriod DefaultFor(DateOnly today) => MonthOf(today.Day == 1 ? today.AddDays(-1) : today);
+
     public bool Contains(DateOnly day) => day >= From && day <= To;
 
     /// <summary>The part of the period up to <paramref name="lastDay"/> included, or <see langword="null"/> when it starts later.</summary>

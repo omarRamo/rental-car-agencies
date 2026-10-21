@@ -17,6 +17,30 @@ public sealed class ReportPeriodTests
         ReportPeriod.MonthOf(new DateOnly(2026, 10, 21)).ShouldBe(ReportPeriod.Month(2026, 10));
     }
 
+    [Theory]
+    [InlineData("2026-10-21", "2026-10-01", "2026-10-31")]
+    [InlineData("2026-10-02", "2026-10-01", "2026-10-31")]
+    [InlineData("2026-10-01", "2026-09-01", "2026-09-30")]
+    [InlineData("2027-01-01", "2026-12-01", "2026-12-31")]
+    [InlineData("2028-03-01", "2028-02-01", "2028-02-29")]
+    public void The_reports_open_on_the_current_month_or_on_the_previous_one_on_its_first_day(string today, string from, string to)
+    {
+        var period = ReportPeriod.DefaultFor(DateOnly.Parse(today, System.Globalization.CultureInfo.InvariantCulture));
+
+        period.From.ShouldBe(DateOnly.Parse(from, System.Globalization.CultureInfo.InvariantCulture));
+        period.To.ShouldBe(DateOnly.Parse(to, System.Globalization.CultureInfo.InvariantCulture));
+        period.IsCalendarMonth.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void The_default_period_always_has_an_elapsed_day()
+    {
+        for (var today = new DateOnly(2026, 1, 1); today <= new DateOnly(2028, 12, 31); today = today.AddDays(1))
+        {
+            ReportPeriod.DefaultFor(today).Until(today.AddDays(-1)).ShouldNotBeNull($"{today:yyyy-MM-dd}");
+        }
+    }
+
     [Fact]
     public void A_period_ends_after_it_starts_and_lasts_a_year_at_most()
     {

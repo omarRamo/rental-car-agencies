@@ -44,6 +44,12 @@ public sealed class FunnelCalculatorTests
         direct.SearchToRequest.ShouldBe(0.05m);
         direct.RequestToConfirmed.ShouldBe(0.6m);
         direct.SearchToConfirmed.ShouldBe(0.03m);
+
+        // The website and the bot, all sources together.
+        funnel.Channels.ShouldBe([SalesChannel.Web, SalesChannel.WhatsApp]);
+        funnel.TotalOf(SalesChannel.Web).ShouldBe(new FunnelRow(SalesChannel.Web, null, 150, 120, 7, 4));
+        funnel.TotalOf(SalesChannel.WhatsApp).SearchToConfirmed.ShouldBe(0.1m);
+        funnel.TotalOf(SalesChannel.Phone).ShouldBe(new FunnelRow(SalesChannel.Phone, null, 0, 0, 0, 0));
     }
 
     [Fact]

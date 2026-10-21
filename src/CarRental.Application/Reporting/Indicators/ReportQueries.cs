@@ -101,6 +101,7 @@ public sealed class ReportQueries
         var rows = covered is null ? [] : await SnapshotRowsAsync(agency.Id, covered.From, covered.To, cancellationToken);
         var previousRows = previous is null ? null : await SnapshotRowsAsync(agency.Id, previous.From, previous.To, cancellationToken);
         var days = covered is null ? [] : await SnapshotDaysAsync(agency.Id, covered.From, covered.To, cancellationToken);
+        var previousDays = previous is null ? null : await SnapshotDaysAsync(agency.Id, previous.From, previous.To, cancellationToken);
         var shares = covered is null ? [] : await RentalSharesAsync(agency.Id, covered.From, covered.To, cancellationToken);
         var hintRows = covered is null
             ? []
@@ -117,7 +118,8 @@ public sealed class ReportQueries
             agency.Id,
             agency.Name,
             new ReportPeriodInfo(period.From, period.To, covered?.To, previous?.From, previous?.To, period.IsCalendarMonth),
-            new ReportCoverage(covered?.Days ?? 0, days.Count, days.Count == 0 ? null : days.Max(d => d.ComputedAtUtc)),
+            Coverage(covered?.Days ?? 0, days),
+            previous is null ? null : Coverage(previous.Days, previousDays!),
             FleetDayTotals.Of(rows.Select(r => r.Figures)),
             previousRows is null ? null : FleetDayTotals.Of(previousRows.Select(r => r.Figures)),
             covered is null ? [] : Daily(covered, rows),
@@ -139,6 +141,43 @@ public sealed class ReportQueries
                 [.. _costSources.Select(s => s.Name)]),
             now);
     }
+
+    /// <summary>
+    /// The reports tile of the daily dashboard for <paramref name="agencyId"/>: the fleet indicators of the default period
+    /// (<see cref="ReportPeriod.DefaultFor"/>) up to yesterday, compared with the same days of the previous month. Reads the
+    /// snapshots only.
+    /// </summary>
+    public async Task<Result<ReportHeadline>> GetHeadlineAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        if (!_user.HasPermission(Permissions.ReportsRead))
+        {
+            return ReportingErrors.Forbidden;
+        }
+
+        var agency = (await _referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId);
+        if (agency is null)
+        {
+            return ReportingErrors.AgencyNotFound;
+        }
+
+        var today = TunisTime.Today(_clock);
+        var period = ReportPeriod.DefaultFor(today);
+        var covered = period.Until(today.AddDays(-1))!;
+        var previous = period.Previous(covered.Days);
+        var rows = await SnapshotRowsAsync(agency.Id, covered.From, covered.To, cancellationToken);
+        var previousRows = await SnapshotRowsAsync(agency.Id, previous.From, previous.To, cancellationToken);
+        var days = await SnapshotDaysAsync(agency.Id, covered.From, covered.To, cancellationToken);
+        return new ReportHeadline(
+            agency.Id,
+            agency.Name,
+            new ReportPeriodInfo(period.From, period.To, covered.To, previous.From, previous.To, period.IsCalendarMonth),
+            Coverage(covered.Days, days),
+            FleetDayTotals.Of(rows.Select(r => r.Figures)),
+            FleetDayTotals.Of(previousRows.Select(r => r.Figures)));
+    }
+
+    private static ReportCoverage Coverage(int expectedDays, List<SnapshotDay> days) =>
+        new(expectedDays, days.Count, days.Count == 0 ? null : days.Max(d => d.ComputedAtUtc));
 
     private static List<DailyFleetIndicators> Daily(ReportPeriod covered, IReadOnlyList<SnapshotRowFigures> rows)
     {

@@ -142,6 +142,39 @@ public sealed class SnapshotIntegrationTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_dashboard_tile_shows_the_month_so_far_against_the_same_days_of_the_previous_month()
+    {
+        var agency = await CreateAsync(host, vehicles: 1, Ct);
+        var period = ReportPeriod.DefaultFor(Day(0));
+        var covered = period.Until(Day(-1))!;
+        var previous = period.Previous(covered.Days);
+        await PastFileAsync(host, agency, agency.Vehicles[0], TunisTime.FromLocal(covered.To, new TimeOnly(10, 0)), days: 1, rentalInclVat: 119m, PastOutcome.Closed, Ct);
+        await PastFileAsync(host, agency, agency.Vehicles[0], TunisTime.FromLocal(previous.From, new TimeOnly(10, 0)), days: 2, rentalInclVat: 476m, PastOutcome.Closed, Ct);
+        await RecomputeAsync(agency.AgencyId, previous.From, covered.To);
+
+        await using var scope = host.CreateScope(Accountant);
+        var queries = scope.ServiceProvider.GetRequiredService<ReportQueries>();
+        var headline = await queries.GetHeadlineAsync(agency.AgencyId, Ct);
+
+        headline.IsSuccess.ShouldBeTrue(headline.IsFailure ? headline.Error.ToString() : null);
+        var tile = headline.Value;
+        (tile.Period.From, tile.Period.To, tile.Period.CoveredTo).ShouldBe((period.From, period.To, (DateOnly?)covered.To));
+        (tile.Period.PreviousFrom, tile.Period.PreviousTo).ShouldBe(((DateOnly?)previous.From, (DateOnly?)previous.To));
+        tile.Coverage.IsComplete.ShouldBeTrue();
+        (tile.Fleet.AvailableDays, tile.Fleet.RentedDays, tile.Fleet.Revenue).ShouldBe((covered.Days, 1, Money.Tnd(100m)));
+        tile.Fleet.RevenuePerAvailableDay.ShouldBe(Money.Tnd(100m / covered.Days));
+        var previousRented = Math.Min(2, previous.Days);
+        (tile.PreviousFleet.RentedDays, tile.PreviousFleet.Revenue).ShouldBe((previousRented, Money.Tnd(200m * previousRented)));
+
+        // The same figures as the reports screen over the same days.
+        var report = await queries.GetDashboardAsync(new ReportRequest(agency.AgencyId, period.From, period.To), Ct);
+        report.Value.Fleet.ShouldBe(tile.Fleet);
+        await using var agent = host.CreateScope(Agent);
+        (await agent.ServiceProvider.GetRequiredService<ReportQueries>().GetHeadlineAsync(agency.AgencyId, Ct)).Error.ShouldBe(ReportingErrors.Forbidden);
+        (await queries.GetHeadlineAsync(Guid.CreateVersion7(), Ct)).Error.ShouldBe(ReportingErrors.AgencyNotFound);
+    }
+
+    [Fact]
     public async Task Only_past_days_are_computed_and_only_with_access_to_the_reports()
     {
         var agency = await CreateAsync(host, vehicles: 1, Ct);
