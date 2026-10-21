@@ -1,0 +1,89 @@
+@* A credit note of an invoice: total (everything that remains) or partial (an amount, VAT included, for each positive line,
+   at most what remains of it), with the mandatory reason. Returns a CreditNoteRequest; the service checks it again. *@
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <Notice Kind="NoticeKind.Info" Class="mb-3">@L["Credit.Remaining", BillingFormat.Amount(Invoice.Remaining)]</Notice>
+        <MudRadioGroup T="CreditNoteScope" @bind-Value="_scope" Class="mb-2">
+            <MudRadio T="CreditNoteScope" Value="CreditNoteScope.Total" data-testid="credit-total">@L["Credit.Scope.Total"]</MudRadio>
+            <MudRadio T="CreditNoteScope" Value="CreditNoteScope.Partial" data-testid="credit-partial">@L["Credit.Scope.Partial"]</MudRadio>
+        </MudRadioGroup>
+        @if (_scope == CreditNoteScope.Partial)
+        {
+            <div class="billing-scroll" tabindex="0" role="region" aria-label="@L["Credit.Lines"]">
+                <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Credit.Lines"]">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Label"]</th>
+                            <th scope="col" class="billing-number">@L["Column.Remaining"]</th>
+                            <th scope="col" class="billing-number">@L["Credit.Amount"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in CreditableLines)
+                        {
+                            <tr>
+                                <td>@line.Description</td>
+                                <td class="billing-number">@BillingFormat.Amount(line.RemainingInclVat)</td>
+                                <td style="min-inline-size:9rem">
+                                    <MudNumericField T="decimal?" Value="@Amount(line.Id)" ValueChanged="@(value => SetAmount(line.Id, value))"
+                                                     Label="@L["Credit.Amount.Of", line.Description]" Min="0m" Max="@line.RemainingInclVat.Amount" Format="N3"
+                                                     HideSpinButtons="true" Margin="Margin.Dense" data-testid="@($"credit-amount-{line.Position}")" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+            <MudText Typo="Typo.body2" Class="mt-2" data-testid="credit-sum">@L["Credit.Sum", BillingFormat.Amount(Money.Tnd(_amounts.Values.Sum()))]</MudText>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Credit.Reason"]" Lines="3" MaxLength="CreditNoteDraft.ReasonMaxLength" Counter="CreditNoteDraft.ReasonMaxLength"
+                      Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" Class="mt-3" data-testid="credit-reason" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dialog.Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!CanSubmit)" data-testid="credit-submit">@L["Credit.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly Dictionary<Guid, decimal> _amounts = [];
+    private CreditNoteScope _scope = CreditNoteScope.Total;
+    private string? _reason;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public InvoiceDetail Invoice { get; set; } = default!;
+
+    private IEnumerable<InvoiceLineView> CreditableLines => Invoice.Lines.Where(l => l.InclVat.IsPositive && l.RemainingInclVat.IsPositive);
+
+    private bool CanSubmit =>
+        (_reason?.Trim().Length ?? 0) >= CreditNoteDraft.ReasonMinLength
+        && (_scope == CreditNoteScope.Total || _amounts.Values.Any(a => a > 0m));
+
+    private decimal? Amount(Guid lineId) => _amounts.TryGetValue(lineId, out var amount) ? amount : null;
+
+    private void SetAmount(Guid lineId, decimal? value)
+    {
+        if (value is > 0m)
+        {
+            _amounts[lineId] = value.Value;
+        }
+        else
+        {
+            _amounts.Remove(lineId);
+        }
+    }
+
+    private void Submit()
+    {
+        var lines = _scope == CreditNoteScope.Partial ? _amounts.Select(a => new CreditLineRequest(a.Key, a.Value)).ToList() : null;
+        Dialog.Close(DialogResult.Ok(new CreditNoteRequest(_scope, _reason!.Trim(), lines)));
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

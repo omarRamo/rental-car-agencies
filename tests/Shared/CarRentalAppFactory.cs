@@ -153,6 +153,11 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("ClicToPay:DeclinedStatusCodes", "6");
         builder.UseSetting("ClicToPay:StatusRetryDelayMilliseconds", "0");
 
+        // Electronic invoicing: an agency switched to TTN (billing.einvoice_ttn) transmits to the fake (TTN-FAKE-…
+        // references), never to the real adapter, which is not configured until the TEIF specification.
+        builder.UseSetting("Billing:Ttn:UseFake", "true");
+
+        // The extra settings of a dedicated host come last: they override any default above.
         foreach (var (key, value) in ExtraSettings)
         {
             builder.UseSetting(key, value);

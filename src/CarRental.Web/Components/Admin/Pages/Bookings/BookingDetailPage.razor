@@ -296,6 +296,16 @@ else
             </MudItem>
         }
 
+        @if (file.Status is BookingStatus.Closed or BookingStatus.Cancelled)
+        {
+            <AuthorizeView Policy="@PermissionPolicy.For(Permissions.InvoicesRead)">
+                <MudItem xs="12">
+                    <CarRental.Web.Components.Admin.Billing.BillingStyles />
+                    <CarRental.Web.Components.Admin.Billing.BookingInvoicesPanel BookingId="file.Id" Closed="@(file.Status == BookingStatus.Closed)" />
+                </MudItem>
+            </AuthorizeView>
+        }
+
         <MudItem xs="12" lg="7">
             <MudPaper Elevation="1" Class="pa-4">
                 <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Section.Quote", file.CurrentQuoteVersion]</MudText>

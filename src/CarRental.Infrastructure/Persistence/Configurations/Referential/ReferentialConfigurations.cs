@@ -14,6 +14,9 @@ internal sealed class AgencyConfiguration : IEntityTypeConfiguration<Agency>
         builder.Property(a => a.Name).HasMaxLength(Agency.NameMaxLength).IsRequired();
         builder.Property(a => a.LegalName).HasMaxLength(Agency.LegalNameMaxLength);
         builder.Property(a => a.TaxIdentifier).HasMaxLength(Agency.TaxIdentifierMaxLength);
+        builder.Property(a => a.TradeRegisterNumber).HasMaxLength(Agency.TradeRegisterNumberMaxLength);
+        builder.Property(a => a.LegalAddress).HasMaxLength(Agency.LegalAddressMaxLength);
+        builder.Property(a => a.InvoiceFooter).HasMaxLength(Agency.InvoiceFooterMaxLength);
         builder.Property(a => a.City).HasMaxLength(Agency.CityMaxLength).IsRequired();
         builder.Property(a => a.Address).HasMaxLength(Agency.AddressMaxLength);
         builder.Property(a => a.Phone).HasMaxLength(Agency.PhoneMaxLength);

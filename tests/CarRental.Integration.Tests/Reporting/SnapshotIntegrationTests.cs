@@ -123,10 +123,10 @@ public sealed class SnapshotIntegrationTests(IntegrationHost host)
         var afterPayment = await DashboardAsync(agency.AgencyId, Day(-12), Day(-1));
         afterPayment.Cash.Unpaid.ShouldHaveSingleItem().BookingId.ShouldBe(returned.Id);
         afterPayment.Cash.UnpaidTotal.ShouldBe(Money.Tnd(364.14m));
-        afterPayment.Sources.InvoicingConnected.ShouldBeFalse();
+        afterPayment.Sources.InvoicingConnected.ShouldBeTrue("the Billing module serves the amounts invoiced");
         afterPayment.Sources.CommissionsConnected.ShouldBeTrue();
         afterPayment.Sources.ChargesConnected.ShouldBeTrue();
-        afterPayment.Sources.CostSources.ShouldBe(["fleet"]);
+        afterPayment.Sources.CostSources.ShouldBe(["claims", "fleet"], ignoreOrder: true);
     }
 
     [Fact]

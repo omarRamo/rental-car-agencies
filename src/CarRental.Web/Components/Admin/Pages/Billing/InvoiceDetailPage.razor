@@ -1,0 +1,522 @@
+@page "/admin/invoices/{Id:guid}"
+@attribute [HasPermission(Permissions.InvoicesRead)]
+@implements IDisposable
+@using CarRental.Web.Resources.Admin.Payments
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<PaymentsResources> P
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<BillingStyles />
+
+<MudLink Href="/admin/invoices" Class="d-inline-flex align-center gap-1 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" aria-hidden="true" />@L["Invoice.BackToList"]
+</MudLink>
+
+@if (_invoice is not { } invoice)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@Title</MudText>
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
+        <MudText Typo="Typo.h4" HtmlTag="h1" data-testid="invoice-number" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@Title</MudText>
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Category">@L[$"Kind.{invoice.Kind}"]</MudChip>
+        <EInvoiceStatusChip Status="invoice.EInvoiceStatus" />
+    </MudStack>
+    <MudText Typo="Typo.body2" Class="mb-3">@L["Invoice.IssuedBy", BillingFormat.Instant(invoice.IssuedAtUtc), invoice.IssuedBy]</MudText>
+
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
+        @if (invoice.HasPdf)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@BillingFormat.InvoicePdfUrl(invoice.Id)"
+                       Target="_blank" rel="noopener" data-testid="invoice-pdf">@L["Pdf.Download"]</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Translate" Href="@BillingFormat.InvoicePdfUrl(invoice.Id, "en")"
+                       Target="_blank" rel="noopener">@L["Pdf.DownloadEnglish"]</MudButton>
+        }
+        else
+        {
+            <Notice Kind="NoticeKind.Info" Role="status">@L["Pdf.PendingLong"]</Notice>
+        }
+        @if (invoice.Actions.CanCredit)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Undo" OnClick="CreditAsync" Disabled="_busy"
+                       data-testid="credit-open">@L["Credit.Open"]</MudButton>
+        }
+        @if (invoice.Actions.CanRetryTransmission)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay" OnClick="RetryAsync" Disabled="_busy">@L["EInvoice.Retry"]</MudButton>
+        }
+    </MudStack>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Invoice.Seller"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Field.LegalName"]</dt>
+                    <dd>@invoice.Seller.LegalName</dd>
+                    <dt>@L["Field.TaxIdentifier"]</dt>
+                    <dd>@invoice.Seller.TaxIdentifier</dd>
+                    @if (invoice.Seller.TradeRegisterNumber is { } register)
+                    {
+                        <dt>@L["Field.TradeRegister"]</dt>
+                        <dd>@register</dd>
+                    }
+                    <dt>@L["Field.Address"]</dt>
+                    <dd>@invoice.Seller.Address</dd>
+                </dl>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Invoice.Buyer"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Field.Name"]</dt>
+                    <dd data-testid="invoice-buyer">@invoice.Buyer.Name</dd>
+                    @if (invoice.Buyer.TaxIdentifier is { } tax)
+                    {
+                        <dt>@L["Field.TaxIdentifier"]</dt>
+                        <dd>@tax</dd>
+                    }
+                    @if (invoice.Buyer.AddressText is { } address)
+                    {
+                        <dt>@L["Field.Address"]</dt>
+                        <dd>@address</dd>
+                    }
+                    @if (invoice.Buyer.Email is { } email)
+                    {
+                        <dt>@L["Field.Email"]</dt>
+                        <dd>@email</dd>
+                    }
+                </dl>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Invoice.References"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Column.Date"]</dt>
+                    <dd>@BillingFormat.Date(invoice.IssueDate)</dd>
+                    @if (invoice.BookingId is { } bookingId)
+                    {
+                        <dt>@L["Column.Booking"]</dt>
+                        <dd><MudLink Href="@($"/admin/bookings/{bookingId:D}")" Underline="Underline.Always">@invoice.BookingNumber</MudLink></dd>
+                    }
+                    @if (invoice.FineId is { } fineId)
+                    {
+                        <dt>@L["Invoice.Fine"]</dt>
+                        <dd>
+                            <AuthorizeView Policy="@PermissionPolicy.For(Permissions.FinesManage)">
+                                <Authorized><MudLink Href="@($"/admin/fines/{fineId:D}")" Underline="Underline.Always">@L["Invoice.Fine.Open"]</MudLink></Authorized>
+                                <NotAuthorized>@L["Invoice.Fine.Linked"]</NotAuthorized>
+                            </AuthorizeView>
+                        </dd>
+                    }
+                    @if (invoice is { ServiceFromUtc: { } from, ServiceToUtc: { } to })
+                    {
+                        <dt>@L["Invoice.Period"]</dt>
+                        <dd>@L["Invoice.Period.Value", BillingFormat.Instant(from), BillingFormat.Instant(to)]</dd>
+                    }
+                    <dt>@L["Invoice.EInvoiceMode"]</dt>
+                    <dd>@L[$"EInvoiceMode.{invoice.EInvoiceMode}"]</dd>
+                    @if (invoice.TtnReference is { } reference)
+                    {
+                        <dt>@L["Invoice.TtnReference"]</dt>
+                        <dd>@reference (@BillingFormat.Instant(invoice.TransmittedAtUtc))</dd>
+                    }
+                    @if (invoice.EInvoiceStatus is EInvoiceStatus.Pending or EInvoiceStatus.Failed)
+                    {
+                        <dt>@L["Column.Attempts"]</dt>
+                        <dd>@invoice.TransmissionAttempts</dd>
+                        @if (invoice.LastTransmissionError is { } error)
+                        {
+                            <dt>@L["Column.LastError"]</dt>
+                            <dd>@error</dd>
+                        }
+                    }
+                    <dt>@L["Invoice.Emailed"]</dt>
+                    <dd>@(invoice.EmailedAtUtc is { } emailedAt ? L["Invoice.Emailed.Value", invoice.EmailedTo ?? "—", BillingFormat.Instant(emailedAt)] : L["Invoice.Emailed.Not"])</dd>
+                </dl>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <section aria-labelledby="invoice-lines" class="mb-4">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-lines" GutterBottom="true">@L["Invoice.Lines"]</MudText>
+        <div class="billing-scroll" tabindex="0" role="region" aria-labelledby="invoice-lines">
+            <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="invoice-lines">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Column.Label"]</th>
+                        <th scope="col" class="billing-number">@L["Column.Quantity"]</th>
+                        <th scope="col" class="billing-number">@L["Column.UnitPrice"]</th>
+                        <th scope="col" class="billing-number">@L["Column.ExclVat"]</th>
+                        <th scope="col" class="billing-number">@L["Column.Rate"]</th>
+                        <th scope="col" class="billing-number">@L["Column.Vat"]</th>
+                        <th scope="col" class="billing-number">@L["Column.InclVat"]</th>
+                        @if (invoice.CreditNotes.Count > 0)
+                        {
+                            <th scope="col" class="billing-number">@L["Column.Remaining"]</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in invoice.Lines)
+                    {
+                        <tr data-testid="invoice-line">
+                            <td>@line.Description</td>
+                            <td class="billing-number">@line.Quantity</td>
+                            <td class="billing-number">@BillingFormat.Amount(line.UnitPriceExclVat)</td>
+                            <td class="billing-number">@BillingFormat.Amount(line.ExclVat)</td>
+                            <td class="billing-number">@BillingFormat.Rate(line.VatRate)</td>
+                            <td class="billing-number">@BillingFormat.Amount(line.Vat)</td>
+                            <td class="billing-number">@BillingFormat.Amount(line.InclVat)</td>
+                            @if (invoice.CreditNotes.Count > 0)
+                            {
+                                <td class="billing-number">@BillingFormat.Amount(line.RemainingInclVat)</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    </section>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" md="6">
+            <section aria-labelledby="invoice-vat">
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-vat" GutterBottom="true">@L["Invoice.VatTotals"]</MudText>
+                <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="invoice-vat">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="billing-number">@L["Column.Rate"]</th>
+                            <th scope="col" class="billing-number">@L["Column.Base"]</th>
+                            <th scope="col" class="billing-number">@L["Column.Vat"]</th>
+                            <th scope="col" class="billing-number">@L["Column.InclVat"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var total in invoice.VatTotals)
+                        {
+                            <tr>
+                                <td class="billing-number">@BillingFormat.Rate(total.Rate)</td>
+                                <td class="billing-number">@BillingFormat.Amount(total.ExclVat)</td>
+                                <td class="billing-number">@BillingFormat.Amount(total.Vat)</td>
+                                <td class="billing-number">@BillingFormat.Amount(total.InclVat)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </section>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <section aria-labelledby="invoice-totals">
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-totals" GutterBottom="true">@L["Invoice.Totals"]</MudText>
+                <dl class="billing-totals" data-testid="invoice-totals">
+                    <dt>@L["Total.ExclVat"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.TotalExclVat)</dd>
+                    <dt>@L["Total.Vat"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.TotalVat)</dd>
+                    <dt>@L["Total.InclVat"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.TotalInclVat)</dd>
+                    <dt>@L["Total.StampDuty"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.StampDuty)</dd>
+                    <dt class="billing-total">@L["Total.Due"]</dt>
+                    <dd class="billing-total" data-testid="invoice-total-due">@BillingFormat.Amount(invoice.TotalDue)</dd>
+                    <dt>@L["Total.PaidAtIssue"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.PaidAtIssue)</dd>
+                    @if (!invoice.DepositAppliedAtIssue.IsZero)
+                    {
+                        <dt>@L["Total.DepositApplied"]</dt>
+                        <dd>@BillingFormat.Amount(invoice.DepositAppliedAtIssue)</dd>
+                    }
+                    <dt>@L[invoice.BalanceAtIssue.IsNegative ? "Total.OverpaidAtIssue" : "Total.BalanceAtIssue"]</dt>
+                    <dd>@BillingFormat.Amount(invoice.BalanceAtIssue.Abs())</dd>
+                    @if (invoice.CreditNotes.Count > 0)
+                    {
+                        <dt>@L["Total.Remaining"]</dt>
+                        <dd data-testid="invoice-remaining">@BillingFormat.Amount(invoice.Remaining)</dd>
+                    }
+                </dl>
+            </section>
+        </MudItem>
+    </MudGrid>
+
+    @if (invoice.Mentions.Count > 0)
+    {
+        <section aria-labelledby="invoice-mentions" class="mb-4">
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-mentions" GutterBottom="true">@L["Invoice.Mentions"]</MudText>
+            <MudPaper Elevation="1" Class="pa-4 billing-mentions">
+                @foreach (var mention in invoice.Mentions)
+                {
+                    <p>@mention</p>
+                }
+            </MudPaper>
+        </section>
+    }
+
+    <section aria-labelledby="invoice-credit-notes" class="mb-4">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-credit-notes" GutterBottom="true">@L["Invoice.CreditNotes"]</MudText>
+        @if (invoice.CreditNotes.Count == 0)
+        {
+            <MudText Typo="Typo.body2">@L["Invoice.CreditNotes.None"]</MudText>
+        }
+        else
+        {
+            <div class="billing-scroll" tabindex="0" role="region" aria-labelledby="invoice-credit-notes">
+                <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="invoice-credit-notes">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Number"]</th>
+                            <th scope="col">@L["Column.Date"]</th>
+                            <th scope="col">@L["Column.Scope"]</th>
+                            <th scope="col">@L["Column.Reason"]</th>
+                            <th scope="col" class="billing-number">@L["Column.Total"]</th>
+                            <th scope="col">@L["Column.EInvoice"]</th>
+                            <th scope="col">@L["Column.Pdf"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var note in invoice.CreditNotes)
+                        {
+                            <tr data-testid="credit-note">
+                                <td>@note.Number</td>
+                                <td>@BillingFormat.Date(note.IssueDate)</td>
+                                <td>@L[$"Scope.{note.Scope}"]</td>
+                                <td>@note.Reason</td>
+                                <td class="billing-number">@BillingFormat.Amount(note.TotalInclVat)</td>
+                                <td><EInvoiceStatusChip Status="note.EInvoiceStatus" /></td>
+                                <td>
+                                    @if (note.HasPdf)
+                                    {
+                                        <MudLink Href="@BillingFormat.CreditNotePdfUrl(note.Id)" Target="_blank" rel="noopener" Underline="Underline.Always"
+                                                 aria-label="@L["Pdf.Download.Of", note.Number]">@L["Pdf.Download.Short"]</MudLink>
+                                    }
+                                    else
+                                    {
+                                        <span class="billing-muted">@L["Pdf.Pending"]</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </section>
+
+    @if (invoice.Payments is { } payments)
+    {
+        <section aria-labelledby="invoice-payments" class="mb-4">
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="invoice-payments" GutterBottom="true">@L["Invoice.Payments"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@L["Invoice.Payments.Intro"]</MudText>
+            @if (payments.Payments.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@L["Invoice.Payments.None"]</MudText>
+            }
+            else
+            {
+                <div class="billing-scroll" tabindex="0" role="region" aria-labelledby="invoice-payments">
+                    <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="invoice-payments">
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Date"]</th>
+                                <th scope="col">@L["Column.Direction"]</th>
+                                <th scope="col">@L["Column.Method"]</th>
+                                <th scope="col">@L["Column.Status"]</th>
+                                <th scope="col" class="billing-number">@L["Column.Amount"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in payments.Payments)
+                            {
+                                <tr>
+                                    <td>@BillingFormat.Instant(payment.RecordedAtUtc)</td>
+                                    <td>@P[$"Direction.{payment.Direction}"]</td>
+                                    <td>@P[$"Method.{payment.Method}"]</td>
+                                    <td>@P[$"PaymentStatus.{payment.Status}"]</td>
+                                    <td class="billing-number">@BillingFormat.Amount(payment.Amount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            }
+            <dl class="billing-totals mt-2">
+                <dt>@L["Total.NetPaid"]</dt>
+                <dd>@BillingFormat.Amount(payments.Totals.NetPaid)</dd>
+                @if (!payments.Deposits.Retained.IsZero)
+                {
+                    <dt>@L["Total.DepositRetained"]</dt>
+                    <dd>@BillingFormat.Amount(payments.Deposits.Retained)</dd>
+                }
+            </dl>
+        </section>
+    }
+}
+
+@code {
+    /// <summary>How often the page reads the invoice again while its documents are being prepared, and for how long.</summary>
+    private static readonly TimeSpan PendingRefresh = TimeSpan.FromSeconds(2);
+
+    private const int MaxPendingRefreshes = 60;
+
+    private InvoiceDetail? _invoice;
+    private string? _error;
+    private bool _busy;
+    private Timer? _timer;
+    private int _ticks;
+    private bool _refreshing;
+    private bool _disposed;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string Title => _invoice is { } invoice ? L["Invoice.Title", invoice.Number] : L["Invoice.Title.Loading"];
+
+    /// <summary>The PDF of the invoice or of a credit note is being prepared, or TTN has not answered yet (outbox steps).</summary>
+    private bool Pending => _invoice is { } invoice
+        && (!invoice.HasPdf || invoice.CreditNotes.Any(n => !n.HasPdf) || invoice.EInvoiceStatus == EInvoiceStatus.Pending);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadAsync();
+        WatchPending();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        StopWatching();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var id = Id;
+        var result = await Runner.RunAsync<BillingAdministrationQueries, Result<InvoiceDetail>>((queries, ct) => queries.GetInvoiceAsync(id, ct));
+        if (result.IsSuccess)
+        {
+            _invoice = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _invoice = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    /// <summary>Reads the invoice again every few seconds while its documents are prepared by the outbox, then stops.</summary>
+    private void WatchPending()
+    {
+        if (_disposed || !RendererInfo.IsInteractive || _timer is not null || !Pending)
+        {
+            return;
+        }
+
+        _ticks = 0;
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshPendingAsync), null, PendingRefresh, PendingRefresh);
+    }
+
+    private async Task RefreshPendingAsync()
+    {
+        if (_disposed || _refreshing)
+        {
+            return;
+        }
+
+        _refreshing = true;
+        try
+        {
+            _ticks++;
+            await ReloadAsync();
+            if (!Pending || _ticks >= MaxPendingRefreshes)
+            {
+                StopWatching();
+            }
+
+            StateHasChanged();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private void StopWatching()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    private async Task CreditAsync()
+    {
+        if (_invoice is not { } invoice)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<CreditNoteDialog> { { d => d.Invoice, invoice } };
+        var dialog = await Dialogs.ShowAsync<CreditNoteDialog>(L["Credit.Title", invoice.Number], parameters, BillingFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is not { Canceled: false, Data: CreditNoteRequest request })
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var id = invoice.Id;
+            var issued = await Runner.RunAsync<InvoicingService, Result<IssuedDocument>>((service, ct) => service.CreateCreditNoteAsync(id, request, ct));
+            if (issued.IsSuccess)
+            {
+                Snackbar.Add(L["Credit.Issued", issued.Value.Number], Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, issued.Error), Severity.Error);
+            }
+
+            await ReloadAsync();
+            WatchPending();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        if (_invoice is not { } invoice)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var id = invoice.Id;
+            var retried = await Runner.RunAsync<BillingAdministrationQueries, Result>((queries, ct) => queries.RetryTransmissionAsync(BillingDocumentType.Invoice, id, ct));
+            Snackbar.Add(retried.IsSuccess ? L["EInvoice.Retried", invoice.Number] : ErrorMessages.For(Shared, retried.Error), retried.IsSuccess ? Severity.Success : Severity.Error);
+            await ReloadAsync();
+            WatchPending();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

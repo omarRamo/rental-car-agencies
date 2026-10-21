@@ -61,6 +61,12 @@ public static class Permissions
     public const string InvoicesRead = "invoices.read";
     public const string InvoicesIssue = "invoices.issue";
     public const string InvoicesManage = "invoices.manage";
+
+    /// <summary>Traffic fines: record, match with the rental, designate the driver, re-invoice (with <c>invoices.issue</c>), close.</summary>
+    public const string FinesManage = "fines.manage";
+
+    /// <summary>Claims (sinistres): accident report and photos, insurer, costs and reimbursements, statuses.</summary>
+    public const string ClaimsManage = "claims.manage";
     public const string CashOwn = "cash.own";
     public const string CashManage = "cash.manage";
     public const string ExpensesManage = "expenses.manage";
@@ -133,6 +139,8 @@ public static class Permissions
             new(InvoicesRead, PermissionArea.Finance),
             new(InvoicesIssue, PermissionArea.Finance),
             new(InvoicesManage, PermissionArea.Finance),
+            new(FinesManage, PermissionArea.Finance),
+            new(ClaimsManage, PermissionArea.Finance),
             new(CashOwn, PermissionArea.Finance),
             new(CashManage, PermissionArea.Finance),
             new(ExpensesManage, PermissionArea.Finance),

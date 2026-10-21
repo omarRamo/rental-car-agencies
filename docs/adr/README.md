@@ -62,6 +62,9 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0054](0054-executeur-des-tours-du-bot-whatsapp.md) | Exécuteur des tours du bot WhatsApp, hors de l'outbox | Acceptée |
 | [0055](0055-port-du-modele-sdk-anthropic-cache-et-couts.md) | Agent WhatsApp : port du modèle, SDK Anthropic, cache du prompt et coûts | Acceptée |
 | [0056](0056-garde-fous-outils-minimisation-et-evaluation.md) | Agent WhatsApp : outils, garde-fous dans le code, minimisation des données, évaluation | Acceptée |
+| [0057](0057-factures-avoirs-numerotation-et-moments-de-facturation.md) | Factures et avoirs : documents figés, numérotation continue, TVA et moments de facturation | Acceptée |
+| [0058](0058-documents-de-facturation-pdf-envoi-et-facture-electronique.md) | Documents de facturation : PDF, envoi au client et facturation électronique TTN | Acceptée (schéma TEIF à fournir) |
+| [0059](0059-amendes-designation-du-conducteur-et-sinistres.md) | Amendes : rapprochement, désignation du conducteur et refacturation ; sinistres | Acceptée |
 | [0060](0060-alertes-et-telemetrie-de-sante.md) | Alertes : télémétrie de santé publiée par l'application, règles Azure Monitor à faible coût | Acceptée |
 | [0061](0061-sauvegardes-retention-et-immuabilite.md) | Sauvegardes, rétention longue et factures immuables | Acceptée |
 | [0062](0062-origine-cloudflare-et-revue-de-securite.md) | Origine réservée à Cloudflare et décisions de la revue de sécurité (passe 1) | Acceptée |

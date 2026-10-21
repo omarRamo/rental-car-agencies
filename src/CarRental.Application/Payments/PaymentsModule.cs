@@ -28,6 +28,7 @@ public static class PaymentsModule
         services.AddScoped<OnlinePayments>();
         services.AddScoped<IOnlinePayments>(serviceProvider => serviceProvider.GetRequiredService<OnlinePayments>());
         services.AddScoped<IPaymentsReportingQueries, PaymentsReportingQueries>();
+        services.AddScoped<IPaymentsBillingQueries, PaymentsBillingQueries>();
 
         // Back office.
         services.AddScoped<PaymentAdminQueries>();

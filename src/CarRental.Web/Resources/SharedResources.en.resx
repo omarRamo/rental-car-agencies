@@ -1656,4 +1656,202 @@
   <data name="Error.messaging.knowledge.concurrent_update" xml:space="preserve">
     <value>The answer changed meanwhile: reload it and try again.</value>
   </data>
+  <data name="Error.billing.forbidden" xml:space="preserve">
+    <value>You are not allowed to perform this billing operation.</value>
+  </data>
+  <data name="Error.billing.lock_timeout" xml:space="preserve">
+    <value>Another document is being issued for this file or invoice: try again.</value>
+  </data>
+  <data name="Error.billing.seller_identity_incomplete" xml:space="preserve">
+    <value>The legal identity of the agency is incomplete (legal name, tax identifier, address): no invoice can be issued. Complete it in "Agency identity".</value>
+  </data>
+  <data name="Error.billing.buyer.missing" xml:space="preserve">
+    <value>The file has no payer to invoice.</value>
+  </data>
+  <data name="Error.billing.buyer.name_required" xml:space="preserve">
+    <value>The buyer of an invoice has a name.</value>
+  </data>
+  <data name="Error.billing.buyer.tax_identifier_required" xml:space="preserve">
+    <value>A company is invoiced with its tax identifier (matricule fiscal).</value>
+  </data>
+  <data name="Error.billing.buyer.address_required" xml:space="preserve">
+    <value>A company is invoiced at its billing address.</value>
+  </data>
+  <data name="Error.billing.party.field_too_long" xml:space="preserve">
+    <value>A detail of the seller or of the buyer is too long.</value>
+  </data>
+  <data name="Error.billing.invoice.not_found" xml:space="preserve">
+    <value>This invoice does not exist.</value>
+  </data>
+  <data name="Error.billing.invoice.no_line" xml:space="preserve">
+    <value>An invoice has at least one line with an amount.</value>
+  </data>
+  <data name="Error.billing.invoice.too_many_lines" xml:space="preserve">
+    <value>The invoice has too many lines.</value>
+  </data>
+  <data name="Error.billing.invoice.line_invalid" xml:space="preserve">
+    <value>An invoice line is invalid (label, quantity, VAT rate or amounts).</value>
+  </data>
+  <data name="Error.billing.invoice.negative_total" xml:space="preserve">
+    <value>The total of an invoice cannot be negative.</value>
+  </data>
+  <data name="Error.billing.invoice.already_issued" xml:space="preserve">
+    <value>This file already has its invoice: correct it with a credit note.</value>
+  </data>
+  <data name="Error.billing.number_mismatch" xml:space="preserve">
+    <value>The number does not match the document type or the fiscal year of its issue date.</value>
+  </data>
+  <data name="Error.billing.mention_invalid" xml:space="preserve">
+    <value>A mention of the document is empty or too long.</value>
+  </data>
+  <data name="Error.billing.booking.not_found" xml:space="preserve">
+    <value>This rental file does not exist.</value>
+  </data>
+  <data name="Error.billing.booking.not_closed" xml:space="preserve">
+    <value>The final invoice of a file is issued once the file is closed (settled).</value>
+  </data>
+  <data name="Error.billing.booking.not_cancelled" xml:space="preserve">
+    <value>This file is not cancelled.</value>
+  </data>
+  <data name="Error.billing.booking.no_cancellation_fee" xml:space="preserve">
+    <value>The cancellation of this file is free (or the fee was waived): there is nothing to invoice.</value>
+  </data>
+  <data name="Error.billing.credit_note.not_found" xml:space="preserve">
+    <value>This credit note does not exist.</value>
+  </data>
+  <data name="Error.billing.credit_note.reason_required" xml:space="preserve">
+    <value>A credit note states its reason (3 to 500 characters).</value>
+  </data>
+  <data name="Error.billing.credit_note.no_line" xml:space="preserve">
+    <value>A partial credit note credits at least one line.</value>
+  </data>
+  <data name="Error.billing.credit_note.line_unknown" xml:space="preserve">
+    <value>A credited line does not belong to the invoice, or is credited twice.</value>
+  </data>
+  <data name="Error.billing.credit_note.amount_invalid" xml:space="preserve">
+    <value>A credited amount is positive, in millimes, and at most what remains of its line.</value>
+  </data>
+  <data name="Error.billing.credit_note.line_not_creditable" xml:space="preserve">
+    <value>A negative line (discount, franchise cap) is only cancelled by a total credit note.</value>
+  </data>
+  <data name="Error.billing.credit_note.exceeds_invoice" xml:space="preserve">
+    <value>The credit notes would exceed what remains creditable on the invoice.</value>
+  </data>
+  <data name="Error.billing.credit_note.nothing_to_credit" xml:space="preserve">
+    <value>The invoice is already fully credited.</value>
+  </data>
+  <data name="Error.billing.einvoice.not_configured" xml:space="preserve">
+    <value>TTN electronic invoicing is not configured yet (TEIF schema, signature and transmission not delivered).</value>
+  </data>
+  <data name="Error.billing.einvoice.transmission_failed" xml:space="preserve">
+    <value>The transmission of the document to TTN failed; it will be retried.</value>
+  </data>
+  <data name="Error.billing.einvoice.not_ttn" xml:space="preserve">
+    <value>This document was issued on paper (transitional regime): there is nothing to transmit.</value>
+  </data>
+  <data name="Error.billing.einvoice.already_transmitted" xml:space="preserve">
+    <value>This document was already transmitted to TTN.</value>
+  </data>
+  <data name="Error.billing.einvoice.reference_invalid" xml:space="preserve">
+    <value>The TTN reference is empty or too long.</value>
+  </data>
+  <data name="Error.billing.einvoice.not_failed" xml:space="preserve">
+    <value>Only a document whose transmission failed can be transmitted again.</value>
+  </data>
+  <data name="Error.billing.pdf.already_stored" xml:space="preserve">
+    <value>The PDF of the document is already stored.</value>
+  </data>
+  <data name="Error.billing.pdf.invalid" xml:space="preserve">
+    <value>The reference of the PDF is invalid.</value>
+  </data>
+  <data name="Error.billing.pdf.not_ready" xml:space="preserve">
+    <value>The PDF of the document is not ready yet: try again in a moment.</value>
+  </data>
+  <data name="Error.billing.email.already_sent" xml:space="preserve">
+    <value>The document was already e-mailed.</value>
+  </data>
+  <data name="Error.billing.email.invalid" xml:space="preserve">
+    <value>The e-mail address is invalid.</value>
+  </data>
+  <data name="Error.billing.fine.not_found" xml:space="preserve">
+    <value>This fine does not exist.</value>
+  </data>
+  <data name="Error.billing.fine.ticket_required" xml:space="preserve">
+    <value>The notice number is required (40 characters at most).</value>
+  </data>
+  <data name="Error.billing.fine.authority_required" xml:space="preserve">
+    <value>The issuing authority is required (120 characters at most).</value>
+  </data>
+  <data name="Error.billing.fine.place_required" xml:space="preserve">
+    <value>The place of the offence is required (200 characters at most).</value>
+  </data>
+  <data name="Error.billing.fine.plate_required" xml:space="preserve">
+    <value>The plate number is required (20 characters at most).</value>
+  </data>
+  <data name="Error.billing.fine.amount_invalid" xml:space="preserve">
+    <value>The amount of the fine is positive, in millimes, at most 100,000 TND.</value>
+  </data>
+  <data name="Error.billing.fine.offence_in_future" xml:space="preserve">
+    <value>The offence cannot be in the future.</value>
+  </data>
+  <data name="Error.billing.fine.notes_too_long" xml:space="preserve">
+    <value>The notes are too long (1,000 characters at most).</value>
+  </data>
+  <data name="Error.billing.fine.duplicate" xml:space="preserve">
+    <value>A fine with this number from this authority is already recorded.</value>
+  </data>
+  <data name="Error.billing.fine.invalid_transition" xml:space="preserve">
+    <value>The fine cannot take this step in its current status.</value>
+  </data>
+  <data name="Error.billing.fine.no_rental" xml:space="preserve">
+    <value>The fine is not attached to a rental file and a driver yet.</value>
+  </data>
+  <data name="Error.billing.fine.driver_invalid" xml:space="preserve">
+    <value>This driver is not a driver of the chosen file.</value>
+  </data>
+  <data name="Error.billing.fine.rental_not_covering" xml:space="preserve">
+    <value>The chosen file did not have the vehicle at the time of the offence.</value>
+  </data>
+  <data name="Error.billing.fine.already_reinvoiced" xml:space="preserve">
+    <value>The fine was already re-invoiced.</value>
+  </data>
+  <data name="Error.billing.claim.not_found" xml:space="preserve">
+    <value>This claim does not exist.</value>
+  </data>
+  <data name="Error.billing.claim.vehicle_required" xml:space="preserve">
+    <value>A claim concerns a vehicle of the agency.</value>
+  </data>
+  <data name="Error.billing.claim.accident_in_future" xml:space="preserve">
+    <value>The accident cannot be in the future.</value>
+  </data>
+  <data name="Error.billing.claim.description_required" xml:space="preserve">
+    <value>Describe the circumstances of the accident (3 to 2,000 characters).</value>
+  </data>
+  <data name="Error.billing.claim.field_too_long" xml:space="preserve">
+    <value>A detail of the claim is too long.</value>
+  </data>
+  <data name="Error.billing.claim.amount_invalid" xml:space="preserve">
+    <value>The amount is positive, in millimes, at most 1,000,000 TND.</value>
+  </data>
+  <data name="Error.billing.claim.label_required" xml:space="preserve">
+    <value>A cost or a reimbursement has a label (200 characters at most).</value>
+  </data>
+  <data name="Error.billing.claim.entry_not_found" xml:space="preserve">
+    <value>This cost, reimbursement or file does not exist on this claim.</value>
+  </data>
+  <data name="Error.billing.claim.too_many_entries" xml:space="preserve">
+    <value>The claim has too many costs, reimbursements or files.</value>
+  </data>
+  <data name="Error.billing.claim.closed" xml:space="preserve">
+    <value>A closed claim does not change any more.</value>
+  </data>
+  <data name="Error.billing.claim.invalid_transition" xml:space="preserve">
+    <value>The claim cannot take this step in its current status.</value>
+  </data>
+  <data name="Error.billing.claim.file_invalid" xml:space="preserve">
+    <value>The file must be a JPEG, PNG, WebP image or a PDF of at most 10 MB.</value>
+  </data>
+  <data name="Error.billing.concurrent_update" xml:space="preserve">
+    <value>The record was changed meanwhile: reload the page and try again.</value>
+  </data>
 </root>

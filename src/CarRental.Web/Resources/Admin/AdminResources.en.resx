@@ -252,4 +252,13 @@
   <data name="Nav.Outbox" xml:space="preserve">
     <value>Background messages</value>
   </data>
+  <data name="Nav.Fines" xml:space="preserve">
+    <value>Fines</value>
+  </data>
+  <data name="Nav.Claims" xml:space="preserve">
+    <value>Claims</value>
+  </data>
+  <data name="Nav.Agency" xml:space="preserve">
+    <value>Agency identity</value>
+  </data>
 </root>

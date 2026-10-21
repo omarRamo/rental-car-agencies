@@ -141,8 +141,11 @@ internal static class HandoverE2EData
             new CounterPaymentRequest(file.BookingId, file.AgencyId, PaymentMethodInfo.CardTerminal, amount, "TPE-E2E")));
     }
 
-    /// <summary>A departure done through the services (15 100 km, full tank, the eight photos, both signatures), the file paid.</summary>
-    public static async Task DepartAsync(E2EHost host, HandoverE2EFile file)
+    /// <summary>
+    /// A departure done through the services (15 100 km, full tank, the eight photos, both signatures), the file paid; the
+    /// vehicle left at <paramref name="pickedUpAt"/> (now by default).
+    /// </summary>
+    public static async Task DepartAsync(E2EHost host, HandoverE2EFile file, DateTimeOffset? pickedUpAt = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         var agent = Actor(Roles.Agent);
@@ -180,7 +183,7 @@ internal static class HandoverE2EData
         await SettleAsync(host, file);
         await using (var scope = Scope(host, agent))
         {
-            Ok(await scope.ServiceProvider.GetRequiredService<DepartureService>().FinishAsync(new FinishDepartureRequest(file.BookingId)));
+            Ok(await scope.ServiceProvider.GetRequiredService<DepartureService>().FinishAsync(new FinishDepartureRequest(file.BookingId, pickedUpAt)));
         }
     }
 

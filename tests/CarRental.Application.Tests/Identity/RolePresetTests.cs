@@ -56,6 +56,14 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.InvoicesManage, true },
         { Roles.Preparer, Permissions.InvoicesRead, false },
 
+        // Amendes et sinistres (lot 3A): Agent et Comptable gérer, Préparateur —
+        { Roles.Agent, Permissions.FinesManage, true },
+        { Roles.Accountant, Permissions.FinesManage, true },
+        { Roles.Preparer, Permissions.FinesManage, false },
+        { Roles.Agent, Permissions.ClaimsManage, true },
+        { Roles.Accountant, Permissions.ClaimsManage, true },
+        { Roles.Preparer, Permissions.ClaimsManage, false },
+
         // Clôture de caisse: Agent sa caisse, Comptable gérer
         { Roles.Agent, Permissions.CashOwn, true },
         { Roles.Agent, Permissions.CashManage, false },

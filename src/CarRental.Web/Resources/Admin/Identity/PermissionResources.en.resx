@@ -138,4 +138,10 @@
   <data name="Permission.whatsapp.knowledge" xml:space="preserve">
     <value>Manage the knowledge base of the WhatsApp bot (validated answers)</value>
   </data>
+  <data name="Permission.fines.manage" xml:space="preserve">
+    <value>Fines (record, designate, re-invoice)</value>
+  </data>
+  <data name="Permission.claims.manage" xml:space="preserve">
+    <value>Claims (manage)</value>
+  </data>
 </root>

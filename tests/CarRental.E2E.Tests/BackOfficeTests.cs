@@ -24,6 +24,10 @@ public sealed class BackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/audit$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Journal d'audit");
 
+        // The other tests of the run write to the audit log meanwhile: the manager searches their own actions.
+        await Expect(Page.Locator("main#admin-main[data-interactive='true']")).ToBeAttachedAsync(new LocatorAssertionsToBeAttachedOptions { Timeout = 30_000 });
+        await Page.GetByLabel("Utilisateur", new PageGetByLabelOptions { Exact = true }).FillAsync(TestAccounts.ManagerEmail);
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Rechercher" }).ClickAsync();
         var loginRow = Page.Locator("tr", new PageLocatorOptions { HasText = "identity.login_succeeded" })
             .Filter(new LocatorFilterOptions { HasText = TestAccounts.ManagerEmail })
             .First;

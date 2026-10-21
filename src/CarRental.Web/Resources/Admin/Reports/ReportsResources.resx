@@ -849,4 +849,7 @@
   <data name="Widget.Error" xml:space="preserve">
     <value>Les indicateurs ne sont pas disponibles pour le moment.</value>
   </data>
+  <data name="Source.Cost.claims" xml:space="preserve">
+    <value>coûts nets des sinistres (coûts moins remboursements, montants payés)</value>
+  </data>
 </root>

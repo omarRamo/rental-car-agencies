@@ -48,6 +48,8 @@ public static class RolePresets
             Permissions.PaymentsManage,
             Permissions.InvoicesRead,
             Permissions.InvoicesIssue,
+            Permissions.FinesManage,
+            Permissions.ClaimsManage,
             Permissions.CashOwn,
         }.ToFrozenSet(StringComparer.Ordinal),
         [Roles.Accountant] = new[]
@@ -63,6 +65,8 @@ public static class RolePresets
             Permissions.InvoicesRead,
             Permissions.InvoicesIssue,
             Permissions.InvoicesManage,
+            Permissions.FinesManage,
+            Permissions.ClaimsManage,
             Permissions.CashOwn,
             Permissions.CashManage,
             Permissions.ExpensesManage,

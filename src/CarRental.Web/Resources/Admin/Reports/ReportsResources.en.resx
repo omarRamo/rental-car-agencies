@@ -849,4 +849,7 @@
   <data name="Widget.Error" xml:space="preserve">
     <value>The indicators are not available at the moment.</value>
   </data>
+  <data name="Source.Cost.claims" xml:space="preserve">
+    <value>net costs of the claims (costs less reimbursements, amounts as paid)</value>
+  </data>
 </root>

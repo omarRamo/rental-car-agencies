@@ -1,0 +1,10 @@
+@* The electronic invoicing state of a document: an icon and its text (never the colour alone). *@
+@inject IStringLocalizer<BillingResources> L
+
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@BillingFormat.EInvoiceColor(Status)" Icon="@BillingFormat.EInvoiceIcon(Status)"
+         data-testid="einvoice-status">@L[$"EInvoiceStatus.{Status}"]</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public EInvoiceStatus Status { get; set; }
+}

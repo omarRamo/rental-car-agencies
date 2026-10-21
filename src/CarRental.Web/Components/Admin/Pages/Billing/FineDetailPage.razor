@@ -1,0 +1,312 @@
+@page "/admin/fines/{Id:guid}"
+@attribute [HasPermission(Permissions.FinesManage)]
+@using CarRental.Web.Components.Admin.Bookings
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<BillingStyles />
+
+<MudLink Href="/admin/fines" Class="d-inline-flex align-center gap-1 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" aria-hidden="true" />@L["Fine.BackToList"]
+</MudLink>
+
+@if (_fine is not { } fine)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@Title</MudText>
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+}
+else
+{
+    var actions = fine.Actions;
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
+        <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@Title</MudText>
+        <FineStatusChip Status="fine.Status" />
+    </MudStack>
+    <MudText Typo="Typo.body2" Class="mb-3">@L["Fine.RecordedBy", BillingFormat.Instant(fine.RecordedAtUtc), fine.RecordedBy]</MudText>
+
+    @if (fine.Status == FineStatus.Recorded && fine.BookingId is null)
+    {
+        <Notice Kind="NoticeKind.Warning" Class="mb-3" Role="status">@L[$"FineMatch.{fine.Match}.Help"]</Notice>
+    }
+
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
+        @if (actions.CanProduceDesignation)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf" Href="@BillingFormat.DesignationUrl(fine.Id)"
+                       Target="_blank" rel="noopener" data-testid="fine-designation">@L["Fine.Designation"]</MudButton>
+        }
+        @if (actions.CanMarkDesignated)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonPin" OnClick="MarkDesignatedAsync" Disabled="_busy"
+                       data-testid="fine-designated">@L["Fine.MarkDesignated"]</MudButton>
+        }
+        @if (actions.CanReinvoice)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ReceiptLong" OnClick="ReinvoiceAsync" Disabled="_busy"
+                       data-testid="fine-reinvoice">@L["Fine.Reinvoice"]</MudButton>
+        }
+        @if (actions.CanMarkPaid)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Paid" OnClick="MarkPaidAsync" Disabled="_busy">@L["Fine.MarkPaid"]</MudButton>
+        }
+        @if (actions.CanClose)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Lock" OnClick="CloseAsync" Disabled="_busy">@L["Fine.Close"]</MudButton>
+        }
+    </MudStack>
+    @if (fine.BookingId is not null && !actions.CanProduceDesignation && fine.Status != FineStatus.Closed)
+    {
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Fine.Designation.NeedsDocuments"]</MudText>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Fine.Notice"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Column.Ticket"]</dt>
+                    <dd>@fine.TicketNumber</dd>
+                    <dt>@L["Column.Authority"]</dt>
+                    <dd>@fine.Authority</dd>
+                    <dt>@L["Column.OffenceAt"]</dt>
+                    <dd>@BillingFormat.Instant(fine.OffenceAtUtc)</dd>
+                    <dt>@L["Fine.Field.Place"]</dt>
+                    <dd>@fine.Place</dd>
+                    <dt>@L["Column.Plate"]</dt>
+                    <dd>@fine.PlateNumber</dd>
+                    <dt>@L["Column.Amount"]</dt>
+                    <dd>@BillingFormat.Amount(fine.Amount)</dd>
+                    @if (!string.IsNullOrWhiteSpace(fine.Notes))
+                    {
+                        <dt>@L["Fine.Field.Notes"]</dt>
+                        <dd>@fine.Notes</dd>
+                    }
+                </dl>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="block-size:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Fine.Rental"]</MudText>
+                <dl class="billing-facts">
+                    <dt>@L["Fine.Vehicle"]</dt>
+                    <dd>@(fine.VehicleLabel ?? L["Fine.Vehicle.Unknown"].Value)</dd>
+                    <dt>@L["Fine.Match"]</dt>
+                    <dd>@L[$"FineMatch.{fine.Match}"]</dd>
+                    <dt>@L["Column.Booking"]</dt>
+                    <dd>
+                        @if (fine.BookingId is { } bookingId)
+                        {
+                            <MudLink Href="@($"/admin/bookings/{bookingId:D}")" Underline="Underline.Always" data-testid="fine-booking">@fine.BookingNumber</MudLink>
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </dd>
+                    <dt>@L["Fine.Driver"]</dt>
+                    <dd data-testid="fine-driver">@(fine.DriverName ?? "—")</dd>
+                    @if (fine.DesignatedAtUtc is { } designatedAt)
+                    {
+                        <dt>@L["Fine.DesignatedAt"]</dt>
+                        <dd>@L["Fine.By", BillingFormat.Instant(designatedAt), fine.DesignatedBy ?? "—"]</dd>
+                    }
+                    @if (fine.InvoiceId is { } invoiceId)
+                    {
+                        <dt>@L["Column.Invoice"]</dt>
+                        <dd>
+                            <AuthorizeView Policy="@PermissionPolicy.For(Permissions.InvoicesRead)">
+                                <Authorized><MudLink Href="@($"/admin/invoices/{invoiceId:D}")" Underline="Underline.Always">@fine.InvoiceNumber</MudLink></Authorized>
+                                <NotAuthorized>@fine.InvoiceNumber</NotAuthorized>
+                            </AuthorizeView>
+                        </dd>
+                    }
+                    @if (fine.PaidAtUtc is { } paidAt)
+                    {
+                        <dt>@L["Fine.PaidAt"]</dt>
+                        <dd>@BillingFormat.Instant(paidAt)</dd>
+                    }
+                    @if (fine.ClosedAtUtc is { } closedAt)
+                    {
+                        <dt>@L["Fine.ClosedAt"]</dt>
+                        <dd>@BillingFormat.Instant(closedAt)@(string.IsNullOrWhiteSpace(fine.CloseNote) ? string.Empty : $" — {fine.CloseNote}")</dd>
+                    }
+                </dl>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (actions.CanAssign)
+    {
+        <section aria-labelledby="fine-candidates" class="mb-4">
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="fine-candidates" GutterBottom="true">@L["Fine.Assign.Title"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@L["Fine.Assign.Intro"]</MudText>
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudRadioGroup T="Choice?" @bind-Value="_choice" aria-label="@L["Fine.Assign.Title"]">
+                    @foreach (var rental in fine.Candidates)
+                    {
+                        <fieldset class="mb-3" style="border:none;padding:0;margin:0">
+                            <legend class="mud-typography mud-typography-subtitle2">
+                                @L["Fine.Assign.Rental", rental.Number, BillingFormat.Instant(rental.CarriedFromUtc), rental.CarriedUntilUtc is { } until ? BillingFormat.Instant(until) : L["Fine.Assign.InProgress"].Value]
+                            </legend>
+                            @foreach (var driver in rental.Drivers)
+                            {
+                                <MudRadio T="Choice?" Value="@(new Choice(rental.BookingId, driver.PersonId))" data-testid="fine-driver-option">
+                                    @(string.IsNullOrEmpty(driver.FullName) ? L["Fine.Driver.Anonymized"].Value : driver.FullName)
+                                    (@L[driver.IsMainDriver ? "Fine.Driver.Main" : "Fine.Driver.Secondary"])
+                                </MudRadio>
+                            }
+                            @if (rental.Drivers.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Fine.Assign.NoDriver"]</MudText>
+                            }
+                        </fieldset>
+                    }
+                </MudRadioGroup>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AssignAsync" Disabled="@(_choice is null || _busy)" data-testid="fine-assign">@L["Fine.Assign.Submit"]</MudButton>
+            </MudPaper>
+        </section>
+    }
+}
+
+@code {
+    private FineDetail? _fine;
+    private string? _error;
+    private Choice? _choice;
+    private bool _busy;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string Title => _fine is { } fine ? L["Fine.Title", fine.TicketNumber] : L["Fine.Title.Loading"];
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var id = Id;
+        var result = await Runner.RunAsync<FineService, Result<FineDetail>>((service, ct) => service.GetAsync(id, ct));
+        if (result.IsSuccess)
+        {
+            _fine = result.Value;
+            _error = null;
+            _choice = null;
+        }
+        else
+        {
+            _fine = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task AssignAsync()
+    {
+        if (_choice is not { } choice)
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<FineService, Result>((service, ct) => service.AssignAsync(id, choice.BookingId, choice.PersonId, ct)), L["Fine.Assign.Done"]);
+    }
+
+    private async Task MarkDesignatedAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Fine.MarkDesignated"], L["Fine.MarkDesignated.Message"], L["Fine.MarkDesignated"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<FineService, Result>((service, ct) => service.MarkDesignatedAsync(id, ct)), L["Fine.MarkDesignated.Done"]);
+    }
+
+    private async Task ReinvoiceAsync()
+    {
+        if (_fine is not { } fine)
+        {
+            return;
+        }
+
+        var message = fine.Actions.ManagementFee.IsPositive
+            ? L["Fine.Reinvoice.Message.Fee", BillingFormat.Amount(fine.Amount), BillingFormat.Amount(fine.Actions.ManagementFee)]
+            : L["Fine.Reinvoice.Message", BillingFormat.Amount(fine.Amount)];
+        if (!await Dialogs.ConfirmAsync(L["Fine.Reinvoice"], message, L["Fine.Reinvoice"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var id = Id;
+            var issued = await Runner.RunAsync<FineService, Result<IssuedDocument>>((service, ct) => service.ReinvoiceAsync(id, ct));
+            if (issued.IsSuccess)
+            {
+                Snackbar.Add(L["Fine.Reinvoice.Done", issued.Value.Number], Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, issued.Error), Severity.Error);
+            }
+
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task MarkPaidAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Fine.MarkPaid"], L["Fine.MarkPaid.Message"], L["Fine.MarkPaid"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<FineService, Result>((service, ct) => service.MarkPaidAsync(id, ct)), L["Fine.MarkPaid.Done"]);
+    }
+
+    private async Task CloseAsync()
+    {
+        var input = await Dialogs.AskReasonAsync(L["Fine.Close"], L["Fine.Close.Note"], L["Fine.Close"], L["Fine.Close.Message"], required: false, maxLength: Fine.CloseNoteMaxLength);
+        if (input is null)
+        {
+            return;
+        }
+
+        var id = Id;
+        var note = string.IsNullOrWhiteSpace(input.Text) ? null : input.Text;
+        await RunAsync(() => Runner.RunAsync<FineService, Result>((service, ct) => service.CloseAsync(id, note, ct)), L["Fine.Close.Done"]);
+    }
+
+    private async Task RunAsync(Func<Task<Result>> action, string success)
+    {
+        _busy = true;
+        try
+        {
+            var result = await action();
+            Snackbar.Add(result.IsSuccess ? success : ErrorMessages.For(Shared, result.Error), result.IsSuccess ? Severity.Success : Severity.Error);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>A rental and one of its drivers to attach the fine to.</summary>
+    private readonly record struct Choice(Guid BookingId, Guid PersonId);
+}

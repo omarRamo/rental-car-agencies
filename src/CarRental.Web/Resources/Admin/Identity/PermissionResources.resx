@@ -138,4 +138,10 @@
   <data name="Permission.whatsapp.knowledge" xml:space="preserve">
     <value>Gérer la base de connaissances du bot WhatsApp (réponses validées)</value>
   </data>
+  <data name="Permission.fines.manage" xml:space="preserve">
+    <value>Amendes (saisir, désigner, refacturer)</value>
+  </data>
+  <data name="Permission.claims.manage" xml:space="preserve">
+    <value>Sinistres (gérer)</value>
+  </data>
 </root>

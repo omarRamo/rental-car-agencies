@@ -441,4 +441,34 @@
   <data name="Setting.ai.meta_usd_per_message.Help" xml:space="preserve">
     <value>Coût estimé d'une réponse facturable du bot (message de service au-delà des 1 000 gratuits par mois). À renseigner avec le tarif Meta de l'agence pour la Tunisie (zone « Rest of Africa ») ; 0 par défaut.</value>
   </data>
+  <data name="Setting.billing.issue_automatically.Label" xml:space="preserve">
+    <value>Facturer automatiquement</value>
+  </data>
+  <data name="Setting.billing.issue_automatically.Help" xml:space="preserve">
+    <value>Émet la facture finale à la clôture d'un dossier et la facture des frais d'annulation à l'annulation. Désactivé, les dossiers attendent dans la liste « À facturer ».</value>
+  </data>
+  <data name="Setting.billing.einvoice_ttn.Label" xml:space="preserve">
+    <value>Facturation électronique TTN</value>
+  </data>
+  <data name="Setting.billing.einvoice_ttn.Help" xml:space="preserve">
+    <value>À activer une fois l'adhésion de l'agence à Tunisie TradeNet finalisée : les factures et avoirs sont transmis en XML TEIF signé. Désactivé : régime papier transitoire.</value>
+  </data>
+  <data name="Setting.billing.einvoice_transitional_mention.Label" xml:space="preserve">
+    <value>Mention du régime papier transitoire</value>
+  </data>
+  <data name="Setting.billing.einvoice_transitional_mention.Help" xml:space="preserve">
+    <value>Texte imprimé sur les factures papier tant que l'adhésion TTN n'est pas finalisée. Libellé exact à valider par l'expert-comptable.</value>
+  </data>
+  <data name="Setting.billing.invoice_mentions.Label" xml:space="preserve">
+    <value>Mentions légales des factures</value>
+  </data>
+  <data name="Setting.billing.invoice_mentions.Help" xml:space="preserve">
+    <value>Mentions supplémentaires imprimées sur chaque facture et chaque avoir (liste à fournir par l'expert-comptable).</value>
+  </data>
+  <data name="Setting.billing.fine_management_fee.Label" xml:space="preserve">
+    <value>Frais de gestion d'une amende</value>
+  </data>
+  <data name="Setting.billing.fine_management_fee.Help" xml:space="preserve">
+    <value>Montant TTC ajouté à la refacturation d'une amende au client (0,000 : aucun frais).</value>
+  </data>
 </root>

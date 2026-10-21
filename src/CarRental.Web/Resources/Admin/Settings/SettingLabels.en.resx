@@ -441,4 +441,34 @@
   <data name="Setting.ai.meta_usd_per_message.Help" xml:space="preserve">
     <value>Estimated cost of a billable bot reply (service message beyond the 1,000 free ones per month). Enter the agency's Meta rate for Tunisia ("Rest of Africa" zone); 0 by default.</value>
   </data>
+  <data name="Setting.billing.issue_automatically.Label" xml:space="preserve">
+    <value>Invoice automatically</value>
+  </data>
+  <data name="Setting.billing.issue_automatically.Help" xml:space="preserve">
+    <value>Issues the final invoice when a file is closed and the cancellation fee invoice when a file is cancelled. Off, the files wait in the "To invoice" list.</value>
+  </data>
+  <data name="Setting.billing.einvoice_ttn.Label" xml:space="preserve">
+    <value>TTN electronic invoicing</value>
+  </data>
+  <data name="Setting.billing.einvoice_ttn.Help" xml:space="preserve">
+    <value>To switch on once the membership of the agency at Tunisie TradeNet is finalised: invoices and credit notes are transmitted as signed TEIF XML. Off: transitional paper regime.</value>
+  </data>
+  <data name="Setting.billing.einvoice_transitional_mention.Label" xml:space="preserve">
+    <value>Mention of the transitional paper regime</value>
+  </data>
+  <data name="Setting.billing.einvoice_transitional_mention.Help" xml:space="preserve">
+    <value>Text printed on the paper invoices while the TTN membership is not finalised. Exact wording to be validated by the chartered accountant.</value>
+  </data>
+  <data name="Setting.billing.invoice_mentions.Label" xml:space="preserve">
+    <value>Legal mentions of the invoices</value>
+  </data>
+  <data name="Setting.billing.invoice_mentions.Help" xml:space="preserve">
+    <value>Further mentions printed on every invoice and credit note (list to be provided by the chartered accountant).</value>
+  </data>
+  <data name="Setting.billing.fine_management_fee.Label" xml:space="preserve">
+    <value>Management fee of a fine</value>
+  </data>
+  <data name="Setting.billing.fine_management_fee.Help" xml:space="preserve">
+    <value>Amount VAT included added when a fine is re-invoiced to the customer (0.000: no fee).</value>
+  </data>
 </root>
