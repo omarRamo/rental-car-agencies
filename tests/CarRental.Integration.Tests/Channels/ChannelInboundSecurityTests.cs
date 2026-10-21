@@ -105,15 +105,18 @@ public sealed class ChannelInboundSecurityTests(IntegrationHost host)
         await client.SendAsync(HttpMethod.Post, "reservations", "{ not json with " + lastName, Ct);
 
         created.StatusCode.ShouldBe(HttpStatusCode.Created, await created.Content.ReadAsStringAsync(Ct));
+        // The pushes the connected channel receives meanwhile are logged too, as outbound messages.
         var log = await LogAsync(channel);
-        log.Count.ShouldBe(3);
-        var create = log.Single(m => m.Operation == ChannelMessageOperation.Create);
+        var inbound = log.Where(m => m.Direction == ChannelMessageDirection.Inbound).ToList();
+        inbound.Count.ShouldBe(3);
+        var create = inbound.Single(m => m.Operation == ChannelMessageOperation.Create);
         create.ChannelReference.ShouldBe(reference);
         create.Status.ShouldBe(ChannelMessageStatus.Accepted);
         create.BookingId.ShouldNotBeNull();
         create.Excerpt.ShouldNotBeNull().ShouldContain("gross=480 TND");
         create.Excerpt.ShouldContain("ECMR");
-        log.Single(m => m.Operation == ChannelMessageOperation.Unknown).Status.ShouldBe(ChannelMessageStatus.Failed);
+        inbound.Single(m => m.Operation == ChannelMessageOperation.Unknown).Status.ShouldBe(ChannelMessageStatus.Failed);
+        inbound.Single(m => m.Operation == ChannelMessageOperation.Read).Status.ShouldBe(ChannelMessageStatus.Accepted);
         foreach (var row in log)
         {
             (row.Excerpt ?? string.Empty).ShouldNotContain(lastName);
