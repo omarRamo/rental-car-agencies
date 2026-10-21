@@ -71,7 +71,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
         robotLocation.ShouldBe("/fr/ma-reservation?erreur=booking.funnel.verification_failed");
         statuses.Take(PublicScenarioHost.RateLimit).ShouldAllBe(s => s == HttpStatusCode.SeeOther);
         statuses[^1].ShouldBe(HttpStatusCode.TooManyRequests);
-        TestEmails.ReadAll(scenario.Factory.EmailDirectory).ShouldNotContain(e => e.To.Contains(email, StringComparison.Ordinal));
+        TestEmails.ReadAll(scenario.EmailDirectory).ShouldNotContain(e => e.To.Contains(email, StringComparison.Ordinal));
     }
 
 }

@@ -41,6 +41,9 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
         },
     };
 
+    /// <summary>Where the e-mails of this host are written: the folder of the shared host (one outbox processes both).</summary>
+    public string EmailDirectory => host.Factory.EmailDirectory;
+
     public ValueTask InitializeAsync()
     {
         _ = Factory.Server;
