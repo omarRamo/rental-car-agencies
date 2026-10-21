@@ -35,7 +35,9 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     public static readonly Uri PublicSite = new("https://www.example.tn/");
 
-    public AgentHarness(ScriptedModel? model = null)
+    /// <param name="model">The scripted model of the tests (a new one by default).</param>
+    /// <param name="agentModel">Another model behind the port instead (the Claude adapter offline, the real model of the evaluation).</param>
+    public AgentHarness(ScriptedModel? model = null, IAgentModel? agentModel = null)
     {
         Model = model ?? new ScriptedModel();
         Availability = new FakeAgentAvailability(World);
@@ -60,7 +62,7 @@ internal sealed class AgentHarness : IAsyncDisposable
         services.AddSingleton<IIdentityQueries>(new FakeIdentityQueries());
         services.AddSingleton<IWhatsAppClient>(new RecordingWhatsAppClient());
         services.AddSingleton<IWhatsAppWebhookParser>(new FakeWebhookParser());
-        services.Replace(ServiceDescriptor.Singleton<IAgentModel>(Model));
+        services.Replace(ServiceDescriptor.Singleton(agentModel ?? Model));
         services.Replace(ServiceDescriptor.Singleton<IAgentPromptSource>(new RepositoryPromptSource()));
         services.Configure<AgentSiteOptions>(site => site.PublicBaseUrl = PublicSite);
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });

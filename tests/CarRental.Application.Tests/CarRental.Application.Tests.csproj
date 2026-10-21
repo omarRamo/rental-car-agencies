@@ -2,12 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CarRental.Application\CarRental.Application.csproj" />
+    <!-- The adapters of the WhatsApp agent (Claude client over the Anthropic SDK), tested offline, and the real-model evaluation. -->
+    <ProjectReference Include="..\..\src\CarRental.Infrastructure\CarRental.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <!-- The real-model evaluation of the WhatsApp agent (skipped without AI_EVAL_API_KEY or ANTHROPIC_API_KEY). -->
-    <PackageReference Include="Anthropic" />
   </ItemGroup>
 
   <!-- The real system prompt of the agent and the scenarios of its evaluation (docs/conception/phase-4-whatsapp.md §4). -->
