@@ -106,6 +106,102 @@ public enum GatewayPaymentState
 
     /// <summary>Payment declined.</summary>
     Declined = 5,
+
+    /// <summary>
+    /// The gateway confirms the order is still unpaid (status 0) once its validity is over, or it never handed a payment
+    /// page to anyone (registration not confirmed): the payment is closed as expired. A later payment of the same order
+    /// is still recorded (late payment, flagged).
+    /// </summary>
+    Expired = 6,
+}
+
+/// <summary>How an online payment takes the money (SPEC §9).</summary>
+public enum OnlinePaymentFlow
+{
+    /// <summary>Two steps: <c>registerPreAuth.do</c> blocks the amount, <c>deposit.do</c> captures it (or less) at validation.</summary>
+    PreAuthorization = 1,
+
+    /// <summary>One step: <c>register.do</c>, captured as soon as the customer pays (balance, payment link, fallback mode).</summary>
+    OneStep = 2,
+}
+
+/// <summary>A gateway operation requested by the platform and not confirmed yet by a status read.</summary>
+public enum PendingGatewayOperation
+{
+    /// <summary><c>deposit.do</c> on a pre-authorized payment (amount in <see cref="Payment.PendingGatewayAmount"/>).</summary>
+    Capture = 1,
+
+    /// <summary><c>reverse.do</c> on a pre-authorized payment, or a release asked before the customer paid.</summary>
+    Reverse = 2,
+
+    /// <summary><c>refund.do</c> sent for a refund (set on the refund).</summary>
+    Refund = 3,
+}
+
+/// <summary>Why an online payment needs a look from the back office (mismatch with the gateway, unknown status…).</summary>
+public enum GatewayAttention
+{
+    /// <summary>The gateway reports a status code the platform does not know yet (TODO(spec): SMT codes).</summary>
+    UnknownStatus = 1,
+
+    /// <summary>The status of the gateway contradicts the recorded status (money held or taken while cancelled…).</summary>
+    StatusMismatch = 2,
+
+    /// <summary>The amount confirmed by the gateway differs from the recorded or requested amount.</summary>
+    AmountMismatch = 3,
+
+    /// <summary>The customer paid after the order expired: the money is recorded, the booking must be checked.</summary>
+    LatePayment = 4,
+
+    /// <summary>A capture was requested but the gateway does not show it: the validation must be retried.</summary>
+    CaptureNotConfirmed = 5,
+
+    /// <summary>A reversal was requested but the gateway does not show it yet.</summary>
+    ReversalNotConfirmed = 6,
+
+    /// <summary>A refund was sent but its outcome is not confirmed: check it in the Clic to Pay merchant portal.</summary>
+    RefundNotConfirmed = 7,
+
+    /// <summary>The gateway refused a capture, a reversal or a refund (error code in the call log).</summary>
+    OperationRejected = 8,
+}
+
+/// <summary>An operation of the Clic to Pay REST API (SPEC §9).</summary>
+public enum GatewayOperation
+{
+    /// <summary><c>register.do</c>: one-step payment.</summary>
+    Register = 1,
+
+    /// <summary><c>registerPreAuth.do</c>: pre-authorization.</summary>
+    RegisterPreAuth = 2,
+
+    /// <summary><c>deposit.do</c>: capture of a pre-authorization.</summary>
+    Deposit = 3,
+
+    /// <summary><c>reverse.do</c>: cancellation of a pre-authorization.</summary>
+    Reverse = 4,
+
+    /// <summary><c>refund.do</c>: refund of a captured payment.</summary>
+    Refund = 5,
+
+    /// <summary><c>getOrderStatusExtended.do</c>: server-to-server status, the only source of truth.</summary>
+    GetOrderStatusExtended = 6,
+}
+
+/// <summary>Outcome of a call to the payment gateway, as written in the call log.</summary>
+public enum GatewayCallOutcome
+{
+    /// <summary>The gateway answered and accepted the request.</summary>
+    Succeeded = 1,
+
+    /// <summary>The gateway answered with an error code.</summary>
+    GatewayError = 2,
+
+    /// <summary>No usable answer: network failure, time-out, HTTP 5xx. The request may or may not have been processed.</summary>
+    Unavailable = 3,
+
+    /// <summary>The answer could not be understood (unexpected HTTP status, malformed or incomplete body).</summary>
+    InvalidResponse = 4,
 }
 
 /// <summary>Rules attached to the means of payment.</summary>

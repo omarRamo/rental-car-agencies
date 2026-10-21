@@ -450,4 +450,352 @@
   <data name="Panel.NoAccess" xml:space="preserve">
     <value>Your rights do not give access to the payments and deposits of this booking.</value>
   </data>
+  <data name="Payments.Tab.Online" xml:space="preserve">
+    <value>Online payments</value>
+  </data>
+  <data name="Filter.NeedsAttention" xml:space="preserve">
+    <value>To check only</value>
+  </data>
+  <data name="Filter.AwaitingApproval" xml:space="preserve">
+    <value>Refunds to approve only</value>
+  </data>
+  <data name="Online.AttentionCount" xml:space="preserve">
+    <value>Payments to check: {0}</value>
+  </data>
+  <data name="Online.ApprovalCount" xml:space="preserve">
+    <value>Refunds to approve: {0}</value>
+  </data>
+  <data name="Online.Empty" xml:space="preserve">
+    <value>No online payment for these criteria.</value>
+  </data>
+  <data name="Online.Open" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Online.Open.Label" xml:space="preserve">
+    <value>Details of online payment {0}</value>
+  </data>
+  <data name="Column.Flow" xml:space="preserve">
+    <value>Kind</value>
+  </data>
+  <data name="Column.Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="Column.Pending" xml:space="preserve">
+    <value>Operation in progress</value>
+  </data>
+  <data name="Column.Approval" xml:space="preserve">
+    <value>Approval</value>
+  </data>
+  <data name="Column.Operation" xml:space="preserve">
+    <value>Operation</value>
+  </data>
+  <data name="Column.Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Column.HttpStatus" xml:space="preserve">
+    <value>HTTP</value>
+  </data>
+  <data name="Column.ErrorCode" xml:space="preserve">
+    <value>Error code</value>
+  </data>
+  <data name="Column.OrderStatus" xml:space="preserve">
+    <value>Order status</value>
+  </data>
+  <data name="Column.Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Flow.PreAuthorization" xml:space="preserve">
+    <value>Pre-authorization</value>
+  </data>
+  <data name="Flow.OneStep" xml:space="preserve">
+    <value>One-step payment</value>
+  </data>
+  <data name="Flow.Link" xml:space="preserve">
+    <value>Payment link</value>
+  </data>
+  <data name="Pending.Capture" xml:space="preserve">
+    <value>Capture requested</value>
+  </data>
+  <data name="Pending.Reverse" xml:space="preserve">
+    <value>Reversal requested</value>
+  </data>
+  <data name="Pending.Refund" xml:space="preserve">
+    <value>Refund sent</value>
+  </data>
+  <data name="Gateway.Code" xml:space="preserve">
+    <value>Status {0}</value>
+  </data>
+  <data name="Attention.UnknownStatus" xml:space="preserve">
+    <value>Status unknown to the platform</value>
+  </data>
+  <data name="Attention.StatusMismatch" xml:space="preserve">
+    <value>Different status at the gateway</value>
+  </data>
+  <data name="Attention.AmountMismatch" xml:space="preserve">
+    <value>Different amount at the gateway</value>
+  </data>
+  <data name="Attention.LatePayment" xml:space="preserve">
+    <value>Paid after the expiry</value>
+  </data>
+  <data name="Attention.CaptureNotConfirmed" xml:space="preserve">
+    <value>Capture not confirmed</value>
+  </data>
+  <data name="Attention.ReversalNotConfirmed" xml:space="preserve">
+    <value>Reversal not confirmed</value>
+  </data>
+  <data name="Attention.RefundNotConfirmed" xml:space="preserve">
+    <value>Refund not confirmed</value>
+  </data>
+  <data name="Attention.OperationRejected" xml:space="preserve">
+    <value>Operation refused by the gateway</value>
+  </data>
+  <data name="RefundState.AwaitingApproval" xml:space="preserve">
+    <value>To be approved by a manager</value>
+  </data>
+  <data name="RefundState.Sent" xml:space="preserve">
+    <value>Sent, awaiting confirmation</value>
+  </data>
+  <data name="RefundState.Refunded" xml:space="preserve">
+    <value>Refunded</value>
+  </data>
+  <data name="RefundState.Failed" xml:space="preserve">
+    <value>Refused by the gateway</value>
+  </data>
+  <data name="RefundState.Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Operation.Register" xml:space="preserve">
+    <value>Registration (payment)</value>
+  </data>
+  <data name="Operation.RegisterPreAuth" xml:space="preserve">
+    <value>Registration (pre-authorization)</value>
+  </data>
+  <data name="Operation.Deposit" xml:space="preserve">
+    <value>Capture</value>
+  </data>
+  <data name="Operation.Reverse" xml:space="preserve">
+    <value>Reversal</value>
+  </data>
+  <data name="Operation.Refund" xml:space="preserve">
+    <value>Refund</value>
+  </data>
+  <data name="Operation.GetOrderStatusExtended" xml:space="preserve">
+    <value>Status read</value>
+  </data>
+  <data name="Outcome.Succeeded" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Outcome.GatewayError" xml:space="preserve">
+    <value>Refused</value>
+  </data>
+  <data name="Outcome.Unavailable" xml:space="preserve">
+    <value>No answer</value>
+  </data>
+  <data name="Outcome.InvalidResponse" xml:space="preserve">
+    <value>Invalid answer</value>
+  </data>
+  <data name="Online.Title" xml:space="preserve">
+    <value>Online payment {0}</value>
+  </data>
+  <data name="Online.TitleLoading" xml:space="preserve">
+    <value>Online payment</value>
+  </data>
+  <data name="Online.Back" xml:space="preserve">
+    <value>Back to the payments</value>
+  </data>
+  <data name="Online.Summary" xml:space="preserve">
+    <value>Situation confirmed by the gateway</value>
+  </data>
+  <data name="Online.PendingRefund" xml:space="preserve">
+    <value>Refund in progress</value>
+  </data>
+  <data name="Online.OrderNumber" xml:space="preserve">
+    <value>Order number</value>
+  </data>
+  <data name="Online.GatewayOrderId" xml:space="preserve">
+    <value>Clic to Pay order</value>
+  </data>
+  <data name="Online.Expires" xml:space="preserve">
+    <value>Payable until</value>
+  </data>
+  <data name="Online.Expired" xml:space="preserve">
+    <value>Expired on</value>
+  </data>
+  <data name="Online.StatusReason" xml:space="preserve">
+    <value>Status detail</value>
+  </data>
+  <data name="Online.PaymentPage" xml:space="preserve">
+    <value>Payment page</value>
+  </data>
+  <data name="Online.CopyLink" xml:space="preserve">
+    <value>Copy the link</value>
+  </data>
+  <data name="Online.Copied" xml:space="preserve">
+    <value>Link copied.</value>
+  </data>
+  <data name="Online.CopyFailed" xml:space="preserve">
+    <value>Copy not possible: select the link and copy it by hand.</value>
+  </data>
+  <data name="Online.MarkReviewed" xml:space="preserve">
+    <value>Mark as checked</value>
+  </data>
+  <data name="Online.MarkReviewed.Done" xml:space="preserve">
+    <value>Payment marked as checked.</value>
+  </data>
+  <data name="Online.Refresh" xml:space="preserve">
+    <value>Check the status</value>
+  </data>
+  <data name="Online.Refresh.Done" xml:space="preserve">
+    <value>Status checked with the gateway.</value>
+  </data>
+  <data name="Online.Capture" xml:space="preserve">
+    <value>Capture</value>
+  </data>
+  <data name="Online.Reverse" xml:space="preserve">
+    <value>Cancel the pre-authorization</value>
+  </data>
+  <data name="Online.Reverse.Title" xml:space="preserve">
+    <value>Cancel the pre-authorization</value>
+  </data>
+  <data name="Online.Reverse.Message" xml:space="preserve">
+    <value>The pre-authorization of {0} will be cancelled at Clic to Pay: the customer will not be debited.</value>
+  </data>
+  <data name="Online.Reverse.Done" xml:space="preserve">
+    <value>Pre-authorization cancelled.</value>
+  </data>
+  <data name="Online.Reverse.Recorded" xml:space="preserve">
+    <value>Reversal recorded: it is done as soon as the bank confirms the payment, otherwise the payment expires.</value>
+  </data>
+  <data name="Online.Refund" xml:space="preserve">
+    <value>Refund online</value>
+  </data>
+  <data name="Online.Refunds" xml:space="preserve">
+    <value>Online refunds</value>
+  </data>
+  <data name="Online.NoRefund" xml:space="preserve">
+    <value>No online refund.</value>
+  </data>
+  <data name="Online.ApprovedBy" xml:space="preserve">
+    <value>Approved by {0} on {1}</value>
+  </data>
+  <data name="Online.ApprovalNeeded" xml:space="preserve">
+    <value>Approval of a manager needed</value>
+  </data>
+  <data name="Online.Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="Online.Approve.Label" xml:space="preserve">
+    <value>Approve the refund of {0}</value>
+  </data>
+  <data name="Online.Approve.Done" xml:space="preserve">
+    <value>Refund approved and sent to the gateway.</value>
+  </data>
+  <data name="Online.Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Online.Reject.Label" xml:space="preserve">
+    <value>Reject the refund of {0}</value>
+  </data>
+  <data name="Online.Reject.Title" xml:space="preserve">
+    <value>Reject the refund</value>
+  </data>
+  <data name="Online.Reject.Message" xml:space="preserve">
+    <value>The reserved amount of {0} will be released; nothing is sent to the gateway.</value>
+  </data>
+  <data name="Online.Reject.Reason" xml:space="preserve">
+    <value>Reason of the rejection</value>
+  </data>
+  <data name="Online.Reject.Done" xml:space="preserve">
+    <value>Refund rejected.</value>
+  </data>
+  <data name="Online.Calls" xml:space="preserve">
+    <value>History of the calls to the gateway</value>
+  </data>
+  <data name="Online.CallsNote" xml:space="preserve">
+    <value>No credentials, no card data: operation, codes and duration only.</value>
+  </data>
+  <data name="Online.NoCall" xml:space="preserve">
+    <value>No call.</value>
+  </data>
+  <data name="Online.Duration" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Capture.Title" xml:space="preserve">
+    <value>Capture the pre-authorization</value>
+  </data>
+  <data name="Capture.Authorized" xml:space="preserve">
+    <value>Pre-authorized amount: {0}.</value>
+  </data>
+  <data name="Capture.Amount" xml:space="preserve">
+    <value>Amount to capture</value>
+  </data>
+  <data name="Capture.Hint" xml:space="preserve">
+    <value>At most the pre-authorized amount; the rest is released.</value>
+  </data>
+  <data name="Capture.Submit" xml:space="preserve">
+    <value>Capture</value>
+  </data>
+  <data name="Capture.Done" xml:space="preserve">
+    <value>Payment captured, confirmed by the gateway.</value>
+  </data>
+  <data name="OnlineRefund.Title" xml:space="preserve">
+    <value>Refund online</value>
+  </data>
+  <data name="OnlineRefund.Refundable" xml:space="preserve">
+    <value>Refundable online: {0}.</value>
+  </data>
+  <data name="OnlineRefund.Hint" xml:space="preserve">
+    <value>Above the approval threshold a manager approves the refund before it is sent; the amount stays reserved until the gateway confirms it.</value>
+  </data>
+  <data name="OnlineRefund.Submit" xml:space="preserve">
+    <value>Refund</value>
+  </data>
+  <data name="OnlineRefund.Done.AwaitingApproval" xml:space="preserve">
+    <value>Refund recorded: it waits for the approval of a manager.</value>
+  </data>
+  <data name="OnlineRefund.Done.Sent" xml:space="preserve">
+    <value>Refund sent; it will be confirmed automatically.</value>
+  </data>
+  <data name="OnlineRefund.Done.Refunded" xml:space="preserve">
+    <value>Refund confirmed by the gateway.</value>
+  </data>
+  <data name="OnlineRefund.Done.Failed" xml:space="preserve">
+    <value>The gateway refused the refund.</value>
+  </data>
+  <data name="OnlineRefund.Done.Rejected" xml:space="preserve">
+    <value>Refund rejected.</value>
+  </data>
+  <data name="Link.Title" xml:space="preserve">
+    <value>Payment link</value>
+  </data>
+  <data name="Link.ValidityHours" xml:space="preserve">
+    <value>Validity (hours)</value>
+  </data>
+  <data name="Link.Culture" xml:space="preserve">
+    <value>Language of the payment page</value>
+  </data>
+  <data name="Link.Submit" xml:space="preserve">
+    <value>Create the link</value>
+  </data>
+  <data name="Link.Created" xml:space="preserve">
+    <value>Link created, payable until {0}.</value>
+  </data>
+  <data name="Link.Url" xml:space="preserve">
+    <value>Address of the link</value>
+  </data>
+  <data name="Link.Hint" xml:space="preserve">
+    <value>Copy the link to send it to the customer (sending by e-mail or WhatsApp comes later).</value>
+  </data>
+  <data name="Link.Close" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Panel.PaymentLink" xml:space="preserve">
+    <value>Payment link</value>
+  </data>
+  <data name="Panel.Online" xml:space="preserve">
+    <value>Online payment</value>
+  </data>
+  <data name="Panel.Online.Label" xml:space="preserve">
+    <value>Open the details of the online payment of {0}</value>
+  </data>
 </root>

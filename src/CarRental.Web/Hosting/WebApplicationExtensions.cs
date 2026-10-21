@@ -55,6 +55,7 @@ internal static class WebApplicationExtensions
         app.MapCustomerEndpoints();
         app.MapFleetEndpoints();
         app.MapPublicSite();
+        app.MapClicToPayEndpoints(app.Environment);
         app.MapHangfireDashboardWithAuthorizationPolicy(
             PermissionPolicy.For(Permissions.JobsDashboard),
             "/admin/jobs",

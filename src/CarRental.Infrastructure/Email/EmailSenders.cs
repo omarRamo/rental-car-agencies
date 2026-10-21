@@ -37,7 +37,11 @@ public sealed class PickupDirectoryEmailSender(string directory, TimeProvider ti
         System.IO.Directory.CreateDirectory(Directory);
         var now = timeProvider.GetUtcNow();
         var fileName = string.Create(CultureInfo.InvariantCulture, $"{now:yyyyMMdd-HHmmssfff}-{Guid.CreateVersion7():N}.eml");
-        await File.WriteAllTextAsync(Path.Combine(Directory, fileName), Render(message, now), Encoding.UTF8, cancellationToken);
+
+        // Written under a temporary name then renamed (atomic on one volume): a reader never sees a half-written .eml.
+        var temporaryPath = Path.Combine(Directory, fileName + ".tmp");
+        await File.WriteAllTextAsync(temporaryPath, Render(message, now), Encoding.UTF8, cancellationToken);
+        File.Move(temporaryPath, Path.Combine(Directory, fileName));
     }
 
     internal static string Render(EmailMessage message, DateTimeOffset date)

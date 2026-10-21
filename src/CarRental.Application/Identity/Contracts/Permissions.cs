@@ -49,6 +49,9 @@ public static class Permissions
     // Finance
     public const string PaymentsRead = "payments.read";
     public const string PaymentsManage = "payments.manage";
+
+    /// <summary>Approve or reject the online refunds above the approval threshold (manager only, SPEC §9).</summary>
+    public const string PaymentsRefundsApprove = "payments.refunds.approve";
     public const string InvoicesRead = "invoices.read";
     public const string InvoicesIssue = "invoices.issue";
     public const string InvoicesManage = "invoices.manage";
@@ -84,6 +87,7 @@ public static class Permissions
         [FleetMaintenance] = [FleetRead],
         [PricingManage] = [PricingRead],
         [PaymentsManage] = [PaymentsRead],
+        [PaymentsRefundsApprove] = [PaymentsRead],
         [InvoicesIssue] = [InvoicesRead],
         [InvoicesManage] = [InvoicesIssue, InvoicesRead],
         [CashManage] = [CashOwn],
@@ -116,6 +120,7 @@ public static class Permissions
             new(ChannelsManage, PermissionArea.Commercial),
             new(PaymentsRead, PermissionArea.Finance),
             new(PaymentsManage, PermissionArea.Finance),
+            new(PaymentsRefundsApprove, PermissionArea.Finance),
             new(InvoicesRead, PermissionArea.Finance),
             new(InvoicesIssue, PermissionArea.Finance),
             new(InvoicesManage, PermissionArea.Finance),

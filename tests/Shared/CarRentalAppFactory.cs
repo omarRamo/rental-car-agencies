@@ -88,6 +88,14 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.ConfigureTestServices(services =>
             services.Replace(ServiceDescriptor.Singleton<CarRental.Web.Endpoints.PublicSite.Turnstile.ITurnstileVerifier>(TurnstileVerifier)));
 
+        // Simulated Clic to Pay gateway (FakeClicToPay, pages under /dev/clictopay) with its status codes beyond 0-2.
+        builder.UseSetting("ClicToPay:Enabled", "true");
+        builder.UseSetting("ClicToPay:UseFake", "true");
+        builder.UseSetting("ClicToPay:ReversedStatusCodes", "3");
+        builder.UseSetting("ClicToPay:RefundedStatusCodes", "4");
+        builder.UseSetting("ClicToPay:DeclinedStatusCodes", "6");
+        builder.UseSetting("ClicToPay:StatusRetryDelayMilliseconds", "0");
+
         if (_configureServices is not null)
         {
             builder.ConfigureTestServices(_configureServices);

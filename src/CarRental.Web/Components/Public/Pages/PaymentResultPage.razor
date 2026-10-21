@@ -1,0 +1,68 @@
+@page "/{culture:length(2)}/paiement/{PaymentId:guid}"
+@page "/{culture:length(2)}/payment/{PaymentId:guid}"
+@using CarRental.Application.Payments.Contracts
+@inject IOnlinePayments Payments
+@inject IStringLocalizer<PaymentResultResources> L
+
+@* Outcome of an online payment after the payment page (payment links, development pages; the booking funnel and
+   "Ma réservation" have their own pages). It only shows what the server confirmed: the status read server to server by
+   the return address, never the query of the gateway; amount and status only, no personal data. *@
+
+<PageTitle>@L["Result.Title"]</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L["Result.Description"]" />
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<section class="status-page" aria-labelledby="payment-heading">
+    @if (_payment is null)
+    {
+        <h1 id="payment-heading">@L["Result.NotFound.Heading"]</h1>
+        <p>@L["Result.NotFound.Text"]</p>
+    }
+    else
+    {
+        <h1 id="payment-heading">@L[$"Result.{Outcome}.Heading"]</h1>
+        <p class="alert alert--@Tone" role="status" data-testid="payment-result" data-status="@_payment.Status">
+            @L[$"Result.{Outcome}.Text", Amount]
+        </p>
+        <dl>
+            <dt>@L["Result.Amount"]</dt>
+            <dd>@Amount</dd>
+            <dt>@L["Result.Reference"]</dt>
+            <dd>@_payment.OrderNumber[^8..].ToUpperInvariant()</dd>
+        </dl>
+    }
+    <p><a class="button button--secondary" href="@($"/{Culture}")">@L["Result.Home"]</a></p>
+</section>
+
+@code {
+    private OnlinePaymentInfo? _payment;
+
+    [Parameter]
+    public string Culture { get; set; } = CultureCatalog.Default;
+
+    [Parameter]
+    public Guid PaymentId { get; set; }
+
+    private string Amount => _payment is null ? string.Empty : _payment.Amount.ToString("N", CultureInfo.CurrentCulture);
+
+    /// <summary>The resource key part of the outcome shown to the customer.</summary>
+    private string Outcome => _payment?.Status switch
+    {
+        PaymentStatusInfo.PreAuthorized => "Authorized",
+        PaymentStatusInfo.Captured or PaymentStatusInfo.Refunded => "Paid",
+        PaymentStatusInfo.Failed => "Failed",
+        PaymentStatusInfo.Cancelled => "Cancelled",
+        _ => "Pending",
+    };
+
+    private string Tone => Outcome switch
+    {
+        "Authorized" or "Paid" => "success",
+        "Failed" => "error",
+        _ => "warning",
+    };
+
+    protected override async Task OnInitializedAsync() => _payment = await Payments.FindAsync(PaymentId);
+}

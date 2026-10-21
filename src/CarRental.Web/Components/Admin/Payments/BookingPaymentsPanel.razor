@@ -2,7 +2,8 @@
    confirm or cancel a pending transfer or cheque, take a deposit, release it or retain part of it. Embedded by the
    booking page and the departure and return screens (packages 1E and 1F-b) with the id of the booking. Without
    payments.read it only shows a notice (a preparer on the return screen); the actions need payments.manage, cash needs
-   the open cash session of the agent. *@
+   the open cash session of the agent. Online (Clic to Pay) lines link to their detail page (status confirmed by the
+   gateway, capture, reversal, online refund, call history), and "Lien de paiement" creates a one-step payment link. *@
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -24,9 +25,14 @@
             <MudText Typo="Typo.h6" HtmlTag="h2" id="@($"payments-{_id}")">@L["Panel.Payments"]</MudText>
             @if (CanAct)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
-                    @L["Panel.RecordPayment"]
-                </MudButton>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link" OnClick="CreatePaymentLinkAsync">
+                        @L["Panel.PaymentLink"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments" OnClick="RecordPaymentAsync">
+                        @L["Panel.RecordPayment"]
+                    </MudButton>
+                </MudStack>
             }
         </MudStack>
 
@@ -72,7 +78,23 @@
                             <MudText Typo="Typo.caption" Class="d-block">@L["Panel.PartlyRefunded", PaymentsFormat.Amount(context.RefundedAmount)]</MudText>
                         }
                     </MudTd>
-                    <MudTd DataLabel="@L["Column.Reference"]">@(context.ExternalReference ?? context.Notes ?? "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.Reference"]">
+                        @if (context.Method == PaymentMethodInfo.ClicToPay)
+                        {
+                            var onlineId = context.IsRefund ? context.OriginalPaymentId ?? context.Id : context.Id;
+                            <MudLink Href="@($"/admin/payments/online/{onlineId}")" aria-label="@L["Panel.Online.Label", PaymentsFormat.Amount(context.Amount)]">
+                                @L["Panel.Online"]
+                            </MudLink>
+                            @if (context.IsRefund && context.Notes is { } refundReason)
+                            {
+                                <MudText Typo="Typo.caption" Class="d-block">@refundReason</MudText>
+                            }
+                        }
+                        else
+                        {
+                            @(context.ExternalReference ?? context.Notes ?? "—")
+                        }
+                    </MudTd>
                     @if (CanAct)
                     {
                         <MudTd>
@@ -265,6 +287,22 @@
         if (await dialog.Result is { Canceled: false })
         {
             Snackbar.Add(L["RecordPayment.Done"], Severity.Success);
+            await ChangedAsync();
+        }
+    }
+
+    private async Task CreatePaymentLinkAsync()
+    {
+        var parameters = new DialogParameters<PaymentLinkDialog>
+        {
+            { d => d.BookingId, BookingId },
+            { d => d.AgencyId, AgencyId },
+            { d => d.Agencies, _agencies },
+            { d => d.SuggestedAmount, AmountDue },
+        };
+        var dialog = await Dialogs.ShowAsync<PaymentLinkDialog>(L["Link.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
             await ChangedAsync();
         }
     }

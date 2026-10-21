@@ -102,6 +102,112 @@ public static class PaymentsErrors
         "payments.refund.reason_required",
         $"The reason of the refund is required ({Payment.ReasonMinLength} to {Payment.ReasonMaxLength} characters).");
 
+    public static readonly Error RefundNotOnline = Error.Conflict(
+        "payments.refund.not_online",
+        "Only a captured Clic to Pay payment can be refunded through the payment gateway.");
+
+    public static readonly Error RefundNotPending = Error.Conflict(
+        "payments.refund.not_pending",
+        "The online refund is no longer pending (already confirmed, failed or rejected).");
+
+    public static readonly Error RefundNotAwaitingApproval = Error.Conflict(
+        "payments.refund.not_awaiting_approval",
+        "The online refund does not wait for an approval.");
+
+    public static readonly Error RefundApprovalRequired = Error.Conflict(
+        "payments.refund.approval_required",
+        "This online refund must be approved by a manager before it is sent to the payment gateway.");
+
+    public static readonly Error RefundApprovalForbidden = Error.Forbidden(
+        "payments.refund.approval_forbidden",
+        "Only a manager allowed to approve online refunds can approve or reject this refund.");
+
+    public static readonly Error RefundMismatch = Error.Conflict(
+        "payments.refund.mismatch",
+        "The refund does not belong to this payment.");
+
+    // Online payments (Clic to Pay)
+    public static readonly Error OnlinePaymentNotFound = Error.NotFound(
+        "payments.online.not_found",
+        "No online payment matches this order.");
+
+    public static readonly Error OnlineFlowInvalid = Error.Validation(
+        "payments.online.flow_invalid",
+        "An online payment is a pre-authorization or a one-step payment.");
+
+    public static readonly Error OnlinePathInvalid = Error.Validation(
+        "payments.online.path_invalid",
+        $"The return and failure addresses are local paths of the site (starting with a single '/', {Payment.LocalPathMaxLength} characters at most).");
+
+    public static readonly Error OnlineExpiryInvalid = Error.Validation(
+        "payments.online.expiry_invalid",
+        "The validity of an online payment ends after its start, within 30 days.");
+
+    public static readonly Error OnlineDescriptionTooLong = Error.Validation(
+        "payments.online.description_too_long",
+        $"The description sent to the payment gateway has {Payment.GatewayDescriptionMaxLength} characters at most.");
+
+    public static readonly Error OnlineFormUrlInvalid = Error.Validation(
+        "payments.online.form_url_invalid",
+        "The payment gateway returned no usable payment page address.");
+
+    public static readonly Error OnlineGatewayOrderMismatch = Error.Conflict(
+        "payments.online.gateway_order_mismatch",
+        "The payment is already attached to another order of the payment gateway.");
+
+    public static readonly Error OnlineCaptureNotApplicable = Error.Conflict(
+        "payments.online.capture_not_applicable",
+        "Only a pre-authorization is captured by the agency; a one-step payment is captured when the customer pays.");
+
+    public static readonly Error OnlineNotPreAuthorized = Error.Conflict(
+        "payments.online.not_pre_authorized",
+        "The payment gateway has not confirmed the pre-authorization of this payment.");
+
+    public static readonly Error OnlineCaptureExceedsAuthorization = Error.Validation(
+        "payments.online.capture_exceeds_authorization",
+        "The captured amount is positive and at most the pre-authorized amount.");
+
+    public static readonly Error OnlineOperationInProgress = Error.Conflict(
+        "payments.online.operation_in_progress",
+        "Another operation with the payment gateway is in progress on this payment; check its status again in a moment.");
+
+    public static readonly Error OnlineNotExpired = Error.Conflict(
+        "payments.online.not_expired",
+        "The online payment is still valid: it cannot be closed as expired.");
+
+    public static readonly Error OnlineAlreadyCaptured = Error.Conflict(
+        "payments.online.already_captured",
+        "The payment is already captured: it can no longer be reversed, only refunded.");
+
+    public static readonly Error OnlineCaptureUnconfirmed = Error.Conflict(
+        "payments.online.capture_unconfirmed",
+        "The payment gateway does not confirm the capture yet; the status is checked again automatically.");
+
+    public static readonly Error OnlineReversalUnconfirmed = Error.Conflict(
+        "payments.online.reversal_unconfirmed",
+        "The payment gateway does not confirm the reversal yet; the status is checked again automatically.");
+
+    // Payment gateway (transport and answers)
+    public static readonly Error GatewayDisabled = Error.Failure(
+        "payments.gateway.disabled",
+        "Online payment is not enabled on this platform (ClicToPay:Enabled).");
+
+    public static readonly Error GatewayUnavailable = Error.Failure(
+        "payments.gateway.unavailable",
+        "The payment gateway did not answer (network failure or time-out); the request may or may not have been processed.");
+
+    public static readonly Error GatewayRejected = Error.Failure(
+        "payments.gateway.rejected",
+        "The payment gateway refused the operation (error code in the call log).");
+
+    public static readonly Error GatewayInvalidResponse = Error.Failure(
+        "payments.gateway.invalid_response",
+        "The answer of the payment gateway could not be understood.");
+
+    public static readonly Error GatewayAmountNotRepresentable = Error.Validation(
+        "payments.gateway.amount_not_representable",
+        "The amount cannot be expressed in the minor unit configured for the payment gateway (ClicToPay:AmountMultiplier).");
+
     // Deposits
     public static readonly Error DepositNotFound = Error.NotFound("payments.deposit.not_found", "The deposit does not exist.");
 

@@ -35,8 +35,31 @@ internal static class PaymentTestData
     public static Payment PendingTransfer(decimal amount) =>
         Payment.RecordCounter(Counter(PaymentMethod.BankTransfer, amount, "VIR-2027-0042", awaiting: true), Agent, Now).Value;
 
-    public static Payment Online(decimal amount) =>
-        Payment.StartOnline(AgencyId, Guid.CreateVersion7(), Tnd(amount), AuditActor.System("system:web"), Now).Value;
+    public static Payment Online(decimal amount) => Online(amount, OnlinePaymentFlow.PreAuthorization);
+
+    public static Payment Online(decimal amount, OnlinePaymentFlow flow, TimeSpan? validity = null, bool isLink = false) =>
+        Payment.StartOnline(OnlineDetails(amount, flow, validity, isLink), AuditActor.System("system:web"), Now).Value;
+
+    public static OnlinePaymentDetails OnlineDetails(decimal amount, OnlinePaymentFlow flow = OnlinePaymentFlow.PreAuthorization, TimeSpan? validity = null, bool isLink = false) => new(
+        AgencyId,
+        Guid.CreateVersion7(),
+        Tnd(amount),
+        flow,
+        "/fr/reserver/confirmation/LOC-2027-000123",
+        "/fr/reserver/paiement?echec=1",
+        Now + (validity ?? TimeSpan.FromHours(1)),
+        isLink);
+
+    /// <summary>An online payment confirmed by the gateway in <paramref name="state"/> (pre-authorized or deposited in full).</summary>
+    public static Payment OnlineConfirmed(decimal amount, GatewayPaymentState state, OnlinePaymentFlow flow = OnlinePaymentFlow.PreAuthorization)
+    {
+        var payment = Online(amount, flow);
+        payment.RecordGatewayRegistration("8f1c2d34-0000-4000-8000-000000000001", "https://test.clictopay.com/payment/merchants/demo/payment.html?mdOrder=8f1c", Now)
+            .IsSuccess.ShouldBeTrue();
+        payment.ApplyConfirmedGatewayStatus(new ConfirmedGatewayStatus(state, Tnd(amount)), AuditActor.System("system:clictopay"), Now).IsSuccess.ShouldBeTrue();
+        payment.DequeueDomainEvents();
+        return payment;
+    }
 
     public static CounterRefundDetails CardRefund(decimal amount, string reason = "Annulation client J-5") =>
         new(PaymentMethod.CardTerminal, Tnd(amount), reason);

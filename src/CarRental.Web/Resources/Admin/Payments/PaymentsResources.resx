@@ -450,4 +450,352 @@
   <data name="Panel.NoAccess" xml:space="preserve">
     <value>Vos droits ne donnent pas accès aux paiements et aux cautions de ce dossier.</value>
   </data>
+  <data name="Payments.Tab.Online" xml:space="preserve">
+    <value>Paiements en ligne</value>
+  </data>
+  <data name="Filter.NeedsAttention" xml:space="preserve">
+    <value>À vérifier seulement</value>
+  </data>
+  <data name="Filter.AwaitingApproval" xml:space="preserve">
+    <value>Remboursements à valider seulement</value>
+  </data>
+  <data name="Online.AttentionCount" xml:space="preserve">
+    <value>Paiements à vérifier : {0}</value>
+  </data>
+  <data name="Online.ApprovalCount" xml:space="preserve">
+    <value>Remboursements à valider : {0}</value>
+  </data>
+  <data name="Online.Empty" xml:space="preserve">
+    <value>Aucun paiement en ligne pour ces critères.</value>
+  </data>
+  <data name="Online.Open" xml:space="preserve">
+    <value>Détail</value>
+  </data>
+  <data name="Online.Open.Label" xml:space="preserve">
+    <value>Détail du paiement en ligne {0}</value>
+  </data>
+  <data name="Column.Flow" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Gateway" xml:space="preserve">
+    <value>Passerelle</value>
+  </data>
+  <data name="Column.Pending" xml:space="preserve">
+    <value>Opération en cours</value>
+  </data>
+  <data name="Column.Approval" xml:space="preserve">
+    <value>Validation</value>
+  </data>
+  <data name="Column.Operation" xml:space="preserve">
+    <value>Opération</value>
+  </data>
+  <data name="Column.Outcome" xml:space="preserve">
+    <value>Résultat</value>
+  </data>
+  <data name="Column.HttpStatus" xml:space="preserve">
+    <value>HTTP</value>
+  </data>
+  <data name="Column.ErrorCode" xml:space="preserve">
+    <value>Code d'erreur</value>
+  </data>
+  <data name="Column.OrderStatus" xml:space="preserve">
+    <value>Statut de commande</value>
+  </data>
+  <data name="Column.Duration" xml:space="preserve">
+    <value>Durée</value>
+  </data>
+  <data name="Flow.PreAuthorization" xml:space="preserve">
+    <value>Pré-autorisation</value>
+  </data>
+  <data name="Flow.OneStep" xml:space="preserve">
+    <value>Paiement en une étape</value>
+  </data>
+  <data name="Flow.Link" xml:space="preserve">
+    <value>Lien de paiement</value>
+  </data>
+  <data name="Pending.Capture" xml:space="preserve">
+    <value>Capture demandée</value>
+  </data>
+  <data name="Pending.Reverse" xml:space="preserve">
+    <value>Annulation demandée</value>
+  </data>
+  <data name="Pending.Refund" xml:space="preserve">
+    <value>Remboursement envoyé</value>
+  </data>
+  <data name="Gateway.Code" xml:space="preserve">
+    <value>Statut {0}</value>
+  </data>
+  <data name="Attention.UnknownStatus" xml:space="preserve">
+    <value>Statut inconnu de la passerelle</value>
+  </data>
+  <data name="Attention.StatusMismatch" xml:space="preserve">
+    <value>Statut différent à la passerelle</value>
+  </data>
+  <data name="Attention.AmountMismatch" xml:space="preserve">
+    <value>Montant différent à la passerelle</value>
+  </data>
+  <data name="Attention.LatePayment" xml:space="preserve">
+    <value>Payé après l'expiration</value>
+  </data>
+  <data name="Attention.CaptureNotConfirmed" xml:space="preserve">
+    <value>Capture non confirmée</value>
+  </data>
+  <data name="Attention.ReversalNotConfirmed" xml:space="preserve">
+    <value>Annulation non confirmée</value>
+  </data>
+  <data name="Attention.RefundNotConfirmed" xml:space="preserve">
+    <value>Remboursement non confirmé</value>
+  </data>
+  <data name="Attention.OperationRejected" xml:space="preserve">
+    <value>Opération refusée par la passerelle</value>
+  </data>
+  <data name="RefundState.AwaitingApproval" xml:space="preserve">
+    <value>À valider par un gérant</value>
+  </data>
+  <data name="RefundState.Sent" xml:space="preserve">
+    <value>Envoyé, en attente de confirmation</value>
+  </data>
+  <data name="RefundState.Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="RefundState.Failed" xml:space="preserve">
+    <value>Refusé par la passerelle</value>
+  </data>
+  <data name="RefundState.Rejected" xml:space="preserve">
+    <value>Rejeté</value>
+  </data>
+  <data name="Operation.Register" xml:space="preserve">
+    <value>Enregistrement (paiement)</value>
+  </data>
+  <data name="Operation.RegisterPreAuth" xml:space="preserve">
+    <value>Enregistrement (pré-autorisation)</value>
+  </data>
+  <data name="Operation.Deposit" xml:space="preserve">
+    <value>Capture</value>
+  </data>
+  <data name="Operation.Reverse" xml:space="preserve">
+    <value>Annulation</value>
+  </data>
+  <data name="Operation.Refund" xml:space="preserve">
+    <value>Remboursement</value>
+  </data>
+  <data name="Operation.GetOrderStatusExtended" xml:space="preserve">
+    <value>Lecture du statut</value>
+  </data>
+  <data name="Outcome.Succeeded" xml:space="preserve">
+    <value>Accepté</value>
+  </data>
+  <data name="Outcome.GatewayError" xml:space="preserve">
+    <value>Refusé</value>
+  </data>
+  <data name="Outcome.Unavailable" xml:space="preserve">
+    <value>Sans réponse</value>
+  </data>
+  <data name="Outcome.InvalidResponse" xml:space="preserve">
+    <value>Réponse invalide</value>
+  </data>
+  <data name="Online.Title" xml:space="preserve">
+    <value>Paiement en ligne {0}</value>
+  </data>
+  <data name="Online.TitleLoading" xml:space="preserve">
+    <value>Paiement en ligne</value>
+  </data>
+  <data name="Online.Back" xml:space="preserve">
+    <value>Retour aux paiements</value>
+  </data>
+  <data name="Online.Summary" xml:space="preserve">
+    <value>Situation confirmée par la passerelle</value>
+  </data>
+  <data name="Online.PendingRefund" xml:space="preserve">
+    <value>Remboursement en cours</value>
+  </data>
+  <data name="Online.OrderNumber" xml:space="preserve">
+    <value>Numéro de commande</value>
+  </data>
+  <data name="Online.GatewayOrderId" xml:space="preserve">
+    <value>Commande Clic to Pay</value>
+  </data>
+  <data name="Online.Expires" xml:space="preserve">
+    <value>Payable jusqu'au</value>
+  </data>
+  <data name="Online.Expired" xml:space="preserve">
+    <value>Expiré le</value>
+  </data>
+  <data name="Online.StatusReason" xml:space="preserve">
+    <value>Détail du statut</value>
+  </data>
+  <data name="Online.PaymentPage" xml:space="preserve">
+    <value>Page de paiement</value>
+  </data>
+  <data name="Online.CopyLink" xml:space="preserve">
+    <value>Copier le lien</value>
+  </data>
+  <data name="Online.Copied" xml:space="preserve">
+    <value>Lien copié.</value>
+  </data>
+  <data name="Online.CopyFailed" xml:space="preserve">
+    <value>Copie impossible : sélectionnez le lien et copiez-le à la main.</value>
+  </data>
+  <data name="Online.MarkReviewed" xml:space="preserve">
+    <value>Marquer comme vérifié</value>
+  </data>
+  <data name="Online.MarkReviewed.Done" xml:space="preserve">
+    <value>Paiement marqué comme vérifié.</value>
+  </data>
+  <data name="Online.Refresh" xml:space="preserve">
+    <value>Vérifier le statut</value>
+  </data>
+  <data name="Online.Refresh.Done" xml:space="preserve">
+    <value>Statut vérifié auprès de la passerelle.</value>
+  </data>
+  <data name="Online.Capture" xml:space="preserve">
+    <value>Capturer</value>
+  </data>
+  <data name="Online.Reverse" xml:space="preserve">
+    <value>Annuler la pré-autorisation</value>
+  </data>
+  <data name="Online.Reverse.Title" xml:space="preserve">
+    <value>Annuler la pré-autorisation</value>
+  </data>
+  <data name="Online.Reverse.Message" xml:space="preserve">
+    <value>La pré-autorisation de {0} sera annulée auprès de Clic to Pay : le client ne sera pas débité.</value>
+  </data>
+  <data name="Online.Reverse.Done" xml:space="preserve">
+    <value>Pré-autorisation annulée.</value>
+  </data>
+  <data name="Online.Reverse.Recorded" xml:space="preserve">
+    <value>Annulation enregistrée : elle sera faite dès que la banque confirmera le paiement, sinon le paiement expirera.</value>
+  </data>
+  <data name="Online.Refund" xml:space="preserve">
+    <value>Rembourser en ligne</value>
+  </data>
+  <data name="Online.Refunds" xml:space="preserve">
+    <value>Remboursements en ligne</value>
+  </data>
+  <data name="Online.NoRefund" xml:space="preserve">
+    <value>Aucun remboursement en ligne.</value>
+  </data>
+  <data name="Online.ApprovedBy" xml:space="preserve">
+    <value>Validé par {0} le {1}</value>
+  </data>
+  <data name="Online.ApprovalNeeded" xml:space="preserve">
+    <value>Validation d'un gérant requise</value>
+  </data>
+  <data name="Online.Approve" xml:space="preserve">
+    <value>Valider</value>
+  </data>
+  <data name="Online.Approve.Label" xml:space="preserve">
+    <value>Valider le remboursement de {0}</value>
+  </data>
+  <data name="Online.Approve.Done" xml:space="preserve">
+    <value>Remboursement validé et envoyé à la passerelle.</value>
+  </data>
+  <data name="Online.Reject" xml:space="preserve">
+    <value>Rejeter</value>
+  </data>
+  <data name="Online.Reject.Label" xml:space="preserve">
+    <value>Rejeter le remboursement de {0}</value>
+  </data>
+  <data name="Online.Reject.Title" xml:space="preserve">
+    <value>Rejeter le remboursement</value>
+  </data>
+  <data name="Online.Reject.Message" xml:space="preserve">
+    <value>Le montant réservé de {0} sera libéré ; rien n'est envoyé à la passerelle.</value>
+  </data>
+  <data name="Online.Reject.Reason" xml:space="preserve">
+    <value>Motif du rejet</value>
+  </data>
+  <data name="Online.Reject.Done" xml:space="preserve">
+    <value>Remboursement rejeté.</value>
+  </data>
+  <data name="Online.Calls" xml:space="preserve">
+    <value>Historique des appels à la passerelle</value>
+  </data>
+  <data name="Online.CallsNote" xml:space="preserve">
+    <value>Sans identifiants ni données de carte : opération, codes et durée seulement.</value>
+  </data>
+  <data name="Online.NoCall" xml:space="preserve">
+    <value>Aucun appel.</value>
+  </data>
+  <data name="Online.Duration" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Capture.Title" xml:space="preserve">
+    <value>Capturer la pré-autorisation</value>
+  </data>
+  <data name="Capture.Authorized" xml:space="preserve">
+    <value>Montant pré-autorisé : {0}.</value>
+  </data>
+  <data name="Capture.Amount" xml:space="preserve">
+    <value>Montant à capturer</value>
+  </data>
+  <data name="Capture.Hint" xml:space="preserve">
+    <value>Au plus le montant pré-autorisé ; le reste est libéré.</value>
+  </data>
+  <data name="Capture.Submit" xml:space="preserve">
+    <value>Capturer</value>
+  </data>
+  <data name="Capture.Done" xml:space="preserve">
+    <value>Paiement capturé, confirmé par la passerelle.</value>
+  </data>
+  <data name="OnlineRefund.Title" xml:space="preserve">
+    <value>Rembourser en ligne</value>
+  </data>
+  <data name="OnlineRefund.Refundable" xml:space="preserve">
+    <value>Remboursable en ligne : {0}.</value>
+  </data>
+  <data name="OnlineRefund.Hint" xml:space="preserve">
+    <value>Au-delà du seuil de validation, un gérant valide le remboursement avant son envoi ; le montant reste réservé jusqu'à la confirmation de la passerelle.</value>
+  </data>
+  <data name="OnlineRefund.Submit" xml:space="preserve">
+    <value>Rembourser</value>
+  </data>
+  <data name="OnlineRefund.Done.AwaitingApproval" xml:space="preserve">
+    <value>Remboursement enregistré : il attend la validation d'un gérant.</value>
+  </data>
+  <data name="OnlineRefund.Done.Sent" xml:space="preserve">
+    <value>Remboursement envoyé ; il sera confirmé automatiquement.</value>
+  </data>
+  <data name="OnlineRefund.Done.Refunded" xml:space="preserve">
+    <value>Remboursement confirmé par la passerelle.</value>
+  </data>
+  <data name="OnlineRefund.Done.Failed" xml:space="preserve">
+    <value>La passerelle a refusé le remboursement.</value>
+  </data>
+  <data name="OnlineRefund.Done.Rejected" xml:space="preserve">
+    <value>Remboursement rejeté.</value>
+  </data>
+  <data name="Link.Title" xml:space="preserve">
+    <value>Lien de paiement</value>
+  </data>
+  <data name="Link.ValidityHours" xml:space="preserve">
+    <value>Validité (heures)</value>
+  </data>
+  <data name="Link.Culture" xml:space="preserve">
+    <value>Langue de la page de paiement</value>
+  </data>
+  <data name="Link.Submit" xml:space="preserve">
+    <value>Créer le lien</value>
+  </data>
+  <data name="Link.Created" xml:space="preserve">
+    <value>Lien créé, payable jusqu'au {0}.</value>
+  </data>
+  <data name="Link.Url" xml:space="preserve">
+    <value>Adresse du lien</value>
+  </data>
+  <data name="Link.Hint" xml:space="preserve">
+    <value>Copiez le lien pour l'envoyer au client (l'envoi par e-mail ou WhatsApp viendra plus tard).</value>
+  </data>
+  <data name="Link.Close" xml:space="preserve">
+    <value>Terminer</value>
+  </data>
+  <data name="Panel.PaymentLink" xml:space="preserve">
+    <value>Lien de paiement</value>
+  </data>
+  <data name="Panel.Online" xml:space="preserve">
+    <value>Paiement en ligne</value>
+  </data>
+  <data name="Panel.Online.Label" xml:space="preserve">
+    <value>Ouvrir le détail du paiement en ligne de {0}</value>
+  </data>
 </root>

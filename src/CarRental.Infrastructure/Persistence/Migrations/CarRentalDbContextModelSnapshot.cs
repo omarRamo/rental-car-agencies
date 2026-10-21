@@ -2050,6 +2050,80 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                             }));
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Payments.GatewayCallLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionCode")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("DurationMilliseconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GatewayErrorCode")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("GatewayErrorMessage")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("GatewayOrderId")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Operation")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int?>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RefundId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAtUtc");
+
+                    b.HasIndex("PaymentId", "StartedAtUtc");
+
+                    b.ToTable("GatewayCallLogs", "payments");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
             modelBuilder.Entity("CarRental.Domain.Payments.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2061,6 +2135,16 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTimeOffset?>("ApprovedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ApprovedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uniqueidentifier");
@@ -2078,9 +2162,43 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<int>("Direction")
                         .HasColumnType("int");
 
+                    b.Property<DateTimeOffset?>("ExpiredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("ExternalReference")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("GatewayAttention")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("GatewayAttentionAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("GatewayAttentionDetail")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("GatewayFailPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("GatewayFormUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset?>("GatewayRegisteredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("GatewayReturnPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("GatewayStatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPaymentLink")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Method")
                         .HasColumnType("int");
@@ -2089,8 +2207,31 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTimeOffset?>("OnlineExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("OnlineFlow")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("OriginalPaymentId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("PendingGatewayAcknowledged")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("PendingGatewayAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("PendingGatewayOperation")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("PendingGatewaySinceUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("PendingRefundAmount")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<DateTimeOffset>("RecordedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -2105,6 +2246,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("RefundedAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -2148,9 +2292,17 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CashSessionId");
 
+                    b.HasIndex("ExternalReference")
+                        .HasDatabaseName("IX_Payments_GatewayOrder")
+                        .HasFilter("[Method] = 6 AND [ExternalReference] IS NOT NULL");
+
                     b.HasIndex("OriginalPaymentId");
 
                     b.HasIndex("AgencyId", "RecordedAtUtc");
+
+                    b.HasIndex("Status", "RecordedAtUtc")
+                        .HasDatabaseName("IX_Payments_Online")
+                        .HasFilter("[Method] = 6");
 
                     b.ToTable("Payments", "payments");
 

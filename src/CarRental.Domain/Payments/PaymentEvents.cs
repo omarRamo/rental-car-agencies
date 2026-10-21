@@ -24,6 +24,15 @@ public sealed record PaymentStatusChanged(
 /// <summary>A refund was recorded against the incoming payment <see cref="PaymentId"/>.</summary>
 public sealed record PaymentRefundRecorded(Guid PaymentId, Guid RefundId, Guid BookingId) : IDomainEvent;
 
+/// <summary>
+/// An online refund was requested on the captured Clic to Pay payment <see cref="PaymentId"/>; when
+/// <see cref="RequiresApproval"/>, it waits for the approval of a manager before it is sent to the gateway.
+/// </summary>
+public sealed record OnlineRefundRequested(Guid PaymentId, Guid RefundId, Guid BookingId, bool RequiresApproval) : IDomainEvent;
+
+/// <summary>An online payment was closed unpaid at the end of its validity (payment link, abandoned attempt).</summary>
+public sealed record OnlinePaymentExpired(Guid PaymentId, Guid BookingId) : IDomainEvent;
+
 /// <summary>A security deposit was taken for a booking.</summary>
 public sealed record DepositTaken(Guid DepositId, Guid BookingId, Guid AgencyId, DepositMode Mode) : IDomainEvent;
 

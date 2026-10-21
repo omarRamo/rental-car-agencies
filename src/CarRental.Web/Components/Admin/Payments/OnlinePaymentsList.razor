@@ -1,0 +1,162 @@
+@* Online payments (Clic to Pay) of the payments screen: status confirmed by the gateway, last status code, operation in
+   progress and flags, with the number of flagged payments and of refunds awaiting the approval of a manager. Each line
+   opens the detail of the payment (actions and call history). *@
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_from" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_to" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="PaymentStatusInfo?" @bind-Value="_status" Label="@L["Filter.Status"]" Clearable="true"
+                       ToStringFunc="@(s => s is { } status ? L[$"PaymentStatus.{status}"] : string.Empty)">
+                @foreach (var status in Enum.GetValues<PaymentStatusInfo>())
+                {
+                    <MudSelectItem T="PaymentStatusInfo?" Value="@((PaymentStatusInfo?)status)">@L[$"PaymentStatus.{status}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" @bind-Value="_booking" Label="@L["Filter.Booking"]" Clearable="true" autocomplete="off" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSwitch T="bool" @bind-Value="_attentionOnly" Color="Color.Primary" Label="@L["Filter.NeedsAttention"]" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSwitch T="bool" @bind-Value="_approvalOnly" Color="Color.Primary" Label="@L["Filter.AwaitingApproval"]" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex gap-2 align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchAsync">@L["Filter.Search"]</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="ResetAsync">@L["Filter.Reset"]</MudButton>
+        </MudItem>
+    </MudGrid>
+    @if (_filterError is not null)
+    {
+        <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_filterError</FinanceNotice>
+    }
+</MudPaper>
+
+@if (_attentionCount > 0 || _approvalCount > 0)
+{
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mb-3" data-testid="online-counters">
+        @if (_attentionCount > 0)
+        {
+            <FinanceBadge Tone="FinanceTone.Danger">@L["Online.AttentionCount", _attentionCount]</FinanceBadge>
+        }
+        @if (_approvalCount > 0)
+        {
+            <FinanceBadge Tone="FinanceTone.Warning">@L["Online.ApprovalCount", _approvalCount]</FinanceBadge>
+        }
+    </MudStack>
+}
+
+<MudTable @ref="_table" T="OnlinePaymentInfo" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Payments.Tab.Online"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.Date"]</MudTh>
+        <MudTh>@L["Column.Booking"]</MudTh>
+        <MudTh>@L["Column.Flow"]</MudTh>
+        <MudTh>@L["Column.Amount"]</MudTh>
+        <MudTh>@L["Column.Status"]</MudTh>
+        <MudTh>@L["Column.Gateway"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Instant(context.RecordedAtUtc)</MudTd>
+        <MudTd DataLabel="@L["Column.Booking"]">
+            <MudLink Href="@($"/admin/payments/bookings/{context.BookingId}")" aria-label="@L["Booking.Open.Label", PaymentsFormat.ShortId(context.BookingId)]">
+                @PaymentsFormat.ShortId(context.BookingId)
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Flow"]">@L[PaymentsFormat.FlowKey(context)]</MudTd>
+        <MudTd DataLabel="@L["Column.Amount"]">@PaymentsFormat.Amount(context.Amount)</MudTd>
+        <MudTd DataLabel="@L["Column.Status"]">
+            <FinanceBadge Tone="PaymentsFormat.ToneOf(context.Status)">@L[$"Status.Incoming.{context.Status}"]</FinanceBadge>
+            @if (context.PendingOperation is { } pending)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@L[$"Pending.{pending}"]</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Gateway"]">
+            <span>@(context.GatewayStatusCode is { } code ? L["Gateway.Code", code] : "—")</span>
+            @if (context.Attention is { } attention)
+            {
+                <span class="d-block"><FinanceBadge Tone="PaymentsFormat.ToneOf(attention)">@L[$"Attention.{attention}"]</FinanceBadge></span>
+            }
+            @if (context.Refunds.Any(r => r.State == OnlineRefundStateInfo.AwaitingApproval))
+            {
+                <span class="d-block"><FinanceBadge Tone="FinanceTone.Warning">@L["RefundState.AwaitingApproval"]</FinanceBadge></span>
+            }
+        </MudTd>
+        <MudTd>
+            <MudLink Href="@($"/admin/payments/online/{context.PaymentId}")" aria-label="@L["Online.Open.Label", PaymentsFormat.ShortOrder(context.OrderNumber)]">
+                @L["Online.Open"]
+            </MudLink>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Online.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<OnlinePaymentInfo>? _table;
+    private DateTime? _from;
+    private DateTime? _to;
+    private PaymentStatusInfo? _status;
+    private string? _booking;
+    private bool _attentionOnly;
+    private bool _approvalOnly;
+    private string? _filterError;
+    private int _attentionCount;
+    private int _approvalCount;
+
+    private static DateOnly? DateOf(DateTime? value) => value is { } date ? DateOnly.FromDateTime(date) : null;
+
+    private async Task<TableData<OnlinePaymentInfo>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        Guid? bookingId = null;
+        if (!string.IsNullOrWhiteSpace(_booking))
+        {
+            if (!Guid.TryParse(_booking.Trim(), out var parsed))
+            {
+                _filterError = L["Filter.Booking.Invalid"];
+                return new TableData<OnlinePaymentInfo> { Items = [], TotalItems = 0 };
+            }
+
+            bookingId = parsed;
+        }
+
+        _filterError = null;
+        var filter = new OnlinePaymentListFilter(DateOf(_from), DateOf(_to), _status, bookingId, _attentionOnly, _approvalOnly);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentList>>((admin, ct) => admin.ListAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<OnlinePaymentInfo> { Items = [], TotalItems = 0 };
+        }
+
+        _attentionCount = result.Value.AttentionCount;
+        _approvalCount = result.Value.AwaitingApprovalCount;
+        return new TableData<OnlinePaymentInfo> { Items = result.Value.Page.Items, TotalItems = result.Value.Page.TotalCount };
+    }
+
+    private Task SearchAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task ResetAsync()
+    {
+        (_from, _to, _status, _booking, _attentionOnly, _approvalOnly) = (null, null, null, null, false, false);
+        return SearchAsync();
+    }
+}

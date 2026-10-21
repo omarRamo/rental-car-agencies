@@ -129,4 +129,7 @@
   <data name="Permission.bookings.compliance.waive" xml:space="preserve">
     <value>Déroger aux documents d'un véhicule lors d'une affectation</value>
   </data>
+  <data name="Permission.payments.refunds.approve" xml:space="preserve">
+    <value>Valider les remboursements en ligne au-delà du seuil</value>
+  </data>
 </root>

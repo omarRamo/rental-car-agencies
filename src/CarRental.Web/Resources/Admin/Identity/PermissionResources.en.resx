@@ -129,4 +129,7 @@
   <data name="Permission.bookings.compliance.waive" xml:space="preserve">
     <value>Waive vehicle documents when assigning</value>
   </data>
+  <data name="Permission.payments.refunds.approve" xml:space="preserve">
+    <value>Approve online refunds above the threshold</value>
+  </data>
 </root>

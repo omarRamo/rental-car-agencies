@@ -1,0 +1,135 @@
+@* Creates a one-step payment link for a booking (register.do, valid 24 h by default) and shows it to copy; sending it by
+   e-mail or WhatsApp comes later. The customer lands on the public result page of the payment afterwards. *@
+@inject IOperationRunner Runner
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_link is { } link)
+        {
+            <FinanceNotice Tone="FinanceTone.Success" Role="status">@L["Link.Created", PaymentsFormat.Instant(link.ExpiresAtUtc)]</FinanceNotice>
+            <MudTextField T="string" Value="@AbsoluteUrl(link.RedirectUrl)" Label="@L["Link.Url"]" ReadOnly="true" Class="mt-3" data-testid="payment-link-url" />
+            <MudText Typo="Typo.body2" Class="mt-2">@L["Link.Hint"]</MudText>
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                @if (Agencies.Count > 1 && AgencyId is null)
+                {
+                    <MudItem xs="12">
+                        <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                            @foreach (var agency in Agencies)
+                            {
+                                <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                     AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="_hours" Label="@L["Link.ValidityHours"]" Min="1" Max="720" HideSpinButtons="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_culture" Label="@L["Link.Culture"]" ToStringFunc="@(c => CultureCatalog.NativeName(c ?? CultureCatalog.Default))">
+                        <MudSelectItem T="string" Value="@("fr")">Français</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("en")">English</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        }
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_link is { } created)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="@(() => CopyAsync(created))">@L["Online.CopyLink"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Done">@L["Link.Close"]</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Link.Submit"]</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Guid _agencyId;
+    private decimal? _amount;
+    private int _hours = 24;
+    private string _culture = CultureCatalog.Default;
+    private OnlinePaymentRedirect? _link;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    [Parameter]
+    public Guid? AgencyId { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+
+    [Parameter]
+    public decimal? SuggestedAmount { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
+
+        // The validity proposed is the one of the agency (payments.payment_link_validity), 24 h by default.
+        var agencyId = _agencyId;
+        var validity = await Runner.RunAsync<OnlinePaymentAdministration, Result<TimeSpan>>((admin, ct) => admin.GetPaymentLinkValidityAsync(agencyId, ct));
+        if (validity.IsSuccess && validity.Value >= TimeSpan.FromHours(1))
+        {
+            _hours = (int)Math.Min(720, Math.Round(validity.Value.TotalHours));
+        }
+    }
+
+    private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    /// <summary>The simulated gateway gives a page of the site (relative): the link shown is always absolute.</summary>
+    private string AbsoluteUrl(string url) => PaymentsFormat.AbsoluteUrl(Navigation, url);
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var path = PaymentResultPaths.For(_culture);
+        var request = new OnlinePaymentRequest(BookingId, _agencyId, PaymentsFormat.Value(_amount), _culture, path, path, IsLink: true, Validity: TimeSpan.FromHours(_hours));
+        var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentRedirect>>((admin, ct) => admin.CreatePaymentLinkAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            _link = result.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task CopyAsync(OnlinePaymentRedirect link)
+    {
+        var copied = await ClipboardCopy.TryAsync(JS, AbsoluteUrl(link.RedirectUrl));
+        _error = copied ? null : L["Online.CopyFailed"].Value;
+    }
+
+    private void Done() => Dialog.Close(DialogResult.Ok(_link));
+
+    private void Cancel() => Dialog.Cancel();
+}

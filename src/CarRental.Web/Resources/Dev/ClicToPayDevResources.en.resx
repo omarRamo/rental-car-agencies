@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Pay.Title" xml:space="preserve">
+    <value>Simulated Clic to Pay payment</value>
+  </data>
+  <data name="Pay.Brand" xml:space="preserve">
+    <value>Clic to Pay (simulation)</value>
+  </data>
+  <data name="Pay.Heading" xml:space="preserve">
+    <value>Card payment</value>
+  </data>
+  <data name="Pay.Notice" xml:space="preserve">
+    <value>Simulated gateway for development and tests: no card is asked for, no money moves.</value>
+  </data>
+  <data name="Pay.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Pay.Kind" xml:space="preserve">
+    <value>Kind of operation</value>
+  </data>
+  <data name="Pay.Kind.PreAuthorization" xml:space="preserve">
+    <value>Pre-authorization (debited at the validation)</value>
+  </data>
+  <data name="Pay.Kind.OneStep" xml:space="preserve">
+    <value>Immediate payment</value>
+  </data>
+  <data name="Pay.OrderNumber" xml:space="preserve">
+    <value>Order number</value>
+  </data>
+  <data name="Pay.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Pay.Pay" xml:space="preserve">
+    <value>Pay</value>
+  </data>
+  <data name="Pay.Decline" xml:space="preserve">
+    <value>Decline</value>
+  </data>
+  <data name="Pay.Abandon" xml:space="preserve">
+    <value>Leave</value>
+  </data>
+  <data name="Pay.AlreadyProcessed" xml:space="preserve">
+    <value>This order was already processed.</value>
+  </data>
+  <data name="Start.Title" xml:space="preserve">
+    <value>Start an online payment (development)</value>
+  </data>
+  <data name="Start.Heading" xml:space="preserve">
+    <value>Start an online payment</value>
+  </data>
+  <data name="Start.Notice" xml:space="preserve">
+    <value>Development and test page: it starts a payment like the booking funnel will, with the simulated gateway.</value>
+  </data>
+  <data name="Start.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Start.Booking" xml:space="preserve">
+    <value>Booking id</value>
+  </data>
+  <data name="Start.Booking.Hint" xml:space="preserve">
+    <value>Optional: a new id is created when empty.</value>
+  </data>
+  <data name="Start.Amount" xml:space="preserve">
+    <value>Amount (TND)</value>
+  </data>
+  <data name="Start.Flow" xml:space="preserve">
+    <value>Kind of payment</value>
+  </data>
+  <data name="Start.Flow.PreAuthorization" xml:space="preserve">
+    <value>Pre-authorization (submission of a request)</value>
+  </data>
+  <data name="Start.Flow.OneStep" xml:space="preserve">
+    <value>One-step payment (balance, link)</value>
+  </data>
+  <data name="Start.Culture" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Start.Submit" xml:space="preserve">
+    <value>Start the payment</value>
+  </data>
+</root>

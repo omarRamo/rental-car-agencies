@@ -195,4 +195,25 @@
   <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
     <value>"Capture at validation": the validated request is confirmed (Clic to Pay capture, phase 2). "Payment link after validation" (fallback): it waits for its payment through a link.</value>
   </data>
+  <data name="Group.payments" xml:space="preserve">
+    <value>Payments</value>
+  </data>
+  <data name="Setting.payments.online_refund_approval_threshold.Label" xml:space="preserve">
+    <value>Online refund approval threshold</value>
+  </data>
+  <data name="Setting.payments.online_refund_approval_threshold.Help" xml:space="preserve">
+    <value>Above this total (refunds of the payment already made or in progress included), an online refund waits for a manager's approval.</value>
+  </data>
+  <data name="Setting.payments.payment_link_validity.Label" xml:space="preserve">
+    <value>Payment link validity</value>
+  </data>
+  <data name="Setting.payments.payment_link_validity.Help" xml:space="preserve">
+    <value>How long a Clic to Pay payment link (fallback mode, phone, balance) can be paid; after that, the unpaid order is closed as expired.</value>
+  </data>
+  <data name="Setting.payments.online_attempt_validity.Label" xml:space="preserve">
+    <value>Online payment attempt validity</value>
+  </data>
+  <data name="Setting.payments.online_attempt_validity.Help" xml:space="preserve">
+    <value>How long a payment started on the website (booking, balance) can be completed before it is closed as expired.</value>
+  </data>
 </root>

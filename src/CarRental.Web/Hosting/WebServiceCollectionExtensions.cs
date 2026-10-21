@@ -53,6 +53,7 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();
         services.AddFleetWeb();
         services.AddBookingsWeb();
+        services.AddClicToPayWeb();
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 

@@ -1041,4 +1041,82 @@
   <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
     <value>Une dérogation documents s'applique à un véhicule attribué.</value>
   </data>
+  <data name="Error.payments.refund.not_online" xml:space="preserve">
+    <value>Seul un paiement Clic to Pay encaissé peut être remboursé par la passerelle de paiement.</value>
+  </data>
+  <data name="Error.payments.refund.not_pending" xml:space="preserve">
+    <value>Ce remboursement en ligne n'est plus en cours (déjà confirmé, refusé ou rejeté).</value>
+  </data>
+  <data name="Error.payments.refund.not_awaiting_approval" xml:space="preserve">
+    <value>Ce remboursement en ligne n'attend pas de validation.</value>
+  </data>
+  <data name="Error.payments.refund.approval_required" xml:space="preserve">
+    <value>Ce remboursement doit être validé par un gérant avant d'être envoyé à la passerelle de paiement.</value>
+  </data>
+  <data name="Error.payments.refund.approval_forbidden" xml:space="preserve">
+    <value>Seul un gérant autorisé à valider les remboursements en ligne peut valider ou rejeter ce remboursement.</value>
+  </data>
+  <data name="Error.payments.refund.mismatch" xml:space="preserve">
+    <value>Ce remboursement ne concerne pas ce paiement.</value>
+  </data>
+  <data name="Error.payments.online.not_found" xml:space="preserve">
+    <value>Aucun paiement en ligne ne correspond à cette commande.</value>
+  </data>
+  <data name="Error.payments.online.flow_invalid" xml:space="preserve">
+    <value>Un paiement en ligne est une pré-autorisation ou un paiement en une étape.</value>
+  </data>
+  <data name="Error.payments.online.path_invalid" xml:space="preserve">
+    <value>Les adresses de retour et d'échec doivent être des chemins locaux du site (commençant par un seul « / », 500 caractères au plus).</value>
+  </data>
+  <data name="Error.payments.online.expiry_invalid" xml:space="preserve">
+    <value>La validité d'un paiement en ligne se termine après son début, dans les 30 jours.</value>
+  </data>
+  <data name="Error.payments.online.description_too_long" xml:space="preserve">
+    <value>La description envoyée à la passerelle de paiement compte 99 caractères au plus.</value>
+  </data>
+  <data name="Error.payments.online.form_url_invalid" xml:space="preserve">
+    <value>La passerelle de paiement n'a pas renvoyé d'adresse de page de paiement utilisable.</value>
+  </data>
+  <data name="Error.payments.online.gateway_order_mismatch" xml:space="preserve">
+    <value>Ce paiement est déjà rattaché à une autre commande de la passerelle de paiement.</value>
+  </data>
+  <data name="Error.payments.online.capture_not_applicable" xml:space="preserve">
+    <value>Seule une pré-autorisation se capture ; un paiement en une étape est encaissé dès que le client paie.</value>
+  </data>
+  <data name="Error.payments.online.not_pre_authorized" xml:space="preserve">
+    <value>La passerelle de paiement n'a pas confirmé la pré-autorisation de ce paiement.</value>
+  </data>
+  <data name="Error.payments.online.capture_exceeds_authorization" xml:space="preserve">
+    <value>Le montant capturé est positif et ne dépasse pas le montant pré-autorisé.</value>
+  </data>
+  <data name="Error.payments.online.operation_in_progress" xml:space="preserve">
+    <value>Une autre opération avec la passerelle de paiement est en cours sur ce paiement ; vérifiez son statut dans un instant.</value>
+  </data>
+  <data name="Error.payments.online.not_expired" xml:space="preserve">
+    <value>Ce paiement en ligne est encore valable : il ne peut pas être clos comme expiré.</value>
+  </data>
+  <data name="Error.payments.online.already_captured" xml:space="preserve">
+    <value>Ce paiement est déjà encaissé : il ne peut plus être annulé, seulement remboursé.</value>
+  </data>
+  <data name="Error.payments.online.capture_unconfirmed" xml:space="preserve">
+    <value>La passerelle de paiement ne confirme pas encore la capture ; le statut est vérifié de nouveau automatiquement.</value>
+  </data>
+  <data name="Error.payments.online.reversal_unconfirmed" xml:space="preserve">
+    <value>La passerelle de paiement ne confirme pas encore l'annulation ; le statut est vérifié de nouveau automatiquement.</value>
+  </data>
+  <data name="Error.payments.gateway.disabled" xml:space="preserve">
+    <value>Le paiement en ligne n'est pas activé sur cette plateforme.</value>
+  </data>
+  <data name="Error.payments.gateway.unavailable" xml:space="preserve">
+    <value>La passerelle de paiement n'a pas répondu. Réessayez dans un instant : le statut du paiement est vérifié automatiquement.</value>
+  </data>
+  <data name="Error.payments.gateway.rejected" xml:space="preserve">
+    <value>La passerelle de paiement a refusé l'opération (code d'erreur dans l'historique des appels).</value>
+  </data>
+  <data name="Error.payments.gateway.invalid_response" xml:space="preserve">
+    <value>La réponse de la passerelle de paiement est incompréhensible.</value>
+  </data>
+  <data name="Error.payments.gateway.amount_not_representable" xml:space="preserve">
+    <value>Ce montant ne peut pas être exprimé dans l'unité configurée pour la passerelle de paiement.</value>
+  </data>
 </root>

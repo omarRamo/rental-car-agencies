@@ -27,6 +27,13 @@ public sealed class PaymentsConventionTests
         .. Enum.GetNames<PaymentDirectionInfo>().SelectMany(d => Enum.GetNames<PaymentStatusInfo>().Select(s => $"Status.{d}.{s}")),
         .. Enum.GetNames<DepositModeInfo>().SelectMany(m => new[] { $"DepositMode.{m}", $"Field.DepositReference.{m}" }),
         .. Enum.GetNames<DepositStatusInfo>().Select(s => $"DepositStatus.{s}"),
+        .. Enum.GetNames<OnlinePaymentFlowInfo>().Select(f => $"Flow.{f}"),
+        "Flow.Link",
+        .. Enum.GetNames<PendingGatewayOperationInfo>().Select(o => $"Pending.{o}"),
+        .. Enum.GetNames<GatewayAttentionInfo>().Select(a => $"Attention.{a}"),
+        .. Enum.GetNames<GatewayOperationInfo>().Select(o => $"Operation.{o}"),
+        .. Enum.GetNames<GatewayCallOutcomeInfo>().Select(o => $"Outcome.{o}"),
+        .. Enum.GetNames<OnlineRefundStateInfo>().SelectMany(s => new[] { $"RefundState.{s}", $"OnlineRefund.Done.{s}" }),
     ];
 
     [Fact]

@@ -1,0 +1,77 @@
+@* The payment page of the simulated Clic to Pay gateway (Development and Testing only, rendered by ClicToPayEndpoints,
+   never routable otherwise): what the hosted page of the bank would show, and three buttons that pay, decline or leave
+   the payment, then send the browser to the return or failure address of the order like the real page. No card data. *@
+@using CarRental.Application.Payments.Online
+@using CarRental.Web.Resources.Dev
+@using Microsoft.AspNetCore.Antiforgery
+@inject IStringLocalizer<ClicToPayDevResources> L
+
+<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>@L["Pay.Title"]</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <span class="site-brand">@L["Pay.Brand"]</span>
+        </div>
+    </header>
+    <main id="main" class="site-main container">
+        <section class="card" aria-labelledby="pay-heading">
+            <h1 id="pay-heading">@L["Pay.Heading"]</h1>
+            <p class="notice">@L["Pay.Notice"]</p>
+            <dl>
+                <dt>@L["Pay.Amount"]</dt>
+                <dd data-testid="fake-amount">@Order.Amount.ToString("N", CultureInfo.CurrentCulture)</dd>
+                <dt>@L["Pay.Kind"]</dt>
+                <dd>@(Order.IsPreAuthorization ? L["Pay.Kind.PreAuthorization"] : L["Pay.Kind.OneStep"])</dd>
+                <dt>@L["Pay.OrderNumber"]</dt>
+                <dd data-testid="fake-order-number">@Order.OrderNumber</dd>
+                @if (!string.IsNullOrEmpty(Order.Description))
+                {
+                    <dt>@L["Pay.Description"]</dt>
+                    <dd>@Order.Description</dd>
+                }
+            </dl>
+            @if (Order.IsPayable)
+            {
+                <form method="post" action="@($"{FakeClicToPay.PagePathPrefix}{Order.GatewayOrderId}")">
+                    <input type="hidden" name="@Antiforgery.FormFieldName" value="@Antiforgery.RequestToken" />
+                    <p>
+                        <button class="button" type="submit" name="action" value="@PayAction">@L["Pay.Pay"]</button>
+                    </p>
+                    <p>
+                        <button class="button button--danger" type="submit" name="action" value="@DeclineAction">@L["Pay.Decline"]</button>
+                    </p>
+                    <p>
+                        <button class="button button--secondary" type="submit" name="action" value="@AbandonAction">@L["Pay.Abandon"]</button>
+                    </p>
+                </form>
+            }
+            else
+            {
+                <p class="alert alert--warning" role="status">@L["Pay.AlreadyProcessed"]</p>
+            }
+        </section>
+    </main>
+</body>
+</html>
+
+@code {
+    public const string PayAction = "pay";
+    public const string DeclineAction = "decline";
+    public const string AbandonAction = "abandon";
+
+    /// <summary>The order of the simulated gateway.</summary>
+    [Parameter, EditorRequired]
+    public FakeOrderView Order { get; set; } = default!;
+
+    /// <summary>The antiforgery token of the form (the page is rendered outside the router).</summary>
+    [Parameter, EditorRequired]
+    public AntiforgeryTokenSet Antiforgery { get; set; } = default!;
+}

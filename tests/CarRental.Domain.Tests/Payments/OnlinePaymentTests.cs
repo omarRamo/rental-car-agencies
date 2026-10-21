@@ -22,9 +22,16 @@ public sealed class OnlinePaymentTests
         payment.Status.ShouldBe(PaymentStatus.Pending);
         payment.CashSessionId.ShouldBeNull();
         payment.DomainEvents.ShouldHaveSingleItem().ShouldBeOfType<PaymentRecorded>().Status.ShouldBe(PaymentStatus.Pending);
-        Payment.StartOnline(Guid.Empty, Guid.CreateVersion7(), Tnd(10m), Gateway, Now).Error.ShouldBe(PaymentsErrors.AgencyRequired);
-        Payment.StartOnline(AgencyId, Guid.Empty, Tnd(10m), Gateway, Now).Error.ShouldBe(PaymentsErrors.BookingRequired);
-        Payment.StartOnline(AgencyId, Guid.CreateVersion7(), Money.Zero, Gateway, Now).Error.ShouldBe(PaymentsErrors.AmountInvalid);
+        payment.OnlineFlow.ShouldBe(OnlinePaymentFlow.PreAuthorization);
+        payment.OrderNumber.ShouldBe(payment.Id.ToString("N"));
+        payment.OrderNumber.Length.ShouldBe(32);
+        payment.GatewayReturnPath.ShouldBe("/fr/reserver/confirmation/LOC-2027-000123");
+        payment.GatewayFailPath.ShouldBe("/fr/reserver/paiement?echec=1");
+        payment.OnlineExpiresAtUtc.ShouldBe(Now.AddHours(1));
+        Payment.StartOnline(OnlineDetails(10m) with { AgencyId = Guid.Empty }, Gateway, Now).Error.ShouldBe(PaymentsErrors.AgencyRequired);
+        Payment.StartOnline(OnlineDetails(10m) with { BookingId = Guid.Empty }, Gateway, Now).Error.ShouldBe(PaymentsErrors.BookingRequired);
+        Payment.StartOnline(OnlineDetails(10m) with { Amount = Money.Zero }, Gateway, Now).Error.ShouldBe(PaymentsErrors.AmountInvalid);
+        Payment.StartOnline(OnlineDetails(10m) with { Flow = (OnlinePaymentFlow)9 }, Gateway, Now).Error.ShouldBe(PaymentsErrors.OnlineFlowInvalid);
     }
 
     [Fact]

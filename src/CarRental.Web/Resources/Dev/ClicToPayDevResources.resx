@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Pay.Title" xml:space="preserve">
+    <value>Paiement Clic to Pay simulé</value>
+  </data>
+  <data name="Pay.Brand" xml:space="preserve">
+    <value>Clic to Pay (simulation)</value>
+  </data>
+  <data name="Pay.Heading" xml:space="preserve">
+    <value>Paiement par carte</value>
+  </data>
+  <data name="Pay.Notice" xml:space="preserve">
+    <value>Passerelle simulée de développement et de test : aucune carte n'est demandée, aucun argent ne circule.</value>
+  </data>
+  <data name="Pay.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Pay.Kind" xml:space="preserve">
+    <value>Type d'opération</value>
+  </data>
+  <data name="Pay.Kind.PreAuthorization" xml:space="preserve">
+    <value>Pré-autorisation (débit à la validation)</value>
+  </data>
+  <data name="Pay.Kind.OneStep" xml:space="preserve">
+    <value>Paiement immédiat</value>
+  </data>
+  <data name="Pay.OrderNumber" xml:space="preserve">
+    <value>Numéro de commande</value>
+  </data>
+  <data name="Pay.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Pay.Pay" xml:space="preserve">
+    <value>Payer</value>
+  </data>
+  <data name="Pay.Decline" xml:space="preserve">
+    <value>Refuser</value>
+  </data>
+  <data name="Pay.Abandon" xml:space="preserve">
+    <value>Abandonner</value>
+  </data>
+  <data name="Pay.AlreadyProcessed" xml:space="preserve">
+    <value>Cette commande a déjà été traitée.</value>
+  </data>
+  <data name="Start.Title" xml:space="preserve">
+    <value>Démarrer un paiement en ligne (développement)</value>
+  </data>
+  <data name="Start.Heading" xml:space="preserve">
+    <value>Démarrer un paiement en ligne</value>
+  </data>
+  <data name="Start.Notice" xml:space="preserve">
+    <value>Page de développement et de test : elle démarre un paiement comme le fera le tunnel de réservation, avec la passerelle simulée.</value>
+  </data>
+  <data name="Start.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Start.Booking" xml:space="preserve">
+    <value>Identifiant du dossier</value>
+  </data>
+  <data name="Start.Booking.Hint" xml:space="preserve">
+    <value>Facultatif : un nouvel identifiant est créé s'il est vide.</value>
+  </data>
+  <data name="Start.Amount" xml:space="preserve">
+    <value>Montant (TND)</value>
+  </data>
+  <data name="Start.Flow" xml:space="preserve">
+    <value>Type de paiement</value>
+  </data>
+  <data name="Start.Flow.PreAuthorization" xml:space="preserve">
+    <value>Pré-autorisation (soumission d'une demande)</value>
+  </data>
+  <data name="Start.Flow.OneStep" xml:space="preserve">
+    <value>Paiement en une étape (solde, lien)</value>
+  </data>
+  <data name="Start.Culture" xml:space="preserve">
+    <value>Langue</value>
+  </data>
+  <data name="Start.Submit" xml:space="preserve">
+    <value>Démarrer le paiement</value>
+  </data>
+</root>
