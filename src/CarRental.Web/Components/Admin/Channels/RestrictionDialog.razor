@@ -1,0 +1,144 @@
+@* Creation or change of a quota (vehicles kept for the other channels) or of a stop-sell (optionally at one pick-up
+   location), on inclusive Tunis dates. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Clock
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="Guid" @bind-Value="_categoryId" Label="@L["Field.Category"]" ToStringFunc="CategoryName" Disabled="@(Existing is not null)"
+                           Required="true" RequiredError="@Shared["Validation.Required"]">
+                    @foreach (var category in Categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.CategoryId">@category.AcrissCode — @category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (Kind == ChannelQuotaKind.StopSell)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="Guid" @bind-Value="_locationId" Label="@L["Field.StopLocation"]" ToStringFunc="LocationName" HelperText="@L["Field.StopLocation.Help"]">
+                        <MudSelectItem T="Guid" Value="@Guid.Empty">@L["Restrictions.AllLocations"]</MudSelectItem>
+                        @foreach (var location in Locations)
+                        {
+                            <MudSelectItem T="Guid" Value="@location.LocationId">@location.Code — @location.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_start" Label="@L["Field.StartDate"]" InputType="InputType.Date" ShrinkLabel="true" InputId="restriction-start"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_end" Label="@L["Field.EndDate"]" InputType="InputType.Date" ShrinkLabel="true" InputId="restriction-end"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.EndDate.Help"]" />
+            </MudItem>
+            @if (Kind == ChannelQuotaKind.Reserve)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="_vehicles" Label="@L["Field.ReservedVehicles"]" HelperText="@L["Field.ReservedVehicles.Help"]" Min="1" Max="ChannelQuota.MaxReservedVehicles" />
+                </MudItem>
+            }
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_note" Label="@L["Field.Note"]" Lines="2" MaxLength="ChannelQuota.NoteMaxLength" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy" data-testid="restriction-save">@L["Restrictions.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Guid _categoryId;
+    private Guid _locationId;
+    private string? _start;
+    private string? _end;
+    private int _vehicles = 1;
+    private string? _note;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid ChannelId { get; set; }
+
+    [Parameter]
+    public ChannelQuotaKind Kind { get; set; }
+
+    [Parameter]
+    public RestrictionView? Existing { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<CategoryMappingView> Categories { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<LocationMappingView> Locations { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } existing)
+        {
+            _categoryId = existing.CategoryId;
+            _locationId = existing.LocationId ?? Guid.Empty;
+            _start = Iso(existing.StartDate);
+            _end = Iso(existing.EndDate);
+            _vehicles = Math.Max(1, existing.ReservedVehicles);
+            _note = existing.Note;
+            return;
+        }
+
+        var today = TunisTime.Today(Clock);
+        _categoryId = Categories.FirstOrDefault()?.CategoryId ?? Guid.Empty;
+        _start = Iso(today);
+        _end = Iso(today);
+    }
+
+    private static string Iso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static DateOnly? ParseDate(string? text) =>
+        DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
+
+    private string CategoryName(Guid id) => Categories.FirstOrDefault(c => c.CategoryId == id) is { } category ? $"{category.AcrissCode} — {category.Name}" : string.Empty;
+
+    private string LocationName(Guid id) =>
+        id == Guid.Empty ? L["Restrictions.AllLocations"] : Locations.FirstOrDefault(l => l.LocationId == id) is { } location ? $"{location.Code} — {location.Name}" : string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (ParseDate(_start) is not { } start || ParseDate(_end) is not { } end)
+        {
+            _error = Shared["Error.channels.restriction.period_invalid"];
+            return;
+        }
+
+        _busy = true;
+        var request = new RestrictionRequest(Kind, _categoryId, Kind == ChannelQuotaKind.StopSell && _locationId != Guid.Empty ? _locationId : null, start, end, _vehicles, _note);
+        Result result = Existing is { } existing
+            ? await Runner.RunAsync<ChannelRestrictionService, Result>((service, ct) => service.ChangeAsync(existing.Id, request, ct))
+            : await Runner.RunAsync<ChannelRestrictionService, Result<Guid>>((service, ct) => service.AddAsync(ChannelId, request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,139 @@
+@page "/admin/channels"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Channels.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && !_loading ? "true" : "false")">@L["Channels.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync" Disabled="@(!RendererInfo.IsInteractive)">@L["Channels.Create"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Channels.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.Channels" />
+
+@if (_statistics is { } statistics)
+{
+    <section aria-label="@L["Summary.Label"]" class="mb-4">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="failed">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="@(statistics.FailedCount > 0 ? Color.Error : Color.Default)" Size="Size.Small" aria-hidden="true" Class="me-1" />
+                        @L["Summary.Failed"]
+                    </MudText>
+                    <MudText Typo="Typo.h5">@statistics.FailedCount</MudText>
+                    <MudLink Href="/admin/channels/sync" Underline="Underline.Always">@L["Summary.SeeQueue"]</MudLink>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="pending">
+                    <MudText Typo="Typo.body2">@L["Summary.Pending"]</MudText>
+                    <MudText Typo="Typo.h5">@statistics.PendingCount</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Outlined="true" Class="pa-3" data-summary="reminders">
+                    <MudText Typo="Typo.body2">@L["Summary.Reminders"]</MudText>
+                    <MudText Typo="Typo.h5">@statistics.PendingReminders</MudText>
+                    <MudLink Href="/admin/channels/extranet" Underline="Underline.Always">@L["Summary.SeeExtranet"]</MudLink>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </section>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else if (_channels.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">@L["Channels.Empty"]</MudAlert>
+}
+else
+{
+    <MudTable T="ChannelListItem" Items="_channels" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Channels.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Channel"]</MudTh>
+            <MudTh>@L["Column.Agency"]</MudTh>
+            <MudTh>@L["Column.State"]</MudTh>
+            <MudTh>@L["Column.Adapter"]</MudTh>
+            <MudTh>@L["Column.Commission"]</MudTh>
+            <MudTh>@L["Column.Mappings"]</MudTh>
+            <MudTh>@L["Column.Security"]</MudTh>
+            <MudTh>@L["Column.Attention"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Channel"]">
+                <MudLink Href="@($"/admin/channels/{context.Id}")" Underline="Underline.Always" data-channel="@context.Code">@context.Name</MudLink>
+                <MudText Typo="Typo.caption" Class="d-block"><code>@context.Code</code></MudText>
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Agency"]">@context.AgencyName</MudTd>
+            <MudTd DataLabel="@L["Column.State"]">
+                <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StateColor(context.State)" Icon="@ChannelsFormat.StateIcon(context.State)">@L[$"State.{context.State}"]</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Adapter"]">@L[$"Adapter.{context.AdapterKind}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Commission"]">@ChannelsFormat.Percent(context.CommissionRate) · @L[$"PaymentMode.{context.DefaultPaymentMode}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Mappings"]">@L["Mappings.Count", context.MappedCategories, context.MappedLocations]</MudTd>
+            <MudTd DataLabel="@L["Column.Security"]">
+                @(context.HasApiKey ? L["Security.Key"] : L["Security.NoKey"])@(context.HasCertificate ? " · " + L["Security.Certificate"] : string.Empty) · @L["Security.Ranges", context.AllowedRangeCount]
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Attention"]">
+                @if (context.FailedUpdates > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ErrorOutline">@L["Attention.Failed", context.FailedUpdates]</MudChip>
+                }
+                @if (context.PendingReminders > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Checklist">@L["Attention.Reminders", context.PendingReminders]</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<ChannelListItem> _channels = [];
+    private ChannelSyncStatistics? _statistics;
+    private IReadOnlyList<ChannelAdapterKind> _adapters = [ChannelAdapterKind.Manual];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var channels = await Runner.RunAsync<ChannelAdministrationService, Result<IReadOnlyList<ChannelListItem>>>((service, ct) => service.ListAsync(ct));
+        var statistics = await Runner.RunAsync<ChannelMonitoringService, Result<ChannelSyncStatistics>>((service, ct) => service.GetStatisticsAsync(ct));
+        _adapters = await Runner.RunAsync<ChannelAdministrationService, IReadOnlyList<ChannelAdapterKind>>((service, _) => Task.FromResult(service.AvailableAdapters));
+        _loading = false;
+        if (channels.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, channels.Error), Severity.Error);
+            return;
+        }
+
+        _channels = channels.Value;
+        _statistics = statistics.IsSuccess ? statistics.Value : null;
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateChannelDialog>(
+            L["Channels.Create"],
+            new DialogParameters { [nameof(CreateChannelDialog.Adapters)] = _adapters },
+            ChannelsFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false, Data: Guid id })
+        {
+            Snackbar.Add(L["Channels.Created"], Severity.Success);
+            Navigation.NavigateTo($"/admin/channels/{id}");
+        }
+    }
+}

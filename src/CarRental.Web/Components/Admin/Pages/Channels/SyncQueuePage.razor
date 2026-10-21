@@ -1,0 +1,168 @@
+@page "/admin/channels/sync"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Sync.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Sync.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync" OnClick="RunNowAsync" Disabled="_busy">@L["Sync.RunNow"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Sync.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.Sync" />
+
+@if (_statistics is { } statistics)
+{
+    <dl class="channel-figures mb-4" aria-label="@L["Summary.Label"]">
+        <div><dt>@L["Summary.Failed"]</dt><dd>@statistics.FailedCount</dd></div>
+        <div><dt>@L["Summary.Pending"]</dt><dd>@statistics.PendingCount</dd></div>
+        <div><dt>@L["Summary.Retrying"]</dt><dd>@statistics.RetryingCount</dd></div>
+        <div><dt>@L["Summary.OldestDue"]</dt><dd>@ChannelsFormat.Instant(statistics.OldestDueAtUtc)</dd></div>
+    </dl>
+}
+
+<MudSelect T="SyncQueueFilter" Value="_filter" ValueChanged="FilterChangedAsync" Label="@L["Sync.Filter"]" Class="mb-4" Style="max-inline-size: 22rem;">
+    @foreach (var filter in Enum.GetValues<SyncQueueFilter>())
+    {
+        <MudSelectItem T="SyncQueueFilter" Value="filter">@L[$"Sync.Filter.{filter}"]</MudSelectItem>
+    }
+</MudSelect>
+
+<MudTable @ref="_table" T="SyncItemEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Sync.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.Created"]</MudTh>
+        <MudTh>@L["Column.Channel"]</MudTh>
+        <MudTh>@L["Column.Operation"]</MudTh>
+        <MudTh>@L["Column.Status"]</MudTh>
+        <MudTh>@L["Column.Attempts"]</MudTh>
+        <MudTh>@L["Column.NextAttempt"]</MudTh>
+        <MudTh>@L["Column.Error"]</MudTh>
+        <MudTh>@L["Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.Created"]">@ChannelsFormat.Instant(context.CreatedAtUtc)</MudTd>
+        <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
+        <MudTd DataLabel="@L["Column.Operation"]">@L[$"SyncOperation.{context.Operation}"]@(context.CategoryCode is { } code ? " · " + code : string.Empty)<MudText Typo="Typo.caption" Class="d-block">@L["Sync.Reason", context.Reason]</MudText></MudTd>
+        <MudTd DataLabel="@L["Column.Status"]">
+            <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.SyncColor(context.Status)">@L[$"SyncStatus.{context.Status}"]</MudChip>
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Attempts"]">@context.Attempts</MudTd>
+        <MudTd DataLabel="@L["Column.NextAttempt"]">@(context.Status == ChannelSyncStatus.Pending ? ChannelsFormat.Instant(context.NextAttemptAtUtc) : ChannelsFormat.Instant(context.SentAtUtc))</MudTd>
+        <MudTd DataLabel="@L["Column.Error"]"><span class="channel-excerpt">@(context.LastError ?? "—")</span></MudTd>
+        <MudTd DataLabel="@L["Column.Actions"]">
+            <MudStack Row="true" Spacing="1">
+                @if (context.Status != ChannelSyncStatus.Pending || context.Attempts > 0)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay" OnClick="() => ReplayAsync(context)" Disabled="_busy"
+                               aria-label="@L["Sync.Replay.Label", L[$"SyncOperation.{context.Operation}"], context.ChannelCode, ChannelsFormat.Instant(context.CreatedAtUtc)]">@L["Sync.Replay"]</MudButton>
+                }
+                @if (context.Payload is not null)
+                {
+                    <MudIconButton Icon="@(_expanded.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small"
+                                   OnClick="() => Toggle(context.Id)" aria-label="@L["Sync.ShowPayload"]" aria-expanded="@(_expanded.Contains(context.Id) ? "true" : "false")" />
+                }
+            </MudStack>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent>
+        @if (_expanded.Contains(context.Id))
+        {
+            <MudTr>
+                <td colspan="8" class="audit-details"><pre>@context.Payload</pre></td>
+            </MudTr>
+        }
+    </ChildRowContent>
+    <NoRecordsContent>
+        <MudText>@L["Sync.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private readonly HashSet<Guid> _expanded = [];
+    private MudTable<SyncItemEntry>? _table;
+    private ChannelSyncStatistics? _statistics;
+    private SyncQueueFilter _filter = SyncQueueFilter.All;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadStatisticsAsync();
+
+    private async Task LoadStatisticsAsync()
+    {
+        var statistics = await Runner.RunAsync<ChannelMonitoringService, Result<ChannelSyncStatistics>>((service, ct) => service.GetStatisticsAsync(ct));
+        _statistics = statistics.IsSuccess ? statistics.Value : null;
+    }
+
+    private async Task<TableData<SyncItemEntry>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var filter = _filter;
+        var result = await Runner.RunAsync<ChannelMonitoringService, Result<PagedResult<SyncItemEntry>>>((service, ct) => service.ListSyncItemsAsync(filter, null, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<SyncItemEntry> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<SyncItemEntry> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadStatisticsAsync();
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task FilterChangedAsync(SyncQueueFilter filter)
+    {
+        _filter = filter;
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ReplayAsync(SyncItemEntry item)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelMonitoringService, Result>((service, ct) => service.ReplayAsync(item.Id, ct));
+        _busy = false;
+        Snackbar.Add(result.IsSuccess ? L["Sync.Replayed"] : ErrorMessages.For(Shared, result.Error), result.IsSuccess ? Severity.Success : Severity.Error);
+        await RefreshAsync();
+    }
+
+    private async Task RunNowAsync()
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelMonitoringService, Result<ChannelSyncRunResult>>((service, ct) => service.RunNowAsync(ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Sync.RunDone", result.Value.Sent, result.Value.Failed], Severity.Info);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await RefreshAsync();
+    }
+
+    private void Toggle(Guid id)
+    {
+        if (!_expanded.Remove(id))
+        {
+            _expanded.Add(id);
+        }
+    }
+}

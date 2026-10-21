@@ -1,0 +1,208 @@
+@page "/admin/channels/{ChannelId:guid}"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@(_channel?.Name ?? L["Channel.Title"])</PageTitle>
+<ChannelStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _channel is not null ? "true" : "false")">
+    @(_channel is null ? L["Channel.Title"] : L["Channel.Heading", _channel.Name])
+</MudText>
+<ChannelsSubNav Current="ChannelSection.Channels" />
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_channel is not { } channel)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-3">
+        @L["Channel.Summary", channel.AgencyName, L[$"SalesChannel.{channel.SalesChannel}"], channel.Code]
+        <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StateColor(channel.State)" Icon="@ChannelsFormat.StateIcon(channel.State)" Class="ms-2" data-state="@channel.State">@L[$"State.{channel.State}"]</MudChip>
+    </MudText>
+
+    <MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+        <MudTabPanel Text="@L["Tab.Settings"]">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_name" Label="@L["Field.Name"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="Channel.NameMaxLength" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="ChannelState" @bind-Value="_state" Label="@L["Field.State"]" ToStringFunc="@(s => L[$"State.{s}"])" HelperText="@L[$"State.{_state}.Help"]">
+                            @foreach (var state in Enum.GetValues<ChannelState>())
+                            {
+                                <MudSelectItem T="ChannelState" Value="@state">@L[$"State.{state}"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="ChannelAdapterKind" @bind-Value="_adapter" Label="@L["Field.Adapter"]" ToStringFunc="@(a => L[$"Adapter.{a}"])" HelperText="@L[$"Adapter.{_adapter}.Help"]">
+                            @foreach (var adapter in channel.AvailableAdapters)
+                            {
+                                <MudSelectItem T="ChannelAdapterKind" Value="@adapter">@L[$"Adapter.{adapter}"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudSelect T="ChannelPaymentMode" @bind-Value="_paymentMode" Label="@L["Field.PaymentMode"]" ToStringFunc="@(m => L[$"PaymentMode.{m}"])">
+                            @foreach (var mode in Enum.GetValues<ChannelPaymentMode>())
+                            {
+                                <MudSelectItem T="ChannelPaymentMode" Value="@mode">@L[$"PaymentMode.{mode}"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField T="decimal" @bind-Value="_commissionPercent" Label="@L["Field.Commission"]" HelperText="@L["Field.Commission.Help"]" Min="0m" Max="100m"
+                                         Format="0.##" Adornment="Adornment.End" AdornmentText="%" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveSettingsAsync" Disabled="_busy">@L["Settings.Save"]</MudButton>
+                    </MudItem>
+                </MudGrid>
+                <MudText Typo="Typo.caption" Class="d-block mt-3">@L["Channel.UpdatedBy", ChannelsFormat.Instant(channel.UpdatedAtUtc), channel.UpdatedBy ?? "—"]</MudText>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["Tab.Security"]">
+            <MudPaper Class="pa-4 mb-3" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Security.Endpoint.Title"]</MudText>
+                <MudText Typo="Typo.body2">@L["Security.Endpoint.Text", channel.Code]</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2"><code>@($"/api/channels/{channel.Code}/…")</code> · <code>X-Channel-Key</code></MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 mb-3" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Security.Key.Title"]</MudText>
+                <MudText Typo="Typo.body2" Class="mb-2" data-testid="api-key-state">
+                    @(channel.ApiKeyHint is { } hint ? L["Security.Key.Current", hint, ChannelsFormat.Instant(channel.ApiKeyCreatedAtUtc)] : L["Security.Key.None"])
+                </MudText>
+                @if (_newKey is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-2" role="status">@L["Security.Key.ShownOnce"]</MudAlert>
+                    <p class="channel-key" data-testid="api-key-value">@_newKey</p>
+                }
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Key" OnClick="RotateKeyAsync" Disabled="_busy">@L["Security.Key.Rotate"]</MudButton>
+                    @if (channel.ApiKeyHint is not null)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.KeyOff" OnClick="RevokeKeyAsync" Disabled="_busy">@L["Security.Key.Revoke"]</MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Security.Access.Title"]</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_thumbprint" Label="@L["Field.Thumbprint"]" HelperText="@L["Field.Thumbprint.Help"]" MaxLength="100" autocomplete="off" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_ranges" Label="@L["Field.IpRanges"]" HelperText="@L["Field.IpRanges.Help"]" Lines="4" MaxLength="IpAllowlist.StorageMaxLength" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveSecurityAsync" Disabled="_busy">@L["Security.Save"]</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["Tab.Mappings"]">
+            <ChannelMappingsPanel Channel="channel" OnChanged="ReloadAsync" />
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["Tab.Restrictions"]">
+            <ChannelRestrictionsPanel Channel="channel" />
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private ChannelDetailView? _channel;
+    private string? _error;
+    private bool _busy;
+    private int _tab;
+    private string? _name;
+    private ChannelState _state;
+    private ChannelAdapterKind _adapter;
+    private ChannelPaymentMode _paymentMode;
+    private decimal _commissionPercent;
+    private string? _thumbprint;
+    private string? _ranges;
+    private string? _newKey;
+
+    [Parameter]
+    public Guid ChannelId { get; set; }
+
+    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var result = await Runner.RunAsync<ChannelAdministrationService, Result<ChannelDetailView>>((service, ct) => service.GetAsync(ChannelId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        var channel = result.Value;
+        _channel = channel;
+        _name = channel.Name;
+        _state = channel.State;
+        _adapter = channel.AdapterKind;
+        _paymentMode = channel.DefaultPaymentMode;
+        _commissionPercent = channel.CommissionRate * 100m;
+        _thumbprint = channel.ClientCertificateThumbprint;
+        _ranges = string.Join('\n', channel.AllowedIpRanges);
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        var request = new UpdateChannelSettingsRequest(_name ?? string.Empty, _state, _adapter, _paymentMode, decimal.Round(_commissionPercent / 100m, 4));
+        await RunAsync((service, ct) => service.UpdateSettingsAsync(ChannelId, request, ct), L["Settings.Saved"]);
+    }
+
+    private async Task SaveSecurityAsync() =>
+        await RunAsync((service, ct) => service.SetInboundSecurityAsync(ChannelId, _thumbprint, _ranges, ct), L["Security.Saved"]);
+
+    private async Task RotateKeyAsync()
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelAdministrationService, Result<string>>((service, ct) => service.RotateApiKeyAsync(ChannelId, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _newKey = result.Value;
+        await ReloadAsync();
+    }
+
+    private async Task RevokeKeyAsync()
+    {
+        _newKey = null;
+        await RunAsync((service, ct) => service.RevokeApiKeyAsync(ChannelId, ct), L["Security.Key.Revoked"]);
+    }
+
+    private async Task RunAsync(Func<ChannelAdministrationService, CancellationToken, Task<Result>> operation, string success)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync(operation);
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

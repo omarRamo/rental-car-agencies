@@ -1,0 +1,291 @@
+@page "/admin/channels/manual-entry"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Manual.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && !_loading ? "true" : "false")">@L["Manual.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Manual.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.ManualEntry" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else if (_channels.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">@L["Manual.NoChannel"]</MudAlert>
+}
+else
+{
+    @if (_recorded is { } recorded)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" role="status" data-testid="manual-entry-result">
+            @(recorded.Replayed ? L["Manual.Replayed", recorded.BookingNumber] : L["Manual.Recorded", recorded.BookingNumber])
+            <MudLink Href="@($"/admin/bookings/{recorded.BookingId}")" Underline="Underline.Always" Class="ms-2">@L["Manual.OpenBooking"]</MudLink>
+            <MudLink Href="@PlanningLink" Underline="Underline.Always" Class="ms-2">@L["Manual.OpenPlanning"]</MudLink>
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid" Value="_channelId" ValueChanged="ChannelChanged" Label="@L["Field.Channel"]" ToStringFunc="ChannelName">
+                    @foreach (var channel in _channels)
+                    {
+                        <MudSelectItem T="Guid" Value="@channel.ChannelId">@channel.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L["Field.Reference"]" HelperText="@L["Field.Reference.Help"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="ChannelCodes.ReferenceMaxLength" InputId="manual-reference" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_pickup" Label="@L["Field.PickupAt"]" InputType="InputType.DateTimeLocal" ShrinkLabel="true" InputId="manual-pickup" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_return" Label="@L["Field.ReturnAt"]" InputType="InputType.DateTimeLocal" ShrinkLabel="true" InputId="manual-return" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid" @bind-Value="_categoryId" Label="@L["Field.Category"]" ToStringFunc="CategoryName">
+                    @foreach (var category in Current?.Categories ?? [])
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">@category.Code — @category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid" @bind-Value="_pickupLocationId" Label="@L["Field.PickupLocation"]" ToStringFunc="LocationName">
+                    @foreach (var location in Current?.Locations ?? [])
+                    {
+                        <MudSelectItem T="Guid" Value="@location.Id">@location.Code — @location.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid" @bind-Value="_returnLocationId" Label="@L["Field.ReturnLocation"]" ToStringFunc="LocationName">
+                    @foreach (var location in Current?.Locations ?? [])
+                    {
+                        <MudSelectItem T="Guid" Value="@location.Id">@location.Code — @location.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h2">@L["Manual.Driver"]</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_firstName" Label="@L["Field.FirstName"]" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="manual-first-name" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_lastName" Label="@L["Field.LastName"]" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="manual-last-name" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_phone" Label="@L["Field.Phone"]" InputType="InputType.Telephone" InputId="manual-phone" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_email" Label="@L["Field.Email"]" InputType="InputType.Email" InputId="manual-email" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h2">@L["Manual.Amounts"]</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_gross" Label="@L["Field.Gross"]" HelperText="@L["Field.Gross.Help"]" Min="0m" Format="N3" Adornment="Adornment.End"
+                                 AdornmentText="TND" HideSpinButtons="true" Immediate="true" InputId="manual-gross" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_commission" Label="@L["Field.ReportedCommission"]" HelperText="@CommissionHelp" Min="0m" Format="N3"
+                                 Adornment="Adornment.End" AdornmentText="TND" HideSpinButtons="true" Immediate="true" InputId="manual-commission" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="ChannelPaymentMode" @bind-Value="_paymentMode" Label="@L["Field.PaymentMode"]" ToStringFunc="@(m => L[$"PaymentMode.{m}"])">
+                    @foreach (var mode in Enum.GetValues<ChannelPaymentMode>())
+                    {
+                        <MudSelectItem T="ChannelPaymentMode" Value="@mode">@L[$"PaymentMode.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Field.Notes"]" HelperText="@L["Field.Notes.Help"]" Lines="2" MaxLength="1000" />
+            </MudItem>
+        </MudGrid>
+
+        @if (_preview is { } preview)
+        {
+            <dl class="channel-figures mt-3" data-testid="manual-entry-preview" aria-live="polite">
+                <div><dt>@L["Figure.Commission"]</dt><dd>@ChannelsFormat.Amount(preview.Commission) (@L[$"CommissionSource.{preview.CommissionSource}"])</dd></div>
+                <div><dt>@L["Figure.Net"]</dt><dd>@ChannelsFormat.Amount(preview.Net)</dd></div>
+                <div><dt>@L["Figure.Engine"]</dt><dd>@(preview.EngineTotalInclVat is { } engine ? ChannelsFormat.Amount(engine) : PricingError(preview.PricingError))</dd></div>
+            </dl>
+        }
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert" data-testid="manual-entry-error">@_error</MudAlert>
+        }
+
+        <MudStack Row="true" Spacing="2" Class="mt-4" Wrap="Wrap.Wrap">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Calculate" OnClick="PreviewAsync" Disabled="_busy">@L["Manual.Preview"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="RecordAsync" Disabled="@(_busy || !RendererInfo.IsInteractive)" data-testid="manual-entry-save">@L["Manual.Submit"]</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<ManualEntryChannelView> _channels = [];
+    private Guid _channelId;
+    private string? _reference;
+    private string? _pickup;
+    private string? _return;
+    private Guid _categoryId;
+    private Guid _pickupLocationId;
+    private Guid _returnLocationId;
+    private string? _firstName;
+    private string? _lastName;
+    private string? _phone;
+    private string? _email;
+    private decimal? _gross;
+    private decimal? _commission;
+    private ChannelPaymentMode _paymentMode;
+    private string? _notes;
+    private ManualEntryPreview? _preview;
+    private ManualEntryResult? _recorded;
+    private DateTimeOffset? _recordedPickup;
+    private string? _error;
+    private bool _loading = true;
+    private bool _busy;
+
+    private ManualEntryChannelView? Current => _channels.FirstOrDefault(c => c.ChannelId == _channelId);
+
+    private string CommissionHelp => Current is { } channel ? L["Field.ReportedCommission.Help", ChannelsFormat.Percent(channel.CommissionRate)] : string.Empty;
+
+    private string PlanningLink =>
+        _recordedPickup is { } pickup ? $"/admin/planning?from={TunisTime.DateOf(pickup).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "/admin/planning";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Runner.RunAsync<ChannelManualEntryService, Result<IReadOnlyList<ManualEntryChannelView>>>((service, ct) => service.GetChannelsAsync(ct));
+        _loading = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _channels = result.Value;
+        var tomorrow = TunisTime.Today(Clock).AddDays(1);
+        _pickup = ChannelsFormat.ToLocalInput(TunisTime.FromLocal(tomorrow, new TimeOnly(10, 0)));
+        _return = ChannelsFormat.ToLocalInput(TunisTime.FromLocal(tomorrow.AddDays(3), new TimeOnly(10, 0)));
+        if (_channels.Count > 0)
+        {
+            ChannelChanged(_channels[0].ChannelId);
+        }
+    }
+
+    private void ChannelChanged(Guid channelId)
+    {
+        _channelId = channelId;
+        if (Current is not { } channel)
+        {
+            return;
+        }
+
+        _paymentMode = channel.DefaultPaymentMode;
+        _categoryId = channel.Categories.FirstOrDefault()?.Id ?? Guid.Empty;
+        var airport = channel.Locations.FirstOrDefault()?.Id ?? Guid.Empty;
+        _pickupLocationId = airport;
+        _returnLocationId = airport;
+        _preview = null;
+    }
+
+    private string ChannelName(Guid id) => _channels.FirstOrDefault(c => c.ChannelId == id)?.Name ?? string.Empty;
+
+    private string CategoryName(Guid id) => Current?.Categories.FirstOrDefault(c => c.Id == id) is { } category ? $"{category.Code} — {category.Name}" : string.Empty;
+
+    private string LocationName(Guid id) => Current?.Locations.FirstOrDefault(l => l.Id == id) is { } location ? $"{location.Code} — {location.Name}" : string.Empty;
+
+    private string PricingError(string? code) => code is null ? "—" : Shared[$"Error.{code}"].ResourceNotFound ? code : Shared[$"Error.{code}"].Value;
+
+    private ManualEntryRequest? Request()
+    {
+        if (ChannelsFormat.FromLocalInput(_pickup) is not { } pickup || ChannelsFormat.FromLocalInput(_return) is not { } returnAt)
+        {
+            _error = Shared["Error.channels.booking.period_invalid"];
+            return null;
+        }
+
+        return new ManualEntryRequest(
+            _channelId,
+            _reference ?? string.Empty,
+            _categoryId,
+            _pickupLocationId,
+            _returnLocationId,
+            pickup,
+            returnAt,
+            _firstName ?? string.Empty,
+            _lastName ?? string.Empty,
+            _phone,
+            _email,
+            _gross ?? 0m,
+            _commission,
+            _paymentMode,
+            _notes);
+    }
+
+    private async Task PreviewAsync()
+    {
+        _error = null;
+        if (Request() is not { } request)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelManualEntryService, Result<ManualEntryPreview>>((service, ct) => service.PreviewAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            _preview = result.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task RecordAsync()
+    {
+        _error = null;
+        _recorded = null;
+        if (Request() is not { } request)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelManualEntryService, Result<ManualEntryResult>>((service, ct) => service.RecordAsync(request, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        _recorded = result.Value;
+        _recordedPickup = request.PickupAt;
+        _reference = null;
+        _firstName = null;
+        _lastName = null;
+        _phone = null;
+        _email = null;
+        _gross = null;
+        _commission = null;
+        _notes = null;
+        _preview = null;
+    }
+}

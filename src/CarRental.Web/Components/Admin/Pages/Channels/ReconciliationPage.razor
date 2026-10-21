@@ -1,0 +1,189 @@
+@page "/admin/channels/reconciliation"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Reconciliation.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Reconciliation.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Reconciliation.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.Reconciliation" />
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="5">
+            <MudSelect T="Guid" Value="_channelId" ValueChanged="ChannelChangedAsync" Label="@L["Field.Channel"]" ToStringFunc="ChannelName">
+                @foreach (var channel in _channels)
+                {
+                    <MudSelectItem T="Guid" Value="@channel.Id">@channel.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" Value="_month" ValueChanged="MonthChangedAsync" Label="@L["Field.Month"]" InputType="InputType.Month" ShrinkLabel="true" InputId="reconciliation-month" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_view is { } view)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Reconciliation.Figures", view.ChannelName, MonthTitle(view)]</MudText>
+        <dl class="channel-figures" data-testid="reconciliation-figures">
+            <div><dt>@L["Figure.Bookings"]</dt><dd>@view.Figures.Bookings (@L["Figure.Cancelled", view.Figures.Cancelled])</dd></div>
+            <div><dt>@L["Figure.Gross"]</dt><dd>@ChannelsFormat.Amount(view.Figures.Gross)</dd></div>
+            <div><dt>@L["Figure.Commission"]</dt><dd>@ChannelsFormat.Amount(view.Figures.Commission)</dd></div>
+            <div><dt>@L["Figure.Net"]</dt><dd>@ChannelsFormat.Amount(view.Figures.Net)</dd></div>
+            <div><dt>@L["Figure.PrepaidNet"]</dt><dd>@ChannelsFormat.Amount(view.Figures.PrepaidNet)</dd></div>
+            <div><dt>@L["Figure.PayOnSiteCommission"]</dt><dd>@ChannelsFormat.Amount(view.Figures.PayOnSiteCommission)</dd></div>
+            <div><dt>@L["Figure.Expected"]</dt><dd>@ChannelsFormat.Amount(view.Figures.ExpectedSettlement)</dd></div>
+            <div><dt>@L["Figure.Payout"]</dt><dd>@ChannelsFormat.Amount(view.Figures.RecordedPayout)</dd></div>
+            <div><dt>@L["Figure.Difference"]</dt><dd>@ChannelsFormat.WithSign(view.Figures.Difference)</dd></div>
+        </dl>
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Reconciliation.Assumption"]</MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Reconciliation.Payout.Title"]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_payout" Label="@L["Field.Payout"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_payoutReference" Label="@L["Field.PayoutReference"]" MaxLength="ChannelPayout.ReferenceMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_payoutNote" Label="@L["Field.Note"]" MaxLength="ChannelPayout.NoteMaxLength" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SavePayoutAsync" Disabled="@(_busy || _payout is null)">@L["Reconciliation.Payout.Save"]</MudButton>
+                @if (view.PayoutRecordedAtUtc is { } at)
+                {
+                    <MudText Typo="Typo.caption" Class="d-inline-block ms-3">@L["Reconciliation.Payout.Recorded", ChannelsFormat.Instant(at), view.PayoutRecordedBy ?? "—"]</MudText>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudTable T="ReconciliationBookingView" Items="view.Bookings" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.Bookings"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Booking"]</MudTh>
+            <MudTh>@L["Column.Reference"]</MudTh>
+            <MudTh>@L["Column.PickupAt"]</MudTh>
+            <MudTh>@L["Column.State"]</MudTh>
+            <MudTh>@L["Column.PaymentMode"]</MudTh>
+            <MudTh Class="channel-number">@L["Figure.Gross"]</MudTh>
+            <MudTh Class="channel-number">@L["Figure.Commission"]</MudTh>
+            <MudTh Class="channel-number">@L["Figure.Net"]</MudTh>
+            <MudTh Class="channel-number">@L["Figure.Engine"]</MudTh>
+            <MudTh Class="channel-number">@L["Column.PriceDifference"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Booking"]"><MudLink Href="@($"/admin/bookings/{context.BookingId}")" Underline="Underline.Always">@context.BookingNumber</MudLink></MudTd>
+            <MudTd DataLabel="@L["Column.Reference"]">@context.ChannelReference<MudText Typo="Typo.caption" Class="d-block">@L[$"Source.{context.Source}"]</MudText></MudTd>
+            <MudTd DataLabel="@L["Column.PickupAt"]">@ChannelsFormat.Instant(context.PickupAt)</MudTd>
+            <MudTd DataLabel="@L["Column.State"]">@L[$"BookingState.{context.State}"]</MudTd>
+            <MudTd DataLabel="@L["Column.PaymentMode"]">@L[$"PaymentMode.{context.PaymentMode}"]</MudTd>
+            <MudTd DataLabel="@L["Figure.Gross"]" Class="channel-number">@ChannelsFormat.Amount(context.Gross)</MudTd>
+            <MudTd DataLabel="@L["Figure.Commission"]" Class="channel-number">@ChannelsFormat.Amount(context.Commission)</MudTd>
+            <MudTd DataLabel="@L["Figure.Net"]" Class="channel-number">@ChannelsFormat.Amount(context.Net)</MudTd>
+            <MudTd DataLabel="@L["Figure.Engine"]" Class="channel-number">@ChannelsFormat.Amount(context.EngineTotalInclVat)</MudTd>
+            <MudTd DataLabel="@L["Column.PriceDifference"]" Class="channel-number">@ChannelsFormat.WithSign(context.PriceDifference)</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Reconciliation.Empty"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<ChannelListItem> _channels = [];
+    private Guid _channelId;
+    private string? _month;
+    private ReconciliationView? _view;
+    private decimal? _payout;
+    private string? _payoutReference;
+    private string? _payoutNote;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var channels = await Runner.RunAsync<ChannelAdministrationService, Result<IReadOnlyList<ChannelListItem>>>((service, ct) => service.ListAsync(ct));
+        _channels = channels.IsSuccess ? channels.Value : [];
+        var today = TunisTime.Today(Clock);
+        _month = today.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _channelId = _channels.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadAsync();
+    }
+
+    private string ChannelName(Guid id) => _channels.FirstOrDefault(c => c.Id == id)?.Name ?? string.Empty;
+
+    private static string MonthTitle(ReconciliationView view) => new DateOnly(view.Year, view.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+
+    private async Task ChannelChangedAsync(Guid id)
+    {
+        _channelId = id;
+        await LoadAsync();
+    }
+
+    private async Task MonthChangedAsync(string? month)
+    {
+        _month = month;
+        await LoadAsync();
+    }
+
+    private (int Year, int Month)? Selected() =>
+        DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first) ? (first.Year, first.Month) : null;
+
+    private async Task LoadAsync()
+    {
+        if (_channelId == Guid.Empty || Selected() is not { } selected)
+        {
+            _view = null;
+            return;
+        }
+
+        var channelId = _channelId;
+        var result = await Runner.RunAsync<ChannelReconciliationService, Result<ReconciliationView>>((service, ct) => service.GetMonthAsync(channelId, selected.Year, selected.Month, ct));
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _view = result.Value;
+        _payout = result.Value.Figures.RecordedPayout?.Amount;
+        _payoutReference = result.Value.PayoutReference;
+        _payoutNote = result.Value.PayoutNote;
+    }
+
+    private async Task SavePayoutAsync()
+    {
+        if (Selected() is not { } selected || _payout is not { } amount)
+        {
+            return;
+        }
+
+        _busy = true;
+        var (channelId, reference, note) = (_channelId, _payoutReference, _payoutNote);
+        var result = await Runner.RunAsync<ChannelReconciliationService, Result>((service, ct) => service.RecordPayoutAsync(channelId, selected.Year, selected.Month, amount, reference, note, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Reconciliation.Payout.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

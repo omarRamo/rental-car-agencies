@@ -1,0 +1,213 @@
+@* Mapping editors of a channel: categories (ACRISS code, code of the channel, ACRISS sold under), locations (code of
+   the channel: airports TUN, NBE…) and options (extras, insurances and fees with the OpenTravel code the agency enters:
+   no list is invented here). *@
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudPaper Class="pa-4 mb-3" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Mappings.Categories.Title"]</MudText>
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Mappings.Categories.Hint"]</MudText>
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead>
+            <tr>
+                <th scope="col">@L["Column.Category"]</th>
+                <th scope="col">@L["Column.ChannelCode"]</th>
+                <th scope="col">@L["Column.SoldAs"]</th>
+                <th scope="col">@L["Column.Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Channel.Categories)
+            {
+                <tr data-mapping-category="@category.AcrissCode">
+                    <th scope="row">@category.AcrissCode <MudText Typo="Typo.caption" Class="d-block">@category.Name</MudText></th>
+                    <td>
+                        <MudTextField T="string" Value="@CategoryCode(category)" ValueChanged="@(v => _categoryCodes[category.CategoryId] = v)" Label="@L["Field.ChannelCodeOf", category.AcrissCode]"
+                                      Margin="Margin.Dense" MaxLength="ChannelCodes.MappingCodeMaxLength" autocomplete="off" />
+                    </td>
+                    <td>
+                        <MudTextField T="string" Value="@SoldAs(category)" ValueChanged="@(v => _soldAs[category.CategoryId] = v)" Label="@L["Field.SoldAsOf", category.AcrissCode]"
+                                      Margin="Margin.Dense" MaxLength="4" autocomplete="off" />
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => MapCategoryAsync(category)" Disabled="_busy"
+                                       aria-label="@L["Mappings.Save.Label", category.AcrissCode]">@L["Mappings.Save"]</MudButton>
+                            @if (category.MappingId is { } mappingId)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(mappingId)" Disabled="_busy"
+                                           aria-label="@L["Mappings.Remove.Label", category.AcrissCode]">@L["Mappings.Remove"]</MudButton>
+                            }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-3" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Mappings.Locations.Title"]</MudText>
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead>
+            <tr>
+                <th scope="col">@L["Column.Location"]</th>
+                <th scope="col">@L["Column.ChannelCode"]</th>
+                <th scope="col">@L["Column.Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var location in Channel.Locations)
+            {
+                <tr data-mapping-location="@location.Code">
+                    <th scope="row">@location.Code <MudText Typo="Typo.caption" Class="d-block">@location.Name</MudText></th>
+                    <td>
+                        <MudTextField T="string" Value="@LocationCode(location)" ValueChanged="@(v => _locationCodes[location.LocationId] = v)" Label="@L["Field.ChannelCodeOf", location.Code]"
+                                      Margin="Margin.Dense" MaxLength="ChannelCodes.MappingCodeMaxLength" autocomplete="off" />
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => MapLocationAsync(location)" Disabled="_busy"
+                                       aria-label="@L["Mappings.Save.Label", location.Code]">@L["Mappings.Save"]</MudButton>
+                            @if (location.MappingId is { } mappingId)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(mappingId)" Disabled="_busy"
+                                           aria-label="@L["Mappings.Remove.Label", location.Code]">@L["Mappings.Remove"]</MudButton>
+                            }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Mappings.Options.Title"]</MudText>
+    <MudText Typo="Typo.body2" Class="mb-2">@L["Mappings.Options.Hint"]</MudText>
+    @if (Channel.Options.Count > 0)
+    {
+        <MudSimpleTable Dense="true" Hover="true" Class="mb-3">
+            <thead>
+                <tr>
+                    <th scope="col">@L["Column.Kind"]</th>
+                    <th scope="col">@L["Column.Extra"]</th>
+                    <th scope="col">@L["Column.ChannelCode"]</th>
+                    <th scope="col">@L["Column.Actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var option in Channel.Options)
+                {
+                    <tr>
+                        <td>@L[$"MappingKind.{option.Kind}"]</td>
+                        <td><code>@option.InternalCode</code> @option.ExtraName</td>
+                        <td><code>@option.ChannelCode</code></td>
+                        <td>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(option.MappingId)" Disabled="_busy"
+                                       aria-label="@L["Mappings.Remove.Label", option.InternalCode]">@L["Mappings.Remove"]</MudButton>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ChannelMappingKind" @bind-Value="_optionKind" Label="@L["Field.MappingKind"]" ToStringFunc="@(k => L[$"MappingKind.{k}"])">
+                @foreach (var kind in OptionKinds)
+                {
+                    <MudSelectItem T="ChannelMappingKind" Value="@kind">@L[$"MappingKind.{kind}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" @bind-Value="_optionCode" Label="@L["Field.ExtraCode"]" HelperText="@ExtraHelp" MaxLength="ChannelCodes.InternalCodeMaxLength" autocomplete="off" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField T="string" @bind-Value="_optionChannelCode" Label="@L["Field.OtaCode"]" HelperText="@L["Field.OtaCode.Help"]" MaxLength="ChannelCodes.MappingCodeMaxLength" autocomplete="off" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="MapOptionAsync" Disabled="_busy">@L["Mappings.Add"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    private static readonly ChannelMappingKind[] OptionKinds = [ChannelMappingKind.Extra, ChannelMappingKind.Insurance, ChannelMappingKind.Fee];
+
+    private readonly Dictionary<Guid, string?> _categoryCodes = [];
+    private readonly Dictionary<Guid, string?> _soldAs = [];
+    private readonly Dictionary<Guid, string?> _locationCodes = [];
+    private ChannelMappingKind _optionKind = ChannelMappingKind.Extra;
+    private string? _optionCode;
+    private string? _optionChannelCode;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public ChannelDetailView Channel { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private string ExtraHelp => Channel.Extras.Count == 0
+        ? L["Field.ExtraCode.Help"]
+        : L["Field.ExtraCode.Known", string.Join(", ", Channel.Extras.Select(e => e.Code))];
+
+    protected override void OnParametersSet()
+    {
+        _categoryCodes.Clear();
+        _soldAs.Clear();
+        _locationCodes.Clear();
+    }
+
+    private string? CategoryCode(CategoryMappingView category) => _categoryCodes.TryGetValue(category.CategoryId, out var code) ? code : category.ChannelCode ?? category.AcrissCode;
+
+    private string? SoldAs(CategoryMappingView category) => _soldAs.TryGetValue(category.CategoryId, out var code) ? code : category.SoldAsAcriss;
+
+    private string? LocationCode(LocationMappingView location) => _locationCodes.TryGetValue(location.LocationId, out var code) ? code : location.ChannelCode ?? location.Code;
+
+    private Task MapCategoryAsync(CategoryMappingView category)
+    {
+        var code = CategoryCode(category);
+        var soldAs = SoldAs(category);
+        return RunAsync((service, ct) => service.MapCategoryAsync(Channel.Id, category.CategoryId, code, soldAs, ct));
+    }
+
+    private Task MapLocationAsync(LocationMappingView location)
+    {
+        var code = LocationCode(location);
+        return RunAsync((service, ct) => service.MapLocationAsync(Channel.Id, location.LocationId, code, ct));
+    }
+
+    private async Task MapOptionAsync()
+    {
+        var (kind, code, channelCode) = (_optionKind, _optionCode, _optionChannelCode);
+        if (await RunAsync((service, ct) => service.MapOptionAsync(Channel.Id, kind, code, channelCode, ct)))
+        {
+            _optionCode = null;
+            _optionChannelCode = null;
+        }
+    }
+
+    private Task RemoveAsync(Guid mappingId) => RunAsync((service, ct) => service.RemoveMappingAsync(Channel.Id, mappingId, ct));
+
+    private async Task<bool> RunAsync(Func<ChannelAdministrationService, CancellationToken, Task<Result>> operation)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync(operation);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return false;
+        }
+
+        Snackbar.Add(L["Mappings.Saved"], Severity.Success);
+        await OnChanged.InvokeAsync();
+        return true;
+    }
+}

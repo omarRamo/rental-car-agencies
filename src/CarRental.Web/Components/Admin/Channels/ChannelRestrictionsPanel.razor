@@ -1,0 +1,125 @@
+@* Quotas and stop-sells of a channel: a month calendar and the table of the current restrictions, with their
+   creation, change and removal (applied at once by the availability engine to the channel only). *@
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudText Typo="Typo.body2" Class="mb-3">@L["Restrictions.Intro"]</MudText>
+@if (Channel.State == ChannelState.Manual)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">@L["Restrictions.ManualHint"]</MudAlert>
+}
+
+<MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Block" OnClick="() => EditAsync(null, ChannelQuotaKind.StopSell)" data-testid="add-stop-sell">@L["Restrictions.AddStopSell"]</MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" OnClick="() => EditAsync(null, ChannelQuotaKind.Reserve)">@L["Restrictions.AddQuota"]</MudButton>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="() => MoveMonth(-1)" aria-label="@L["Calendar.Previous"]" />
+    <MudText Typo="Typo.subtitle1" HtmlTag="h3">@_month.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="() => MoveMonth(1)" aria-label="@L["Calendar.Next"]" />
+</MudStack>
+
+<RestrictionCalendar Month="_month" Categories="@Channel.Categories" Restrictions="_restrictions" Today="_today" />
+
+<MudTable T="RestrictionView" Items="_restrictions" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" Class="mt-3" Loading="_loading"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Restrictions.Table"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.Kind"]</MudTh>
+        <MudTh>@L["Column.Category"]</MudTh>
+        <MudTh>@L["Column.Location"]</MudTh>
+        <MudTh>@L["Column.Period"]</MudTh>
+        <MudTh>@L["Column.Vehicles"]</MudTh>
+        <MudTh>@L["Column.Note"]</MudTh>
+        <MudTh>@L["Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.Kind"]">@L[$"QuotaKind.{context.Kind}"]</MudTd>
+        <MudTd DataLabel="@L["Column.Category"]">@context.CategoryCode</MudTd>
+        <MudTd DataLabel="@L["Column.Location"]">@(context.LocationCode ?? L["Restrictions.AllLocations"].Value)</MudTd>
+        <MudTd DataLabel="@L["Column.Period"]">@L["Restrictions.Period", ChannelsFormat.Date(context.StartDate), ChannelsFormat.Date(context.EndDate)]</MudTd>
+        <MudTd DataLabel="@L["Column.Vehicles"]">@(context.Kind == ChannelQuotaKind.Reserve ? context.ReservedVehicles.ToString(CultureInfo.CurrentCulture) : "—")</MudTd>
+        <MudTd DataLabel="@L["Column.Note"]">@context.Note</MudTd>
+        <MudTd DataLabel="@L["Column.Actions"]">
+            <MudStack Row="true" Spacing="1">
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => EditAsync(context, context.Kind)"
+                           aria-label="@L["Restrictions.Edit.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Edit"]</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(context)"
+                           aria-label="@L["Restrictions.Remove.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Remove"]</MudButton>
+            </MudStack>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Restrictions.Empty"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<RestrictionView> _restrictions = [];
+    private DateOnly _today;
+    private DateOnly _month;
+    private bool _loading = true;
+
+    [Parameter, EditorRequired]
+    public ChannelDetailView Channel { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _today = TunisTime.Today(Clock);
+        _month = new DateOnly(_today.Year, _today.Month, 1);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await Runner.RunAsync<ChannelRestrictionService, Result<IReadOnlyList<RestrictionView>>>((service, ct) => service.ListAsync(Channel.Id, cancellationToken: ct));
+        _loading = false;
+        if (result.IsSuccess)
+        {
+            _restrictions = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+
+    private void MoveMonth(int months) => _month = _month.AddMonths(months);
+
+    private async Task EditAsync(RestrictionView? existing, ChannelQuotaKind kind)
+    {
+        var dialog = await Dialogs.ShowAsync<RestrictionDialog>(
+            existing is null ? L[$"Restrictions.Add.{kind}"] : L["Restrictions.Edit.Title"],
+            new DialogParameters
+            {
+                [nameof(RestrictionDialog.ChannelId)] = Channel.Id,
+                [nameof(RestrictionDialog.Kind)] = kind,
+                [nameof(RestrictionDialog.Existing)] = existing,
+                [nameof(RestrictionDialog.Categories)] = Channel.Categories,
+                [nameof(RestrictionDialog.Locations)] = Channel.Locations,
+            },
+            ChannelsFormat.Dialog(MaxWidth.Small));
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Restrictions.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveAsync(RestrictionView restriction)
+    {
+        var result = await Runner.RunAsync<ChannelRestrictionService, Result>((service, ct) => service.RemoveAsync(restriction.Id, ct));
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Restrictions.Removed"], Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

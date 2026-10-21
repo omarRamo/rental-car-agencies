@@ -1,0 +1,168 @@
+@page "/admin/channels/log"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Log.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Log.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Log.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.Log" />
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Guid?" @bind-Value="_channelId" Label="@L["Filter.Channel"]" Clearable="true" ToStringFunc="ChannelName">
+                @foreach (var channel in _channels)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)channel.Id)">@channel.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="ChannelMessageDirection?" @bind-Value="_direction" Label="@L["Filter.Direction"]" Clearable="true" ToStringFunc="@(d => d is { } value ? L[$"Direction.{value}"] : string.Empty)">
+                @foreach (var direction in Enum.GetValues<ChannelMessageDirection>())
+                {
+                    <MudSelectItem T="ChannelMessageDirection?" Value="@((ChannelMessageDirection?)direction)">@L[$"Direction.{direction}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="ChannelMessageOperation?" @bind-Value="_operation" Label="@L["Filter.Operation"]" Clearable="true" ToStringFunc="@(o => o is { } value ? L[$"Operation.{value}"] : string.Empty)">
+                @foreach (var operation in Enum.GetValues<ChannelMessageOperation>())
+                {
+                    <MudSelectItem T="ChannelMessageOperation?" Value="@((ChannelMessageOperation?)operation)">@L[$"Operation.{operation}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="ChannelMessageStatus?" @bind-Value="_status" Label="@L["Filter.Status"]" Clearable="true" ToStringFunc="@(s => s is { } value ? L[$"MessageStatus.{value}"] : string.Empty)">
+                @foreach (var status in Enum.GetValues<ChannelMessageStatus>())
+                {
+                    <MudSelectItem T="ChannelMessageStatus?" Value="@((ChannelMessageStatus?)status)">@L[$"MessageStatus.{status}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField T="string" @bind-Value="_reference" Label="@L["Filter.Reference"]" MaxLength="ChannelCodes.ReferenceMaxLength" autocomplete="off" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_from" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_to" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchAsync">@L["Filter.Search"]</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="ResetAsync">@L["Filter.Reset"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" T="MessageLogEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Log.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.At"]</MudTh>
+        <MudTh>@L["Column.Channel"]</MudTh>
+        <MudTh>@L["Column.Direction"]</MudTh>
+        <MudTh>@L["Column.Operation"]</MudTh>
+        <MudTh>@L["Column.Status"]</MudTh>
+        <MudTh>@L["Column.Reference"]</MudTh>
+        <MudTh>@L["Column.Duration"]</MudTh>
+        <MudTh>@L["Column.Excerpt"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.At"]">@ChannelsFormat.Instant(context.OccurredAtUtc)</MudTd>
+        <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
+        <MudTd DataLabel="@L["Column.Direction"]">@L[$"Direction.{context.Direction}"]</MudTd>
+        <MudTd DataLabel="@L["Column.Operation"]">@L[$"Operation.{context.Operation}"]</MudTd>
+        <MudTd DataLabel="@L["Column.Status"]">
+            <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StatusColor(context.Status)">@L[$"MessageStatus.{context.Status}"]</MudChip>
+            @if (context.HttpStatus is { } http)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">HTTP @http</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Reference"]">
+            @if (context.BookingId is { } bookingId)
+            {
+                <MudLink Href="@($"/admin/bookings/{bookingId}")" Underline="Underline.Always">@(context.ChannelReference ?? L["Log.Booking"].Value)</MudLink>
+            }
+            else
+            {
+                @(context.ChannelReference ?? "—")
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Duration"]" Class="channel-number">@L["Log.Duration", context.DurationMilliseconds]</MudTd>
+        <MudTd DataLabel="@L["Column.Excerpt"]">
+            <span class="channel-excerpt">@context.Excerpt</span>
+            @if (context.ErrorCode is { } errorCode)
+            {
+                <MudText Typo="Typo.caption" Class="d-block"><code>@errorCode</code> — @ErrorText(errorCode)</MudText>
+            }
+            @if (context.RemoteAddress is { } address)
+            {
+                <MudText Typo="Typo.caption" Class="d-block">@L["Log.From", address]</MudText>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Log.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<MessageLogEntry>? _table;
+    private IReadOnlyList<ChannelListItem> _channels = [];
+    private Guid? _channelId;
+    private ChannelMessageDirection? _direction;
+    private ChannelMessageOperation? _operation;
+    private ChannelMessageStatus? _status;
+    private string? _reference;
+    private DateTime? _from;
+    private DateTime? _to;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var channels = await Runner.RunAsync<ChannelAdministrationService, Result<IReadOnlyList<ChannelListItem>>>((service, ct) => service.ListAsync(ct));
+        _channels = channels.IsSuccess ? channels.Value : [];
+    }
+
+    private string ChannelName(Guid? id) => _channels.FirstOrDefault(c => c.Id == id)?.Name ?? string.Empty;
+
+    private string ErrorText(string code) => Shared[$"Error.{code}"] is { ResourceNotFound: false } text ? text.Value : code;
+
+    private async Task<TableData<MessageLogEntry>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var filter = new MessageLogFilter(_channelId, _direction, _operation, _status, _reference, ChannelsFormat.ToDate(_from), ChannelsFormat.ToDate(_to));
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<ChannelMonitoringService, Result<PagedResult<MessageLogEntry>>>((service, ct) => service.ListMessagesAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<MessageLogEntry> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<MessageLogEntry> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ResetAsync()
+    {
+        (_channelId, _direction, _operation, _status, _reference, _from, _to) = (null, null, null, null, null, null, null);
+        await SearchAsync();
+    }
+}

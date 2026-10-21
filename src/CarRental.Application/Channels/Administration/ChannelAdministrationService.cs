@@ -57,6 +57,9 @@ public sealed class ChannelAdministrationService
 
     private bool CanManage => _user.HasPermission(Permissions.ChannelsManage);
 
+    /// <summary>The adapters a channel can be given in this environment (the test adapter only in Development and Testing).</summary>
+    public IReadOnlyList<ChannelAdapterKind> AvailableAdapters => _adapters.AvailableKinds;
+
     public async Task<Result<IReadOnlyList<ChannelListItem>>> ListAsync(CancellationToken cancellationToken = default)
     {
         if (!CanManage)
