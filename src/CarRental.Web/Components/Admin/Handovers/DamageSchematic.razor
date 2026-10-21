@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<HandoversResources> L
 
-<div class="handover-schematics" @ref="_container" data-testid="@TestId">
+<div class="handover-schematics" @ref="_container" data-testid="@TestId" data-tappable="@(_tapping is null ? "false" : "true")">
     @foreach (var view in CarSchematic.Views)
     {
         var (width, height) = CarSchematic.SizeOf(view);
@@ -68,6 +68,9 @@
             _self = DotNetObjectReference.Create(this);
             _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/damage-schematic.js");
             _tapping = await _module.InvokeAsync<IJSObjectReference>("attach", _container, _self);
+
+            // data-tappable says the taps are live (the dialog opens on a tap from now on).
+            StateHasChanged();
         }
         catch (JSDisconnectedException)
         {

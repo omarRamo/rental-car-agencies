@@ -8,7 +8,8 @@
 @inject IStringLocalizer<HandoversResources> L
 @inject IStringLocalizer<SharedResources> Shared
 
-<section class="handover-signature" aria-labelledby="@_titleId" data-testid="@($"signature-{Role}")" data-signed="@(Signature is null ? "false" : "true")">
+<section class="handover-signature" aria-labelledby="@_titleId" data-testid="@($"signature-{Role}")" data-signed="@(Signature is null ? "false" : "true")"
+         data-pad="@(_pad is null ? "off" : "on")">
     <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="@_titleId">@Title</MudText>
     @if (Signature is { } signed && !_redraw)
     {
@@ -88,6 +89,7 @@
                 _self ??= DotNetObjectReference.Create(this);
                 _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/signature-pad.js");
                 _pad = await _module.InvokeAsync<IJSObjectReference>("attach", _canvas, _self);
+                StateHasChanged();
             }
             catch (JSDisconnectedException)
             {

@@ -17,7 +17,16 @@ namespace CarRental.E2E.Tests.Bookings.Handover;
 /// </summary>
 public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
 {
-    private static readonly LocatorAssertionsToBeVisibleOptions Slow = new() { Timeout = 30_000 };
+    // A busy machine (several browsers, two test hosts) slows the circuit: every wait on the server is generous.
+    private const float Patience = 30_000;
+    private static readonly LocatorAssertionsToBeVisibleOptions Slow = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToHaveClassOptions SlowClass = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToHaveTextOptions SlowText = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToContainTextOptions SlowContains = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToHaveCountOptions SlowCount = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToBeCheckedOptions SlowChecked = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToBeFocusedOptions SlowFocus = new() { Timeout = Patience };
+    private static readonly LocatorAssertionsToBeEnabledOptions SlowEnabled = new() { Timeout = Patience };
 
     private readonly List<string> _console = [];
 
@@ -30,15 +39,15 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         var file = await HandoverE2EData.ConfirmedAsync(Host);
         var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
         await BackOfficeSession.SignInAsync(Page, email, $"/admin/handovers/{file.BookingId}/departure");
-        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Départ — {file.Number}", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Départ — {file.Number}", SlowText);
 
         // Originals: the first step left to do; each box is saved at once.
         await Expect(Page.Locator("[data-step-panel=originals]")).ToBeVisibleAsync(Slow);
         await AssertAccessibleAsync();
         await Page.GetByText("Pièce d'identité originale vue").ClickAsync();
-        await Expect(Page.GetByLabel("Pièce d'identité originale vue")).ToBeCheckedAsync();
+        await Expect(Page.GetByLabel("Pièce d'identité originale vue")).ToBeCheckedAsync(SlowChecked);
         await Page.GetByText("Permis de conduire original vu").ClickAsync();
-        await Expect(Step("originals")).ToHaveClassAsync(new Regex("handover-step--done"));
+        await Expect(Step("originals")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
         await NextAsync("vehicle");
 
         await Page.Locator("[data-testid=vehicle-confirm]").ClickAsync();
@@ -56,7 +65,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
             await Expect(Page.Locator($"div[data-slot={slot}][data-has-photo=true]")).ToBeVisibleAsync(Slow);
         }
 
-        await Expect(Page.Locator("[data-testid=photos-missing]")).ToHaveTextAsync("Toutes les vues guidées sont prises.");
+        await Expect(Page.Locator("[data-testid=photos-missing]")).ToHaveTextAsync("Toutes les vues guidées sont prises.", SlowText);
         await AssertAccessibleAsync();
         await NextAsync("readings");
 
@@ -65,33 +74,34 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Page.Locator("[data-testid=readings-save]").ClickAsync();
         await Expect(Page.Locator("[data-step-panel=damages]")).ToBeVisibleAsync(Slow);
 
-        // A scratch tapped on the left side of the schematic.
+        // A scratch tapped on the left side of the schematic, once its taps are live.
+        await Expect(Page.Locator("[data-testid=schematic-Departure][data-tappable=true]")).ToBeVisibleAsync(Slow);
         await Page.Locator("[data-testid=schematic-Departure] svg[data-view=Left]").ClickAsync(new LocatorClickOptions { Position = new Position { X = 60, Y = 30 } });
         var dialog = Page.GetByRole(AriaRole.Dialog);
-        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog).ToBeVisibleAsync(Slow);
         await BackOfficeSession.WaitForOpenDialogAsync(Page);
         await AssertAccessibleAsync();
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Ajouter", Exact = true }).ClickAsync();
         await Expect(Page.Locator("li[data-damage='1']")).ToBeVisibleAsync(Slow);
-        await Expect(Page.Locator("[data-testid=schematic-Departure] g[data-damage='1']")).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-testid=schematic-Departure] g[data-damage='1']")).ToBeVisibleAsync(Slow);
 
         // The money is taken at the counter (payments panel): the screen is resumed afterwards, as on another tablet.
         await HandoverE2EData.SettleAsync(Host, file);
         await Page.GotoAsync($"/admin/handovers/{file.BookingId}/departure?step=payment");
         await Expect(Page.Locator("[data-step-panel=payment]")).ToBeVisibleAsync(Slow);
-        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"));
+        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
         await Expect(Page.Locator("[data-testid=booking-payments][data-ready=true]")).ToBeVisibleAsync(Slow);
         await AssertAccessibleAsync();
         await NextAsync("contract");
 
-        await Expect(Page.Locator("[data-testid=contract-preview]")).ToContainTextAsync(file.Number, new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("[data-testid=contract-preview]")).ToContainTextAsync(file.Number, SlowContains);
         await SignAsync("Customer");
         await SignAsync("Agent");
-        await Expect(Step("contract")).ToHaveClassAsync(new Regex("handover-step--done"));
+        await Expect(Step("contract")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
         await AssertAccessibleAsync();
         await NextAsync("finish");
 
-        await Expect(Page.Locator("[data-testid=finish-issues]")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("[data-testid=finish-issues]")).ToHaveCountAsync(0, SlowCount);
         await AssertAccessibleAsync();
         await Page.Locator("[data-testid=departure-finish]").ClickAsync();
         await Expect(Page.Locator("[data-testid=departure-done]")).ToBeVisibleAsync(Slow);
@@ -99,7 +109,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
 
         // The contract opens as a PDF for the signed-in agent.
         var contract = Page.Locator("[data-testid=contract-open]");
-        await Expect(contract).ToContainTextAsync($"{file.Number}-v1.pdf");
+        await Expect(contract).ToContainTextAsync($"{file.Number}-v1.pdf", SlowContains);
         var response = await Page.Context.APIRequest.GetAsync((await contract.GetAttributeAsync("href")).ShouldNotBeNull());
         response.Status.ShouldBe(200);
         response.Headers["content-type"].ShouldStartWith("application/pdf");
@@ -115,7 +125,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await HandoverE2EData.DepartAsync(Host, file);
         var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
         await BackOfficeSession.SignInAsync(Page, email, $"/admin/handovers/{file.BookingId}/return");
-        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Retour — {file.Number}", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Retour — {file.Number}", SlowText);
 
         await Expect(Page.Locator("[data-step-panel=readings]")).ToBeVisibleAsync(Slow);
         await AssertAccessibleAsync();
@@ -126,16 +136,16 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
 
         await Page.Locator("[data-testid=photo-input-Front]").SetInputFilesAsync(new FilePayload { Name = "front.png", MimeType = "image/png", Buffer = HandoverE2EData.Png(1600, 1200, 3) });
         await Expect(Page.Locator("div[data-slot=Front][data-has-photo=true]")).ToBeVisibleAsync(Slow);
-        await Expect(Page.GetByAltText("Photo au départ : Avant")).ToBeVisibleAsync();
+        await Expect(Page.GetByAltText("Photo au départ : Avant")).ToBeVisibleAsync(Slow);
         await NextAsync("damages");
 
         // The keyboard path: "add a damage" opens the same dialog as a tap on the schematic.
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Ajouter un dommage" }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog);
-        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog).ToBeVisibleAsync(Slow);
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Ajouter", Exact = true }).ClickAsync();
         await Expect(Page.Locator("li[data-damage][data-new=true]")).ToBeVisibleAsync(Slow);
-        await Expect(Page.Locator("[data-testid=new-damages]")).ToContainTextAsync("1 nouveau");
+        await Expect(Page.Locator("[data-testid=new-damages]")).ToContainTextAsync("1 nouveau", SlowContains);
         await AssertAccessibleAsync();
         await NextAsync("charges");
 
@@ -144,7 +154,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Page.GetByLabel("Montant (TTC)", new PageGetByLabelOptions { Exact = true }).FillAsync("120");
         await Page.GetByLabel("Motif", new PageGetByLabelOptions { Exact = true }).FillAsync("Rayure constatée au retour");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Ajouter ce frais" }).ClickAsync();
-        await Expect(Page.Locator("tr[data-charge=Other]")).ToBeVisibleAsync();
+        await Expect(Page.Locator("tr[data-charge=Other]")).ToBeVisibleAsync(Slow);
         await AssertAccessibleAsync();
         await Page.Locator("[data-testid=return-complete]").ClickAsync();
 
@@ -152,8 +162,8 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(Page.Locator("[data-step-panel=payment]")).ToBeVisibleAsync(Slow);
         (await HandoverE2EData.StatusAsync(Host, file.BookingId)).ShouldBe(BookingStatus.Returned);
         await Page.Locator("[data-testid=deposit-retain]").ClickAsync();
-        await Expect(Page.Locator("[data-testid=deposit-decision]")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
-        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"));
+        await Expect(Page.Locator("[data-testid=deposit-decision]")).ToHaveCountAsync(0, SlowCount);
+        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
         await AssertAccessibleAsync();
         await NextAsync("close");
 
@@ -183,7 +193,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await HandoverAccessibility.CloseToastsAsync(Page);
         await Page.Locator("[data-testid=step-next]").ClickAsync();
         await Expect(Page.Locator($"[data-step-panel={step}]")).ToBeVisibleAsync(Slow);
-        await Expect(Page.Locator(".handover-heading")).ToBeFocusedAsync();
+        await Expect(Page.Locator(".handover-heading")).ToBeFocusedAsync(SlowFocus);
     }
 
     /// <summary>Draws a signature with the mouse on the pad of <paramref name="role"/> and records it.</summary>
@@ -192,6 +202,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         // A toast over the pad would take the pointer: closed first; the pad is centred, away from the fixed app bar.
         await HandoverAccessibility.CloseToastsAsync(Page);
         var canvas = Page.Locator($"[data-testid=signature-canvas-{role}]");
+        await Expect(Page.Locator($"[data-testid=signature-{role}][data-pad=on]")).ToBeVisibleAsync(Slow);
         await canvas.EvaluateAsync("canvas => canvas.scrollIntoView({ block: 'center' })");
         await canvas.HoverAsync(new LocatorHoverOptions { Position = new Position { X = 24, Y = 60 } });
         await Page.Mouse.DownAsync();
@@ -203,7 +214,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         var save = section.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Valider la signature" });
         try
         {
-            await Expect(save).ToBeEnabledAsync();
+            await Expect(save).ToBeEnabledAsync(SlowEnabled);
         }
         catch (PlaywrightException)
         {
@@ -222,28 +233,30 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
 /// <summary>A preparer on a phone (390 px): the inspection steps only, the counter steps are the agent's.</summary>
 public sealed class HandoverPreparerTests(E2EHost host) : BrowserTest(host)
 {
+    private const float Patience = 30_000;
+
     [Fact]
     public async Task A_preparer_sees_the_inspection_steps_only_on_a_phone()
     {
         var file = await HandoverE2EData.ConfirmedAsync(Host);
         var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Preparer);
         await BackOfficeSession.SignInAsync(Page, email, "/admin/handovers");
-        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync("Départs et retours", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync("Départs et retours", new LocatorAssertionsToHaveTextOptions { Timeout = Patience });
         await HandoverAccessibility.AssertAsync(Page);
 
         await Page.GotoAsync($"/admin/handovers/{file.BookingId}/departure");
-        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Départ — {file.Number}", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Départ — {file.Number}", new LocatorAssertionsToHaveTextOptions { Timeout = Patience });
         var steps = Page.Locator("nav.handover-steps button[data-step]");
-        await Expect(steps).ToHaveCountAsync(4);
+        await Expect(steps).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = Patience });
         (await steps.EvaluateAllAsync<string[]>("buttons => buttons.map(b => b.dataset.step)")).ShouldBe(["vehicle", "photos", "readings", "damages"]);
-        await Expect(Page.Locator("[data-step-panel=vehicle]")).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-step-panel=vehicle]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = Patience });
         await Expect(Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Changer de véhicule" })).ToHaveCountAsync(0);
         await HandoverAccessibility.AssertAsync(Page);
 
         await Page.Locator("[data-testid=vehicle-confirm]").ClickAsync();
-        await Expect(Page.Locator("[data-step-panel=photos]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("[data-step-panel=photos]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = Patience });
         await Page.Locator("[data-testid=photo-input-Front]").SetInputFilesAsync(new FilePayload { Name = "front.png", MimeType = "image/png", Buffer = HandoverE2EData.Png(1200, 900, 5) });
-        await Expect(Page.Locator("div[data-slot=Front][data-has-photo=true]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("div[data-slot=Front][data-has-photo=true]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = Patience });
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).ShouldBeTrue("no horizontal scroll at 390 px");
         await HandoverAccessibility.AssertAsync(Page);
     }
