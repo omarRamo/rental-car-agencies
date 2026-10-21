@@ -48,6 +48,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
 | [0043](0043-outbox-pompe-en-processus.md) | Outbox : déclenchement immédiat par une pompe en processus | Acceptée |
 | [0044](0044-caches-parametres-et-plans-publies.md) | Caches des paramètres et des plans publiés, vidés après chaque validation | Acceptée |
+| [0045](0045-instantane-quotidien-des-vehicules.md) | Instantané quotidien des véhicules et répartition du chiffre d'affaires | Acceptée |
+| [0046](0046-indicateurs-de-pilotage-et-sources.md) | Indicateurs de pilotage : définitions, sources et ports vers 3A, 3B et la phase 5 | Acceptée |
 
 ## Modèle
 
