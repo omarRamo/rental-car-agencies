@@ -68,7 +68,7 @@ else
         var readOnly = !inspection.IsDraft;
         @if (context.IsClosed)
         {
-            <Notice Kind="NoticeKind.Success" Role="status" Class="mb-3" data-testid="return-closed">@L["Return.Closed"]</Notice>
+            <div data-testid="return-closed"><Notice Kind="NoticeKind.Success" Role="status" Class="mb-3">@L["Return.Closed"]</Notice></div>
         }
         <HandoverSteps Steps="steps" Current="@_step" Label="@L["Return.Steps"]" OnSelect="GoTo" />
         <MudPaper Elevation="1" Class="handover-panel" data-step-panel="@_step">
@@ -172,7 +172,14 @@ else
         if (_focusHeading && !string.IsNullOrEmpty(_heading.Id))
         {
             _focusHeading = false;
-            await _heading.FocusAsync();
+            try
+            {
+                await _heading.FocusAsync();
+            }
+            catch (JSException)
+            {
+                // The heading was replaced meanwhile (another step): the next render focuses it.
+            }
         }
     }
 
@@ -198,8 +205,9 @@ else
             _error = null;
             if (_returnText is null && _context.Inspection is { } inspection)
             {
+                // The vehicle was back when its return inspection started (never before the pick-up), to the second.
                 var at = _context.Booking.ActualReturnAt ?? Earliest(inspection.StartedAtUtc, Clock.GetUtcNow());
-                _returnText = BookingFormat.ToLocalInput(at);
+                _returnText = TunisTime.ToTunis(at).ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
             }
         }
         else
@@ -402,7 +410,7 @@ else
             <MudGrid Spacing="3" Class="mb-2">
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" Value="_returnText" ValueChanged="ReturnChangedAsync" Label="@L["Charges.ReturnAt"]" InputType="InputType.DateTimeLocal"
-                                  ShrinkLabel="true" InputId="return-at" HelperText="@L["Charges.ReturnAtHelp", BookingFormat.Instant(context.Booking.ReturnAt)]" />
+                                  ShrinkLabel="true" InputId="return-at" step="1" HelperText="@L["Charges.ReturnAtHelp", BookingFormat.Instant(context.Booking.ReturnAt)]" />
                 </MudItem>
             </MudGrid>
         }

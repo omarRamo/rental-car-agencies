@@ -4,6 +4,7 @@
    saved at every step, the step is in the address): originals, vehicle, the eight guided photos, mileage / fuel /
    accessories, damages, payment and deposit (the payments panel), contract and signatures, finish. A preparer (no
    bookings.manage) sees the inspection steps only; the counter steps are the agent's. *@
+@implements IDisposable
 @using CarRental.Application.Customers.Contracts
 @using CarRental.Web.Resources.Admin.Customers
 @inject IOperationRunner Runner
@@ -132,6 +133,8 @@ else
     private DepartureOutcome? _outcome;
     private string? _agentName;
     private readonly HashSet<string> _visited = [];
+    private readonly SemaphoreSlim _originalsGate = new(1, 1);
+    private Dictionary<Guid, DriverOriginals>? _seen;
 
     [Parameter]
     public Guid BookingId { get; set; }
@@ -157,7 +160,7 @@ else
         if (_loadedFor != BookingId)
         {
             _loadedFor = BookingId;
-            (_context, _preview, _outcome, _step) = (null, null, null, string.Empty);
+            (_context, _preview, _outcome, _step, _seen) = (null, null, null, string.Empty, null);
             _agentName ??= (await AuthenticationState).User.GetDisplayName();
             await LoadAsync();
         }
@@ -180,7 +183,14 @@ else
         if (_focusHeading && !string.IsNullOrEmpty(_heading.Id))
         {
             _focusHeading = false;
-            await _heading.FocusAsync();
+            try
+            {
+                await _heading.FocusAsync();
+            }
+            catch (JSException)
+            {
+                // The heading was replaced meanwhile (another step): the next render focuses it.
+            }
         }
     }
 
@@ -317,7 +327,7 @@ else
         <MudText Typo="Typo.body1" Class="mb-3">@L["Originals.Intro"]</MudText>
         foreach (var driver in context.Drivers)
         {
-            var seen = inspection.Originals.FirstOrDefault(o => o.PersonId == driver.PersonId);
+            var seen = SeenOf(inspection, driver.PersonId);
             <MudPaper Outlined="true" Class="pa-3 mb-3" data-driver="@driver.Role.ToString()">
                 <MudText Typo="Typo.subtitle1" HtmlTag="h3">
                     @(driver.IsAnonymized ? B["Driver.Anonymized"] : driver.FullName) <span class="handover-muted">· @B[$"Role.{driver.Role}"]</span>
@@ -366,16 +376,26 @@ else
                 <fieldset class="mt-2" style="border:0;padding:0;margin:0">
                     <legend class="visually-hidden">@L["Originals.SeenLegend", driver.FullName]</legend>
                     <div class="d-flex flex-wrap gap-4">
-                        <MudCheckBox T="bool" Value="@(seen?.IdentityDocumentSeen ?? false)" ValueChanged="@(value => SetOriginalAsync(driver.PersonId, licence: false, value))"
-                                     Color="Color.Primary" Label="@L["Originals.IdentitySeen"]" Disabled="_busy" data-testid="@($"original-identity-{driver.Role}")" />
-                        <MudCheckBox T="bool" Value="@(seen?.DrivingLicenseSeen ?? false)" ValueChanged="@(value => SetOriginalAsync(driver.PersonId, licence: true, value))"
-                                     Color="Color.Primary" Label="@L["Originals.LicenceSeen"]" Disabled="_busy" data-testid="@($"original-licence-{driver.Role}")" />
+                        <MudCheckBox T="bool" Value="@seen.IdentityDocumentSeen" ValueChanged="@(value => SetOriginalAsync(driver.PersonId, licence: false, value))"
+                                     Color="Color.Primary" Label="@L["Originals.IdentitySeen"]" data-testid="@($"original-identity-{driver.Role}")" />
+                        <MudCheckBox T="bool" Value="@seen.DrivingLicenseSeen" ValueChanged="@(value => SetOriginalAsync(driver.PersonId, licence: true, value))"
+                                     Color="Color.Primary" Label="@L["Originals.LicenceSeen"]" data-testid="@($"original-licence-{driver.Role}")" />
                     </div>
                 </fieldset>
             </MudPaper>
         }
     };
 
+    public void Dispose() => _originalsGate.Dispose();
+
+    /// <summary>What the agent ticked (kept while the saves run), else what is recorded.</summary>
+    private DriverOriginals SeenOf(InspectionView inspection, Guid personId) =>
+        _seen?.GetValueOrDefault(personId) ?? inspection.Originals.FirstOrDefault(o => o.PersonId == personId) ?? new DriverOriginals(personId, false, false);
+
+    /// <summary>
+    /// A box is saved at once with every other one: the ticks are kept locally and the saves run one after the other,
+    /// so that two quick taps both count.
+    /// </summary>
     private async Task SetOriginalAsync(Guid personId, bool licence, bool seen)
     {
         if (_context is not { Inspection: { } inspection } context)
@@ -383,16 +403,27 @@ else
             return;
         }
 
-        List<DriverOriginals> originals =
-        [
-            .. context.Drivers.Select(driver =>
+        _seen ??= context.Drivers.ToDictionary(d => d.PersonId, d => SeenOf(inspection, d.PersonId));
+        var current = _seen.GetValueOrDefault(personId) ?? new DriverOriginals(personId, false, false);
+        _seen[personId] = licence ? current with { DrivingLicenseSeen = seen } : current with { IdentityDocumentSeen = seen };
+        await _originalsGate.WaitAsync();
+        try
+        {
+            List<DriverOriginals> originals = [.. _seen.Values];
+            var inspectionId = inspection.Id;
+            var result = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.RecordOriginalsAsync(inspectionId, originals, ct));
+            if (result.IsFailure)
             {
-                var current = inspection.Originals.FirstOrDefault(o => o.PersonId == driver.PersonId) ?? new DriverOriginals(driver.PersonId, false, false);
-                return driver.PersonId != personId ? current : licence ? current with { DrivingLicenseSeen = seen } : current with { IdentityDocumentSeen = seen };
-            }),
-        ];
-        var inspectionId = inspection.Id;
-        await RunAsync<HandoverInspectionService>((service, ct) => service.RecordOriginalsAsync(inspectionId, originals, ct));
+                Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+                _seen = null;
+            }
+        }
+        finally
+        {
+            _originalsGate.Release();
+        }
+
+        await ReloadAsync();
     }
 
     // ----- Vehicle -----------------------------------------------------------------------------------------------
@@ -579,7 +610,8 @@ else
         }
         if (inspection.Deferral is { } deferral)
         {
-            <Notice Kind="NoticeKind.Warning" Class="mb-3" data-testid="departure-deferral">
+            <div data-testid="departure-deferral">
+            <Notice Kind="NoticeKind.Warning" Class="mb-3">
                 @L["Money.Deferred", deferral.ByName, BookingFormat.Instant(deferral.AtUtc), BookingFormat.Amount(deferral.BalanceDeferred),
                     deferral.DepositWaived ? L["Money.DepositWaived"] : L["Money.DepositNotWaived"], deferral.Reason]
                 @if (context.Can.DeferPayment)
@@ -587,6 +619,7 @@ else
                     <MudButton Variant="Variant.Text" Size="Size.Small" Class="ms-2" OnClick="CancelDeferralAsync" Disabled="_busy">@L["Money.CancelDeferral"]</MudButton>
                 }
             </Notice>
+            </div>
         }
         else if (context.Can.DeferPayment && (Has(context, HandoverErrors.BalanceDue) || depositMissing))
         {
@@ -657,10 +690,12 @@ else
         <MudText Typo="Typo.body2" Class="mt-3">@L["Signature.Voided"]</MudText>
         if (inspection.PaperSignature is { } paper)
         {
-            <Notice Kind="NoticeKind.Info" Class="mt-3" data-testid="paper-signature">
+            <div data-testid="paper-signature">
+            <Notice Kind="NoticeKind.Info" Class="mt-3">
                 @L["Signature.PaperDone", paper.ByName, BookingFormat.Instant(paper.AtUtc), paper.Reason]
                 <MudButton Variant="Variant.Text" Size="Size.Small" Class="ms-2" OnClick="CancelPaperAsync" Disabled="_busy">@L["Signature.PaperCancel"]</MudButton>
             </Notice>
+            </div>
         }
         else
         {
@@ -844,13 +879,15 @@ else
 
     private RenderFragment Done(DepartureContext context, InspectionView inspection) => __builder =>
     {
-        <Notice Kind="NoticeKind.Success" Role="status" Class="mb-3" data-testid="departure-done">
+        <div data-testid="departure-done">
+        <Notice Kind="NoticeKind.Success" Role="status" Class="mb-3">
             @L["Departure.Done", BookingFormat.Instant(inspection.HandedOverAtUtc ?? inspection.CompletedAtUtc ?? inspection.StartedAtUtc), inspection.CompletedBy ?? "—"]
             @if (_outcome is { } outcome)
             {
                 @(" ")@(outcome.EmailedTo is { } to ? L["Departure.Emailed", to] : L["Departure.NotEmailed"])
             }
         </Notice>
+        </div>
         <div class="d-flex flex-wrap gap-3 mb-4">
             @if (context.Contracts.Count > 0)
             {

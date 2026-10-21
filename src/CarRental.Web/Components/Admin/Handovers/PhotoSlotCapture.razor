@@ -49,13 +49,13 @@
                disabled="@_busy" data-testid="@($"photo-input-{Slot}")" />
         <div class="d-flex flex-wrap gap-2">
             <MudButton HtmlTag="label" for="@_inputId" Variant="@(Photo is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.PhotoCamera" Class="handover-touch">
-                @(Photo is null ? L["Photo.Take"] : L["Photo.Retake"])
+                       StartIcon="@Icons.Material.Filled.PhotoCamera" Class="handover-touch handover-photo__take">
+                @(Photo is null ? L["Photo.Take"] : L["Photo.Retake"])<span class="visually-hidden"> — @Title</span>
             </MudButton>
             @if (Photo is { } existing && CanRemove)
             {
                 <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Delete" Class="handover-touch" OnClick="@(() => RemoveAsync(existing.Id))" Disabled="_busy">
-                    @L["Photo.Remove"]
+                    @L["Photo.Remove"]<span class="visually-hidden"> — @Title</span>
                 </MudButton>
             }
         </div>
@@ -64,6 +64,8 @@
             <MudProgressLinear Indeterminate="true" aria-label="@L["Photo.Uploading", Title]" />
         }
     }
+    @* A success is announced politely (a toast would cover the buttons of the screen); an error is a toast. *@
+    <span class="visually-hidden" role="status">@_announcement</span>
 </div>
 
 @code {
@@ -74,6 +76,7 @@
     private ElementReference _input;
     private IJSObjectReference? _module;
     private bool _busy;
+    private string? _announcement;
 
     [Parameter, EditorRequired]
     public Guid InspectionId { get; set; }
@@ -144,7 +147,7 @@
                     return;
                 }
 
-                Snackbar.Add(L["Photo.Done", Title], Severity.Success);
+                _announcement = L["Photo.Done", Title];
                 await OnChanged.InvokeAsync();
             }
             finally
@@ -198,6 +201,10 @@
             catch (JSDisconnectedException)
             {
                 // The circuit is gone: nothing to release in the browser.
+            }
+            catch (JSException)
+            {
+                // Already released.
             }
         }
     }

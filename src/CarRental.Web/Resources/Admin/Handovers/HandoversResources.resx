@@ -55,16 +55,10 @@
     <value>Afficher</value>
   </data>
   <data name="Day.Previous" xml:space="preserve">
-    <value>Veille</value>
-  </data>
-  <data name="Day.PreviousLabel" xml:space="preserve">
-    <value>Afficher le jour précédent</value>
+    <value>Jour précédent</value>
   </data>
   <data name="Day.Next" xml:space="preserve">
-    <value>Lendemain</value>
-  </data>
-  <data name="Day.NextLabel" xml:space="preserve">
-    <value>Afficher le jour suivant</value>
+    <value>Jour suivant</value>
   </data>
   <data name="Day.Today" xml:space="preserve">
     <value>Aujourd'hui</value>
@@ -1167,9 +1161,6 @@
   <data name="Charges.OtherAmount" xml:space="preserve">
     <value>Montant (TTC)</value>
   </data>
-  <data name="Charges.AddLine" xml:space="preserve">
-    <value>Ajouter la ligne</value>
-  </data>
   <data name="Charges.ReturnAt" xml:space="preserve">
     <value>Retour effectif</value>
   </data>
@@ -1385,5 +1376,11 @@
   </data>
   <data name="Summary.Balance" xml:space="preserve">
     <value>Solde du dossier</value>
+  </data>
+  <data name="Charges.AddDamageLine" xml:space="preserve">
+    <value>Ajouter la réparation</value>
+  </data>
+  <data name="Charges.AddOtherLine" xml:space="preserve">
+    <value>Ajouter ce frais</value>
   </data>
 </root>

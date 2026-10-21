@@ -8,7 +8,7 @@
 
 <MudGrid Spacing="3">
     <MudItem xs="12" md="5">
-        <MudNumericField T="int?" @bind-Value="_mileage" Label="@L["Readings.Mileage"]" Min="0" Max="Rules.MaxMileage" HideSpinButtons="true"
+        <MudNumericField T="int?" @bind-Value="_mileage" Label="@L["Readings.Mileage"]" Min="0" Max="Rules.MaxMileage" HideSpinButtons="true" Immediate="true"
                          HelperText="@(Reference is { } reference ? L["Readings.MileageHelp", reference.ToString("N0", CultureInfo.CurrentCulture)].Value : null)"
                          Adornment="Adornment.End" AdornmentText="km" Required="true" RequiredError="@Shared["Validation.Required"]"
                          Disabled="ReadOnly" />
@@ -69,6 +69,7 @@
         <MudTextField T="string" @bind-Value="_notes" Label="@L["Readings.Notes"]" Lines="2" MaxLength="Rules.NotesMaxLength" Disabled="ReadOnly" />
     </MudItem>
 </MudGrid>
+<span class="visually-hidden" role="status">@_announcement</span>
 @if (!ReadOnly)
 {
     <div class="handover-actions">
@@ -95,6 +96,7 @@
     private string? _notes;
     private bool _busy;
     private Guid? _loaded;
+    private string? _announcement;
 
     [Parameter, EditorRequired]
     public InspectionView Inspection { get; set; } = default!;
@@ -168,7 +170,7 @@
             return;
         }
 
-        Snackbar.Add(L["Readings.Saved"], Severity.Success);
+        _announcement = L["Readings.Saved"];
         await OnSaved.InvokeAsync();
     }
 }

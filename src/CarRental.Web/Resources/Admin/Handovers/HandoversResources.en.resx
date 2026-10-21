@@ -57,14 +57,8 @@
   <data name="Day.Previous" xml:space="preserve">
     <value>Previous day</value>
   </data>
-  <data name="Day.PreviousLabel" xml:space="preserve">
-    <value>Show the previous day</value>
-  </data>
   <data name="Day.Next" xml:space="preserve">
     <value>Next day</value>
-  </data>
-  <data name="Day.NextLabel" xml:space="preserve">
-    <value>Show the next day</value>
   </data>
   <data name="Day.Today" xml:space="preserve">
     <value>Today</value>
@@ -1167,9 +1161,6 @@
   <data name="Charges.OtherAmount" xml:space="preserve">
     <value>Amount (incl. VAT)</value>
   </data>
-  <data name="Charges.AddLine" xml:space="preserve">
-    <value>Add the line</value>
-  </data>
   <data name="Charges.ReturnAt" xml:space="preserve">
     <value>Actual return</value>
   </data>
@@ -1385,5 +1376,11 @@
   </data>
   <data name="Summary.Balance" xml:space="preserve">
     <value>Balance of the file</value>
+  </data>
+  <data name="Charges.AddDamageLine" xml:space="preserve">
+    <value>Add the repair</value>
+  </data>
+  <data name="Charges.AddOtherLine" xml:space="preserve">
+    <value>Add this charge</value>
   </data>
 </root>

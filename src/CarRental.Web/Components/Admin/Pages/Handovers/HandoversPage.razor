@@ -17,13 +17,11 @@
 
 <MudPaper Elevation="1" Class="pa-3 mb-4">
     <form class="d-flex flex-wrap align-end gap-3" role="search" aria-label="@L["Day.Filter"]" @onsubmit="ShowAsync" @onsubmit:preventDefault="true">
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ChevronLeft" Class="handover-touch" OnClick="@(() => MoveAsync(-1))"
-                   aria-label="@L["Day.PreviousLabel"]">@L["Day.Previous"]</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ChevronLeft" Class="handover-touch" OnClick="@(() => MoveAsync(-1))">@L["Day.Previous"]</MudButton>
         <MudTextField T="string" @bind-Value="_dayText" Label="@L["Day.Date"]" InputType="InputType.Date" ShrinkLabel="true" InputId="handover-day"
                       Style="max-inline-size:13rem" />
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="handover-touch">@L["Day.Show"]</MudButton>
-        <MudButton Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ChevronRight" Class="handover-touch" OnClick="@(() => MoveAsync(1))"
-                   aria-label="@L["Day.NextLabel"]">@L["Day.Next"]</MudButton>
+        <MudButton Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ChevronRight" Class="handover-touch" OnClick="@(() => MoveAsync(1))">@L["Day.Next"]</MudButton>
         <MudButton Variant="Variant.Text" Class="handover-touch" OnClick="TodayAsync">@L["Day.Today"]</MudButton>
         @if (_agencies.Count > 1)
         {

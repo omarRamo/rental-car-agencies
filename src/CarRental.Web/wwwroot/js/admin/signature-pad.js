@@ -1,6 +1,7 @@
 // A signature drawn with a finger, a stylus or a mouse on a canvas (pointer events). The canvas follows its displayed
-// size at the pixel ratio of the screen; `toPng` exports the drawing on a white background. The accessible alternative
-// (signature on paper, with its reason) is offered by the page: this pad is for pointers only.
+// size at the pixel ratio of the screen (a drawing is kept, scaled, when it changes); `toPng` exports the drawing on a
+// white background. The accessible alternative (signature on paper, with its reason) is offered by the page: this pad
+// is for pointers only.
 export function attach(canvas, dotnet) {
   const context = canvas.getContext("2d");
   let drawing = false;
@@ -10,7 +11,7 @@ export function attach(canvas, dotnet) {
   const ratio = () => window.devicePixelRatio || 1;
 
   const changed = (signed) => {
-    dotnet.invokeMethodAsync("OnSignatureChanged", signed);
+    dotnet.invokeMethodAsync("OnSignatureChanged", signed).catch((error) => console.error("signature-pad", error));
   };
 
   const style = () => {
@@ -30,13 +31,20 @@ export function attach(canvas, dotnet) {
       return;
     }
 
-    // Resizing a canvas clears it: the signature is taken again.
+    // Resizing a canvas clears it: the drawing is copied back, scaled to the new size (a layout change never loses it).
+    let snapshot = null;
+    if (!empty && canvas.width > 0 && canvas.height > 0) {
+      snapshot = document.createElement("canvas");
+      snapshot.width = canvas.width;
+      snapshot.height = canvas.height;
+      snapshot.getContext("2d").drawImage(canvas, 0, 0);
+    }
+
     canvas.width = width;
     canvas.height = height;
     style();
-    if (!empty) {
-      empty = true;
-      changed(false);
+    if (snapshot) {
+      context.drawImage(snapshot, 0, 0, snapshot.width, snapshot.height, 0, 0, width / ratio(), height / ratio());
     }
   };
 

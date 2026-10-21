@@ -121,22 +121,22 @@
                             <MudSelectItem T="Guid?" Value="@damage.Id">@DamageName(damage.Id)</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudNumericField T="decimal?" @bind-Value="_damageAmount" Label="@L["Charges.DamageAmount"]" Min="0m" Format="N3" HideSpinButtons="true"
+                    <MudNumericField T="decimal?" @bind-Value="_damageAmount" Label="@L["Charges.DamageAmount"]" Min="0m" Format="N3" HideSpinButtons="true" Immediate="true"
                                      Adornment="Adornment.End" AdornmentText="TND" Class="mt-1" />
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="handover-touch mt-2" OnClick="AddDamage"
-                               Disabled="@(_damage is null || _damageAmount is not > 0m)">@L["Charges.AddLine"]</MudButton>
+                               Disabled="@(_damage is null || _damageAmount is not > 0m)">@L["Charges.AddDamageLine"]</MudButton>
                 </MudPaper>
             </MudItem>
         }
         <MudItem xs="12" md="6">
             <MudPaper Outlined="true" Class="pa-3">
                 <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Charges.AddOther"]</MudText>
-                <MudTextField T="string" @bind-Value="_otherDescription" Label="@L["Charges.Description"]" MaxLength="ReturnCharge.DescriptionMaxLength" Class="mt-1" />
-                <MudNumericField T="decimal?" @bind-Value="_otherAmount" Label="@L["Charges.OtherAmount"]" Min="0m" Format="N3" HideSpinButtons="true"
+                <MudTextField T="string" @bind-Value="_otherDescription" Label="@L["Charges.Description"]" MaxLength="ReturnCharge.DescriptionMaxLength" Class="mt-1" Immediate="true" />
+                <MudNumericField T="decimal?" @bind-Value="_otherAmount" Label="@L["Charges.OtherAmount"]" Min="0m" Format="N3" HideSpinButtons="true" Immediate="true"
                                  Adornment="Adornment.End" AdornmentText="TND" Class="mt-1" />
-                <MudTextField T="string" @bind-Value="_otherReason" Label="@L["Charges.Reason"]" MaxLength="Inspection.ReasonMaxLength" Class="mt-1" />
+                <MudTextField T="string" @bind-Value="_otherReason" Label="@L["Charges.Reason"]" MaxLength="Inspection.ReasonMaxLength" Class="mt-1" Immediate="true" />
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="handover-touch mt-2" OnClick="AddOther"
-                           Disabled="@(string.IsNullOrWhiteSpace(_otherDescription) || string.IsNullOrWhiteSpace(_otherReason) || _otherAmount is not > 0m)">@L["Charges.AddLine"]</MudButton>
+                           Disabled="@(string.IsNullOrWhiteSpace(_otherDescription) || string.IsNullOrWhiteSpace(_otherReason) || _otherAmount is not > 0m)">@L["Charges.AddOtherLine"]</MudButton>
             </MudPaper>
         </MudItem>
     </MudGrid>

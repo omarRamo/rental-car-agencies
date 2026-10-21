@@ -36,6 +36,7 @@
     {
         <MudText Typo="Typo.body2">@L["Signature.None"]</MudText>
     }
+    <span class="visually-hidden" role="status">@_announcement</span>
 </section>
 
 @code {
@@ -44,11 +45,12 @@
     private IJSObjectReference? _module;
     private IJSObjectReference? _pad;
     private DotNetObjectReference<SignaturePad>? _self;
-    private bool _attached;
+    private bool _attaching;
     private bool _drawn;
     private bool _busy;
     private bool _redraw;
     private string? _name;
+    private string? _announcement;
 
     [Parameter, EditorRequired]
     public Guid InspectionId { get; set; }
@@ -76,22 +78,27 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Renders can follow each other while the browser answers: one attach at a time, a detach takes the pad first.
         var drawing = !ReadOnly && (Signature is null || _redraw);
-        if (drawing && !_attached)
+        if (drawing && _pad is null && !_attaching)
         {
+            _attaching = true;
             try
             {
                 _self ??= DotNetObjectReference.Create(this);
                 _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/signature-pad.js");
                 _pad = await _module.InvokeAsync<IJSObjectReference>("attach", _canvas, _self);
-                _attached = true;
             }
             catch (JSDisconnectedException)
             {
                 // The circuit is gone: nothing to draw on.
             }
+            finally
+            {
+                _attaching = false;
+            }
         }
-        else if (!drawing && _attached)
+        else if (!drawing && _pad is not null)
         {
             await DetachAsync();
         }
@@ -146,7 +153,7 @@
 
             _redraw = false;
             _drawn = false;
-            Snackbar.Add(L["Signature.Done", Title], Severity.Success);
+            _announcement = L["Signature.Done", Title];
             await OnSigned.InvokeAsync();
         }
         catch (JSException)
@@ -161,21 +168,26 @@
 
     private async Task DetachAsync()
     {
+        var pad = _pad;
+        _pad = null;
+        if (pad is null)
+        {
+            return;
+        }
+
         try
         {
-            if (_pad is not null)
-            {
-                await _pad.InvokeVoidAsync("dispose");
-                await _pad.DisposeAsync();
-            }
+            await pad.InvokeVoidAsync("dispose");
+            await pad.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
             // The circuit is gone with its listeners.
         }
-
-        _pad = null;
-        _attached = false;
+        catch (JSException)
+        {
+            // The canvas is gone with its listeners.
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -191,6 +203,10 @@
         catch (JSDisconnectedException)
         {
             // The circuit is gone.
+        }
+        catch (JSException)
+        {
+            // Already released.
         }
 
         _self?.Dispose();

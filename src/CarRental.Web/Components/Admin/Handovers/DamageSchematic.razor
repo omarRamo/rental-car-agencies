@@ -73,6 +73,10 @@
         {
             // The circuit is gone: nothing to attach.
         }
+        catch (JSException)
+        {
+            // Taps are not available; the list of the damages and its "add" button still are.
+        }
     }
 
     /// <summary>Called by the browser module with the view and the position, in percent, of a tap.</summary>
@@ -100,6 +104,10 @@
         catch (JSDisconnectedException)
         {
             // The circuit is gone with its listeners.
+        }
+        catch (JSException)
+        {
+            // The schematic is gone with its listeners.
         }
 
         _self?.Dispose();
