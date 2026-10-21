@@ -137,6 +137,9 @@ public enum ChannelSyncStatus
 
     /// <summary>Failed for good: no automatic attempt left (health entry <c>channels</c> degraded, replay from the screen).</summary>
     Failed = 3,
+
+    /// <summary>Not sent: the channel is no longer connected, or a twin item of the same key carries the update.</summary>
+    Skipped = 4,
 }
 
 /// <summary>Where a channel booking came from.</summary>

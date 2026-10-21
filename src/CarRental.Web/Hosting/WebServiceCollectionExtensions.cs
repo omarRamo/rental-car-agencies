@@ -54,6 +54,7 @@ internal static class WebServiceCollectionExtensions
         services.AddFleetWeb();
         services.AddBookingsWeb();
         services.AddClicToPayWeb();
+        services.AddChannelsWeb(configuration);
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 

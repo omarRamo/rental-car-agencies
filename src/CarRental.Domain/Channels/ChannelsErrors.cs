@@ -200,6 +200,8 @@ public static class ChannelsErrors
 
     public static readonly Error InboundPayloadTooLarge = Error.Validation("channels.inbound.payload_too_large", "The message is too large.");
 
+    public static readonly Error InboundFailed = Error.Failure("channels.inbound.failed", "The message could not be processed; send it again.");
+
     // Outbound synchronization
     public static readonly Error SyncItemNotFound = Error.NotFound("channels.sync.not_found", "The synchronization item does not exist.");
 

@@ -216,4 +216,19 @@
   <data name="Setting.payments.online_attempt_validity.Help" xml:space="preserve">
     <value>Durée pendant laquelle un paiement commencé sur le site (réservation, solde) peut être terminé avant d'être clos comme expiré.</value>
   </data>
+  <data name="Group.channels" xml:space="preserve">
+    <value>Canaux de vente</value>
+  </data>
+  <data name="Setting.channels.message_log_retention_days.Label" xml:space="preserve">
+    <value>Conservation du journal des canaux (jours)</value>
+  </data>
+  <data name="Setting.channels.message_log_retention_days.Help" xml:space="preserve">
+    <value>Durée de conservation des messages échangés avec les canaux (codes, dates, montants, sans donnée personnelle), supprimés chaque nuit au-delà.</value>
+  </data>
+  <data name="Setting.channels.push_horizon_days.Label" xml:space="preserve">
+    <value>Horizon de publication vers les canaux (jours)</value>
+  </data>
+  <data name="Setting.channels.push_horizon_days.Help" xml:space="preserve">
+    <value>Nombre de jours à l'avance pour lesquels les disponibilités et les prix sont envoyés aux canaux connectés.</value>
+  </data>
 </root>

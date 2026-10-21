@@ -216,4 +216,19 @@
   <data name="Setting.payments.online_attempt_validity.Help" xml:space="preserve">
     <value>How long a payment started on the website (booking, balance) can be completed before it is closed as expired.</value>
   </data>
+  <data name="Group.channels" xml:space="preserve">
+    <value>Sales channels</value>
+  </data>
+  <data name="Setting.channels.message_log_retention_days.Label" xml:space="preserve">
+    <value>Channel message log retention (days)</value>
+  </data>
+  <data name="Setting.channels.message_log_retention_days.Help" xml:space="preserve">
+    <value>How long the messages exchanged with the channels (codes, dates, amounts, no personal data) are kept before the nightly purge.</value>
+  </data>
+  <data name="Setting.channels.push_horizon_days.Label" xml:space="preserve">
+    <value>Publication horizon to the channels (days)</value>
+  </data>
+  <data name="Setting.channels.push_horizon_days.Help" xml:space="preserve">
+    <value>How many days ahead availability and prices are sent to the connected channels.</value>
+  </data>
 </root>

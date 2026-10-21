@@ -1314,4 +1314,7 @@
   <data name="Error.channels.payout.text_too_long" xml:space="preserve">
     <value>The reference has 64 characters at most and the note 300.</value>
   </data>
+  <data name="Error.channels.inbound.failed" xml:space="preserve">
+    <value>The message could not be processed; send it again.</value>
+  </data>
 </root>

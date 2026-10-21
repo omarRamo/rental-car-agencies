@@ -160,6 +160,16 @@ public sealed class ChannelSyncItem : AggregateRoot
         Release();
     }
 
+    /// <summary>Gives up the item without sending it (<paramref name="reason"/>: the channel was disconnected, a twin carries the update).</summary>
+    public void Skip(string reason, DateTimeOffset at)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        Status = ChannelSyncStatus.Skipped;
+        LastAttemptAtUtc = at.ToUniversalTime();
+        LastError = reason.Length > ErrorMaxLength ? reason[..ErrorMaxLength] : reason;
+        Release();
+    }
+
     /// <summary>Sends the item again now, with fresh data and every attempt available again (replay from the screen).</summary>
     public void Replay(DateTimeOffset at)
     {
