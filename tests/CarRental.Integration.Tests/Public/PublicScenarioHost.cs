@@ -7,13 +7,20 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CarRental.Integration.Tests.Public;
 
 /// <summary>
-/// A second application host on the shared database for the scenarios the shared host cannot play: public rate limits
-/// of <see cref="RateLimit"/> requests per client, and engines that answer "nothing available" or "minimum duration not
+/// A second application host for the scenarios the shared host cannot play: public rate limits of
+/// <see cref="RateLimit"/> requests per client, and engines that answer "nothing available" or "minimum duration not
 /// met" for a pick-up at a marker minute, whatever the demo data. Scenarios use their own client address
 /// (CF-Connecting-IP), hence their own rate limit partition.
 /// </summary>
+/// <remarks>
+/// It has its own database (migrated and seeded with the demo data at start-up, like the shared one): on the shared
+/// database its outbox pump and Hangfire server would process the other tests' messages with its own handlers and
+/// e-mail folder, so that those tests would wait in vain for their e-mails or their probe.
+/// </remarks>
 public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
 {
+    public const string Database = "CarRental_PublicScenarios";
+
     public const int RateLimit = 3;
 
     /// <summary>Pick-up minute (Tunis time) for which no category is available.</summary>
@@ -24,7 +31,7 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
 
     public const int RequiredMinimumDays = 5;
 
-    public CarRentalAppFactory Factory { get; } = new(host.Containers, IntegrationHost.Database, services =>
+    public CarRentalAppFactory Factory { get; } = new(host.Containers, Database, services =>
     {
         Decorate<IAvailabilityQueries>(services, inner => new ScenarioAvailability(inner));
         Decorate<IPricingService>(services, inner => new ScenarioPricing(inner));

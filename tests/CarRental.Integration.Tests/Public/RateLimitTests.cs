@@ -8,7 +8,7 @@ namespace CarRental.Integration.Tests.Public;
 
 /// <summary>
 /// Rate limiting of the public endpoints on a dedicated host with a low limit (3 requests per window and per client),
-/// on the shared database. Each scenario uses its own client address (CF-Connecting-IP), hence its own partition.
+/// on its own database. Each scenario uses its own client address (CF-Connecting-IP), hence its own partition.
 /// </summary>
 [Collection(PublicScenarioCollection.Name)]
 public sealed class RateLimitTests(PublicScenarioHost scenario)
