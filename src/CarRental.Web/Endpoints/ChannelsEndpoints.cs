@@ -69,7 +69,12 @@ public static class ChannelsEndpoints
             .Bind(configuration.GetSection(ChannelInboundOptions.SectionName))
             .Validate(o => o.MaxBodyBytes is >= 1024 and <= 10 * 1024 * 1024, "Channels:Inbound:MaxBodyBytes must be between 1 KB and 10 MB.")
             .ValidateOnStart();
-        services.AddOptions<ChannelRateLimitOptions>().Bind(configuration.GetSection(ChannelRateLimitOptions.SectionName));
+        services.AddOptions<ChannelRateLimitOptions>()
+            .Bind(configuration.GetSection(ChannelRateLimitOptions.SectionName))
+            .Validate(
+                o => o.PermitLimit >= 1 && o.Window > TimeSpan.Zero && o.Window <= TimeSpan.FromDays(1) && o.SegmentsPerWindow >= 1,
+                "Channels:RateLimiting needs PermitLimit >= 1, a Window of at most one day and SegmentsPerWindow >= 1.")
+            .ValidateOnStart();
         services.AddRateLimiter(options => options.AddPolicy(RateLimitPolicy, Partition));
         return services;
     }
