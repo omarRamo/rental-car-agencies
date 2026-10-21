@@ -454,7 +454,7 @@
     <value>If your request is not accepted or expires, the amount is released; depending on your bank, this can take a few days.</value>
   </data>
   <data name="Payment.Guarantee.Link" xml:space="preserve">
-    <value>Online payment is temporarily unavailable: send your request without paying now. Once it is approved, you will receive a payment link by e-mail, to be paid before its deadline.</value>
+    <value>No payment is asked now: send your request. Once it is approved, you will receive a payment link by e-mail, to be paid before its deadline.</value>
   </data>
   <data name="Payment.Answer" xml:space="preserve">
     <value>The agency answers within 2 business hours.</value>

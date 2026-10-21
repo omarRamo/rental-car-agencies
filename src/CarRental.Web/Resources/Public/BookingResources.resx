@@ -454,7 +454,7 @@
     <value>Si votre demande n'est pas acceptée ou expire, le montant est libéré ; selon votre banque, cela peut prendre quelques jours.</value>
   </data>
   <data name="Payment.Guarantee.Link" xml:space="preserve">
-    <value>Le paiement en ligne est momentanément indisponible : envoyez votre demande sans payer maintenant. Après validation, vous recevrez par e-mail un lien de paiement à régler avant sa date limite.</value>
+    <value>Aucun paiement n'est demandé maintenant : envoyez votre demande. Après validation, vous recevrez par e-mail un lien de paiement à régler avant sa date limite.</value>
   </data>
   <data name="Payment.Answer" xml:space="preserve">
     <value>L'agence vous répond sous 2 heures ouvrées.</value>
