@@ -63,7 +63,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
 
         // Step 3: terms, anti-robot check (offline in tests), then the payment page of the simulated bank.
         await Expect(Page).ToHaveURLAsync(new Regex("/paiement$"));
-        await Expect(Page.GetByText($"Conducteur principal : Amel E2E{suffix}")).ToBeVisibleAsync();
+        await Expect(Page.GetByText($"Conducteur principal : Amel Mobile{suffix}")).ToBeVisibleAsync();
         await ShouldBeAccessibleOnAPhoneAsync();
         await Page.GetByLabel("J'ai lu et j'accepte les conditions générales de location").CheckAsync();
         await Page.Locator("[data-testid='funnel-submit']").ClickAsync();
@@ -154,7 +154,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     private async Task FillDriverAsync(string suffix, string email)
     {
         await Page.Locator("#main-first-name").FillAsync("Amel");
-        await Page.Locator("#main-last-name").FillAsync($"E2E{suffix}");
+        await Page.Locator("#main-last-name").FillAsync($"Mobile{suffix}");
         await Page.Locator("#main-nationality").SelectOptionAsync("FR");
         await Page.Locator("#main-birth-date").FillAsync("1984-03-14");
         await Page.Locator("#main-phone").FillAsync($"+336{Random.Shared.Next(10_000_000, 99_999_999)}");
