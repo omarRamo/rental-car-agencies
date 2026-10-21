@@ -44,7 +44,7 @@ public static class PublicActors
 /// </list>
 /// Both are HTTP only, SameSite Lax and secure over HTTPS (always outside development and tests).
 /// </summary>
-public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection, IHostEnvironment environment)
+public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection, IHostEnvironment environment, TimeProvider clock)
 {
     public const string RequestCookie = "carrental.request";
 
@@ -60,7 +60,7 @@ public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection,
     public void SetRequest(HttpContext context, Guid bookingId)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var expires = DateTimeOffset.UtcNow + RequestLifetime;
+        var expires = clock.GetUtcNow() + RequestLifetime;
         context.Response.Cookies.Append(RequestCookie, _requests.Protect(bookingId.ToString("N"), expires), Options(context, expires));
     }
 
