@@ -20,6 +20,7 @@ public static class FleetModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IFleetQueries, FleetQueries>();
+        services.AddScoped<IFleetMileage, FleetMileage>();
         services.AddScoped<FleetWriter>();
         services.AddScoped<FleetAdminQueries>();
         services.AddScoped<VehicleCategoryService>();
