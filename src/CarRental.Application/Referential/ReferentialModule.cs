@@ -1,3 +1,4 @@
+using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Seeding;
 using CarRental.Application.Referential.Administration;
 using CarRental.Application.Referential.Contracts;
@@ -13,6 +14,8 @@ public static class ReferentialModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IReferentialQueries, ReferentialQueries>();
+        services.AddSingleton<SettingsCache>();
+        services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<SettingsCache>());
         services.AddScoped<ISettingsReader, SettingsReader>();
         services.AddScoped<SettingsAdministrationService>();
         services.AddSettingDefinitions(WellKnownSettings.All);

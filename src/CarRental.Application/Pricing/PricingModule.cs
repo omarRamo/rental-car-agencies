@@ -1,3 +1,4 @@
+using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Seeding;
@@ -19,6 +20,9 @@ public static class PricingModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IRatePlanStore, EfRatePlanStore>();
+        services.AddSingleton<PublishedPlanCache>();
+        services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<PublishedPlanCache>());
+        services.AddScoped<IPublishedPlanSource, CachedPublishedPlanSource>();
         services.AddScoped<RatePlanSelector>();
         services.AddScoped<QuoteCalculator>();
         services.AddScoped<IPricingService, PricingService>();

@@ -109,6 +109,7 @@ public static class InfrastructureServiceCollectionExtensions
     private static void AddPersistence(IServiceCollection services, IHostEnvironment environment)
     {
         services.AddScoped<OutboxDispatchSignal>();
+        services.AddScoped<CommittedChanges>();
         services.AddScoped<SaveChangesPipelineInterceptor>();
         services.AddScoped<OutboxTransactionInterceptor>();
         services.AddDbContext<CarRentalDbContext>((serviceProvider, options) =>

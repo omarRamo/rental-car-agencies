@@ -8,7 +8,7 @@ namespace CarRental.Application.Pricing;
 /// its rule for the channel is parity (no rule), a markup on its own grid, or <see cref="ChannelPricingMode.OwnGrid"/>,
 /// in which case the published plan of the channel prices it.
 /// </summary>
-internal sealed class RatePlanSelector(IRatePlanStore store)
+internal sealed class RatePlanSelector(IPublishedPlanSource store)
 {
     /// <summary>
     /// The plans for <paramref name="channel"/>. <paramref name="replacement"/> (simulator) stands for the published plan of

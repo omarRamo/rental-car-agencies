@@ -24,7 +24,8 @@ internal sealed class SaveChangesPipelineInterceptor(
     TimeProvider timeProvider,
     OutboxSerializer serializer,
     OutboxDispatchSignal signal,
-    IOutboxDispatcher dispatcher) : SaveChangesInterceptor
+    IOutboxDispatcher dispatcher,
+    CommittedChanges committedChanges) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -104,6 +105,9 @@ internal sealed class SaveChangesPipelineInterceptor(
         }
 
         context.ChangeTracker.DetectChanges();
+        committedChanges.Record(context.ChangeTracker.Entries()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(e => e.Metadata.ClrType));
         var now = timeProvider.GetUtcNow();
 
         EnforceAppendOnly(context);
@@ -159,7 +163,13 @@ internal sealed class SaveChangesPipelineInterceptor(
 
     private void DispatchIfCommitted(DbContext? context)
     {
-        if (context?.Database.CurrentTransaction is null && signal.TryConsume())
+        if (context?.Database.CurrentTransaction is not null)
+        {
+            return; // the transaction interceptor flushes at commit
+        }
+
+        committedChanges.Flush();
+        if (signal.TryConsume())
         {
             dispatcher.TriggerProcessing();
         }
@@ -170,6 +180,7 @@ internal sealed class SaveChangesPipelineInterceptor(
         if (context?.Database.CurrentTransaction is null)
         {
             signal.Reset();
+            committedChanges.Reset();
         }
     }
 }

@@ -9,13 +9,10 @@ namespace CarRental.Application.Pricing;
 /// Loads and adds rate plans with their whole content (module-internal port, ADR-0024): the aggregate spans eight child
 /// collections, so loading lives in one place, and the services can be tested with an in-memory store.
 /// </summary>
-internal interface IRatePlanStore
+internal interface IRatePlanStore : IPublishedPlanSource
 {
     /// <summary>A plan with its content, tracked by the scope (changes are saved by the unit of work).</summary>
     Task<RatePlan?> FindAsync(Guid planId, CancellationToken cancellationToken);
-
-    /// <summary>The published plan of an agency for a channel (<see langword="null"/>: the default plan), with its content.</summary>
-    Task<RatePlan?> FindPublishedAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken);
 
     Task<bool> DraftExistsAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken);
 
