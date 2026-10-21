@@ -1,0 +1,1248 @@
+@page "/admin/reports"
+@attribute [HasPermission(Permissions.ReportsRead)]
+@* Reports (SPEC §8, ADR-0045 and ADR-0046): for an agency and a period (a calendar month by default), the fleet
+   indicators of the daily snapshots led by the revenue per available vehicle and per day, the profitability of each
+   vehicle, the channels, the booking pace, the conversion, the handling of the requests, the cancellations and the
+   cash, each compared with the previous period. Every chart has its data table; every table has its Excel export.
+   The selection is in the address (agency, from, to), so that a report can be bookmarked or shared. *@
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@inject IStringLocalizer<ReportsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Reports.Title"]</PageTitle>
+<ReportsStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@ReadyFlag">@L["Reports.Title"]</MudText>
+    @if (_report is { } top)
+    {
+        <div class="report-actions">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="RecomputeAsync"
+                       Disabled="@(!top.Period.HasElapsedDays)">@L["Recompute.Open"]</MudButton>
+            <ExportButton Href="@ExportUrl(ReportTable.All)" Table="@L["Export.AllTables"]" Label="@L["Export.All"]" Variant="Variant.Filled" Size="Size.Medium" />
+        </div>
+    }
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Reports.Intro"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <div class="report-toolbar">
+        @if (_agencies.Count > 0)
+        {
+            <div class="report-toolbar__field">
+                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChanged" Label="@L["Filter.Agency"]" Variant="Variant.Outlined">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@(agency.IsActive ? agency.Name : L["Filter.Agency.Inactive", agency.Name].Value)</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        }
+        <div class="report-toolbar__field">
+            <MudSelect T="string" Value="_periodKey" ValueChanged="PeriodChanged" Label="@L["Filter.Period"]" Variant="Variant.Outlined">
+                @foreach (var (key, label) in _months)
+                {
+                    <MudSelectItem T="string" Value="@key">@label</MudSelectItem>
+                }
+                <MudSelectItem T="string" Value="@CustomPeriod">@L["Filter.Period.Custom"]</MudSelectItem>
+            </MudSelect>
+        </div>
+        @if (_periodKey == CustomPeriod)
+        {
+            <div class="report-toolbar__date">
+                <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_customFrom" Editable="true" Variant="Variant.Outlined" />
+            </div>
+            <div class="report-toolbar__date">
+                <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_customTo" Editable="true" Variant="Variant.Outlined" />
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyCustom" Disabled="@(_customFrom is null || _customTo is null)">
+                @L["Filter.Apply"]
+            </MudButton>
+        }
+    </div>
+</MudPaper>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">@_error</MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@L["Loading"]" Class="mb-4" />
+}
+
+@if (_report is { } report)
+{
+    var fleet = report.Fleet;
+    var cash = report.Cash;
+    var compared = report.Period.PreviousFrom is not null;
+    // The fleet indicators compare only with snapshots of the previous period (none: no comparison at all).
+    var fleetCompared = report.PreviousCoverage is { ComputedDays: > 0 };
+    var previous = fleetCompared ? report.PreviousFleet : null;
+    <div style="@(_loading ? "opacity:0.6" : null)" data-testid="report">
+        <MudText Typo="Typo.h5" HtmlTag="p" Class="mb-1">@L["Reports.Heading", report.AgencyName, Range(report.Period.From, report.Period.To)]</MudText>
+        <ul class="report-notes report-muted mb-2" data-testid="report-notes">
+            @if (!report.Period.HasElapsedDays)
+            {
+                <li>@L["Notes.NoElapsedDay"]</li>
+            }
+            else if (report.Period.CoveredTo < report.Period.To)
+            {
+                <li>@L["Notes.Covered", ReportFormat.Date(report.Period.CoveredTo!.Value)]</li>
+            }
+            @if (report.Period.PreviousFrom is { } previousFrom && report.Period.PreviousTo is { } previousTo)
+            {
+                <li>@L["Notes.Compared", Range(previousFrom, previousTo)]</li>
+                @if (report.PreviousCoverage is { } previousCoverage && !previousCoverage.IsComplete)
+                {
+                    <li data-testid="previous-coverage">
+                        @(previousCoverage.ComputedDays == 0
+                            ? L["Notes.PreviousMissing"]
+                            : L["Notes.PreviousPartial", previousCoverage.ComputedDays, previousCoverage.ExpectedDays])
+                    </li>
+                }
+            }
+            @if (report.Coverage.LastComputedAtUtc is { } computedAt)
+            {
+                <li>@L["Notes.Computed", ReportFormat.Instant(computedAt)]</li>
+            }
+            @foreach (var note in Sources(report))
+            {
+                <li>@note</li>
+            }
+        </ul>
+        @if (report.Period.HasElapsedDays && !report.Coverage.IsComplete)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4" data-testid="coverage-warning">
+                @L["Coverage.Incomplete", report.Coverage.ComputedDays, report.Coverage.ExpectedDays]
+            </MudAlert>
+        }
+
+        <ReportSection Id="report-kpis" Title="@L["Kpi.Title"]" Intro="@L["Kpi.Intro"]">
+            <dl class="report-kpis">
+                <KpiTile Hero="true" TestId="kpi-revpav" Label="@L["Kpi.RevPav"]" Value="@ReportFormat.Amount(fleet.RevenuePerAvailableDay)"
+                         Delta="@ReportFormat.Change(fleet.RevenuePerAvailableDay, previous?.RevenuePerAvailableDay)" Compared="fleetCompared"
+                         Note="@L["Kpi.RevPav.Note"]" />
+                <KpiTile TestId="kpi-utilization" Label="@L["Kpi.Utilization"]" Value="@ReportFormat.Percent(fleet.Utilization)"
+                         Delta="@Points(fleet.Utilization, previous?.Utilization)" Compared="fleetCompared"
+                         Note="@L["Kpi.Utilization.Note", ReportFormat.Count(fleet.RentedDays), ReportFormat.Count(fleet.AvailableDays)]" />
+                <KpiTile TestId="kpi-adr" Label="@L["Kpi.AverageRentedDayPrice"]" Value="@ReportFormat.Amount(fleet.AverageRentedDayPrice)"
+                         Delta="@ReportFormat.Change(fleet.AverageRentedDayPrice, previous?.AverageRentedDayPrice)" Compared="fleetCompared" />
+                <KpiTile TestId="kpi-revenue" Label="@L["Kpi.Revenue"]" Value="@ReportFormat.Amount(fleet.Revenue)"
+                         Delta="@ReportFormat.Change(fleet.Revenue, previous?.Revenue)" Compared="fleetCompared" Note="@L["Kpi.Revenue.Note"]" />
+                <KpiTile TestId="kpi-margin" Label="@L["Kpi.Margin"]" Value="@ReportFormat.Amount(fleet.Margin)"
+                         Delta="@ReportFormat.Change(fleet.Margin, previous?.Margin)" Compared="fleetCompared"
+                         Note="@L["Kpi.Margin.Note", ReportFormat.Amount(fleet.Commission), ReportFormat.Amount(fleet.DirectCosts), ReportFormat.Amount(fleet.Depreciation)]" />
+                <KpiTile TestId="kpi-collected" Label="@L["Kpi.CollectedNet"]" Value="@ReportFormat.Amount(cash.CollectedNet)"
+                         Delta="@(compared ? ReportFormat.Change(cash.CollectedNet, cash.PreviousCollectedNet) : null)" Compared="compared" />
+                <KpiTile TestId="kpi-invoiced" Label="@L["Kpi.Invoiced"]"
+                         Value="@(report.Sources.InvoicingConnected ? ReportFormat.Amount(cash.Invoiced.ExclVat) : ReportFormat.None)"
+                         Note="@(report.Sources.InvoicingConnected ? L["Kpi.Invoiced.Note", cash.Invoiced.InvoiceCount, cash.Invoiced.CreditNoteCount].Value : L["Kpi.NotConnected"].Value)" />
+                <KpiTile TestId="kpi-unpaid" Label="@L["Kpi.Unpaid"]" Value="@ReportFormat.Amount(cash.UnpaidTotal)"
+                         Note="@L["Kpi.Unpaid.Note", cash.Unpaid.Count]" />
+                <KpiTile TestId="kpi-deposits" Label="@L["Kpi.OpenDeposits"]" Value="@ReportFormat.Amount(cash.OpenDeposits)"
+                         Note="@L["Kpi.OpenDeposits.Note", cash.OpenDepositCount]" />
+            </dl>
+        </ReportSection>
+
+        <ReportSection Id="report-daily" Title="@L["Daily.Title"]" Intro="@L["Daily.Intro"]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Daily)" Table="@L["Daily.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                @if (report.Daily.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">@L["Notes.NoElapsedDay"]</MudText>
+                }
+                else
+                {
+                    <div class="report-charts">
+                        <ChartFrame Id="chart-revpav" TestId="chart-revpav" Title="@L["Daily.RevPav.Title"]" Caption="@L["Daily.RevPav.Caption"]"
+                                    Summary="@RevPavSummary(report)">
+                            <ChildContent>
+                                <ColumnChart Series="_revPav" Scale="_revPavScale" TickText="@(value => ReportFormat.Tick(value, _revPavScale.Step))" />
+                            </ChildContent>
+                            <Table>
+                                <MudSimpleTable Dense="true" Elevation="0" Class="report-table">
+                                    <caption class="visually-hidden">@L["Daily.RevPav.Title"]</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@L["Column.Day"]</th>
+                                            <th scope="col" class="report-num">@L["Column.AvailableDays"]</th>
+                                            <th scope="col" class="report-num">@L["Column.Revenue"]</th>
+                                            <th scope="col" class="report-num">@L["Column.RevPav"]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var day in report.Daily)
+                                        {
+                                            <tr>
+                                                <th scope="row">@ReportFormat.Date(day.Day)</th>
+                                                <td class="report-num">@ReportFormat.Count(day.Totals.AvailableDays)</td>
+                                                <td class="report-num">@ReportFormat.Number(day.Totals.Revenue)</td>
+                                                <td class="report-num">@ReportFormat.Number(day.Totals.RevenuePerAvailableDay)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th scope="row">@L["Table.Total"]</th>
+                                            <td class="report-num">@ReportFormat.Count(fleet.AvailableDays)</td>
+                                            <td class="report-num">@ReportFormat.Number(fleet.Revenue)</td>
+                                            <td class="report-num">@ReportFormat.Number(fleet.RevenuePerAvailableDay)</td>
+                                        </tr>
+                                    </tfoot>
+                                </MudSimpleTable>
+                            </Table>
+                        </ChartFrame>
+                        <ChartFrame Id="chart-utilization" TestId="chart-utilization" Title="@L["Daily.Utilization.Title"]" Caption="@L["Daily.Utilization.Caption"]"
+                                    Summary="@UtilizationSummary(report)">
+                            <ChildContent>
+                                <ColumnChart Series="_utilization" Scale="_utilizationScale" TickText="@(value => ReportFormat.PercentTick(value, _utilizationScale.Step))" />
+                            </ChildContent>
+                            <Table>
+                                <MudSimpleTable Dense="true" Elevation="0" Class="report-table">
+                                    <caption class="visually-hidden">@L["Daily.Utilization.Title"]</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@L["Column.Day"]</th>
+                                            <th scope="col" class="report-num">@L["Column.AvailableDays"]</th>
+                                            <th scope="col" class="report-num">@L["Column.RentedDays"]</th>
+                                            <th scope="col" class="report-num">@L["Column.Utilization"]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var day in report.Daily)
+                                        {
+                                            <tr>
+                                                <th scope="row">@ReportFormat.Date(day.Day)</th>
+                                                <td class="report-num">@ReportFormat.Count(day.Totals.AvailableDays)</td>
+                                                <td class="report-num">@ReportFormat.Count(day.Totals.RentedDays)</td>
+                                                <td class="report-num">@ReportFormat.Percent(day.Totals.Utilization)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th scope="row">@L["Table.Total"]</th>
+                                            <td class="report-num">@ReportFormat.Count(fleet.AvailableDays)</td>
+                                            <td class="report-num">@ReportFormat.Count(fleet.RentedDays)</td>
+                                            <td class="report-num">@ReportFormat.Percent(fleet.Utilization)</td>
+                                        </tr>
+                                    </tfoot>
+                                </MudSimpleTable>
+                            </Table>
+                        </ChartFrame>
+                    </div>
+                }
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-vehicles" Title="@L["Vehicles.Title"]" Intro="@L["Vehicles.Intro", report.SellHintMonths]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Vehicles)" Table="@L["Vehicles.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                <TableRegion LabelledBy="report-vehicles-title" TestId="vehicles-table">
+                    <MudTable T="VehicleProfitability" Items="_vehicles" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                              Class="report-table" TableAttributes="@(new Dictionary<string, object> { ["aria-labelledby"] = "report-vehicles-title" })">
+                        <HeaderContent>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.Vehicle)">@SortButton(VehicleSort.Vehicle, L["Column.Vehicle"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.Category)">@SortButton(VehicleSort.Category, L["Column.Category"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.AvailableDays)" Class="report-num">@SortButton(VehicleSort.AvailableDays, L["Column.AvailableDays"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.RentedDays)" Class="report-num">@SortButton(VehicleSort.RentedDays, L["Column.RentedDays"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.Utilization)" Class="report-num">@SortButton(VehicleSort.Utilization, L["Column.Utilization"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.Revenue)" Class="report-num">@SortButton(VehicleSort.Revenue, L["Column.Revenue"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.Margin)" Class="report-num">@SortButton(VehicleSort.Margin, L["Column.Margin"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.RevPav)" Class="report-num">@SortButton(VehicleSort.RevPav, L["Column.RevPav"])</MudTh>
+                            <MudTh aria-sort="@AriaSort(VehicleSort.HintMargin)">@SortButton(VehicleSort.HintMargin, L["Column.HintMargin", report.SellHintMonths])</MudTh>
+                            <MudTh Class="report-num">@L["Column.Commission"]</MudTh>
+                            <MudTh Class="report-num">@L["Column.DirectCosts"]</MudTh>
+                            <MudTh Class="report-num">@L["Column.Depreciation"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@L["Column.Vehicle"]">
+                                @if (_canReadFleet)
+                                {
+                                    <MudLink Href="@($"/admin/fleet/vehicles/{context.VehicleId}")">@context.PlateNumber</MudLink>
+                                }
+                                else
+                                {
+                                    <span>@context.PlateNumber</span>
+                                }
+                                <span class="report-cell-note">@context.VehicleName</span>
+                            </MudTd>
+                            <MudTd DataLabel="@L["Column.Category"]">@context.CategoryCode</MudTd>
+                            <MudTd DataLabel="@L["Column.AvailableDays"]" Class="report-num">@ReportFormat.Count(context.Totals.AvailableDays)</MudTd>
+                            <MudTd DataLabel="@L["Column.RentedDays"]" Class="report-num">@ReportFormat.Count(context.Totals.RentedDays)</MudTd>
+                            <MudTd DataLabel="@L["Column.Utilization"]" Class="report-num">@ReportFormat.Percent(context.Totals.Utilization)</MudTd>
+                            <MudTd DataLabel="@L["Column.Revenue"]" Class="report-num">@ReportFormat.Number(context.Totals.Revenue)</MudTd>
+                            <MudTd DataLabel="@L["Column.Margin"]" Class="report-num">@ReportFormat.Number(context.Totals.Margin)</MudTd>
+                            <MudTd DataLabel="@L["Column.RevPav"]" Class="report-num">@ReportFormat.Number(context.Totals.RevenuePerAvailableDay)</MudTd>
+                            <MudTd DataLabel="@L["Column.HintMargin", report.SellHintMonths]">
+                                <span class="report-num-inline">@(context.HintDays > 0 ? ReportFormat.Number(context.HintMargin) : ReportFormat.None)</span>
+                                @if (context.SuggestSaleOrReplacement)
+                                {
+                                    <span class="report-flag" data-testid="sell-hint">
+                                        <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Size="Size.Small" aria-hidden="true" />@L["Vehicles.Hint"]
+                                    </span>
+                                }
+                                <span class="report-cell-note">@L["Vehicles.HintDays", context.HintDays]</span>
+                            </MudTd>
+                            <MudTd DataLabel="@L["Column.Commission"]" Class="report-num">@ReportFormat.Number(context.Totals.Commission)</MudTd>
+                            <MudTd DataLabel="@L["Column.DirectCosts"]" Class="report-num">@ReportFormat.Number(context.Totals.DirectCosts)</MudTd>
+                            <MudTd DataLabel="@L["Column.Depreciation"]" Class="report-num">@ReportFormat.Number(context.Totals.Depreciation)</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>@L["Vehicles.Empty"]</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <AdminTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-channels" Title="@L["Channels.Title"]" Intro="@L["Channels.Intro"]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Channels)" Table="@L["Channels.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                @if (report.Channels.Channels.Count > 0)
+                {
+                    <div class="report-charts mb-4">
+                        <ChartFrame Id="chart-channels" TestId="chart-channels" Title="@L["Channels.Chart.Title"]" Caption="@L["Channels.Chart.Caption"]"
+                                    Summary="@ChannelsSummary(report)">
+                            <ChildContent>
+                                <BarChart Points="_channelPoints" Scale="_channelScale" />
+                            </ChildContent>
+                            <Table>
+                                <MudSimpleTable Dense="true" Elevation="0" Class="report-table">
+                                    <caption class="visually-hidden">@L["Channels.Chart.Title"]</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@L["Column.Channel"]</th>
+                                            <th scope="col" class="report-num">@L["Column.Revenue"]</th>
+                                            <th scope="col" class="report-num">@L["Column.RevenueShare"]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var channel in report.Channels.Channels)
+                                        {
+                                            <tr>
+                                                <th scope="row">@L[$"Channel.{channel.Channel}"]</th>
+                                                <td class="report-num">@ReportFormat.Number(channel.Revenue)</td>
+                                                <td class="report-num">@ReportFormat.Percent(report.Channels.ShareOf(channel))</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            </Table>
+                        </ChartFrame>
+                    </div>
+                }
+                <TableRegion LabelledBy="report-channels-title" TestId="channels-table">
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                        <caption class="visually-hidden">@L["Channels.Title"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Channel"]</th>
+                                <th scope="col" class="report-num">@L["Column.Bookings"]</th>
+                                <th scope="col" class="report-num">@L["Column.RentedDays"]</th>
+                                <th scope="col" class="report-num">@L["Column.Revenue"]</th>
+                                <th scope="col" class="report-num">@L["Column.RevenueShare"]</th>
+                                <th scope="col" class="report-num">@L["Column.Commission"]</th>
+                                <th scope="col" class="report-num">@L["Column.NetRevenue"]</th>
+                                <th scope="col" class="report-num">@L["Column.AllocatedCosts"]</th>
+                                <th scope="col" class="report-num">@L["Column.Margin"]</th>
+                                <th scope="col" class="report-num">@L["Column.AverageRentedDayPrice"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (report.Channels.Channels.Count == 0)
+                            {
+                                <tr><td colspan="10">@L["Channels.Empty"]</td></tr>
+                            }
+                            @foreach (var channel in report.Channels.Channels)
+                            {
+                                <tr>
+                                    <th scope="row">@L[$"Channel.{channel.Channel}"]</th>
+                                    <td class="report-num">@ReportFormat.Count(channel.Bookings)</td>
+                                    <td class="report-num">@ReportFormat.Count(channel.RentedDays)</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.Revenue)</td>
+                                    <td class="report-num">@ReportFormat.Percent(report.Channels.ShareOf(channel))</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.Commission)</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.NetRevenue)</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.AllocatedCosts)</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.Margin)</td>
+                                    <td class="report-num">@ReportFormat.Number(channel.AverageRentedDayPrice)</td>
+                                </tr>
+                            }
+                            <tr>
+                                <th scope="row">@L["Channels.Idle"]</th>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.IdleCosts)</td>
+                                <td class="report-num">@ReportFormat.Number(-report.Channels.IdleCosts)</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row">@L["Table.Total"]</th>
+                                <td class="report-num">@ReportFormat.Count(report.Channels.Channels.Sum(c => c.Bookings))</td>
+                                <td class="report-num">@ReportFormat.Count(report.Channels.Channels.Sum(c => c.RentedDays))</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.Revenue)</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.Commission)</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.Revenue - report.Channels.Commission)</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.Channels.Select(c => c.AllocatedCosts).Sum() + report.Channels.IdleCosts)</td>
+                                <td class="report-num">@ReportFormat.Number(report.Channels.Margin)</td>
+                                <td class="report-num">@ReportFormat.None</td>
+                            </tr>
+                        </tfoot>
+                    </MudSimpleTable>
+                </TableRegion>
+                @if (report.Channels.UnattributedRevenue.IsPositive)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">@L["Channels.Unattributed", ReportFormat.Amount(report.Channels.UnattributedRevenue)]</MudText>
+                }
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-pace" Title="@L["Pace.Title"]" Intro="@L["Pace.Intro", ReportFormat.Date(report.Pace.AsOf)]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Pace)" Table="@L["Pace.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                <div class="report-charts mb-4">
+                    <ChartFrame Id="chart-pace" TestId="chart-pace" Title="@L["Pace.Chart.Title"]" Caption="@L["Pace.Chart.Caption"]" Summary="@PaceSummary(report)">
+                        <Legend>
+                            <ul class="report-legend">
+                                @foreach (var series in _pace)
+                                {
+                                    <li><span class="report-legend__swatch" style="@($"background:{series.Color}")" aria-hidden="true"></span>@series.Name</li>
+                                }
+                            </ul>
+                        </Legend>
+                        <ChildContent>
+                            <ColumnChart Series="_pace" Scale="_paceScale" TickText="@(value => ReportFormat.PercentTick(value, _paceScale.Step))" />
+                        </ChildContent>
+                        <Table>
+                            <MudSimpleTable Dense="true" Elevation="0" Class="report-table">
+                                <caption class="visually-hidden">@L["Pace.Chart.Title"]</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Column.Category"]</th>
+                                        @foreach (var horizon in report.Pace.Horizons)
+                                        {
+                                            <th scope="col" class="report-num">@L["Pace.HorizonValue", horizon]</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var (label, horizons) in PaceGroups(report))
+                                    {
+                                        <tr>
+                                            <th scope="row">@label</th>
+                                            @foreach (var horizon in horizons)
+                                            {
+                                                <td class="report-num">@ReportFormat.Percent(horizon.Occupancy)</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </Table>
+                    </ChartFrame>
+                </div>
+                <TableRegion LabelledBy="report-pace-title" TestId="pace-table">
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                        <caption class="visually-hidden">@L["Pace.Title"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Category"]</th>
+                                <th scope="col">@L["Column.Horizon"]</th>
+                                <th scope="col" class="report-num">@L["Column.SoldDays"]</th>
+                                <th scope="col" class="report-num">@L["Column.TentativeDays"]</th>
+                                <th scope="col" class="report-num">@L["Column.CapacityDays"]</th>
+                                <th scope="col" class="report-num">@L["Column.Occupancy"]</th>
+                                <th scope="col" class="report-num">@L["Column.OccupancyWithTentative"]</th>
+                                <th scope="col" class="report-num">@L["Column.LastYearSoldDays"]</th>
+                                <th scope="col" class="report-num">@L["Column.ChangeOnLastYear"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var (label, horizons) in PaceGroups(report))
+                            {
+                                var total = ReferenceEquals(horizons, report.Pace.Totals);
+                                foreach (var horizon in horizons)
+                                {
+                                    <tr class="@(total ? "report-subtotal" : null)">
+                                        <th scope="row">@label</th>
+                                        <td>@L["Pace.HorizonValue", horizon.Days]</td>
+                                        <td class="report-num">@ReportFormat.Count(horizon.SoldDays)</td>
+                                        <td class="report-num">@ReportFormat.Count(horizon.TentativeDays)</td>
+                                        <td class="report-num">@ReportFormat.Count(horizon.CapacityDays)</td>
+                                        <td class="report-num">@ReportFormat.Percent(horizon.Occupancy)</td>
+                                        <td class="report-num">@ReportFormat.Percent(horizon.OccupancyWithTentative)</td>
+                                        <td class="report-num">@ReportFormat.Count(horizon.LastYearSoldDays)</td>
+                                        <td class="report-num">@ReportFormat.SignedPercent(horizon.ChangeOnLastYear)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-funnel" Title="@L["Funnel.Title"]" Intro="@L["Funnel.Intro"]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Funnel)" Table="@L["Funnel.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                <dl class="report-kpis mb-4">
+                    @foreach (var channel in FunnelChannels(report))
+                    {
+                        var row = report.Funnel.TotalOf(channel);
+                        <KpiTile TestId="@($"kpi-conversion-{channel.ToString().ToLowerInvariant()}")" Label="@L["Kpi.ConversionOf", L[$"Channel.{channel}"]]"
+                                 Value="@ReportFormat.Percent(row.SearchToConfirmed)"
+                                 Delta="@Points(row.SearchToConfirmed, report.PreviousFunnel?.TotalOf(channel).SearchToConfirmed)" Compared="compared"
+                                 Note="@L["Kpi.Conversion.Note", ReportFormat.Count(row.Confirmed), ReportFormat.Count(row.Searches)]" />
+                    }
+                </dl>
+                <div class="report-charts mb-4">
+                    <ChartFrame Id="chart-funnel" TestId="chart-funnel" Title="@L["Funnel.Chart.Title"]" Caption="@L["Funnel.Chart.Caption"]" Summary="@FunnelSummary(report)">
+                        <ChildContent>
+                            <BarChart Points="_funnelPoints" Scale="_funnelScale" />
+                        </ChildContent>
+                        <Table>
+                            <MudSimpleTable Dense="true" Elevation="0" Class="report-table">
+                                <caption class="visually-hidden">@L["Funnel.Chart.Title"]</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Funnel.Step"]</th>
+                                        <th scope="col" class="report-num">@L["Funnel.Visits"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var point in _funnelPoints)
+                                    {
+                                        <tr>
+                                            <th scope="row">@point.Label</th>
+                                            <td class="report-num">@point.ValueText</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </Table>
+                    </ChartFrame>
+                </div>
+                <TableRegion LabelledBy="report-funnel-title" TestId="funnel-table">
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                        <caption class="visually-hidden">@L["Funnel.Title"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Channel"]</th>
+                                <th scope="col">@L["Column.Source"]</th>
+                                <th scope="col" class="report-num">@L["Column.Searches"]</th>
+                                <th scope="col" class="report-num">@L["Column.Results"]</th>
+                                <th scope="col" class="report-num">@L["Column.Requests"]</th>
+                                <th scope="col" class="report-num">@L["Column.Confirmed"]</th>
+                                <th scope="col" class="report-num">@L["Column.SearchToRequest"]</th>
+                                <th scope="col" class="report-num">@L["Column.RequestToConfirmed"]</th>
+                                <th scope="col" class="report-num">@L["Column.SearchToConfirmed"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (report.Funnel.Rows.Count == 0)
+                            {
+                                <tr><td colspan="9">@L["Funnel.Empty"]</td></tr>
+                            }
+                            @foreach (var row in report.Funnel.Rows)
+                            {
+                                <tr>
+                                    <th scope="row">@(row.Channel is { } channel ? L[$"Channel.{channel}"].Value : ReportFormat.None)</th>
+                                    <td>@(row.Source ?? L["Funnel.Direct"].Value)</td>
+                                    @FunnelCells(row)
+                                </tr>
+                            }
+                            @foreach (var channel in report.Funnel.Channels)
+                            {
+                                <tr class="report-subtotal">
+                                    <th scope="row">@L["Funnel.ChannelTotal", L[$"Channel.{channel}"]]</th>
+                                    <td></td>
+                                    @FunnelCells(report.Funnel.TotalOf(channel))
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row">@L["Table.Total"]</th>
+                                <td></td>
+                                @FunnelCells(report.Funnel.Total)
+                            </tr>
+                        </tfoot>
+                    </MudSimpleTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-requests" Title="@L["Requests.Title"]" Intro="@L["Requests.Intro", ReportFormat.Duration(report.Requests.Target)]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Requests)" Table="@L["Requests.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                <dl class="report-kpis mb-4">
+                    <KpiTile TestId="kpi-median-delay" Label="@L["Kpi.MedianBusinessDelay"]" Value="@ReportFormat.Duration(report.Requests.Total.MedianBusinessDelay)"
+                             Note="@L["Kpi.MedianBusinessDelay.Note", ReportFormat.Duration(report.Requests.Total.MedianDelay)]" />
+                    <KpiTile TestId="kpi-refusal-rate" Label="@L["Kpi.RefusalRate"]" Value="@ReportFormat.Percent(report.Requests.Total.RefusalRate)"
+                             Delta="@Points(report.Requests.Total.RefusalRate, report.PreviousRequests?.Total.RefusalRate)" Compared="compared"
+                             Note="@L["Kpi.RefusalRate.Note", report.Requests.Total.Refused, report.Requests.Total.Decided]" />
+                    <KpiTile TestId="kpi-within-target" Label="@L["Kpi.WithinTarget", ReportFormat.Duration(report.Requests.Target)]"
+                             Value="@ReportFormat.Percent(report.Requests.Total.WithinTargetRate)"
+                             Delta="@Points(report.Requests.Total.WithinTargetRate, report.PreviousRequests?.Total.WithinTargetRate)" Compared="compared" />
+                </dl>
+                <TableRegion LabelledBy="report-requests-title" TestId="requests-table">
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                        <caption class="visually-hidden">@L["Requests.Title"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Channel"]</th>
+                                <th scope="col" class="report-num">@L["Column.Submitted"]</th>
+                                <th scope="col" class="report-num">@L["Column.Validated"]</th>
+                                <th scope="col" class="report-num">@L["Column.Refused"]</th>
+                                <th scope="col" class="report-num">@L["Column.Expired"]</th>
+                                <th scope="col" class="report-num">@L["Column.Cancelled"]</th>
+                                <th scope="col" class="report-num">@L["Column.Pending"]</th>
+                                <th scope="col" class="report-num">@L["Column.RefusalRate"]</th>
+                                <th scope="col" class="report-num">@L["Column.MedianBusinessDelay"]</th>
+                                <th scope="col" class="report-num">@L["Column.MedianDelay"]</th>
+                                <th scope="col" class="report-num">@L["Column.WithinTargetRate"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (report.Requests.Channels.Count == 0)
+                            {
+                                <tr><td colspan="11">@L["Requests.Empty"]</td></tr>
+                            }
+                            @foreach (var row in report.Requests.Channels)
+                            {
+                                <tr>
+                                    <th scope="row">@(row.Channel is { } channel ? L[$"Channel.{channel}"].Value : ReportFormat.None)</th>
+                                    @RequestCells(row)
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row">@L["Table.Total"]</th>
+                                @RequestCells(report.Requests.Total)
+                            </tr>
+                        </tfoot>
+                    </MudSimpleTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-cancellations" Title="@L["Cancellations.Title"]" Intro="@L["Cancellations.Intro"]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Cancellations)" Table="@L["Cancellations.Title"]" Label="@L["Export.Table"]" />
+            </Actions>
+            <ChildContent>
+                <dl class="report-kpis mb-4">
+                    <KpiTile TestId="kpi-cancellation-rate" Label="@L["Kpi.CancellationRate"]" Value="@ReportFormat.Percent(report.Cancellations.Total.CancellationRate)"
+                             Delta="@Points(report.Cancellations.Total.CancellationRate, report.PreviousCancellations?.Total.CancellationRate)" Compared="compared"
+                             Note="@L["Kpi.CancellationRate.Note", report.Cancellations.Total.Cancelled, report.Cancellations.Total.FirmBookings]" />
+                    <KpiTile TestId="kpi-no-show-rate" Label="@L["Kpi.NoShowRate"]" Value="@ReportFormat.Percent(report.Cancellations.Total.NoShowRate)"
+                             Delta="@Points(report.Cancellations.Total.NoShowRate, report.PreviousCancellations?.Total.NoShowRate)" Compared="compared"
+                             Note="@L["Kpi.NoShowRate.Note", report.Cancellations.Total.NoShows, report.Cancellations.Total.FirmBookings]" />
+                    <KpiTile TestId="kpi-fees" Label="@L["Kpi.CancellationFees"]" Value="@ReportFormat.Amount(report.Cancellations.Total.Fees)"
+                             Delta="@ReportFormat.Change(report.Cancellations.Total.Fees, report.PreviousCancellations?.Total.Fees)" Compared="compared" />
+                </dl>
+                <TableRegion LabelledBy="report-cancellations-title" TestId="cancellations-table">
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                        <caption class="visually-hidden">@L["Cancellations.Title"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.Channel"]</th>
+                                <th scope="col" class="report-num">@L["Column.FirmBookings"]</th>
+                                <th scope="col" class="report-num">@L["Column.CancelledFirm"]</th>
+                                <th scope="col" class="report-num">@L["Column.CancellationRate"]</th>
+                                <th scope="col" class="report-num">@L["Column.NoShows"]</th>
+                                <th scope="col" class="report-num">@L["Column.NoShowRate"]</th>
+                                <th scope="col" class="report-num">@L["Column.CancelledBeforeConfirmation"]</th>
+                                <th scope="col" class="report-num">@L["Column.Fees"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (report.Cancellations.Channels.Count == 0)
+                            {
+                                <tr><td colspan="8">@L["Cancellations.Empty"]</td></tr>
+                            }
+                            @foreach (var row in report.Cancellations.Channels)
+                            {
+                                <tr>
+                                    <th scope="row">@(row.Channel is { } channel ? L[$"Channel.{channel}"].Value : ReportFormat.None)</th>
+                                    @CancellationCells(row)
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row">@L["Table.Total"]</th>
+                                @CancellationCells(report.Cancellations.Total)
+                            </tr>
+                        </tfoot>
+                    </MudSimpleTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+
+        <ReportSection Id="report-cash" Title="@L["Cash.Title"]" Intro="@L["Cash.Intro"]">
+            <Actions>
+                <ExportButton Href="@ExportUrl(ReportTable.Cash)" Table="@L["Cash.Title"]" Label="@L["Export.Table"]" />
+                <ExportButton Href="@ExportUrl(ReportTable.Unpaid)" Table="@L["Cash.Unpaid"]" Label="@L["Export.Unpaid"]" />
+            </Actions>
+            <ChildContent>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="7">
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="report-collected-title" Class="mb-2">@L["Cash.Collected"]</MudText>
+                        <TableRegion LabelledBy="report-collected-title" TestId="collected-table">
+                            <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                                <caption class="visually-hidden">@L["Cash.Collected"]</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Column.Method"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Received"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Refunded"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Net"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Payments"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (cash.Collected.Count == 0)
+                                    {
+                                        <tr><td colspan="5">@L["Cash.Empty"]</td></tr>
+                                    }
+                                    @foreach (var method in cash.Collected)
+                                    {
+                                        <tr>
+                                            <th scope="row">@L[$"Method.{method.Method}"]</th>
+                                            <td class="report-num">@ReportFormat.Number(method.Received)</td>
+                                            <td class="report-num">@ReportFormat.Number(method.Refunded)</td>
+                                            <td class="report-num">@ReportFormat.Number(method.Net)</td>
+                                            <td class="report-num">@ReportFormat.Count(method.Payments)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th scope="row">@L["Table.Total"]</th>
+                                        <td class="report-num">@ReportFormat.Number(cash.Collected.Select(c => c.Received).Sum())</td>
+                                        <td class="report-num">@ReportFormat.Number(cash.Collected.Select(c => c.Refunded).Sum())</td>
+                                        <td class="report-num">@ReportFormat.Number(cash.CollectedNet)</td>
+                                        <td class="report-num">@ReportFormat.Count(cash.Collected.Sum(c => c.Payments))</td>
+                                    </tr>
+                                </tfoot>
+                            </MudSimpleTable>
+                        </TableRegion>
+                    </MudItem>
+                    <MudItem xs="12" md="5">
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="report-deposits-title" Class="mb-2">@L["Cash.Deposits"]</MudText>
+                        <TableRegion LabelledBy="report-deposits-title" TestId="deposits-table">
+                            <MudSimpleTable Dense="true" Hover="true" Elevation="1" Class="report-table">
+                                <caption class="visually-hidden">@L["Cash.Deposits"]</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Column.DepositMode"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Amount"]</th>
+                                        <th scope="col" class="report-num">@L["Column.Count"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var mode in cash.DepositsByMode)
+                                    {
+                                        <tr>
+                                            <th scope="row">@L[$"DepositMode.{mode.Mode}"]</th>
+                                            <td class="report-num">@ReportFormat.Number(mode.Total)</td>
+                                            <td class="report-num">@ReportFormat.Count(mode.Count)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th scope="row">@L["Table.Total"]</th>
+                                        <td class="report-num">@ReportFormat.Number(cash.OpenDeposits)</td>
+                                        <td class="report-num">@ReportFormat.Count(cash.OpenDepositCount)</td>
+                                    </tr>
+                                </tfoot>
+                            </MudSimpleTable>
+                        </TableRegion>
+                        <MudText Typo="Typo.body2" Class="report-muted mt-2">@L["Source.Deposits"]</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="report-unpaid-title" Class="mt-6 mb-2">@L["Cash.Unpaid"]</MudText>
+                <MudText Typo="Typo.body2" Class="report-muted mb-2">@L["Cash.Unpaid.Intro"]</MudText>
+                <TableRegion LabelledBy="report-unpaid-title" TestId="unpaid-table">
+                    <MudTable T="UnpaidBooking" Items="cash.Unpaid" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                              Class="report-table" TableAttributes="@(new Dictionary<string, object> { ["aria-labelledby"] = "report-unpaid-title" })">
+                        <HeaderContent>
+                            <MudTh>@L["Column.Booking"]</MudTh>
+                            <MudTh>@L["Column.Channel"]</MudTh>
+                            <MudTh>@L["Column.ReturnedOn"]</MudTh>
+                            <MudTh Class="report-num">@L["Column.Due"]</MudTh>
+                            <MudTh Class="report-num">@L["Column.NetPaid"]</MudTh>
+                            <MudTh Class="report-num">@L["Column.Balance"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@L["Column.Booking"]">
+                                @if (_canReadBookings)
+                                {
+                                    <MudLink Href="@($"/admin/bookings/{context.BookingId}")">@context.Number</MudLink>
+                                }
+                                else
+                                {
+                                    <span>@context.Number</span>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@L["Column.Channel"]">@L[$"Channel.{context.Channel}"]</MudTd>
+                            <MudTd DataLabel="@L["Column.ReturnedOn"]">@ReportFormat.Date(context.ReturnedOn)</MudTd>
+                            <MudTd DataLabel="@L["Column.Due"]" Class="report-num">@ReportFormat.Number(context.Due)</MudTd>
+                            <MudTd DataLabel="@L["Column.NetPaid"]" Class="report-num">@ReportFormat.Number(context.NetPaid)</MudTd>
+                            <MudTd DataLabel="@L["Column.Balance"]" Class="report-num">@ReportFormat.Number(context.Balance)</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>@L["Cash.Unpaid.Empty"]</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <AdminTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </TableRegion>
+            </ChildContent>
+        </ReportSection>
+    </div>
+}
+
+@code {
+    private const string CustomPeriod = "custom";
+
+    /// <summary>Single series of the charts (validated slot-1 blue on white).</summary>
+    private const string SeriesColor = "#2a78d6";
+
+    /// <summary>Ordinal ramp of the pace horizons, light to dark (30, 60, 90 days): validated for colour-vision deficiencies.</summary>
+    private static readonly string[] PaceColors = ["#86b6ef", "#2a78d6", "#104281"];
+
+    private static readonly ChartScale FullRatioScale = ChartScale.ForRatio(1m);
+
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private List<(string Key, string Label)> _months = [];
+    private Guid _agencyId;
+    private DateOnly _from;
+    private DateOnly _to;
+    private string _periodKey = string.Empty;
+    private DateTime? _customFrom;
+    private DateTime? _customTo;
+    private ReportDashboard? _report;
+    private bool _loading = true;
+    private int _loadVersion;
+    private string? _error;
+    private bool _canReadFleet;
+    private bool _canReadBookings;
+    private VehicleSort _vehicleSort = VehicleSort.Margin;
+    private bool _vehicleSortDescending;
+    private IReadOnlyList<VehicleProfitability> _vehicles = [];
+    private IReadOnlyList<ChartSeries> _revPav = [];
+    private ChartScale _revPavScale = ChartScale.For(0m);
+    private IReadOnlyList<ChartSeries> _utilization = [];
+    private ChartScale _utilizationScale = FullRatioScale;
+    private IReadOnlyList<ChartSeries> _pace = [];
+    private ChartScale _paceScale = FullRatioScale;
+    private IReadOnlyList<ChartPoint> _channelPoints = [];
+    private ChartScale _channelScale = ChartScale.For(0m);
+    private IReadOnlyList<ChartPoint> _funnelPoints = [];
+    private ChartScale _funnelScale = ChartScale.For(0m);
+
+    /// <summary>The columns the profitability table sorts on.</summary>
+    private enum VehicleSort
+    {
+        Vehicle = 0,
+        Category = 1,
+        AvailableDays = 2,
+        RentedDays = 3,
+        Utilization = 4,
+        Revenue = 5,
+        Margin = 6,
+        RevPav = 7,
+        HintMargin = 8,
+    }
+
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? Agency { get; set; }
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? From { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public string? To { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    /// <summary>"true" once the page is interactive and its report loaded (browser tests wait for it).</summary>
+    private string ReadyFlag => RendererInfo.IsInteractive && !_loading ? "true" : "false";
+
+    private DateOnly Today => TunisTime.Today(Clock);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        _canReadFleet = user.HasPermission(Permissions.FleetRead);
+        _canReadBookings = user.HasPermission(Permissions.BookingsRead);
+
+        // The report is computed once, by the interactive render (not by the prerendering as well).
+        if (RendererInfo.IsInteractive)
+        {
+            _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        var defaultAgency = _agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault() ?? _agencies.FirstOrDefault();
+        _agencyId = Agency is { } requested && _agencies.Any(a => a.Id == requested) ? requested : defaultAgency?.Id ?? Guid.Empty;
+
+        var fallback = ReportPeriod.DefaultFor(Today);
+        (_from, _to) = ReportExport.TryParseDay(From, out var from) && ReportExport.TryParseDay(To, out var to) ? (from, to) : (fallback.From, fallback.To);
+        _periodKey = IsMonth(_from, _to) ? MonthKey(_from) : CustomPeriod;
+        _customFrom = _from.ToDateTime(TimeOnly.MinValue);
+        _customTo = _to.ToDateTime(TimeOnly.MinValue);
+        _months = Months();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var version = ++_loadVersion;
+        if (_agencyId == Guid.Empty)
+        {
+            (_loading, _report, _error) = (false, null, L["Reports.NoAgency"].Value);
+            return;
+        }
+
+        _loading = true;
+        _error = null;
+        var request = new ReportRequest(_agencyId, _from, _to);
+        var result = await Runner.RunAsync<ReportQueries, Result<ReportDashboard>>((queries, ct) => queries.GetDashboardAsync(request, ct));
+        if (version != _loadVersion)
+        {
+            return;
+        }
+
+        _loading = false;
+        if (result.IsFailure)
+        {
+            (_report, _error) = (null, ErrorMessages.For(Shared, result.Error));
+            return;
+        }
+
+        _report = result.Value;
+        _vehicles = SortedVehicles();
+        BuildCharts(_report);
+    }
+
+    /// <summary>The current month and the 24 before it, most recent first; a month opened from the address is kept.</summary>
+    private List<(string Key, string Label)> Months()
+    {
+        var current = ReportPeriod.MonthOf(Today).From;
+        var months = Enumerable.Range(0, 25).Select(i => current.AddMonths(-i)).ToList();
+        if (_periodKey != CustomPeriod && !months.Contains(_from))
+        {
+            months.Add(_from);
+        }
+
+        return [.. months.OrderByDescending(m => m).Select(m => (MonthKey(m), ReportFormat.Month(m)))];
+    }
+
+    private static bool IsMonth(DateOnly from, DateOnly to) => from.Day == 1 && to == from.AddMonths(1).AddDays(-1);
+
+    private static string MonthKey(DateOnly day) => day.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+
+    private void Go(Guid agencyId, DateOnly from, DateOnly to) =>
+        Navigation.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"/admin/reports?agency={agencyId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}"));
+
+    private void AgencyChanged(Guid agencyId) => Go(agencyId, _from, _to);
+
+    private void PeriodChanged(string key)
+    {
+        if (key == CustomPeriod)
+        {
+            _periodKey = CustomPeriod;
+            return;
+        }
+
+        if (DateOnly.TryParseExact(key, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var month))
+        {
+            var period = ReportPeriod.MonthOf(month);
+            Go(_agencyId, period.From, period.To);
+        }
+    }
+
+    private void ApplyCustom()
+    {
+        if (_customFrom is { } from && _customTo is { } to)
+        {
+            Go(_agencyId, DateOnly.FromDateTime(from), DateOnly.FromDateTime(to));
+        }
+    }
+
+    private string ExportUrl(ReportTable table) => _report is { } report ? ReportExport.Url(table, report.AgencyId, report.Period.From, report.Period.To) : "#";
+
+    private string Range(DateOnly from, DateOnly to) => L["Period.Range", ReportFormat.Date(from), ReportFormat.Date(to)];
+
+    private ReportDelta? Points(decimal? current, decimal? previous) => ReportFormat.Points(current, previous, L["Delta.Points"]);
+
+    private IEnumerable<string> Sources(ReportDashboard report)
+    {
+        if (!report.Sources.CommissionsConnected)
+        {
+            yield return L["Source.Commissions"];
+        }
+
+        if (!report.Sources.InvoicingConnected)
+        {
+            yield return L["Source.Invoicing"];
+        }
+
+        if (!report.Sources.ChargesConnected)
+        {
+            yield return L["Source.Charges"];
+        }
+    }
+
+    private async Task RecomputeAsync()
+    {
+        if (_report is not { } report)
+        {
+            return;
+        }
+
+        var yesterday = Today.AddDays(-1);
+        var parameters = new DialogParameters<RecomputeDialog>
+        {
+            { d => d.AgencyId, report.AgencyId },
+            { d => d.AgencyName, report.AgencyName },
+            { d => d.From, report.Period.From },
+            { d => d.To, report.Period.CoveredTo ?? yesterday },
+            { d => d.Yesterday, yesterday },
+        };
+        var dialog = await Dialogs.ShowAsync<RecomputeDialog>(
+            L["Recompute.Title"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: SnapshotRun run })
+        {
+            Snackbar.Add(L["Recompute.Done", run.Days, run.Rows], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private void SortVehicles(VehicleSort column)
+    {
+        _vehicleSortDescending = _vehicleSort == column && !_vehicleSortDescending;
+        _vehicleSort = column;
+        _vehicles = SortedVehicles();
+    }
+
+    private IReadOnlyList<VehicleProfitability> SortedVehicles()
+    {
+        if (_report is not { } report)
+        {
+            return [];
+        }
+
+        IOrderedEnumerable<VehicleProfitability> sorted = _vehicleSort switch
+        {
+            VehicleSort.Vehicle => Order(report.Vehicles, v => v.PlateNumber),
+            VehicleSort.Category => Order(report.Vehicles, v => v.CategoryCode),
+            VehicleSort.AvailableDays => Order(report.Vehicles, v => v.Totals.AvailableDays),
+            VehicleSort.RentedDays => Order(report.Vehicles, v => v.Totals.RentedDays),
+            VehicleSort.Utilization => Order(report.Vehicles, v => v.Totals.Utilization ?? -1m),
+            VehicleSort.Revenue => Order(report.Vehicles, v => v.Totals.Revenue.Amount),
+            VehicleSort.RevPav => Order(report.Vehicles, v => v.Totals.RevenuePerAvailableDay?.Amount ?? decimal.MinValue),
+            VehicleSort.HintMargin => Order(report.Vehicles, v => v.HintDays > 0 ? v.HintMargin.Amount : decimal.MaxValue),
+            _ => Order(report.Vehicles, v => v.Totals.Margin.Amount),
+        };
+        return [.. sorted.ThenBy(v => v.PlateNumber, StringComparer.Ordinal)];
+    }
+
+    private IOrderedEnumerable<VehicleProfitability> Order<TKey>(IEnumerable<VehicleProfitability> vehicles, Func<VehicleProfitability, TKey> key)
+    {
+        var comparer = typeof(TKey) == typeof(string) ? (IComparer<TKey>)StringComparer.Ordinal : Comparer<TKey>.Default;
+        return _vehicleSortDescending ? vehicles.OrderByDescending(key, comparer) : vehicles.OrderBy(key, comparer);
+    }
+
+    private string? AriaSort(VehicleSort column) =>
+        _vehicleSort != column ? null : _vehicleSortDescending ? "descending" : "ascending";
+
+    private RenderFragment SortButton(VehicleSort column, string label) =>
+        @<button type="button" class="report-sort" @onclick="() => SortVehicles(column)">
+            @label
+            <MudIcon Class="report-sort__icon" aria-hidden="true"
+                     Icon="@(_vehicleSort != column ? Icons.Material.Filled.UnfoldMore : _vehicleSortDescending ? Icons.Material.Filled.ArrowDownward : Icons.Material.Filled.ArrowUpward)" />
+        </button>;
+
+    private static RenderFragment FunnelCells(FunnelRow row) =>
+        @<text>
+            <td class="report-num">@ReportFormat.Count(row.Searches)</td>
+            <td class="report-num">@ReportFormat.Count(row.Results)</td>
+            <td class="report-num">@ReportFormat.Count(row.Requests)</td>
+            <td class="report-num">@ReportFormat.Count(row.Confirmed)</td>
+            <td class="report-num">@ReportFormat.Percent(row.SearchToRequest)</td>
+            <td class="report-num">@ReportFormat.Percent(row.RequestToConfirmed)</td>
+            <td class="report-num">@ReportFormat.Percent(row.SearchToConfirmed)</td>
+        </text>;
+
+    private static RenderFragment RequestCells(RequestQualityRow row) =>
+        @<text>
+            <td class="report-num">@ReportFormat.Count(row.Submitted)</td>
+            <td class="report-num">@ReportFormat.Count(row.Validated)</td>
+            <td class="report-num">@ReportFormat.Count(row.Refused)</td>
+            <td class="report-num">@ReportFormat.Count(row.Expired)</td>
+            <td class="report-num">@ReportFormat.Count(row.Cancelled)</td>
+            <td class="report-num">@ReportFormat.Count(row.Pending)</td>
+            <td class="report-num">@ReportFormat.Percent(row.RefusalRate)</td>
+            <td class="report-num">@ReportFormat.Duration(row.MedianBusinessDelay)</td>
+            <td class="report-num">@ReportFormat.Duration(row.MedianDelay)</td>
+            <td class="report-num">@ReportFormat.Percent(row.WithinTargetRate)</td>
+        </text>;
+
+    private static RenderFragment CancellationCells(CancellationRow row) =>
+        @<text>
+            <td class="report-num">@ReportFormat.Count(row.FirmBookings)</td>
+            <td class="report-num">@ReportFormat.Count(row.Cancelled)</td>
+            <td class="report-num">@ReportFormat.Percent(row.CancellationRate)</td>
+            <td class="report-num">@ReportFormat.Count(row.NoShows)</td>
+            <td class="report-num">@ReportFormat.Percent(row.NoShowRate)</td>
+            <td class="report-num">@ReportFormat.Count(row.CancelledBeforeConfirmation)</td>
+            <td class="report-num">@ReportFormat.Number(row.Fees)</td>
+        </text>;
+
+    /// <summary>The website and the bot always show, with the other channels that have funnel rows.</summary>
+    private static IEnumerable<SalesChannel> FunnelChannels(ReportDashboard report) =>
+        new[] { SalesChannel.Web, SalesChannel.WhatsApp }.Union(report.Funnel.Channels).Order();
+
+    /// <summary>The groups of the pace: every category together first, then each category.</summary>
+    private IEnumerable<(string Label, IReadOnlyList<PaceHorizon> Horizons)> PaceGroups(ReportDashboard report) =>
+        [(L["Pace.Total"].Value, report.Pace.Totals), .. report.Pace.Categories.Select(c => (c.CategoryCode, c.Horizons))];
+
+    private void BuildCharts(ReportDashboard report)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        var days = report.Daily;
+        _revPav =
+        [
+            new ChartSeries(
+                L["Daily.RevPav.Title"],
+                SeriesColor,
+                [.. days.Select(d => new ChartPoint(d.Day.ToString("dddd d MMM", culture), d.Totals.RevenuePerAvailableDay?.Amount, ReportFormat.Amount(d.Totals.RevenuePerAvailableDay), ReportFormat.ShortDate(d.Day)))]),
+        ];
+        _revPavScale = ChartScale.For(days.Select(d => d.Totals.RevenuePerAvailableDay?.Amount ?? 0m).DefaultIfEmpty(0m).Max());
+        _utilization =
+        [
+            new ChartSeries(
+                L["Daily.Utilization.Title"],
+                SeriesColor,
+                [.. days.Select(d => new ChartPoint(d.Day.ToString("dddd d MMM", culture), d.Totals.Utilization, ReportFormat.Percent(d.Totals.Utilization), ReportFormat.ShortDate(d.Day)))]),
+        ];
+        _utilizationScale = ChartScale.ForRatio(days.Select(d => d.Totals.Utilization ?? 0m).DefaultIfEmpty(0m).Max());
+
+        var channels = report.Channels;
+        _channelScale = ChartScale.For(channels.Channels.Select(c => c.Revenue.Amount).DefaultIfEmpty(0m).Max());
+        _channelPoints =
+        [
+            .. channels.Channels.Select(c => new ChartPoint(
+                L[$"Channel.{c.Channel}"],
+                c.Revenue.Amount,
+                L["Channels.Chart.Value", ReportFormat.Amount(c.Revenue), ReportFormat.Percent(channels.ShareOf(c))])),
+        ];
+
+        var groups = PaceGroups(report).ToList();
+        _pace =
+        [
+            .. report.Pace.Horizons.Select((days, index) => new ChartSeries(
+                L["Pace.HorizonValue", days],
+                PaceColors[Math.Min(index, PaceColors.Length - 1)],
+                [
+                    .. groups.Select(g => new ChartPoint(
+                        g.Label,
+                        g.Horizons[index].Occupancy,
+                        L["Pace.Chart.Value", ReportFormat.Percent(g.Horizons[index].Occupancy), g.Horizons[index].SoldDays, g.Horizons[index].CapacityDays])),
+                ])),
+        ];
+        _paceScale = ChartScale.ForRatio(groups.SelectMany(g => g.Horizons).Select(h => h.Occupancy ?? 0m).DefaultIfEmpty(0m).Max());
+
+        var total = report.Funnel.Total;
+        _funnelScale = ChartScale.For(total.Searches);
+        _funnelPoints =
+        [
+            new ChartPoint(L["Column.Searches"], total.Searches, ReportFormat.Count(total.Searches)),
+            new ChartPoint(L["Column.Results"], total.Results, L["Funnel.Chart.Value", ReportFormat.Count(total.Results), ReportFormat.Percent(KpiMath.Ratio(total.Results, total.Searches))]),
+            new ChartPoint(L["Column.Requests"], total.Requests, L["Funnel.Chart.Value", ReportFormat.Count(total.Requests), ReportFormat.Percent(total.SearchToRequest)]),
+            new ChartPoint(L["Column.Confirmed"], total.Confirmed, L["Funnel.Chart.Value", ReportFormat.Count(total.Confirmed), ReportFormat.Percent(total.SearchToConfirmed)]),
+        ];
+    }
+
+    private string RevPavSummary(ReportDashboard report)
+    {
+        var best = report.Daily.Where(d => d.Totals.RevenuePerAvailableDay is not null).MaxBy(d => d.Totals.RevenuePerAvailableDay!.Value.Amount);
+        return L[
+            "Daily.RevPav.Summary",
+            report.Daily.Count,
+            ReportFormat.Amount(report.Fleet.RevenuePerAvailableDay),
+            best is null ? ReportFormat.None : ReportFormat.Amount(best.Totals.RevenuePerAvailableDay),
+            best is null ? ReportFormat.None : ReportFormat.Date(best.Day)];
+    }
+
+    private string UtilizationSummary(ReportDashboard report)
+    {
+        var best = report.Daily.Where(d => d.Totals.Utilization is not null).MaxBy(d => d.Totals.Utilization!.Value);
+        return L[
+            "Daily.Utilization.Summary",
+            report.Daily.Count,
+            ReportFormat.Percent(report.Fleet.Utilization),
+            best is null ? ReportFormat.None : ReportFormat.Percent(best.Totals.Utilization),
+            best is null ? ReportFormat.None : ReportFormat.Date(best.Day)];
+    }
+
+    private string ChannelsSummary(ReportDashboard report) =>
+        L["Channels.Chart.Summary", report.Channels.Channels.Count, Enumerate(_channelPoints.Select(p => (p.Label, p.ValueText)))];
+
+    private string PaceSummary(ReportDashboard report) =>
+        L["Pace.Chart.Summary", Enumerate(report.Pace.Totals.Select(h => (L["Pace.HorizonValue", h.Days].Value, ReportFormat.Percent(h.Occupancy))))];
+
+    private string FunnelSummary(ReportDashboard report) =>
+        L["Funnel.Chart.Summary", Enumerate(_funnelPoints.Select(p => (p.Label, p.ValueText)))];
+
+    /// <summary>"label: value" pairs in a sentence, with the punctuation of the language.</summary>
+    private string Enumerate(IEnumerable<(string Label, string Value)> pairs) =>
+        string.Join(L["Chart.Separator"].Value, pairs.Select(p => L["Chart.Pair", p.Label, p.Value].Value));
+}

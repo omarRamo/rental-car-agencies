@@ -1,0 +1,18 @@
+@* A table that may be wider than the screen: a named region that scrolls sideways and takes the keyboard focus, so
+   that every column can be reached without a mouse (WCAG 2.1.1, axe scrollable-region-focusable). *@
+
+<div class="report-scroll" role="region" aria-labelledby="@LabelledBy" tabindex="0" data-testid="@TestId">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Id of the element naming the region (the heading of its section).</summary>
+    [Parameter, EditorRequired]
+    public string LabelledBy { get; set; } = default!;
+
+    [Parameter]
+    public string? TestId { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

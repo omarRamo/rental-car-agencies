@@ -1,0 +1,37 @@
+@* A section of the reports screen: its heading (named landmark target), its actions (Excel export), a short definition of
+   its indicators, then its content. *@
+
+<section id="@Id" class="report-section" aria-labelledby="@TitleId" data-testid="@Id">
+    <div class="report-section__head">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="@TitleId">@Title</MudText>
+        @if (Actions is not null)
+        {
+            <div class="report-actions">@Actions</div>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Intro))
+    {
+        <p class="report-section__intro report-muted">@Intro</p>
+    }
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    [Parameter]
+    public string? Intro { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>Id of the heading, for the tables and regions of the section.</summary>
+    public string TitleId => $"{Id}-title";
+}

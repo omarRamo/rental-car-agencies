@@ -40,14 +40,14 @@
                                     {
                                         <li class="d-flex flex-wrap align-center gap-2 py-1">
                                             <DeadlineBadge Deadline="@(new VehicleDeadline(alert.Type, alert.ExpiresOn, alert.DaysLeft, alert.State))" />
-                                            <MudLink Href="@($"/admin/fleet/vehicles/{alert.VehicleId}")">@alert.PlateNumber</MudLink>
+                                            <MudLink Href="@($"/admin/fleet/vehicles/{alert.VehicleId}")" Underline="Underline.Always">@alert.PlateNumber</MudLink>
                                             <span>@alert.Make @alert.Model</span>
                                         </li>
                                     }
                                 </ul>
                                 @if (_dashboard.AlertCount > _dashboard.Alerts.Count)
                                 {
-                                    <MudLink Href="/admin/fleet/deadlines" Class="d-inline-block mt-2">@L["Widget.AllDeadlines", _dashboard.AlertCount]</MudLink>
+                                    <MudLink Href="/admin/fleet/deadlines" Class="d-inline-block mt-2" Underline="Underline.Always">@L["Widget.AllDeadlines", _dashboard.AlertCount]</MudLink>
                                 }
                             }
                         </MudItem>
@@ -63,7 +63,7 @@
                                     @foreach (var vehicle in _dashboard.Unavailable)
                                     {
                                         <li class="py-1">
-                                            <MudLink Href="@($"/admin/fleet/vehicles/{vehicle.VehicleId}")">@vehicle.PlateNumber</MudLink>
+                                            <MudLink Href="@($"/admin/fleet/vehicles/{vehicle.VehicleId}")" Underline="Underline.Always">@vehicle.PlateNumber</MudLink>
                                             <FleetBadge Tone="FleetFormat.ToneOf(vehicle.Status)">@L[$"Status.{vehicle.Status}"]</FleetBadge>
                                             <MudText Typo="Typo.caption" Class="d-block">
                                                 @(vehicle.Reason ?? string.Empty)

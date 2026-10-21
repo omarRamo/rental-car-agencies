@@ -1,0 +1,57 @@
+@* An indicator tile inside the <dl class="report-kpis"> of the page: label, value, change against the previous period
+   (an arrow and a signed text: never a colour alone) and an optional note. The hero tile (the manager's main
+   indicator) shows its value at 48 px; there is one per page. *@
+@inject IStringLocalizer<ReportsResources> L
+
+<div class="@(Hero ? "report-kpi report-kpi--hero" : "report-kpi")" data-testid="@TestId">
+    <dt>@Label</dt>
+    <dd class="report-kpi__value">@Value</dd>
+    @if (Delta is { } delta)
+    {
+        <dd class="report-kpi__delta">
+            <span aria-hidden="true">@Arrow(delta.Direction)</span>
+            <span>@delta.Text</span>
+            <span class="report-muted">@L["Kpi.Versus"]</span>
+        </dd>
+    }
+    else if (Compared)
+    {
+        <dd class="report-kpi__delta report-muted">@L["Kpi.NoComparison"]</dd>
+    }
+    @if (!string.IsNullOrEmpty(Note))
+    {
+        <dd class="report-kpi__note">@Note</dd>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = default!;
+
+    /// <summary>The change against the previous period, when both values exist.</summary>
+    [Parameter]
+    public ReportDelta? Delta { get; set; }
+
+    /// <summary>The indicator is compared with the previous period: says so when the change cannot be computed.</summary>
+    [Parameter]
+    public bool Compared { get; set; }
+
+    [Parameter]
+    public string? Note { get; set; }
+
+    [Parameter]
+    public bool Hero { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private static string Arrow(int direction) => direction switch
+    {
+        > 0 => "▲",
+        < 0 => "▼",
+        _ => "=",
+    };
+}

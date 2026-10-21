@@ -1,0 +1,118 @@
+@* Vertical columns over ordered groups (days, categories): one series, or several side by side with a legend given by
+   the frame. Value axis from zero with hairline grid; at most 24 px wide columns, 2 px apart, rounded at their data
+   end; a direct label on the highest column of a single series; the value of every column on hover. Placed in a
+   ChartFrame, which makes it one image for assistive technologies and gives its data table. *@
+
+<div class="rc" style="@($"--rc-series:{Series.Count}")">
+    <div class="rc__y" aria-hidden="true">
+        @foreach (var tick in Scale.Ticks)
+        {
+            <span style="@($"inset-block-end:{Scale.Css(tick)}")">@TickText(tick)</span>
+        }
+    </div>
+    <div class="rc__plot">
+        <div class="rc__grid">
+            @foreach (var tick in Scale.Ticks.Where(t => t > 0m))
+            {
+                <span style="@($"inset-block-end:{Scale.Css(tick)}")"></span>
+            }
+        </div>
+        <div class="rc__cols">
+            @for (var group = 0; group < GroupCount; group++)
+            {
+                var index = group;
+                <div class="@ColumnClass(index)">
+                    @foreach (var series in Series)
+                    {
+                        var point = series.Points[index];
+                        <div class="rc__slot">
+                            @if (point.Value is { } value && value > 0m)
+                            {
+                                <span class="rc__bar" style="@($"block-size:{Scale.Css(value)};--rc-color:{series.Color}")"></span>
+                            }
+                            @if (Series.Count == 1 && index == _labelled && point.Value is { } top)
+                            {
+                                <span class="rc__value" style="@($"inset-block-end:{Scale.Css(top)}")">@point.ValueText</span>
+                            }
+                            <span class="rc__tip">
+                                <strong>@point.ValueText</strong>
+                                @(Series.Count > 1 ? $"{series.Name} · {point.Label}" : point.Label)
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="rc__x" aria-hidden="true">
+        @for (var group = 0; group < GroupCount; group++)
+        {
+            var (text, minor) = AxisLabel(group);
+            <span class="@(minor ? "rc__tick--minor" : null)">@text</span>
+        }
+    </div>
+</div>
+
+@code {
+    private int _labelled = -1;
+
+    /// <summary>The series, each with one point per group in the same order; the first series names the groups.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartSeries> Series { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ChartScale Scale { get; set; } = default!;
+
+    /// <summary>Text of an axis tick.</summary>
+    [Parameter, EditorRequired]
+    public Func<decimal, string> TickText { get; set; } = default!;
+
+    /// <summary>At most this many labels under the axis (every n-th group otherwise).</summary>
+    [Parameter]
+    public int MaxAxisLabels { get; set; } = 10;
+
+    private int GroupCount => Series.Count == 0 ? 0 : Series[0].Points.Count;
+
+    protected override void OnParametersSet()
+    {
+        // The single series is labelled at its highest column (the extreme the reader looks for).
+        _labelled = -1;
+        if (Series.Count == 1)
+        {
+            var best = decimal.MinValue;
+            for (var i = 0; i < Series[0].Points.Count; i++)
+            {
+                if (Series[0].Points[i].Value is { } value && value > 0m && value > best)
+                {
+                    (best, _labelled) = (value, i);
+                }
+            }
+        }
+    }
+
+    private string ColumnClass(int index)
+    {
+        var classes = Series.Count > 1 ? "rc__col rc__col--grouped" : "rc__col";
+        var edge = Math.Max(1, GroupCount / 6);
+        return GroupCount < 4 ? classes
+            : index < edge ? $"{classes} rc__col--start"
+            : index >= GroupCount - edge ? $"{classes} rc__col--end"
+            : classes;
+    }
+
+    /// <summary>
+    /// The label under a group: every n-th group has one (at most <see cref="MaxAxisLabels"/>); on a dense axis (days),
+    /// every other of them is minor, hidden when the chart is narrow.
+    /// </summary>
+    private (string Text, bool Minor) AxisLabel(int index)
+    {
+        var every = Math.Max(1, (int)Math.Ceiling(GroupCount / (double)Math.Max(1, MaxAxisLabels)));
+        if (index % every != 0)
+        {
+            return (string.Empty, false);
+        }
+
+        var point = Series[0].Points[index];
+        return (point.AxisLabel ?? point.Label, GroupCount > 8 && index / every % 2 == 1);
+    }
+}
