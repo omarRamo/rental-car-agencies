@@ -147,6 +147,18 @@
   <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
     <value>Durée de conservation des événements anonymes du parcours de réservation (recherche, résultats, étapes du tunnel), supprimés chaque nuit au-delà. Affichée sur la page de confidentialité.</value>
   </data>
+  <data name="Setting.reporting.snapshot_refresh_days.Label" xml:space="preserve">
+    <value>Jours recalculés chaque nuit (instantanés)</value>
+  </data>
+  <data name="Setting.reporting.snapshot_refresh_days.Help" xml:space="preserve">
+    <value>Chaque nuit à 3 h, l'instantané quotidien de la flotte est recalculé pour la veille et les jours qui la précèdent (7 jours au total par défaut), pour qu'un retour, un non-présenté ou un coût saisi avec retard y figure. Les jours plus anciens ne changent que par un recalcul depuis l'écran des indicateurs.</value>
+  </data>
+  <data name="Setting.reporting.sell_hint_months.Label" xml:space="preserve">
+    <value>Fenêtre de l'alerte « vendre ou remplacer » (mois)</value>
+  </data>
+  <data name="Setting.reporting.sell_hint_months.Help" xml:space="preserve">
+    <value>Un véhicule dont la marge (revenus moins commissions, coûts directs et amortissement) est négative sur ces derniers mois est signalé dans le tableau de rentabilité (6 mois par défaut).</value>
+  </data>
   <data name="Setting.bookings.information_request_extension.Label" xml:space="preserve">
     <value>Prolongation du blocage après une demande d'informations</value>
   </data>

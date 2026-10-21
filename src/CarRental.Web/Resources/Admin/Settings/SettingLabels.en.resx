@@ -147,6 +147,18 @@
   <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
     <value>How long the anonymous booking journey events (search, results, funnel steps) are kept; older ones are deleted every night. Shown on the privacy page.</value>
   </data>
+  <data name="Setting.reporting.snapshot_refresh_days.Label" xml:space="preserve">
+    <value>Days computed again every night (snapshots)</value>
+  </data>
+  <data name="Setting.reporting.snapshot_refresh_days.Help" xml:space="preserve">
+    <value>Every night at 3 a.m., the daily snapshot of the fleet is computed again for the previous day and the days before it (7 days in all by default), so that a return, a no-show or a cost recorded late reaches it. Older days only change when the reports screen recomputes them.</value>
+  </data>
+  <data name="Setting.reporting.sell_hint_months.Label" xml:space="preserve">
+    <value>Window of the "sell or replace" hint (months)</value>
+  </data>
+  <data name="Setting.reporting.sell_hint_months.Help" xml:space="preserve">
+    <value>A vehicle whose margin (revenue minus commissions, direct costs and depreciation) is negative over these last months is flagged in the profitability table (6 months by default).</value>
+  </data>
   <data name="Setting.bookings.information_request_extension.Label" xml:space="preserve">
     <value>Hold extension after an information request</value>
   </data>
