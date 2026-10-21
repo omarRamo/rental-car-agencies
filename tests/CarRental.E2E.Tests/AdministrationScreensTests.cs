@@ -43,13 +43,18 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
     [Fact]
     public async Task The_users_and_audit_screens_pass_axe_with_their_accessible_pagers()
     {
-        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), "/admin/users");
+        var manager = await BackOfficeSession.NewStaffAsync(Host, Roles.Manager);
+        await BackOfficeSession.SignInAsync(Page, manager, "/admin/users");
         await BackOfficeSession.WaitUntilInteractiveAsync(Page);
         await Expect(Page.Locator("table tbody tr").First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Expect(Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Lignes par page" })).ToBeVisibleAsync();
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
 
+        // The tests of the run write to the audit log meanwhile: the manager's own sign-in is searched by user.
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Journal d'audit" }).ClickAsync();
+        await BackOfficeSession.WaitUntilInteractiveAsync(Page);
+        await Page.GetByLabel("Utilisateur", new PageGetByLabelOptions { Exact = true }).FillAsync(manager);
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Rechercher" }).ClickAsync();
         await Expect(Page.Locator("tr", new PageLocatorOptions { HasText = "identity.login_succeeded" }).First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
