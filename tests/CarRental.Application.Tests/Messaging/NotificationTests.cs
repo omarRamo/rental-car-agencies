@@ -169,7 +169,10 @@ public sealed class NotificationTests : IAsyncDisposable
         var template = _harness.WhatsApp.Sent.ShouldHaveSingleItem().Content.ShouldBeOfType<TemplateContent>();
         template.Name.ShouldBe("payment_link");
         template.Language.ShouldBe("en_US");
-        template.Parameters.ShouldBe(["Karim", booking.Number, "681.400 TND", TunisTime.ToTunis(due).ToString("f", System.Globalization.CultureInfo.GetCultureInfo("en-US"))]);
+        // Template parameters are kept on one line with plain spaces: the narrow no-break space that ICU puts before "AM"
+        // on Linux becomes a space.
+        var deadline = TunisTime.ToTunis(due).ToString("f", System.Globalization.CultureInfo.GetCultureInfo("en-US")).Replace('\u202F', ' ');
+        template.Parameters.ShouldBe(["Karim", booking.Number, "681.400 TND", deadline]);
     }
 
     [Fact]
