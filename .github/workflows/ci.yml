@@ -4,7 +4,8 @@
 #
 # Job graph:
 #   build (format, build, unit + architecture tests)  ──┬──> integration-tests ──┐
-#                                                       └──> e2e-tests ──────────┴──> coverage
+#                                                       ├──> e2e-tests ──────────┴──> coverage
+#                                                       └──> lighthouse (public site budget)
 #   vulnerable-packages, secret-scan, bicep: independent, start immediately.
 #
 # Every third-party action is pinned to a full commit SHA (Dependabot keeps them up to date).
@@ -340,17 +341,129 @@ jobs:
           done
           echo "Bicep templates and parameter files are valid."
 
-  # -----------------------------------------------------------------------------------------------
-  # TODO(phase-2): Lighthouse performance budget — PROMPT.md §10 and §13 (LCP < 2.5 s on simulated
-  # 4G, CI fails when the budget is exceeded). Added in phase 2, once the public site exists:
-  #   lighthouse:
-  #     name: Lighthouse budget
-  #     needs: build
-  #     runs-on: ubuntu-latest
-  #     steps:
-  #       - start CarRental.Web (Testcontainers SQL, Seed__Demo=true) or target the recette URL
-  #       - run Lighthouse CI (action pinned to a commit SHA) on /fr, /fr/reserver... with
-  #         .github/lighthouse/budget.json (LCP, total byte weight, no render-blocking JS)
-  #       - upload the Lighthouse reports as an artifact
-  # Deliberately not declared yet so that CI does not fail before the site exists.
-  # -----------------------------------------------------------------------------------------------
+  # Lighthouse budget of the public site (PROMPT.md §10 and §13, ADR-0036). The published app runs in
+  # the CI-only environment "Ci" with the demo data (SQL Server and Azurite started with docker run),
+  # over HTTPS with a throwaway self-signed certificate (cookies are secure-only outside development).
+  # Lighthouse CI (exact version, no action) measures the home page and a results page three times
+  # each on a simulated mid-range phone over 4G (default mobile settings, simulated throttling) and
+  # fails on .github/lighthouse/budget.json: LCP <= 2.5 s, CLS <= 0.1, TBT <= 200 ms, accessibility
+  # >= 0.95, scripts <= 20 KB. The reports are uploaded as an artifact.
+  lighthouse:
+    name: Lighthouse budget (public site)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      LHCI_VERSION: 0.15.1
+      SITE_URL: https://127.0.0.1:5443
+      CI_SQL_PASSWORD: "Lighthouse-Ci-0nly-Passw0rd!" # gitleaks:allow (throwaway password of a CI-only container)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Started first: they boot while the app is published. Same images as docker-compose.yml.
+      - name: Start SQL Server and Azurite
+        run: |
+          docker run -d --name sql -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e "MSSQL_SA_PASSWORD=$CI_SQL_PASSWORD" \
+            -p 1433:1433 mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+          docker run -d --name azurite -p 10000:10000 mcr.microsoft.com/azure-storage/azurite:3.37.0 \
+            azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose --inMemoryPersistence
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Publish the web app
+        run: dotnet publish src/CarRental.Web --configuration "$CONFIGURATION" --output "$RUNNER_TEMP/site"
+
+      - name: Create a throwaway TLS certificate
+        run: >-
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1
+          -keyout "$RUNNER_TEMP/tls.key" -out "$RUNNER_TEMP/tls.crt"
+          -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1"
+
+      - name: Wait for SQL Server
+        run: |
+          for _ in $(seq 1 60); do
+            if docker exec sql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$CI_SQL_PASSWORD" -Q "SELECT 1" -b -o /dev/null; then
+              echo "SQL Server is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sql | tail -n 50
+          exit 1
+
+      - name: Start the site (CI-only environment, demo data)
+        env:
+          ASPNETCORE_ENVIRONMENT: Ci
+          ASPNETCORE_URLS: ${{ env.SITE_URL }}
+          Kestrel__Certificates__Default__Path: ${{ runner.temp }}/tls.crt
+          Kestrel__Certificates__Default__KeyPath: ${{ runner.temp }}/tls.key
+          ConnectionStrings__Sql: Server=127.0.0.1,1433;Database=CarRental_Lighthouse;User Id=sa;Password=${{ env.CI_SQL_PASSWORD }};Encrypt=True;TrustServerCertificate=True
+          Storage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+          Database__ApplyMigrationsOnStartup: "true"
+          Seed__Demo: "true"
+          PublicSite__WhatsAppNumber: "21600000000"
+          PublicSite__AllowIndexing: "true"
+          DataProtection__KeysDirectory: ${{ runner.temp }}/keys
+        run: |
+          cd "$RUNNER_TEMP/site"
+          nohup dotnet CarRental.Web.dll > "$RUNNER_TEMP/site.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            if [ "$(curl -sk -o /dev/null -w '%{http_code}' "$SITE_URL/health/ready" || true)" = "200" ]; then
+              echo "The site is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/site.log"
+          exit 1
+
+      # Dates relative to the run, in a period the demo fleet can rent; the first requests warm up the caches.
+      - name: Choose and warm up the measured pages
+        id: pages
+        run: |
+          pickup="$(date -u -d '+21 days' +%Y-%m-%d)T10:00"
+          dropoff="$(date -u -d '+25 days' +%Y-%m-%d)T10:00"
+          results="$SITE_URL/fr/reserver?lieu=TUN&depart=$pickup&retour=$dropoff"
+          for url in "$SITE_URL/fr" "$results"; do
+            for _ in 1 2 3; do
+              curl -sk -o /dev/null -w "%{http_code} %{time_total}s $url\n" "$url"
+            done
+          done
+          echo "results=$results" >> "$GITHUB_OUTPUT"
+
+      - name: Lighthouse CI (collect, assert the budget, write the reports)
+        env:
+          RESULTS_URL: ${{ steps.pages.outputs.results }}
+        run: |
+          status=0
+          npx --yes "@lhci/cli@$LHCI_VERSION" collect --config=.github/lighthouse/lighthouserc.json \
+            --url="$SITE_URL/fr" --url="$RESULTS_URL" || status=1
+          npx --yes "@lhci/cli@$LHCI_VERSION" assert --config=.github/lighthouse/budget.json || status=1
+          npx --yes "@lhci/cli@$LHCI_VERSION" upload --config=.github/lighthouse/lighthouserc.json || true
+          exit "$status"
+
+      - name: Upload the Lighthouse reports and the site log
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-reports
+          path: |
+            .lighthouseci
+            ${{ runner.temp }}/site.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
