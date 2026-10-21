@@ -2,6 +2,7 @@ using System.Globalization;
 using CarRental.Web.Components.Public;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace CarRental.Web.Endpoints.PublicSite;
 
@@ -28,30 +29,43 @@ public static class PublicPageCaching
 
     /// <summary>
     /// Sets <c>Cache-Control: public, max-age=…</c> on the response of a marked page when it is a 200 for an anonymous
-    /// visitor without any cookie being set; anything else is left as is (signed-in staff, errors, re-executed pages).
+    /// visitor without any cookie being set. Any other response of a marked page (signed-in staff, a cookie being set)
+    /// that carries no cache policy gets <c>no-cache, no-store</c>, as the antiforgery token would have given it, so that
+    /// a shared cache never keeps it; errors and re-executed pages are left as is.
     /// </summary>
     public static void Apply(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (CacheableEndpoint(context) is not { } cacheable || context.User.Identity?.IsAuthenticated == true || context.Response.HasStarted)
+        if (CacheableEndpoint(context) is not { } cacheable || context.Response.HasStarted)
         {
             return;
         }
 
+        var anonymous = context.User.Identity?.IsAuthenticated != true;
         context.Response.OnStarting(
             static state =>
             {
-                var (http, maxAge) = ((HttpContext, int))state;
+                var (http, maxAge, anonymous) = ((HttpContext, int, bool))state;
                 var response = http.Response;
-                if (response.StatusCode == StatusCodes.Status200OK && !response.Headers.ContainsKey("Set-Cookie"))
+                if (response.StatusCode != StatusCodes.Status200OK)
+                {
+                    return Task.CompletedTask;
+                }
+
+                if (anonymous && !response.Headers.ContainsKey("Set-Cookie"))
                 {
                     response.Headers.CacheControl = string.Create(CultureInfo.InvariantCulture, $"public, max-age={maxAge}");
                     response.Headers.Remove("Pragma");
                 }
+                else if (StringValues.IsNullOrEmpty(response.Headers.CacheControl))
+                {
+                    response.Headers.CacheControl = "no-cache, no-store";
+                    response.Headers.Pragma = "no-cache";
+                }
 
                 return Task.CompletedTask;
             },
-            (context, cacheable.MaxAgeSeconds));
+            (context, cacheable.MaxAgeSeconds, anonymous));
     }
 
     /// <summary>Wraps the registered <see cref="IAntiforgery"/> with <see cref="CacheablePageAntiforgery"/>.</summary>

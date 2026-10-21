@@ -61,7 +61,9 @@ public sealed class PublicHttpTests(IntegrationHost host)
         var response = await client.GetAsync(new Uri("/fr/faq", UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (response.Headers.CacheControl?.Public ?? false).ShouldBeFalse();
+        response.Headers.CacheControl.ShouldNotBeNull();
+        response.Headers.CacheControl.Public.ShouldBeFalse();
+        response.Headers.CacheControl.NoStore.ShouldBeTrue();
     }
 
     [Fact]
