@@ -116,17 +116,22 @@ internal sealed class ChannelRestrictionReader(IAppDbContext db, IUnitOfWork uni
         }
 
         var yesterday = TunisTime.DateOf(timeProvider.GetUtcNow()).AddDays(-1);
-        var rows = await Query(db, yesterday)
-            .Where(r => r.CategoryId == categoryId && r.SalesChannel == channel)
-            .ToListAsync(cancellationToken);
+        var rows = await Query(db, yesterday, categoryId, channel).ToListAsync(cancellationToken);
         return [.. rows.Select(r => r.Rule)];
     }
 
-    /// <summary>The restrictions still running on <paramref name="since"/> or later, of every channel that is not inactive.</summary>
-    internal static IQueryable<RestrictionRow> Query(IAppDbContext db, DateOnly since) =>
+    /// <summary>
+    /// The restrictions still running on <paramref name="since"/> or later, of every channel that is not inactive (only
+    /// those of <paramref name="categoryId"/> on <paramref name="salesChannel"/> when given). Filters come before the
+    /// projection, which SQL cannot read back.
+    /// </summary>
+    internal static IQueryable<RestrictionRow> Query(IAppDbContext db, DateOnly since, Guid? categoryId = null, SalesChannel? salesChannel = null) =>
         from quota in db.Set<ChannelQuota>().AsNoTracking()
         join channel in db.Set<Channel>().AsNoTracking() on quota.ChannelId equals channel.Id
-        where quota.EndDate >= since && channel.State != ChannelState.Inactive
+        where quota.EndDate >= since
+              && channel.State != ChannelState.Inactive
+              && (categoryId == null || quota.CategoryId == categoryId)
+              && (salesChannel == null || quota.SalesChannel == salesChannel)
         select new RestrictionRow(
             quota.CategoryId,
             quota.SalesChannel,
