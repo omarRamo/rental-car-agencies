@@ -38,6 +38,16 @@ public interface ICustomersQueries
     Task<bool> IsBlacklistedAsync(Guid personId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The persons whose phone is exactly <paramref name="phone"/> once normalized (E.164, Tunisia by default), e.g. the
+    /// sender of a WhatsApp message; several when relatives share a number (never merge them: ADR-0027). Anonymized persons
+    /// are left out; an invalid number finds nobody. Ordered by last then first name, at most 20.
+    /// </summary>
+    Task<IReadOnlyList<PersonSummaryInfo>> FindPersonsByPhoneAsync(string phone, CancellationToken cancellationToken = default);
+
+    /// <summary>Whether the person currently gives the consent <paramref name="purpose"/> (false for an unknown or anonymized person).</summary>
+    Task<bool> HasConsentAsync(Guid personId, ConsentPurposeInfo purpose, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Eligibility of the person as a driver for a rental from <paramref name="pickupAt"/> to <paramref name="returnAt"/>,
     /// with the settings of <paramref name="agencyId"/> (platform values when null). Errors: person not found or
     /// anonymized, return not after pick-up.
