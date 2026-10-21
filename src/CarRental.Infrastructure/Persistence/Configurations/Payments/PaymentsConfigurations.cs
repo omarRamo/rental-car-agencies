@@ -2,6 +2,7 @@ using CarRental.Domain.Cash;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Domain.Referential;
+using CarRental.Infrastructure.Persistence.Auditing;
 using CarRental.Infrastructure.Persistence.Conventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -28,6 +29,15 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Ignore(p => p.IsOnline);
         builder.Ignore(p => p.IsSettled);
         builder.Ignore(p => p.RefundableAmount);
+        builder.Ignore(p => p.OrderNumber);
+        builder.Ignore(p => p.IsAwaitingApproval);
+
+        // Clic to Pay (ADR-0038, ADR-0039): the gateway side of an online payment; empty for counter payments.
+        builder.Property(p => p.GatewayFormUrl).HasMaxLength(Payment.GatewayFormUrlMaxLength);
+        builder.Property(p => p.GatewayReturnPath).HasMaxLength(Payment.LocalPathMaxLength);
+        builder.Property(p => p.GatewayFailPath).HasMaxLength(Payment.LocalPathMaxLength);
+        builder.Property(p => p.GatewayAttentionDetail).HasMaxLength(Payment.GatewayAttentionDetailMaxLength);
+        builder.Property(p => p.ApprovedByName).HasMaxLength(AuditActor.UserNameMaxLength);
 
         builder.HasOne<Agency>().WithMany().HasForeignKey(p => p.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Payment>().WithMany().HasForeignKey(p => p.OriginalPaymentId).OnDelete(DeleteBehavior.Restrict);
@@ -38,6 +48,38 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         // Daily totals by means of payment (reconciliations): settled payments only.
         builder.HasIndex(p => p.CapturedAtUtc).HasFilter("[CapturedAtUtc] IS NOT NULL");
+
+        // Online payments: return from the payment page by gateway order id; catch-up and lists by status and date.
+        var clicToPay = (int)PaymentMethod.ClicToPay;
+        builder.HasIndex(p => p.ExternalReference)
+            .HasFilter($"[Method] = {clicToPay} AND [ExternalReference] IS NOT NULL")
+            .HasDatabaseName("IX_Payments_GatewayOrder");
+        builder.HasIndex(p => new { p.Status, p.RecordedAtUtc })
+            .HasFilter($"[Method] = {clicToPay}")
+            .HasDatabaseName("IX_Payments_Online");
+    }
+}
+
+/// <summary>
+/// The call log of the payment gateway (append only, never audited row by row: it is itself a log). No credentials, no
+/// card data, no raw answer: only structured fields. Read by payment for the history of the back office.
+/// </summary>
+internal sealed class GatewayCallLogConfiguration : IEntityTypeConfiguration<GatewayCallLog>
+{
+    public void Configure(EntityTypeBuilder<GatewayCallLog> builder)
+    {
+        builder.ToTable("GatewayCallLogs", Schemas.Payments);
+        builder.ExcludeFromAudit();
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.OrderNumber).HasMaxLength(GatewayCallLog.OrderNumberMaxLength).IsUnicode(false).IsRequired();
+        builder.Property(c => c.GatewayOrderId).HasMaxLength(GatewayCallLog.GatewayOrderIdMaxLength).IsUnicode(false);
+        builder.Property(c => c.GatewayErrorCode).HasMaxLength(GatewayCallLog.ErrorCodeMaxLength).IsUnicode(false);
+        builder.Property(c => c.GatewayErrorMessage).HasMaxLength(GatewayCallLog.ErrorMessageMaxLength);
+        builder.Property(c => c.ActionCode).HasMaxLength(GatewayCallLog.ActionCodeMaxLength).IsUnicode(false);
+        builder.Property(c => c.CorrelationId).HasMaxLength(GatewayCallLog.CorrelationIdMaxLength).IsUnicode(false);
+
+        builder.HasIndex(c => new { c.PaymentId, c.StartedAtUtc });
+        builder.HasIndex(c => c.StartedAtUtc);
     }
 }
 
