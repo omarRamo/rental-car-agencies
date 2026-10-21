@@ -41,7 +41,7 @@ internal static class WebServiceCollectionExtensions
         services.AddTransient<MudLocalizer, MudBlazorLocalizer>();
 
         AddLocalization(services);
-        AddAuthentication(services, environment);
+        AddAuthentication(services, configuration, environment);
         AddAuthorization(services);
 
         services.AddHttpContextAccessor();
@@ -79,6 +79,7 @@ internal static class WebServiceCollectionExtensions
         services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = 10 * 1024 * 1024);
         services.AddPublicSite(configuration, environment);
         services.AddWhatsAppWebhook(configuration);
+        services.AddSecurityRateLimiting(configuration);
         return services;
     }
 
@@ -103,8 +104,12 @@ internal static class WebServiceCollectionExtensions
         });
     }
 
-    private static void AddAuthentication(IServiceCollection services, IHostEnvironment environment)
+    private static void AddAuthentication(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        services.AddOptions<StaffSessionOptions>()
+            .Bind(configuration.GetSection(StaffSessionOptions.SectionName))
+            .Validate(o => o.IsValid, "Identity:Session:AbsoluteLifetime must be positive and at most 7 days.")
+            .ValidateOnStart();
         services.AddCascadingAuthenticationState();
         services.AddScoped<IdentityRedirectManager>();
         services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
@@ -128,6 +133,9 @@ internal static class WebServiceCollectionExtensions
             options.AccessDeniedPath = "/account/access-denied";
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.SlidingExpiration = true;
+
+            // However active, a session ends 12 hours after its sign-in (Identity:Session:AbsoluteLifetime, ADR-0062).
+            SessionLifetime.Configure(options);
         });
         services.Configure<CookieAuthenticationOptions>(IdentityConstants.TwoFactorUserIdScheme, options =>
         {

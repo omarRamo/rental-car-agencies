@@ -3,6 +3,7 @@ using CarRental.Application.Fleet.Photos;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Admin.Fleet;
+using CarRental.Web.Security;
 using Microsoft.Net.Http.Headers;
 
 namespace CarRental.Web.Endpoints;
@@ -29,7 +30,8 @@ internal static class FleetEndpoints
     public static IEndpointRouteBuilder MapFleetEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
-        endpoints.MapGet(FleetMedia.CategoryPhotoRoute, GetCategoryPhotoAsync).AllowAnonymous();
+        // Anonymous (public site), so rate limited per client address: each miss of the caches is a query and a blob read.
+        endpoints.MapGet(FleetMedia.CategoryPhotoRoute, GetCategoryPhotoAsync).AllowAnonymous().RequireRateLimiting(SecurityRateLimits.Media);
         endpoints.MapGet(FleetMedia.VehiclePhotoRoute, GetVehiclePhotoAsync).RequireAuthorization(PermissionPolicy.For(Permissions.FleetRead));
         return endpoints;
     }

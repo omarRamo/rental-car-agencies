@@ -40,8 +40,13 @@ public sealed class ReverseProxyOptions
 {
     public const string SectionName = "ReverseProxy";
 
-    /// <summary>Reads the client IP from <c>CF-Connecting-IP</c> when present (Cloudflare in front of the app).</summary>
-    public bool TrustCloudflareHeader { get; set; } = true;
+    /// <summary>
+    /// Reads the client IP from <c>CF-Connecting-IP</c> when present (Cloudflare in front of the app). Off by default: any
+    /// client that reaches the origin directly can set this header and choose its address (rate limits, audit trail), so it
+    /// is only turned on with the origin reserved to Cloudflare — the Bicep parameter <c>restrictToCloudflare</c> sets
+    /// <c>ReverseProxy__TrustCloudflareHeader</c> (ADR-0062).
+    /// </summary>
+    public bool TrustCloudflareHeader { get; set; }
 }
 
 public sealed class LocalizationSettings

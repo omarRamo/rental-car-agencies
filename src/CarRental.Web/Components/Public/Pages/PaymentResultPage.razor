@@ -1,5 +1,7 @@
 @page "/{culture:length(2)}/paiement/{PaymentId:guid}"
 @page "/{culture:length(2)}/payment/{PaymentId:guid}"
+@* Anonymous and read from the database at each request: under the public-search limit (security review, ADR-0062). *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
 @using CarRental.Application.Payments.Contracts
 @inject IOnlinePayments Payments
 @inject IStringLocalizer<PaymentResultResources> L

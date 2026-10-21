@@ -100,9 +100,10 @@ internal sealed partial class CarRentalSecurityStampValidator(
 internal static class SessionClaims
 {
     /// <summary>
-    /// The security stamp validator rebuilds the principal from the database, which loses how the user signed in: the
-    /// <c>amr</c> claim (<c>mfa</c> after the authenticator code) and the authentication method are copied over, otherwise
-    /// every refresh would close the back office (MFA policy, ADR-0014).
+    /// The security stamp validator rebuilds the principal from the database, which loses how and when the user signed
+    /// in: the <c>amr</c> claim (<c>mfa</c> after the authenticator code), the authentication method and the sign-in
+    /// instant (<see cref="SessionLifetime.SignInTimeClaimType"/>) are copied over, otherwise every refresh would close
+    /// the back office (MFA policy, ADR-0014) or restart the absolute lifetime of the session (ADR-0062).
     /// </summary>
     public static Task KeepAuthenticationMethodAsync(SecurityStampRefreshingPrincipalContext context)
     {
@@ -112,7 +113,9 @@ internal static class SessionClaims
             return Task.CompletedTask;
         }
 
-        var kept = current.FindAll(MfaRequirement.AuthenticationMethodClaimType).Concat(current.FindAll(ClaimTypes.AuthenticationMethod));
+        var kept = current.FindAll(MfaRequirement.AuthenticationMethodClaimType)
+            .Concat(current.FindAll(ClaimTypes.AuthenticationMethod))
+            .Concat(current.FindAll(SessionLifetime.SignInTimeClaimType));
         foreach (var claim in kept.Where(c => !refreshed.HasClaim(c.Type, c.Value)).ToList())
         {
             refreshed.AddClaim(new Claim(claim.Type, claim.Value));

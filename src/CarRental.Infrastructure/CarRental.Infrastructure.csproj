@@ -41,6 +41,8 @@
     <InternalsVisibleTo Include="CarRental.Integration.Tests" />
     <!-- The adapters of the WhatsApp agent (Claude client, scripted model) are tested offline there (ADR-0055). -->
     <InternalsVisibleTo Include="CarRental.Application.Tests" />
+    <!-- Unit tests of the health and telemetry plumbing that need no container (tests/CarRental.Architecture.Tests/Observability). -->
+    <InternalsVisibleTo Include="CarRental.Architecture.Tests" />
   </ItemGroup>
 
 </Project>

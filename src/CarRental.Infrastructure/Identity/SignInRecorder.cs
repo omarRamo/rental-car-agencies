@@ -53,9 +53,41 @@ public sealed partial class SignInRecorder(
             {
                 EntityType = UserEntityType,
                 EntityId = user?.Id.ToString(),
-                Details = user is null ? $"{reason} ({attemptedEmail})" : reason,
+                Details = user is null ? $"{reason} ({MaskAttemptedLogin(attemptedEmail)})" : reason,
             },
             cancellationToken);
+    }
+
+    /// <summary>
+    /// What the append-only audit trail keeps of a login typed for an unknown account: the domain of an e-mail address
+    /// only (<c>***@example.tn</c>), else a neutral mention. Users sometimes type their password in the e-mail field, and
+    /// nothing written in the audit trail can ever be removed (ADR-0018, ADR-0062); a known account is recorded by its id.
+    /// </summary>
+    public static string MaskAttemptedLogin(string? attempted)
+    {
+        var value = attempted?.Trim() ?? string.Empty;
+        var at = value.IndexOf('@', StringComparison.Ordinal);
+        if (value.Length == 0)
+        {
+            return "no login";
+        }
+
+        if (at <= 0 || at != value.LastIndexOf('@') || value.Length > 254 || !IsDomainName(value[(at + 1)..]))
+        {
+            return "not an e-mail address";
+        }
+
+        return "***@" + value[(at + 1)..].ToLowerInvariant();
+    }
+
+    /// <summary>Labels of letters, digits and hyphens separated by dots, ending with a top-level domain of letters.</summary>
+    private static bool IsDomainName(string domain)
+    {
+        var labels = domain.Split('.');
+        return labels.Length >= 2
+               && labels.All(l => l.Length is > 0 and <= 63 && l.All(c => char.IsAsciiLetterOrDigit(c) || c == '-') && l[0] != '-' && l[^1] != '-')
+               && labels[^1].Length >= 2
+               && labels[^1].All(char.IsAsciiLetter);
     }
 
     public Task LockedOutAsync(ApplicationUser user, CancellationToken cancellationToken = default)

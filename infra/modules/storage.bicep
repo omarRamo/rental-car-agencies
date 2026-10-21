@@ -46,7 +46,12 @@ param pointInTimeRestoreDays int
 @minValue(0)
 param versionRetentionDays int
 
-var pointInTimeRestoreEnabled = pointInTimeRestoreDays > 0
+@description('Containers under a time-based retention policy (container-level WORM, unlocked): objects { name: \'invoices\', days: 3650 }. A blob can be created but neither overwritten nor deleted for that many days after its creation.')
+param immutableContainers array = []
+
+// Immutable storage is incompatible with point-in-time restore (Azure Storage): the WORM policy of the accounting
+// documents wins, versions and soft delete remain the means of restoring a blob (ADR-0061, docs/runbook.md).
+var pointInTimeRestoreEnabled = pointInTimeRestoreDays > 0 && empty(immutableContainers)
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-06-01' = {
   name: storageAccountName
@@ -115,6 +120,21 @@ resource containers 'Microsoft.Storage/storageAccounts/blobServices/containers@2
     name: containerName
     properties: {
       publicAccess: 'None'
+    }
+  }
+]
+
+// Time-based retention, deployed unlocked: it already refuses every overwrite and delete of a blob younger than the
+// period, while an administrator can still shorten or remove it. Locking it (irreversible, SEC 17a-4 style) is a
+// decision of the agency once the retention period is confirmed, never done by this template (docs/runbook.md).
+resource immutability 'Microsoft.Storage/storageAccounts/blobServices/containers/immutabilityPolicies@2025-06-01' = [
+  for policy in immutableContainers: {
+    parent: containers[indexOf(containerNames, policy.name)]
+    name: 'default'
+    properties: {
+      immutabilityPeriodSinceCreationInDays: policy.days
+      allowProtectedAppendWrites: false
+      allowProtectedAppendWritesAll: false
     }
   }
 ]

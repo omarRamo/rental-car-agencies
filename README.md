@@ -65,7 +65,7 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | 3 — Finance et pilotage | Instantané quotidien, indicateurs, exports Excel | Factures, avoirs et facture électronique ; dépenses, rapprochements, journaux et clôture mensuelle |
 | 4 — WhatsApp IA | Webhook signé, conversations, fenêtre de 24 h, boîte partagée avec reprise humaine, notifications par modèles approuvés, agent IA (Claude Haiku 5.5 : exécuteur hors outbox, 5 outils, garde-fous dans le code, cache du prompt, coûts et plafonds, base de connaissances validée, 30 conversations d'évaluation sur modèle scripté) | Évaluation contre le vrai modèle (clé de l'agence), ouverture à des numéros pilotes |
 | 5 — Canaux | Module Canaux : correspondances, quotas et arrêts de vente dans le moteur, adaptateur manuel, point d'entrée authentifié, synchronisation et rejeu, commissions, banc de contrat | Connecteur Booking.com (attend le cahier des charges du fournisseur) |
-| Durcissement | En-têtes de sécurité, sauvegardes SQL et Blob | Alertes, rétention longue, restriction de l'origine à Cloudflare, revue OWASP, `docs/runbook.md` |
+| Durcissement | En-têtes et CSP, limitation de débit des pages de compte et des sondes, sessions de 12 h, alertes Azure Monitor (santé publiée par l'application), sauvegarde annuelle gardée 10 ans, factures immuables, restriction de l'origine à Cloudflare (à activer), revue OWASP passe 1, [`docs/runbook.md`](docs/runbook.md) | Seconde passe de la revue sur le tunnel, l'agent IA et la facturation |
 
 
 ## Structure du dépôt

@@ -1,3 +1,6 @@
-@* Account pages: static server rendering (they need HttpContext for cookies), never interactive. *@
+@* Account pages: static server rendering (they need HttpContext for cookies), never interactive. Their form submissions
+   are rate limited per client address (sign-in, codes, reset e-mails; ADR-0062); displaying a page is not. *@
+@using Microsoft.AspNetCore.RateLimiting
 @layout AccountLayout
 @attribute [ExcludeFromInteractiveRouting]
+@attribute [EnableRateLimiting(SecurityRateLimits.Account)]

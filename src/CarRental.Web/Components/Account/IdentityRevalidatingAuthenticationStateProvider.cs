@@ -10,15 +10,18 @@ namespace CarRental.Web.Components.Account;
 
 /// <summary>
 /// Revalidates the user of an interactive circuit every two minutes: a changed security stamp (password change, lock by
-/// the manager, role change), a lockout or a revoked permission ends the authentication state of the circuit; the page
-/// then reloads over HTTP (<c>NotAuthorizedRedirect</c>), where the cookie is validated at once with the current state
-/// of the account: fresh claims, or the login page.
+/// the manager, role change), a lockout, a revoked permission or the end of the absolute lifetime of the session
+/// (<see cref="StaffSessionOptions"/>) ends the authentication state of the circuit; the page then reloads over HTTP
+/// (<c>NotAuthorizedRedirect</c>), where the cookie is validated at once with the current state of the account: fresh
+/// claims, or the login page.
 /// </summary>
 internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     ILoggerFactory loggerFactory,
     IServiceScopeFactory scopeFactory,
     IUserSessions sessions,
-    IOptions<IdentityOptions> options)
+    IOptions<IdentityOptions> options,
+    IOptions<StaffSessionOptions> sessionOptions,
+    TimeProvider timeProvider)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
     protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(2);
@@ -29,11 +32,12 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     {
         ArgumentNullException.ThrowIfNull(authenticationState);
         await using var scope = scopeFactory.CreateAsyncScope();
-        var valid = await SessionClaims.IsStillValidAsync(
-            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
-            scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
-            authenticationState.User,
-            options.Value);
+        var valid = !SessionLifetime.HasExpired(authenticationState.User, timeProvider.GetUtcNow(), sessionOptions.Value.AbsoluteLifetime)
+            && await SessionClaims.IsStillValidAsync(
+                scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+                scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+                authenticationState.User,
+                options.Value);
         if (!valid && authenticationState.User.GetUserId() is { } userId)
         {
             // The reload must not wait for the validation interval of the cookie.
