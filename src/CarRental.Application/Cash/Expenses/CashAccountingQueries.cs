@@ -18,7 +18,7 @@ internal sealed class CashAccountingQueries(IAppDbContext db) : ICashAccountingQ
 
         var expenses = await db.Set<Expense>()
             .AsNoTracking()
-            .Where(e => e.AgencyId == agencyId && e.Date >= from && e.Date <= to)
+            .Where(e => e.AgencyId == agencyId && e.Date >= from && e.Date <= to && !e.IsDeleted)
             .ToListAsync(cancellationToken);
         return [.. expenses.OrderBy(e => e.Date).ThenBy(e => e.Number, StringComparer.Ordinal).Select(e => e.ToEntry())];
     }

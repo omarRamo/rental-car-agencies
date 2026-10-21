@@ -281,10 +281,10 @@ public sealed class Expense : AggregateRoot, ISoftDeletable
             return ExpenseErrors.Deleted;
         }
 
-        var text = CashText.Clean(reason);
-        if (text is null || text.Length < ReasonMinLength || text.Length > ReasonMaxLength)
+        var reasonChecked = CheckDeletionReason(reason);
+        if (reasonChecked.IsFailure)
         {
-            return ExpenseErrors.DeletionReasonRequired;
+            return reasonChecked;
         }
 
         if (IsPaidInCash && reversedInSessionId is null)
@@ -301,11 +301,18 @@ public sealed class Expense : AggregateRoot, ISoftDeletable
         DeletedAtUtc = at;
         DeletedByUserId = by.UserId;
         DeletedByName = CashText.ActorName(by);
-        DeletionReason = text;
+        DeletionReason = CashText.Clean(reason);
         ReversedInSessionId = reversedInSessionId;
         Touch(by, at);
         Raise(new ExpenseDeleted(Id, AgencyId));
         return Result.Success();
+    }
+
+    /// <summary>Checks the reason of a deletion (the caller checks it before putting the cash of the expense back in a session).</summary>
+    public static Result CheckDeletionReason(string? reason)
+    {
+        var text = CashText.Clean(reason);
+        return text is null || text.Length < ReasonMinLength || text.Length > ReasonMaxLength ? ExpenseErrors.DeletionReasonRequired : Result.Success();
     }
 
     /// <summary>Checks and normalizes what the user entered (the vehicle, maintenance and claim are checked by the caller against the other modules).</summary>

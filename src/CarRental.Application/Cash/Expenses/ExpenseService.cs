@@ -95,7 +95,9 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
-        var query = filter.IncludeDeleted ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters() : _db.Set<Expense>().AsNoTracking();
+        var query = filter.IncludeDeleted
+            ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters()
+            : _db.Set<Expense>().AsNoTracking().Where(e => !e.IsDeleted);
         query = query.Where(e => e.AgencyId == filter.AgencyId);
         if (filter.From is { } from)
         {
@@ -283,13 +285,23 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
-        var agencyId = await _db.Set<Expense>().AsNoTracking().Where(e => e.Id == expenseId).Select(e => (Guid?)e.AgencyId).FirstOrDefaultAsync(cancellationToken);
-        if (agencyId is not { } agency)
+        var current = await _db.Set<Expense>()
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(e => e.Id == expenseId)
+            .Select(e => new { e.AgencyId, e.IsDeleted })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (current is null)
         {
             return ExpenseErrors.NotFound;
         }
 
-        var details = await PrepareAsync(form, agency, cancellationToken);
+        if (current.IsDeleted)
+        {
+            return ExpenseErrors.Deleted;
+        }
+
+        var details = await PrepareAsync(form, current.AgencyId, cancellationToken);
         if (details.IsFailure)
         {
             return details.Error;
@@ -335,6 +347,13 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
+        // The reason first: nothing is put back in a cash session for a deletion that would be refused.
+        var reasonChecked = Expense.CheckDeletionReason(reason);
+        if (reasonChecked.IsFailure)
+        {
+            return reasonChecked;
+        }
+
         var deleted = await SaveWithRetryAsync<bool>(
             async ct =>
             {
@@ -342,6 +361,11 @@ public sealed class ExpenseService
                 if (expense is null)
                 {
                     return await _db.Set<Expense>().IgnoreQueryFilters().AnyAsync(e => e.Id == expenseId, ct) ? ExpenseErrors.Deleted : ExpenseErrors.NotFound;
+                }
+
+                if (expense.IsDeleted)
+                {
+                    return ExpenseErrors.Deleted;
                 }
 
                 var open = await _periods.EnsureOpenAsync(expense.AgencyId, expense.Date, ct);

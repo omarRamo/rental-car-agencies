@@ -31,6 +31,7 @@ internal sealed class ExpensesVehicleCostsSource(IAppDbContext db) : IVehicleCos
         var expenses = await db.Set<Expense>()
             .AsNoTracking()
             .Where(e => e.AgencyId == agencyId
+                        && !e.IsDeleted
                         && e.Date >= from
                         && e.Date <= to
                         && e.VehicleId != null
