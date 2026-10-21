@@ -81,7 +81,11 @@ else if (_selected is { } agency)
     private string? _footer;
     private bool _busy;
 
-    protected override Task OnInitializedAsync() => LoadAsync(null);
+    /// <summary>The agency to show first (its id, e.g. from the invoices screen), otherwise the first one by name.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
+
+    protected override Task OnInitializedAsync() => LoadAsync(AgencyQuery);
 
     private async Task LoadAsync(Guid? keep)
     {

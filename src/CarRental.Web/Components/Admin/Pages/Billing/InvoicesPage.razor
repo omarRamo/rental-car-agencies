@@ -159,7 +159,7 @@
             <Notice Kind="NoticeKind.Warning" Class="mb-3" Role="status">
                 @Shared[$"Error.{blocking}"]
                 <AuthorizeView Policy="@PermissionPolicy.For(Permissions.SettingsManage)">
-                    <MudLink Href="/admin/agency" Underline="Underline.Always" Class="ms-1">@L["ToInvoice.CompleteIdentity"]</MudLink>
+                    <MudLink Href="@($"/admin/agency?agency={_agencyId:D}")" Underline="Underline.Always" Class="ms-1">@L["ToInvoice.CompleteIdentity"]</MudLink>
                 </AuthorizeView>
             </Notice>
         }
