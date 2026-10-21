@@ -88,6 +88,10 @@ internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.HasIndex(m => m.MetaMessageId).IsUnique().HasFilter("[MetaMessageId] IS NOT NULL");
         builder.HasIndex(m => new { m.ConversationId, m.CreatedAtUtc });
         builder.HasIndex(m => m.CreatedAtUtc);
+
+        // Queue of the bot turn executor (ADR-0054): the customer messages waiting for the bot (BotTurnState.Pending).
+        builder.HasIndex(m => new { m.ConversationId, m.CreatedAtUtc }, "IX_Messages_PendingBotTurns")
+            .HasFilter("[BotTurn] = 1 AND [Direction] = 1");
     }
 }
 
