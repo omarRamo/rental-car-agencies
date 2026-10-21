@@ -38,6 +38,7 @@ Les clients n'ont pas de compte. Ils doivent suivre leur demande, envoyer les pi
 
 - 1F-b enregistre un `ICustomerDocumentProvider` pour le contrat signé ; la phase 3 un autre pour les factures et avoirs ; la phase 4 s'abonne à `BookingCustomerNotification` pour WhatsApp et lit l'accord WhatsApp du profil client.
 - Un client qui a perdu son e-mail redemande un lien ; un client dont l'adresse a changé passe par l'agence (aucune modification de contact depuis la page).
+- Le numéro de réservation est unique sur la plateforme : la demande d'accès le cherche sans filtrer par l'agence du site public (une seule agence par site, `PublicSite:AgencyId`). Si plusieurs agences partageaient un jour un même site, la recherche devrait se limiter à l'agence du site (l'accès reste protégé par l'adresse du dossier et le code envoyé à cette adresse).
 
 ## Alternatives écartées
 
