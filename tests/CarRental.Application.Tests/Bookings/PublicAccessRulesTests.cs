@@ -1,9 +1,13 @@
+using System.Text.Json;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Notifications;
 using CarRental.Application.Bookings.Payments;
 using CarRental.Application.Bookings.PublicAccess;
+using CarRental.Application.Common.Email;
+using CarRental.Application.Common.Outbox;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Tests.Bookings.Fakes;
+using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 
@@ -12,10 +16,12 @@ namespace CarRental.Application.Tests.Bookings;
 /// <summary>
 /// The rules of the public booking funnel and of "Ma réservation" that need no database (ADR-0049, ADR-0051): when the
 /// locked quote of a deep link carries a search, the guaranteed amount, what the customer types, which notification a
-/// status change sends, and the payment state kept from the online payments.
+/// status change sends, the payment state kept from the online payments, and the access e-mail composed out of the
+/// request.
 /// </summary>
 public sealed class PublicAccessRulesTests
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly DateTimeOffset Now = new(2027, 3, 1, 9, 0, 0, TimeSpan.Zero);
     private static readonly Guid Agency = Guid.NewGuid();
     private static readonly Guid Category = Guid.NewGuid();
@@ -94,6 +100,41 @@ public sealed class PublicAccessRulesTests
         BookingOnlinePaymentHandler.Summarize([expired, captured]).State.ShouldBe(RequestPaymentState.Captured);
         BookingOnlinePaymentHandler.Summarize([expired]).State.ShouldBe(RequestPaymentState.Expired);
         BookingOnlinePaymentHandler.Summarize([reversed]).State.ShouldBe(RequestPaymentState.Released);
+    }
+
+    [Fact]
+    public async Task The_access_email_of_a_matched_request_is_composed_out_of_the_request_and_queued()
+    {
+        var requested = new AccessEmailRequested(
+            new AccessEmail("LOC-2027-000123", "en", "/en/my-booking/access/TOKEN", "042817", Now.AddMinutes(30), "https://www.agence.tn"),
+            new CustomerRecipient("amel@example.test", "Amel Ben Salah"));
+
+        // The message goes through the outbox as JSON (web defaults): it comes back whole.
+        var stored = JsonSerializer.Deserialize<AccessEmailRequested>(JsonSerializer.Serialize(requested, JsonOptions), JsonOptions);
+        stored.ShouldBe(requested);
+
+        var composer = new RecordingComposer();
+        var outbox = new RecordingOutbox();
+        await new AccessEmailHandler(composer, outbox).HandleAsync(stored!, new OutboxMessageContext(Guid.CreateVersion7(), Now, 1, null), TestContext.Current.CancellationToken);
+
+        composer.Access.ShouldHaveSingleItem().ShouldBe((requested.Email, requested.Recipient));
+        var email = outbox.Messages.ShouldHaveSingleItem().ShouldBeOfType<EmailRequested>().Message;
+        email.To.ShouldBe("amel@example.test");
+        email.Subject.ShouldBe("Access LOC-2027-000123");
+    }
+
+    private sealed class RecordingComposer : ICustomerEmailComposer
+    {
+        public List<(AccessEmail Email, CustomerRecipient Recipient)> Access { get; } = [];
+
+        public Task<EmailMessage> ComposeNotificationAsync(BookingCustomerNotification notification, CustomerRecipient recipient, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Only the access e-mail is expected.");
+
+        public Task<EmailMessage> ComposeAccessAsync(AccessEmail email, CustomerRecipient recipient, CancellationToken cancellationToken = default)
+        {
+            Access.Add((email, recipient));
+            return Task.FromResult(new EmailMessage(recipient.Email, $"Access {email.Number}", $"<p>{email.Code}</p>"));
+        }
     }
 
     private static FunnelStartRequest Request() => new(

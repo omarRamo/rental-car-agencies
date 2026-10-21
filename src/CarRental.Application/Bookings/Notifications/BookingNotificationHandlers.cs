@@ -129,6 +129,20 @@ internal sealed partial class BookingNotificationEmailHandler(
     private partial void LogNoRecipient(string kind, string number);
 }
 
+/// <summary>
+/// E-mails the link and the code of an access request that matched a booking (ADR-0051), composed by the web host in
+/// the language of the request. The e-mail is queued with the processed mark of the request: exactly once.
+/// </summary>
+internal sealed class AccessEmailHandler(ICustomerEmailComposer composer, IOutbox outbox) : IOutboxHandler<AccessEmailRequested>
+{
+    public async Task HandleAsync(AccessEmailRequested message, OutboxMessageContext context, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        var composed = await composer.ComposeAccessAsync(message.Email, message.Recipient, cancellationToken);
+        outbox.Enqueue(new EmailRequested(composed));
+    }
+}
+
 /// <summary>Links of "Ma réservation" issued by the platform.</summary>
 internal static class AccessGrants
 {

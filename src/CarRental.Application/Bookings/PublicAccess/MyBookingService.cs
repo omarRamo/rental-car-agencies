@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Notifications;
-using CarRental.Application.Common.Email;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Customers.Contracts;
@@ -36,7 +35,6 @@ public sealed partial class MyBookingService(
     BookingWorkflowService workflow,
     IBookingRequests requests,
     IEnumerable<ICustomerDocumentProvider> documentProviders,
-    ICustomerEmailComposer emails,
     IOutbox outbox,
     ISettingsReader settings,
     TimeProvider clock,
@@ -64,7 +62,9 @@ public sealed partial class MyBookingService(
     /// <summary>
     /// An access request: when the number designates a booking whose contact has this e-mail (main or second driver as
     /// typed with the request, or the payer), a link and a code are sent to it (at most a few per hour and per booking).
-    /// The same work is done and the same answer given in every case: nothing tells whether the booking exists.
+    /// The same answer is given in every case, and for a booking the same queries are made whether the address matches
+    /// or not, the e-mail being composed out of the request (<see cref="AccessEmailRequested"/>): nothing tells whether
+    /// the address is the one of the booking.
     /// </summary>
     public async Task<AccessRequestOutcome> RequestAccessAsync(
         string? email,
@@ -96,18 +96,18 @@ public sealed partial class MyBookingService(
         CustomerRecipient? recipient = null;
         if (booking is not null && booking.Status != BookingStatusInfo.Draft)
         {
-            recipient = await MatchContactAsync(booking, typedEmail!, cancellationToken);
-            if (recipient is not null)
+            var matched = await MatchContactAsync(booking, typedEmail!, cancellationToken);
+            var limit = await settings.GetAsync(PublicBookingSettings.AccessRequestsPerHour, cancellationToken: cancellationToken);
+            var since = now - ThrottleWindow;
+            var recent = await db.Set<BookingAccessGrant>()
+                .CountAsync(g => g.BookingId == booking.Id && g.Purpose == AccessPurpose.MyBooking && g.CreatedAtUtc > since, cancellationToken);
+            if (matched is not null && recent >= limit)
             {
-                var limit = await settings.GetAsync(PublicBookingSettings.AccessRequestsPerHour, cancellationToken: cancellationToken);
-                var since = now - ThrottleWindow;
-                var recent = await db.Set<BookingAccessGrant>()
-                    .CountAsync(g => g.BookingId == booking.Id && g.Purpose == AccessPurpose.MyBooking && g.CreatedAtUtc > since, cancellationToken);
-                if (recent >= limit)
-                {
-                    LogThrottled(booking.Number);
-                    recipient = null;
-                }
+                LogThrottled(booking.Number);
+            }
+            else
+            {
+                recipient = matched;
             }
         }
 
@@ -127,11 +127,9 @@ public sealed partial class MyBookingService(
         db.Set<BookingAccessGrant>().Add(grant);
         if (recipient is not null)
         {
-            var message = await emails.ComposeAccessAsync(
+            outbox.Enqueue(new AccessEmailRequested(
                 new AccessEmail(booking!.Number, culture, PublicBookingPaths.AccessLink(culture, token), code, grant.ExpiresAtUtc, publicBaseUrl),
-                recipient,
-                cancellationToken);
-            outbox.Enqueue(new EmailRequested(message));
+                recipient));
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -554,25 +552,27 @@ public sealed partial class MyBookingService(
 
     private static bool SameEmail(string stored, string typed) => string.Equals(stored.Trim(), typed, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// The contact of the booking with this address: main or second driver as typed with the request, else the payer.
+    /// Every contact is read whatever the answer, so that a match and a mismatch make the same queries.
+    /// </summary>
     private async Task<CustomerRecipient?> MatchContactAsync(BookingSummaryInfo booking, string email, CancellationToken cancellationToken)
     {
+        var contacts = new List<CustomerRecipient>(3);
         foreach (var personId in new[] { booking.MainDriverId, booking.SecondaryDriverId }.OfType<Guid>())
         {
-            var contact = await customers.GetBookingContactAsync(personId, booking.Id, cancellationToken);
-            if (contact?.Email is { } stored && SameEmail(stored, email))
+            if (await customers.GetBookingContactAsync(personId, booking.Id, cancellationToken) is { Email: { } stored } contact)
             {
-                return new CustomerRecipient(stored, contact.FullName);
+                contacts.Add(new CustomerRecipient(stored, contact.FullName));
             }
         }
 
-        if (booking.PayerCustomerId is { } payerId
-            && await customers.GetCustomerAsync(payerId, cancellationToken) is { Email: { } payerEmail } payer
-            && SameEmail(payerEmail, email))
+        if (booking.PayerCustomerId is { } payerId && await customers.GetCustomerAsync(payerId, cancellationToken) is { Email: { } payerEmail } payer)
         {
-            return new CustomerRecipient(payerEmail, payer.DisplayName);
+            contacts.Add(new CustomerRecipient(payerEmail, payer.DisplayName));
         }
 
-        return null;
+        return contacts.Find(c => SameEmail(c.Email, email));
     }
 
     private async Task<string> CultureAsync(Guid bookingId, CancellationToken cancellationToken) =>

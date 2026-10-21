@@ -108,6 +108,7 @@ public static class BookingsModule
         services.AddOutboxHandler<BookingStatusChanged, BookingNotificationPublisher>();
         services.AddOutboxHandler<OnlinePaymentStatusChanged, BookingOnlinePaymentHandler>();
         services.AddOutboxHandler<BookingCustomerNotification, BookingNotificationEmailHandler>();
+        services.AddOutboxHandler<AccessEmailRequested, AccessEmailHandler>();
         return services;
     }
 }

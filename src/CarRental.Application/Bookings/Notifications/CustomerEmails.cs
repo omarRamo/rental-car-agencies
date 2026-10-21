@@ -10,6 +10,13 @@ public sealed record CustomerRecipient(string Email, string? Name);
 public sealed record AccessEmail(string Number, string Culture, string LinkPath, string Code, DateTimeOffset ExpiresAtUtc, string? BaseUrl);
 
 /// <summary>
+/// Outbox message of an access request that matched a booking (ADR-0051): the access e-mail is composed and queued out
+/// of the request, which then does the same work whether a booking matched or not. It holds the link and the code in
+/// clear, as the e-mail it becomes does (outbox payloads are never shown).
+/// </summary>
+public sealed record AccessEmailRequested(AccessEmail Email, CustomerRecipient Recipient);
+
+/// <summary>
 /// The e-mails to customers (ADR-0051), written by the web host with its templates (Razor components rendered to
 /// HTML, with a text alternative) and resources, in the language of the customer. Called inside the operation that
 /// queues them (outbox): nothing is sent from here.
