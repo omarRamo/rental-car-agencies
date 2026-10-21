@@ -42,6 +42,15 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
     /// <summary>Permits of each public rate limiting policy (lifted by default: all tests share one client address).</summary>
     public int RateLimitPermits { get; init; } = 100_000;
 
+    /// <summary>Permits of the account forms policy (lifted by default: every test signs in from the same address).</summary>
+    public int AccountRateLimitPermits { get; init; } = 100_000;
+
+    /// <summary>Permits of the health probe throttle (lifted by default).</summary>
+    public int HealthRateLimitPermits { get; init; } = 100_000;
+
+    /// <summary>Absolute lifetime of the staff sessions (<c>Identity:Session:AbsoluteLifetime</c>), when a test needs a short one.</summary>
+    public TimeSpan? SessionAbsoluteLifetime { get; init; }
+
     /// <summary>Turnstile verifier of the host: accepts any token except <see cref="FakeTurnstileVerifier.RejectedToken"/>.</summary>
     public FakeTurnstileVerifier TurnstileVerifier { get; } = new();
 
@@ -85,10 +94,21 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
 
         // Every test of the run shares one client address: the public rate limits are lifted for the shared hosts
         // (a dedicated host checks them with low limits), and Turnstile is offline with an accepting fake verifier.
-        foreach (var policy in new[] { "Search", "Submit", "Upload" })
+        foreach (var policy in new[] { "Search", "Submit", "Upload", "Media" })
         {
             builder.UseSetting($"RateLimiting:{policy}:PermitLimit", RateLimitPermits.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+
+        builder.UseSetting("RateLimiting:Account:PermitLimit", AccountRateLimitPermits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        builder.UseSetting("RateLimiting:Health:PermitLimit", HealthRateLimitPermits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (SessionAbsoluteLifetime is { } lifetime)
+        {
+            builder.UseSetting("Identity:Session:AbsoluteLifetime", lifetime.ToString("c", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // Tests stand for distinct clients with CF-Connecting-IP, as Cloudflare does in front of the origin it is
+        // reserved to (ReverseProxy:TrustCloudflareHeader is off by default, ADR-0062).
+        builder.UseSetting("ReverseProxy:TrustCloudflareHeader", "true");
 
         // Channels: same lifted (or low) limit for the inbound endpoint, a short debounce so that the pump sends updates
         // at once, and the App Service certificate header so that the tests can present a client certificate.

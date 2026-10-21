@@ -17,10 +17,12 @@ internal static class WebApplicationExtensions
 {
     /// <summary>
     /// The HTTP pipeline. Health probes come first and bypass everything else (host filtering, redirects, culture,
-    /// authentication), as required by App Service and the deployment pipeline.
+    /// authentication), as required by App Service and the deployment pipeline — only a per-address throttle precedes
+    /// them, since each readiness probe queries the database (ADR-0062).
     /// </summary>
     public static WebApplication UseCarRentalPipeline(this WebApplication app)
     {
+        app.UseHealthProbeThrottling();
         app.UseHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains(HealthTags.Ready),

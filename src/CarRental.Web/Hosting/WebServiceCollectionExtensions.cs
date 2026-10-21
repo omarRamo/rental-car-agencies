@@ -79,6 +79,7 @@ internal static class WebServiceCollectionExtensions
         services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = 10 * 1024 * 1024);
         services.AddPublicSite(configuration, environment);
         services.AddWhatsAppWebhook(configuration);
+        services.AddSecurityRateLimiting(configuration);
         return services;
     }
 
