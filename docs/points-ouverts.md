@@ -51,6 +51,10 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Permis international | Le pays de délivrance du permis international n'est pas comparé à celui du permis national | Agence | 1 |
 | Droit d'accès et liste noire | L'export des données d'une personne inclut-il son inscription sur la liste noire ? (option désactivée par défaut) | Avocat | 1 |
 | Historique après anonymisation | Les tables temporelles gardent les anciennes valeurs ; procédure T-SQL de purge de l'historique fournie dans l'ADR-0027, à exécuter par un administrateur | Avocat | 1 |
+| Cookie de mesure de l'entonnoir | Le cookie de visite anonyme (première partie, sans donnée personnelle) exige-t-il un consentement ? | Avocat | 2 |
+| Origine réservée à Cloudflare | Avant la mise en ligne : n'accepter que les adresses de Cloudflare sur l'App Service (ou les « authenticated origin pulls »), sinon `CF-Connecting-IP` peut être falsifié (limitation de débit, journal d'audit) | Agence (infra) | 2 |
+| Clés Turnstile | Créer le widget Turnstile de l'agence et renseigner `Turnstile:SiteKey` et le secret `Turnstile--SecretKey` avant d'ouvrir le tunnel (sinon les soumissions sont refusées) | Agence (infra) | 2 |
+| Cache Cloudflare des pages | Règle de cache Cloudflare pour le HTML public (les pages envoient `Cache-Control: public, max-age=300`) | Agence (infra) | 2 |
 
 ## Incohérences relevées dans la spec v1
 

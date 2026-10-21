@@ -25,7 +25,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0017](0017-execution-cas-usage-portee-transactions.md) | Exécution d'un cas d'usage : portée par opération, contexte utilisateur, transactions résilientes | Acceptée |
 | [0018](0018-journal-audit-ajout-seul.md) | Journal d'audit applicatif en ajout seul, complété par les tables temporelles | Acceptée |
 | [0019](0019-strategie-de-tests.md) | Stratégie de tests : xUnit v3 sur VSTest, conteneurs partagés, Playwright | Acceptée |
-| [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée |
+| [0020](0020-navigation-classique-et-focus.md) | Navigation classique pour les pages statiques, focus géré dans le back office | Acceptée (précisée par ADR-0036) |
 | [0021](0021-flotte-fenetres-de-disponibilite-et-echeances.md) | Flotte : fenêtres de disponibilité calculées par le domaine, écritures sous verrou et alertes d'échéance | Acceptée |
 | [0022](0022-photos-de-la-flotte.md) | Photos de la flotte : stockage privé, photos de catégorie servies par l'application | Acceptée |
 | [0023](0023-plans-tarifaires-versionnes.md) | Plans tarifaires versionnés : brouillon, publication, archives | Acceptée |
@@ -37,6 +37,9 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0029](0029-administration-parametres-permissions-et-accessibilite.md) | Administration du back office : paramètres typés, permissions par utilisateur, sessions rafraîchies, MudBlazor accessible et traduit | Acceptée |
 | [0034](0034-paiements-et-cautions.md) | Paiements et cautions : mouvements typés, caution comme dette, statut Clic to Pay venu de la banque seulement | Acceptée |
 | [0035](0035-sessions-de-caisse.md) | Sessions de caisse : une par agent et par jour, espèces de recette et cautions comptées à part, verrouillage définitif | Acceptée |
+| [0036](0036-vitrine-rendu-statique-cache-et-referencement.md) | Vitrine : rendu statique sans script Blazor, pages publiques cachables, référencement et budget Lighthouse | Acceptée |
+| [0037](0037-vitrine-anti-abus-et-mesure-entonnoir.md) | Vitrine : limitation de débit, Turnstile en échec fermé, mesure anonyme de l'entonnoir | Acceptée |
+| [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
 
 ## Modèle
 

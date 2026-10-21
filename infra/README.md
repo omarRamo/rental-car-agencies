@@ -312,6 +312,7 @@ Les membres du groupe d'administration ont le rôle Key Vault Secrets Officer. L
 ```bash
 az keyvault secret set --vault-name "<keyVaultName>" --name "ClicToPay--Password" --file ./clictopay-password.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AppSecret" --file ./whatsapp-app-secret.txt
+az keyvault secret set --vault-name "<keyVaultName>" --name "Turnstile--SecretKey" --file ./turnstile-secret.txt
 ```
 
 `--file` évite de laisser le secret dans l'historique du terminal ; supprimer le fichier ensuite.
@@ -338,7 +339,7 @@ Mêmes étapes avec `rg-carrental-prod`, `infra/main.prod.bicepparam`, l'identit
 
 | Flux | Déclencheurs | Contenu |
 |---|---|---|
-| `.github/workflows/ci.yml` | push et pull request sur `main` | Format (`dotnet format --verify-no-changes`), build `-warnaserror`, tests unitaires et d'architecture, puis en parallèle tests d'intégration (Testcontainers SQL Server et Azurite) et E2E (Playwright, Chromium), couverture fusionnée (ReportGenerator), paquets NuGet vulnérables, analyse de secrets (gitleaks), validation Bicep ; emplacement réservé au budget Lighthouse (phase 2) |
+| `.github/workflows/ci.yml` | push et pull request sur `main` | Format (`dotnet format --verify-no-changes`), build `-warnaserror`, tests unitaires et d'architecture, puis en parallèle tests d'intégration (Testcontainers SQL Server et Azurite) et E2E (Playwright, Chromium), couverture fusionnée (ReportGenerator), paquets NuGet vulnérables, analyse de secrets (gitleaks), validation Bicep ; budget Lighthouse de la vitrine (LCP ≤ 2,5 s en mobile simulé, CLS ≤ 0,1, TBT ≤ 200 ms, accessibilité ≥ 0,95) |
 | `.github/workflows/codeql.yml` | push et pull request sur `main`, chaque lundi | CodeQL C# (requêtes `security-extended`) |
 | `.github/workflows/deploy.yml` | manuel (`recette` ou `prod`), chaque nuit à 01:00 UTC (02:00 à Tunis) vers la prod | Voir ci-dessous |
 | `.github/dependabot.yml` | chaque lundi | Mises à jour groupées NuGet, GitHub Actions, SDK .NET |

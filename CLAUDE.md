@@ -87,3 +87,7 @@
 | `PublicSite:BaseUrl`, `PublicSite:AgencyName`, `PublicSite:WhatsAppNumber` | Liens absolus des e-mails, nom affiché, bouton WhatsApp |
 | `Database:ApplyMigrationsOnStartup` | Migrations au démarrage (développement et tests ; sur Azure : bundle) |
 | `Localization:EnableArabic` | Active l'arabe (préparé, désactivé) |
+| `PublicSite:AgencyId`, `PublicSite:AllowIndexing` | Agence affichée sur le site public (par défaut la première créée) ; indexation par les moteurs (vrai en production seulement) |
+| `Turnstile:SiteKey`, `Turnstile:SecretKey` (`Turnstile--SecretKey` dans le Key Vault) | Cloudflare Turnstile, vérifié côté serveur en échec fermé ; clés de test officielles en développement et en test |
+| `RateLimiting:{Search,Submit,Upload}:{PermitLimit,Window,SegmentsPerWindow}` | Politiques `public-search`, `public-submit`, `public-upload` (par adresse client, `CF-Connecting-IP`) |
+| `ReverseProxy:TrustCloudflareHeader` | Lit l'adresse client dans `CF-Connecting-IP` (à n'activer que si l'origine n'accepte que Cloudflare) |
