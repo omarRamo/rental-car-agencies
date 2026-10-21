@@ -1,0 +1,289 @@
+@* Amendment of a file (SPEC §6): before the departure the dates, places, category, extras, promotion code, drivers and
+   payer — priced again at the current plan —; during the rental only a later return (extension: the added days at the
+   current plan). A manual discount (with its reason) needs the discount permission. The new price is previewed, then
+   saved as a new quote version; the server re-checks the availability under the lock. *@
+@using System.Globalization
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Application.Pricing.Contracts
+@using CarRental.Domain.Common
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_context is null)
+        {
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                @if (!IsExtension)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_pickup" Label="@L["Field.PickupAt"]" InputType="InputType.DateTimeLocal" ShrinkLabel="true" InputId="amend-pickup" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_return" Label="@L["Field.ReturnAt"]" InputType="InputType.DateTimeLocal" ShrinkLabel="true" InputId="amend-return" />
+                </MudItem>
+                @if (!IsExtension)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" @bind-Value="_pickupLocation" Label="@L["Field.PickupLocation"]" ToStringFunc="@LocationName">
+                            @foreach (var location in _context.Locations)
+                            {
+                                <MudSelectItem T="Guid" Value="@location.Id">@location.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" @bind-Value="_returnLocation" Label="@L["Field.ReturnLocation"]" ToStringFunc="@LocationName">
+                            @foreach (var location in _context.Locations)
+                            {
+                                <MudSelectItem T="Guid" Value="@location.Id">@location.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" @bind-Value="_category" Label="@L["Field.Category"]" ToStringFunc="@CategoryName">
+                            @foreach (var category in _context.Categories)
+                            {
+                                <MudSelectItem T="Guid" Value="@category.Id">@category.AcrissCode — @category.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_promoCode" Label="@L["Field.PromoCode"]" MaxLength="Booking.PromoCodeMaxLength" />
+                    </MudItem>
+                    @foreach (var extra in _context.Extras.Where(e => e.IsSelectable))
+                    {
+                        <MudItem xs="6" sm="4">
+                            <MudNumericField T="int" Value="@_extras.GetValueOrDefault(extra.Code)" ValueChanged="@(v => _extras[extra.Code] = v)" Min="0" Max="10"
+                                             Label="@ExtraName(extra)" />
+                        </MudItem>
+                    }
+                    <MudItem xs="12">
+                        <PersonPicker Label="@L["Field.SecondDriver"]" InputId="amend-second-driver" AllowCreate="true" Selected="_secondDriver" SelectedChanged="@(p => _secondDriver = p)" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudRadioGroup T="bool" @bind-Value="_companyPays" aria-label="@L["Field.Payer"]">
+                            <MudRadio T="bool" Value="false">@L["Payer.MainDriver"]</MudRadio>
+                            <MudRadio T="bool" Value="true">@L["Payer.Company"]</MudRadio>
+                        </MudRadioGroup>
+                        @if (_companyPays)
+                        {
+                            <CompanyPicker Selected="_company" SelectedChanged="@(c => _company = c)" />
+                        }
+                    </MudItem>
+                    @if (File.AssignedVehicle is not null && File.GuaranteedVehicleId is null)
+                    {
+                        <MudItem xs="12">
+                            <MudCheckBox T="bool" @bind-Value="_releaseVehicle" Label="@L["Amend.ReleaseVehicle"]" />
+                        </MudItem>
+                    }
+                }
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_notes" Label="@L["Field.Notes"]" Lines="2" MaxLength="Booking.NotesMaxLength" />
+                </MudItem>
+                @if (CanDiscount)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="decimal?" @bind-Value="_discount" Label="@L["Amend.Discount"]" Min="0m" Format="N3" HelperText="@L["Amend.Discount.Help"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField T="string" @bind-Value="_reason" Label="@L["Amend.Discount.Reason"]" MaxLength="Booking.ReasonMaxLength"
+                                      Required="@(_discount is > 0m)" RequiredError="@Shared["Validation.Required"]" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (_preview is { } preview)
+            {
+                <MudDivider Class="my-3" />
+                <div role="status">
+                    @if (preview.IsAvailable == false)
+                    {
+                        <Notice Kind="NoticeKind.Warning" Class="mb-2">@L["Amend.Preview.NotAvailable"]</Notice>
+                    }
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">
+                        @L["Amend.Preview.Total", BookingFormat.Amount(preview.CurrentTotalInclVat), BookingFormat.Amount(preview.NewTotalInclVat)]
+                    </MudText>
+                    @if (preview.NewQuote is { } quote)
+                    {
+                        <QuoteDetails Quote="quote" Caption="@L["Amend.Preview.Caption"]" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@L["Amend.Preview.SamePrice"]</MudText>
+                    }
+                </div>
+            }
+
+            @if (_error is not null)
+            {
+                <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync" Disabled="_busy">@L["Amend.Preview"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_busy || _preview is null)">@L["Amend.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private QuickCreateContext? _context;
+    private string? _pickup;
+    private string? _return;
+    private Guid _pickupLocation;
+    private Guid _returnLocation;
+    private Guid _category;
+    private string? _promoCode;
+    private readonly Dictionary<string, int> _extras = new(StringComparer.Ordinal);
+    private PersonSummaryInfo? _secondDriver;
+    private bool _companyPays;
+    private CustomerInfo? _company;
+    private bool _releaseVehicle;
+    private string? _notes;
+    private decimal? _discount;
+    private string? _reason;
+    private AmendmentPreview? _preview;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public BookingFile File { get; set; } = default!;
+
+    [Parameter]
+    public bool CanDiscount { get; set; }
+
+    private bool IsExtension => File.Status == BookingStatus.InProgress;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pickup = BookingFormat.ToLocalInput(File.PickupAt);
+        _return = BookingFormat.ToLocalInput(File.ReturnAt);
+        _pickupLocation = File.PickupLocation?.Id ?? Guid.Empty;
+        _returnLocation = File.ReturnLocation?.Id ?? Guid.Empty;
+        _category = File.CategoryId;
+        _promoCode = File.PromoCode;
+        _notes = File.Notes;
+        foreach (var extra in File.Extras)
+        {
+            _extras[extra.Code] = extra.Quantity;
+        }
+
+        if (File.Drivers.FirstOrDefault(d => d.Role == BookingPartyRoleInfo.SecondaryDriver) is { } second
+            && await Runner.RunAsync<ICustomersQueries, PersonInfo?>((queries, ct) => queries.GetPersonAsync(second.PersonId, ct)) is { } person)
+        {
+            _secondDriver = new PersonSummaryInfo(person.Id, person.FirstName, person.LastName, person.Nationality, person.BirthDate, person.Phone, person.Email, person.Documents.Count);
+        }
+
+        _companyPays = File.Payer is { Kind: CustomerKindInfo.Company };
+        _company = _companyPays ? File.Payer : null;
+
+        var context = await Runner.RunAsync<BookingAdministrationQueries, Result<QuickCreateContext>>((queries, ct) => queries.GetQuickCreateContextAsync(File.AgencyId, File.Channel, ct));
+        if (context.IsSuccess)
+        {
+            _context = context.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, context.Error);
+        }
+    }
+
+    private string LocationName(Guid id) => _context?.Locations.FirstOrDefault(l => l.Id == id)?.Name ?? string.Empty;
+
+    private string CategoryName(Guid id) => _context?.Categories.FirstOrDefault(c => c.Id == id) is { } category ? $"{category.AcrissCode} — {category.Name}" : string.Empty;
+
+    private static string ExtraName(ExtraOffer extra) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && extra.NameEn is { } english ? english : extra.Name;
+
+    private AmendBookingRequest? BuildRequest()
+    {
+        var pickup = IsExtension ? File.PickupAt : BookingFormat.FromLocalInput(_pickup);
+        var returnAt = BookingFormat.FromLocalInput(_return);
+        var mainDriver = File.Drivers.FirstOrDefault(d => d.Role == BookingPartyRoleInfo.MainDriver);
+        if (pickup is null || returnAt is null || mainDriver is null)
+        {
+            _error = L["Amend.Invalid"];
+            return null;
+        }
+
+        var extras = IsExtension
+            ? File.Extras.Select(e => new SelectedExtra(e.Code, e.Quantity)).ToList()
+            : _extras.Where(e => e.Value > 0).Select(e => new SelectedExtra(e.Key, e.Value)).ToList();
+        Guid? payer = _companyPays ? _company?.Id ?? File.Payer?.Id : null;
+        Money? discount = _discount is > 0m ? Money.Tnd(_discount.Value) : null;
+        return new AmendBookingRequest(
+            File.Id,
+            IsExtension ? File.CategoryId : _category,
+            IsExtension ? File.PickupLocation!.Id : _pickupLocation,
+            IsExtension ? File.ReturnLocation!.Id : _returnLocation,
+            pickup.Value,
+            returnAt.Value,
+            extras,
+            IsExtension ? File.PromoCode : _promoCode,
+            File.GuaranteedVehicleId,
+            mainDriver.PersonId,
+            IsExtension ? File.Drivers.FirstOrDefault(d => d.Role == BookingPartyRoleInfo.SecondaryDriver)?.PersonId : _secondDriver?.Id,
+            IsExtension ? File.Payer?.Id : payer,
+            _notes,
+            _releaseVehicle,
+            discount,
+            discount is null ? null : _reason);
+    }
+
+    private async Task PreviewAsync()
+    {
+        _error = null;
+        if (BuildRequest() is not { } request)
+        {
+            return;
+        }
+
+        _busy = true;
+        var preview = await Runner.RunAsync<BookingAmendmentService, Result<AmendmentPreview>>((service, ct) => service.PreviewAsync(request, ct));
+        _busy = false;
+        if (preview.IsSuccess)
+        {
+            _preview = preview.Value;
+        }
+        else
+        {
+            _preview = null;
+            _error = ErrorMessages.For(Shared, preview.Error);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        if (BuildRequest() is not { } request || _preview is not { } preview)
+        {
+            return;
+        }
+
+        _busy = true;
+        var amended = await Runner.RunAsync<BookingAmendmentService, Result<AmendmentResult>>(
+            (service, ct) => service.AmendAsync(request with { ExpectedTotalInclVat = preview.CreatesQuoteVersion ? preview.NewTotalInclVat : null }, ct));
+        _busy = false;
+        if (amended.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(amended.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, amended.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

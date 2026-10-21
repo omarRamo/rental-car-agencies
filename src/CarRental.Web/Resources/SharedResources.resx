@@ -897,4 +897,148 @@
   <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
     <value>ParamÃ¨tre UTM invalide (100 caractÃ¨res au plus, sans caractÃ¨re de contrÃ´le).</value>
   </data>
+  <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
+    <value>Le départ effectif ne peut pas être dans le futur.</value>
+  </data>
+  <data name="Error.booking.actual_return_invalid" xml:space="preserve">
+    <value>Le retour effectif doit suivre le départ effectif et ne pas être dans le futur.</value>
+  </data>
+  <data name="Error.booking.agency_required" xml:space="preserve">
+    <value>Une agence est requise.</value>
+  </data>
+  <data name="Error.booking.amendment.discount_invalid" xml:space="preserve">
+    <value>La remise manuelle doit être un montant positif en TND, au plus le total du devis.</value>
+  </data>
+  <data name="Error.booking.amendment.extension_only" xml:space="preserve">
+    <value>Une location en cours ne peut qu'être prolongée : un retour plus tard, le reste inchangé.</value>
+  </data>
+  <data name="Error.booking.amendment.negative_total" xml:space="preserve">
+    <value>Le total du devis ne peut pas devenir négatif.</value>
+  </data>
+  <data name="Error.booking.amendment.no_change" xml:space="preserve">
+    <value>Rien n'a été modifié.</value>
+  </data>
+  <data name="Error.booking.attribution_invalid" xml:space="preserve">
+    <value>La provenance de la demande (source, UTM) est trop longue.</value>
+  </data>
+  <data name="Error.booking.cancellation_fee_invalid" xml:space="preserve">
+    <value>Les frais d'annulation doivent être un montant positif ou nul en TND.</value>
+  </data>
+  <data name="Error.booking.category_required" xml:space="preserve">
+    <value>Une catégorie de véhicule est requise.</value>
+  </data>
+  <data name="Error.booking.channel_invalid" xml:space="preserve">
+    <value>Ce canal de vente ne peut pas être utilisé pour ce type de réservation.</value>
+  </data>
+  <data name="Error.booking.channel_reference_invalid" xml:space="preserve">
+    <value>La référence du canal est trop longue.</value>
+  </data>
+  <data name="Error.booking.channel_reference_taken" xml:space="preserve">
+    <value>Un autre dossier porte déjà cette référence du canal.</value>
+  </data>
+  <data name="Error.booking.concurrent_update" xml:space="preserve">
+    <value>Le dossier a été modifié entre-temps : rechargez la page et recommencez.</value>
+  </data>
+  <data name="Error.booking.customer_check_failed" xml:space="preserve">
+    <value>Le contrôle client interne ne permet pas ce dossier. Voir avec le gérant.</value>
+  </data>
+  <data name="Error.booking.deadline_not_reached" xml:space="preserve">
+    <value>Le délai (demande, option ou paiement) n'est pas encore atteint.</value>
+  </data>
+  <data name="Error.booking.drivers_identical" xml:space="preserve">
+    <value>Le second conducteur doit être une autre personne que le conducteur principal.</value>
+  </data>
+  <data name="Error.booking.drivers_not_eligible" xml:space="preserve">
+    <value>Un conducteur ne remplit pas les conditions (âge, permis, documents valables jusqu'au retour).</value>
+  </data>
+  <data name="Error.booking.extras_invalid" xml:space="preserve">
+    <value>Une option a un code ou une quantité non valide (1 à 10).</value>
+  </data>
+  <data name="Error.booking.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas le droit d'effectuer cette action sur les réservations.</value>
+  </data>
+  <data name="Error.booking.hold_expired" xml:space="preserve">
+    <value>Le délai de la demande est dépassé.</value>
+  </data>
+  <data name="Error.booking.information_reason_invalid" xml:space="preserve">
+    <value>Choisissez un motif prédéfini pour la demande d'informations.</value>
+  </data>
+  <data name="Error.booking.invalid_transition" xml:space="preserve">
+    <value>Cette action n'est pas possible dans le statut actuel du dossier.</value>
+  </data>
+  <data name="Error.booking.location_required" xml:space="preserve">
+    <value>Les lieux de départ et de retour sont requis.</value>
+  </data>
+  <data name="Error.booking.main_driver_required" xml:space="preserve">
+    <value>Un conducteur principal est requis.</value>
+  </data>
+  <data name="Error.booking.no_show_too_early" xml:space="preserve">
+    <value>La non-présentation ne peut être enregistrée qu'après le délai prévu suivant l'heure de départ.</value>
+  </data>
+  <data name="Error.booking.not_found" xml:space="preserve">
+    <value>Ce dossier de location n'existe pas.</value>
+  </data>
+  <data name="Error.booking.notes_too_long" xml:space="preserve">
+    <value>Les notes sont trop longues.</value>
+  </data>
+  <data name="Error.booking.option_expired" xml:space="preserve">
+    <value>L'option a expiré.</value>
+  </data>
+  <data name="Error.booking.option_expiry_invalid" xml:space="preserve">
+    <value>L'option doit expirer dans le futur.</value>
+  </data>
+  <data name="Error.booking.payer_required" xml:space="preserve">
+    <value>Un payeur est requis.</value>
+  </data>
+  <data name="Error.booking.payment_due_invalid" xml:space="preserve">
+    <value>L'échéance de paiement doit être dans le futur.</value>
+  </data>
+  <data name="Error.booking.period_invalid" xml:space="preserve">
+    <value>Le retour doit être après le départ.</value>
+  </data>
+  <data name="Error.booking.pickup_in_past" xml:space="preserve">
+    <value>Le départ ne peut pas être dans le passé.</value>
+  </data>
+  <data name="Error.booking.promo_code_invalid" xml:space="preserve">
+    <value>Le code promo est trop long.</value>
+  </data>
+  <data name="Error.booking.quote.code_invalid" xml:space="preserve">
+    <value>Un code de devis comporte six lettres ou chiffres.</value>
+  </data>
+  <data name="Error.booking.quote.code_unavailable" xml:space="preserve">
+    <value>Aucun code de devis libre n'a pu être généré : réessayez.</value>
+  </data>
+  <data name="Error.booking.quote.expired" xml:space="preserve">
+    <value>Le devis bloqué a expiré : demandez un nouveau prix.</value>
+  </data>
+  <data name="Error.booking.quote.invalid" xml:space="preserve">
+    <value>Le devis est incohérent : ses lignes doivent correspondre à ses totaux.</value>
+  </data>
+  <data name="Error.booking.quote.not_found" xml:space="preserve">
+    <value>Ce devis n'existe pas.</value>
+  </data>
+  <data name="Error.booking.quote.price_changed" xml:space="preserve">
+    <value>Le prix a changé depuis son affichage : vérifiez le nouveau prix et confirmez à nouveau.</value>
+  </data>
+  <data name="Error.booking.reason_required" xml:space="preserve">
+    <value>Un motif est requis pour cette action.</value>
+  </data>
+  <data name="Error.booking.reason_too_long" xml:space="preserve">
+    <value>Le motif est trop long.</value>
+  </data>
+  <data name="Error.booking.vehicle.already_assigned" xml:space="preserve">
+    <value>Ce véhicule est déjà attribué à ce dossier.</value>
+  </data>
+  <data name="Error.booking.vehicle.guaranteed_model" xml:space="preserve">
+    <value>Le dossier réserve ce véhicule précis (modèle garanti) : modifiez la réservation pour le changer.</value>
+  </data>
+  <data name="Error.booking.vehicle.not_assigned" xml:space="preserve">
+    <value>Aucun véhicule n'est attribué à ce dossier.</value>
+  </data>
+  <data name="Error.booking.vehicle.required" xml:space="preserve">
+    <value>Attribuez un véhicule avant le départ.</value>
+  </data>
+  <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
+    <value>Une dérogation documents s'applique à un véhicule attribué.</value>
+  </data>
 </root>

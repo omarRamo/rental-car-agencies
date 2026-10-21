@@ -1,0 +1,183 @@
+@* Review of the proposals of the greedy assigner (ADR-0025) before they are applied: the agent keeps or drops each
+   proposal; the files that cannot be placed and the fixed assignments in conflict are listed with their reason. Each
+   kept proposal is applied under the lock (a refused one does not stop the others). Returns the number applied. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_plan is null)
+        {
+            @if (_error is null)
+            {
+                <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+            }
+        }
+        else
+        {
+            @if (_plan.Proposals.Count == 0)
+            {
+                <MudText role="status">@L["Proposals.None"]</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">@L["Proposals.Help"]</MudText>
+                <div class="booking-scroll" tabindex="0" role="region" aria-label="@L["Proposals.Title"]">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="visually-hidden">@L["Proposals.Keep"]</span></th>
+                                <th scope="col">@L["Column.Number"]</th>
+                                <th scope="col">@L["Column.Category"]</th>
+                                <th scope="col">@L["Column.Period"]</th>
+                                <th scope="col">@L["Column.Vehicle"]</th>
+                                <th scope="col">@L["Proposals.Outcome"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var proposal in _plan.Proposals)
+                            {
+                                <tr data-proposal="@proposal.BookingNumber">
+                                    <td>
+                                        <MudCheckBox T="bool" Value="@_kept.Contains(proposal.BookingId)" ValueChanged="@(v => Toggle(proposal.BookingId, v))"
+                                                     aria-label="@L["Proposals.KeepLabel", proposal.BookingNumber, proposal.PlateNumber]" Disabled="@(_outcomes is not null)" />
+                                    </td>
+                                    <td>@proposal.BookingNumber</td>
+                                    <td>@proposal.CategoryCode</td>
+                                    <td>@BookingFormat.Instant(proposal.PickupAt) → @BookingFormat.Instant(proposal.ReturnAt)</td>
+                                    <td><strong>@proposal.PlateNumber</strong></td>
+                                    <td>
+                                        @if (_outcomes?.FirstOrDefault(o => o.BookingId == proposal.BookingId) is { } outcome)
+                                        {
+                                            @if (outcome.IsSuccess)
+                                            {
+                                                <span><MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" aria-hidden="true" /> @L["Proposals.Applied"]</span>
+                                            }
+                                            else
+                                            {
+                                                <span><MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" aria-hidden="true" /> @ErrorMessages.For(Shared, outcome.Error!)</span>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            }
+
+            @if (_plan.Unassignable.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Proposals.Unassignable", _plan.Unassignable.Count]</MudText>
+                <ul class="mt-1">
+                    @foreach (var issue in _plan.Unassignable)
+                    {
+                        <li>@issue.BookingNumber (@issue.CategoryCode) — @ErrorMessages.For(Shared, issue.Reason)</li>
+                    }
+                </ul>
+            }
+
+            @if (_plan.Conflicts.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Proposals.Conflicts", _plan.Conflicts.Count]</MudText>
+                <ul class="mt-1">
+                    @foreach (var issue in _plan.Conflicts)
+                    {
+                        <li>@issue.BookingNumber (@issue.CategoryCode, @(issue.PlateNumber ?? "—")) — @ErrorMessages.For(Shared, issue.Reason)</li>
+                    }
+                </ul>
+            }
+        }
+
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_outcomes is null)
+        {
+            <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyAsync" Disabled="@(_busy || _kept.Count == 0 || !CanApply)">
+                @L["Proposals.Apply", _kept.Count]
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Done">@L["Proposals.Done"]</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private AssignmentPlanView? _plan;
+    private readonly HashSet<Guid> _kept = [];
+    private IReadOnlyList<AssignmentOutcome>? _outcomes;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Period Range { get; set; } = default!;
+
+    [Parameter]
+    public bool CanApply { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var plan = await Runner.RunAsync<VehicleAssignmentService, Result<AssignmentPlanView>>((service, ct) => service.ProposeAsync(AgencyId, Range, ct));
+        if (plan.IsSuccess)
+        {
+            _plan = plan.Value;
+            _kept.UnionWith(_plan.Proposals.Select(p => p.BookingId));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, plan.Error);
+        }
+    }
+
+    private void Toggle(Guid bookingId, bool keep)
+    {
+        if (keep)
+        {
+            _kept.Add(bookingId);
+        }
+        else
+        {
+            _kept.Remove(bookingId);
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (_plan is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var choices = _plan.Proposals.Where(p => _kept.Contains(p.BookingId)).Select(p => new AssignmentChoice(p.BookingId, p.VehicleId)).ToList();
+        var applied = await Runner.RunAsync<VehicleAssignmentService, Result<IReadOnlyList<AssignmentOutcome>>>((service, ct) => service.ApplyAsync(choices, ct));
+        _busy = false;
+        if (applied.IsSuccess)
+        {
+            _outcomes = applied.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, applied.Error);
+        }
+    }
+
+    private void Done() => Dialog.Close(DialogResult.Ok(_outcomes?.Count(o => o.IsSuccess) ?? 0));
+
+    private void Cancel() => Dialog.Cancel();
+}

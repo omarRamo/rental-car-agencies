@@ -1,0 +1,96 @@
+@* The business timeline of a rental file, latest first: what, when (Tunis time), the status change, who and through which
+   channel, the reason, and the readable facts (deadlines, fee, quote version, new dates). *@
+@using System.Globalization
+@using CarRental.Domain.Common
+@inject IStringLocalizer<BookingsResources> L
+
+@if (Entries.Count == 0)
+{
+    <MudText Typo="Typo.body2">@L["Timeline.Empty"]</MudText>
+}
+else
+{
+    <ol class="booking-timeline" aria-label="@L["Timeline.Title"]">
+        @foreach (var entry in Entries)
+        {
+            <li data-event-type="@entry.Type.ToString()">
+                <div class="d-flex flex-wrap align-center gap-2">
+                    <strong>@L[$"Event.{entry.Type}"]</strong>
+                    @if (entry.StatusBefore is { } before && before != entry.StatusAfter)
+                    {
+                        <span class="booking-muted">@L["Timeline.StatusChange", L[$"Status.{before}"], L[$"Status.{entry.StatusAfter}"]]</span>
+                    }
+                </div>
+                <div class="booking-muted">
+                    @BookingFormat.Instant(entry.OccurredAtUtc) · @ActorText(entry)
+                    @if (entry.Channel is { } channel)
+                    {
+                        @(" · ")@L[$"Channel.{channel}"]
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(entry.Reason))
+                {
+                    <div>@L["Timeline.Reason", BookingFormat.Reason(L, entry.Reason)]</div>
+                }
+                @foreach (var fact in VisibleFacts(entry))
+                {
+                    <div class="booking-muted">@fact</div>
+                }
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    private static readonly string[] InstantFacts = ["holdExpiresAt", "paymentDueAt", "deadline", "optionExpiresAt", "actualPickupAt", "actualReturnAt", "pendingSince"];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TimelineEntryView> Entries { get; set; } = [];
+
+    private string ActorText(TimelineEntryView entry) =>
+        entry.ActorUserId is null && entry.ActorName.StartsWith("system", StringComparison.Ordinal)
+            ? L["Timeline.System"]
+            : entry.ActorName;
+
+    private IEnumerable<string> VisibleFacts(TimelineEntryView entry)
+    {
+        foreach (var (key, value) in entry.Facts.OrderBy(f => f.Key, StringComparer.Ordinal))
+        {
+            if (InstantFacts.Contains(key) && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var instant))
+            {
+                yield return L[$"Fact.{key}", BookingFormat.Instant(instant)];
+            }
+            else if (key is "pickupAt" or "returnAt" && value.Split(" → ") is [var from, var to]
+                     && DateTimeOffset.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var fromInstant)
+                     && DateTimeOffset.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var toInstant))
+            {
+                yield return L[$"Fact.{key}", BookingFormat.Instant(fromInstant), BookingFormat.Instant(toInstant)];
+            }
+            else if (key is "fee" or "total" && decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+            {
+                yield return L[$"Fact.{key}", BookingFormat.Amount(Money.Tnd(amount))];
+            }
+            else if (key == "computedFee" && entry.Facts.GetValueOrDefault("feeWaived") == "true"
+                     && decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var computed))
+            {
+                yield return L["Fact.computedFee", BookingFormat.Amount(Money.Tnd(computed))];
+            }
+            else if (key is "quoteVersion" or "paymentReference" or "promoCode" or "extras" or "waiverReason")
+            {
+                yield return L[$"Fact.{key}", value];
+            }
+            else if (key == "reason")
+            {
+                yield return L["Fact.reason", L[$"InformationReason.{value}"]];
+            }
+            else if (key is "feeWaived" && value == "true")
+            {
+                yield return L["Fact.feeWaived"];
+            }
+            else if (key is "category" or "pickupLocation" or "returnLocation" or "drivers" or "payer" or "notes" or "guaranteedVehicle" or "vehicleReleased")
+            {
+                yield return L[$"Fact.{key}"];
+            }
+        }
+    }
+}

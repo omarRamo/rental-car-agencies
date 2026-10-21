@@ -1,0 +1,56 @@
+@* A frozen version of the quote of a file (history): never recomputed, shown as it was saved. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_quote is { } quote)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">
+                @L["QuoteVersion.Header", quote.Code ?? "—", L[$"Origin.{quote.Origin}"], BookingFormat.Instant(quote.CreatedAtUtc), quote.CreatedBy ?? L["Timeline.System"]]
+            </MudText>
+            <QuoteDetails Quote="quote" Caption="@L["QuoteVersion.Caption", Version]" />
+        }
+        else if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+        }
+        else
+        {
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">@L["Dialog.Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private QuoteView? _quote;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Version { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<QuoteView>>((queries, ct) => queries.GetQuoteVersionAsync(BookingId, Version, ct));
+        if (result.IsSuccess)
+        {
+            _quote = result.Value;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Close() => Dialog.Close();
+}

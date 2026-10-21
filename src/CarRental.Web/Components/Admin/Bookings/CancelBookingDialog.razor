@@ -1,0 +1,50 @@
+@* Cancellation of a file: the fee of the policy of the agency (free until D-x, then a percentage of the total TTC), the
+   mandatory reason, and the waiver of the fee for the users who may grant it. Returns a CancellationInput. *@
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (Preview is { } preview)
+        {
+            <Notice Kind="@(preview.IsFree ? NoticeKind.Info : NoticeKind.Warning)" Class="mb-3">
+                @if (preview.IsFree)
+                {
+                    @L["Cancel.Free"]
+                }
+                else
+                {
+                    @L["Cancel.Fee", BookingFormat.Amount(preview.Fee), BookingFormat.Date(preview.FreeUntil)]
+                }
+            </Notice>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Cancel.Reason"]" Lines="3" MaxLength="Booking.ReasonMaxLength" Counter="Booking.ReasonMaxLength"
+                      Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" />
+        @if (CanWaiveFee && Preview is { IsFree: false })
+        {
+            <MudCheckBox T="bool" @bind-Value="_waive" Label="@L["Cancel.WaiveFee"]" Class="mt-2" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dialog.Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@string.IsNullOrWhiteSpace(_reason)">@L["Action.Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+    private bool _waive;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter]
+    public CancellationPreview? Preview { get; set; }
+
+    [Parameter]
+    public bool CanWaiveFee { get; set; }
+
+    private void Submit() => Dialog.Close(DialogResult.Ok(new CancellationInput(_reason!.Trim(), _waive)));
+
+    private void Cancel() => Dialog.Cancel();
+}

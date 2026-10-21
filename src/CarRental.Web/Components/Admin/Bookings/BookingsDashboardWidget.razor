@@ -1,0 +1,205 @@
+@* Bookings part of the daily dashboard (bookings.read): today's departures and returns with the state of the documents
+   and of the payment, the web requests and their countdown (requests.read), the late returns, the files leaving within
+   48 hours without a vehicle and the capacity shortfalls of the coming month. *@
+@using CarRental.Application.Bookings.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+
+<AuthorizeView Policy="@PermissionPolicy.For(Permissions.BookingsRead)">
+    <Authorized>
+        <BookingStyles />
+        <section aria-labelledby="bookings-widget-title" class="mt-6">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="bookings-widget-title">@L["Widget.Title"]</MudText>
+                    <MudLink Underline="Underline.Always" Href="/admin/planning">@L["Widget.Planning"]</MudLink>
+                </MudStack>
+                @if (_dashboard is null)
+                {
+                    @if (_failed)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@L["Widget.Error"]</MudText>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" Class="mt-3" />
+                    }
+                }
+                else
+                {
+                    <MudGrid Spacing="3" Class="mt-1">
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Departures", _dashboard.Today.Departures.Count]</MudText>
+                            @Agenda(_dashboard.Today.Departures, L["Widget.NoDeparture"])
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Returns", _dashboard.Today.Returns.Count]</MudText>
+                            @Agenda(_dashboard.Today.Returns, L["Widget.NoReturn"])
+                        </MudItem>
+
+                        @if (_dashboard.Requests is { } requests)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Requests", requests.Count]</MudText>
+                                @if (requests.Count == 0)
+                                {
+                                    <MudText Typo="Typo.body2">@L["Widget.NoRequest"]</MudText>
+                                }
+                                else
+                                {
+                                    <ul class="booking-widget-list">
+                                        @foreach (var request in requests.Take(5))
+                                        {
+                                            <li>
+                                                <Countdown Until="request.HoldExpiresAt" />
+                                                <MudLink Underline="Underline.Always" Href="/admin/requests">@request.Number</MudLink>
+                                                <span>@request.CustomerName</span>
+                                                <span class="booking-muted">@request.CategoryCode · @BookingFormat.Instant(request.PickupAt)</span>
+                                                @if (request.IsEscalated)
+                                                {
+                                                    <span class="booking-flag"><MudIcon Icon="@Icons.Material.Filled.PriorityHigh" Size="Size.Small" aria-hidden="true" />@L["Request.Escalated"]</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                    @if (requests.Count > 5)
+                                    {
+                                        <MudLink Underline="Underline.Always" Href="/admin/requests" Class="d-inline-block mt-2">@L["Widget.AllRequests", requests.Count]</MudLink>
+                                    }
+                                }
+                            </MudItem>
+                        }
+
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Late", _dashboard.LateReturns.Count]</MudText>
+                            @if (_dashboard.LateReturns.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Widget.NoLate"]</MudText>
+                            }
+                            else
+                            {
+                                <ul class="booking-widget-list">
+                                    @foreach (var late in _dashboard.LateReturns)
+                                    {
+                                        <li>
+                                            <MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{late.BookingId}")">@late.Number</MudLink>
+                                            <span>@late.CustomerName</span>
+                                            <span class="booking-muted">@(late.PlateNumber ?? string.Empty) · @L["Widget.LateSince", BookingFormat.Instant(late.ReturnAt)]</span>
+                                            @if (!string.IsNullOrEmpty(late.Phone))
+                                            {
+                                                <MudLink Underline="Underline.Always" Href="@($"tel:{late.Phone}")">@late.Phone</MudLink>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Unassigned", _dashboard.UnassignedSoon.Count]</MudText>
+                            @if (_dashboard.UnassignedSoon.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Widget.NoUnassigned"]</MudText>
+                            }
+                            else
+                            {
+                                <ul class="booking-widget-list">
+                                    @foreach (var booking in _dashboard.UnassignedSoon)
+                                    {
+                                        <li>
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{booking.Id}")">@booking.Number</MudLink>
+                                            <span>@booking.CustomerName</span>
+                                            <span class="booking-muted">@booking.CategoryCode · @BookingFormat.Instant(booking.PickupAt)</span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Widget.Shortfalls", _dashboard.Shortfalls.Count]</MudText>
+                            @if (_dashboard.Shortfalls.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">@L["Widget.NoShortfall"]</MudText>
+                            }
+                            else
+                            {
+                                <ul class="booking-widget-list">
+                                    @foreach (var shortfall in _dashboard.Shortfalls)
+                                    {
+                                        <li>
+                                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" aria-hidden="true" />
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/planning?from={TunisTime.DateOf(shortfall.Period.Start).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">
+                                                @L["Widget.Shortfall", shortfall.CategoryCode, shortfall.Missing, BookingFormat.Instant(shortfall.Period.Start), BookingFormat.Instant(shortfall.Period.End)]
+                                            </MudLink>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                }
+            </MudPaper>
+        </section>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private BookingsDashboard? _dashboard;
+    private bool _failed;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Loaded once interactive: the prerendered pass would compute the dashboard twice.
+        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
+        {
+            return;
+        }
+
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<BookingsDashboard>>(async (queries, ct) =>
+        {
+            var agency = await queries.GetDefaultAgencyAsync(ct);
+            return agency.IsSuccess ? await queries.GetDashboardAsync(agency.Value.Id, ct) : agency.Error;
+        });
+        _dashboard = result.IsSuccess ? result.Value : null;
+        _failed = result.IsFailure;
+    }
+
+    private RenderFragment Agenda(IReadOnlyList<AgendaItemInfo> items, string empty) => __builder =>
+    {
+        if (items.Count == 0)
+        {
+            <MudText Typo="Typo.body2">@empty</MudText>
+            return;
+        }
+
+        <ul class="booking-widget-list">
+            @foreach (var item in items)
+            {
+                <li data-agenda="@item.Number">
+                    <strong>@BookingFormat.Time(item.At)</strong>
+                    <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{item.BookingId}")">@item.Number</MudLink>
+                    <span>@item.CustomerName</span>
+                    <span class="booking-muted">@item.CategoryCode@(item.PlateNumber is { } plate ? $" · {plate}" : $" · {L["Widget.NoVehicle"]}")</span>
+                    <span class="booking-muted">@L[$"Documents.{item.Documents}"]</span>
+                    @if (item.Payment == PaymentStateInfo.AwaitingPayment)
+                    {
+                        <span class="booking-muted">@L["Payment.AwaitingPayment"]</span>
+                    }
+                    @if (item.IsDone)
+                    {
+                        <span><MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" aria-hidden="true" /> @L["Widget.Done"]</span>
+                    }
+                    else if (item.IsLate)
+                    {
+                        <span><MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" /> @L["Widget.LateItem"]</span>
+                    }
+                </li>
+            }
+        </ul>
+    };
+}

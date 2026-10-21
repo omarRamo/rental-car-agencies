@@ -1,0 +1,82 @@
+@* Asks for the mandatory reason of a decision (refusal, no-show, swap, waiver, information request). With
+   PredefinedReasons, the agent picks a predefined reason first, which pre-fills an editable message. Returns a
+   BookingReasonInput. *@
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <Notice Kind="@(Danger ? NoticeKind.Warning : NoticeKind.Info)" Class="mb-3">@Message</Notice>
+        }
+        @if (PredefinedReasons)
+        {
+            <MudSelect T="InformationRequestReason?" Value="_predefined" ValueChanged="PickAsync" Label="@L["Information.Reason"]"
+                       ToStringFunc="@(r => r is { } value ? L[$"InformationReason.{value}"] : string.Empty)" Required="true"
+                       RequiredError="@Shared["Validation.Required"]" Class="mb-2">
+                @foreach (var reason in Enum.GetValues<InformationRequestReason>())
+                {
+                    <MudSelectItem T="InformationRequestReason?" Value="@reason">@L[$"InformationReason.{reason}"]</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        <MudTextField T="string" @bind-Value="_text" Label="@Label" Lines="3" MaxLength="MaxLength" Counter="MaxLength"
+                      Required="@Required" RequiredError="@Shared["Validation.Required"]" HelperText="@HelperText" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!CanSubmit)">@SubmitText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private InformationRequestReason? _predefined;
+    private string? _text;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    [Parameter]
+    public bool Danger { get; set; }
+
+    /// <summary>Offer the predefined reasons of an information request (motif prédéfini + texte).</summary>
+    [Parameter]
+    public bool PredefinedReasons { get; set; }
+
+    [Parameter]
+    public int MaxLength { get; set; } = Booking.ReasonMaxLength;
+
+    /// <summary>Whether the text is mandatory (a reason); an optional text is e.g. a payment reference.</summary>
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    private bool CanSubmit => (!Required || !string.IsNullOrWhiteSpace(_text)) && (!PredefinedReasons || _predefined is not null);
+
+    private Task PickAsync(InformationRequestReason? reason)
+    {
+        _predefined = reason;
+        if (reason is { } value)
+        {
+            _text = L[$"InformationReason.Template.{value}"];
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void Submit() => Dialog.Close(DialogResult.Ok(new BookingReasonInput(_predefined, _text?.Trim() ?? string.Empty)));
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,146 @@
+@* Finds a company payer by legal name or tax identifier (Customers contract), or registers one inline (legal name,
+   matricule fiscal, billing address): the company is invoiced, the drivers stay persons. *@
+@using CarRental.Application.Customers.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<div class="company-picker mt-2">
+    @if (Selected is { } selected)
+    {
+        <div class="d-flex flex-wrap align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Business" aria-hidden="true" />
+            <strong data-testid="company-selected">@selected.DisplayName</strong>
+            <span class="booking-muted">@(selected.TaxIdentifier ?? string.Empty)</span>
+            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close" OnClick="ClearAsync" aria-label="@L["Company.Change"]">@L["Person.ChangeShort"]</MudButton>
+        </div>
+    }
+    else if (_creating)
+    {
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Company.New.Title"]</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="8"><MudTextField T="string" @bind-Value="_legalName" Label="@L["Company.LegalName"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="200" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField T="string" @bind-Value="_taxIdentifier" Label="@L["Company.TaxIdentifier"]" Required="true" RequiredError="@Shared["Validation.Required"]" MaxLength="32" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField T="string" @bind-Value="_line1" Label="@L["Company.Address"]" Required="true" RequiredError="@Shared["Validation.Required"]" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField T="string" @bind-Value="_postalCode" Label="@L["Company.PostalCode"]" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_city" Label="@L["Company.City"]" Required="true" RequiredError="@Shared["Validation.Required"]" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_country" Label="@L["Company.Country"]" MaxLength="2" HelperText="@L["Person.Nationality.Help"]" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_email" Label="@L["Person.Email"]" InputType="InputType.Email" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_phone" Label="@L["Person.Phone"]" InputType="InputType.Telephone" /></MudItem>
+            </MudGrid>
+            @if (_error is not null)
+            {
+                <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-2">@_error</Notice>
+            }
+            <div class="d-flex gap-2 mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RegisterAsync" Disabled="@(_busy || !CanRegister)">@L["Company.New.Save"]</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="@(() => _creating = false)">@Shared["Cancel"]</MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap align-end gap-2">
+            <MudTextField T="string" @bind-Value="_term" Label="@L["Company.Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="SearchAsync" Immediate="true" autocomplete="off" Class="flex-grow-1" InputId="booking-company-search" />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AddBusiness" OnClick="StartCreating">@L["Company.New"]</MudButton>
+        </div>
+        @if (_results is { Count: > 0 } results)
+        {
+            <ul class="ps-0 mt-1" style="list-style:none;margin:0" aria-label="@L["Company.Results"]">
+                @foreach (var company in results)
+                {
+                    <li>
+                        <MudButton Variant="Variant.Text" FullWidth="true" Class="justify-start" OnClick="@(() => PickAsync(company))">
+                            <span style="text-align:start"><strong>@company.DisplayName</strong> <span class="booking-muted">@(company.TaxIdentifier ?? string.Empty)</span></span>
+                        </MudButton>
+                    </li>
+                }
+            </ul>
+        }
+        else if (_results is not null && !string.IsNullOrWhiteSpace(_term))
+        {
+            <MudText Typo="Typo.body2" Class="mt-1" role="status">@L["Company.NoResult"]</MudText>
+        }
+    }
+</div>
+
+@code {
+    private string? _term;
+    private IReadOnlyList<CustomerInfo>? _results;
+    private bool _creating;
+    private bool _busy;
+    private string? _error;
+    private string? _legalName;
+    private string? _taxIdentifier;
+    private string? _line1;
+    private string? _postalCode;
+    private string? _city;
+    private string? _country = "TN";
+    private string? _email;
+    private string? _phone;
+
+    [Parameter]
+    public CustomerInfo? Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<CustomerInfo?> SelectedChanged { get; set; }
+
+    private bool CanRegister =>
+        !string.IsNullOrWhiteSpace(_legalName) && !string.IsNullOrWhiteSpace(_taxIdentifier) && !string.IsNullOrWhiteSpace(_line1) && !string.IsNullOrWhiteSpace(_city);
+
+    private void StartCreating()
+    {
+        _creating = true;
+        _error = null;
+        _legalName ??= _term?.Trim();
+    }
+
+    private async Task SearchAsync(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2)
+        {
+            _results = null;
+            return;
+        }
+
+        _results = await Runner.RunAsync<ICustomersQueries, IReadOnlyList<CustomerInfo>>((queries, ct) => queries.SearchCompaniesAsync(term, 8, ct));
+    }
+
+    private async Task PickAsync(CustomerInfo company)
+    {
+        _results = null;
+        _term = null;
+        await SelectedChanged.InvokeAsync(company);
+    }
+
+    private Task ClearAsync() => SelectedChanged.InvokeAsync(null);
+
+    private async Task RegisterAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CompanyCustomerRequest(
+            _legalName!.Trim(),
+            _taxIdentifier!.Trim(),
+            new PostalAddressInfo(_line1!.Trim(), null, string.IsNullOrWhiteSpace(_postalCode) ? null : _postalCode.Trim(), _city!.Trim(), (_country ?? "TN").Trim().ToUpperInvariant()),
+            Email: string.IsNullOrWhiteSpace(_email) ? null : _email.Trim(),
+            Phone: string.IsNullOrWhiteSpace(_phone) ? null : _phone.Trim());
+        var created = await Runner.RunAsync<ICustomerRegistration, Result<Guid>>((registration, ct) => registration.CreateCompanyCustomerAsync(request, ct));
+        if (created.IsFailure)
+        {
+            _busy = false;
+            _error = ErrorMessages.For(Shared, created.Error);
+            return;
+        }
+
+        var company = await Runner.RunAsync<ICustomersQueries, CustomerInfo?>((queries, ct) => queries.GetCustomerAsync(created.Value, ct));
+        _busy = false;
+        if (company is not null)
+        {
+            _creating = false;
+            await SelectedChanged.InvokeAsync(company);
+        }
+    }
+}

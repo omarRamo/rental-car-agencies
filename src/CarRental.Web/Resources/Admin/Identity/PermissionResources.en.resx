@@ -123,4 +123,10 @@
   <data name="Permission.outbox.manage" xml:space="preserve">
     <value>Background messages (retry)</value>
   </data>
+  <data name="Permission.bookings.discount" xml:space="preserve">
+    <value>Grant manual discounts and waive cancellation fees</value>
+  </data>
+  <data name="Permission.bookings.compliance.waive" xml:space="preserve">
+    <value>Waive vehicle documents when assigning</value>
+  </data>
 </root>

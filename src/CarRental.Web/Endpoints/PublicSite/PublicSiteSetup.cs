@@ -25,7 +25,6 @@ public static class PublicSiteSetup
         services.AddPublicRateLimiting(configuration);
         services.AddTurnstile(configuration, environment);
         services.AddCacheablePublicPages();
-        services.AddAvailabilityEngineUntilBookingsExist();
         return services;
     }
 

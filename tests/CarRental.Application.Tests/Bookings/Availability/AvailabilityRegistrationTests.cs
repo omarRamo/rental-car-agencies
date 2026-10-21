@@ -11,8 +11,8 @@ public sealed class AvailabilityRegistrationTests
     [Fact]
     public void The_cache_replaces_the_null_change_notifier_of_the_application()
     {
-        var services = new ServiceCollection().AddApplication();
-        services.Single(d => d.ServiceType == typeof(IAvailabilityChangeNotifier)).ImplementationType.ShouldBe(typeof(NullAvailabilityChangeNotifier));
+        var services = new ServiceCollection();
+        services.AddSingleton<IAvailabilityChangeNotifier, NullAvailabilityChangeNotifier>();
 
         services.AddBookingAvailability();
         using var provider = services.BuildServiceProvider();
@@ -22,13 +22,15 @@ public sealed class AvailabilityRegistrationTests
     }
 
     [Fact]
-    public void The_bookings_module_does_not_register_the_engine_yet()
+    public void The_bookings_module_registers_the_engine_with_its_occupancy_reader()
     {
-        // The Bookings aggregate package calls AddBookingAvailability() once its IOccupancyReader exists.
         var services = new ServiceCollection().AddApplication();
 
-        services.ShouldNotContain(d => d.ServiceType == typeof(IAvailabilityQueries));
-        services.ShouldNotContain(d => d.ServiceType == typeof(AvailabilityCache));
+        services.ShouldContain(d => d.ServiceType == typeof(IAvailabilityQueries));
+        services.ShouldContain(d => d.ServiceType == typeof(AvailabilityCache));
+        services.Single(d => d.ServiceType == typeof(IOccupancyReader)).ImplementationType.ShouldBe(typeof(OccupancyReader));
+        services.Count(d => d.ServiceType == typeof(IAvailabilityChangeNotifier)).ShouldBe(1);
+        services.Single(d => d.ServiceType == typeof(IAvailabilityChangeNotifier)).ImplementationType.ShouldNotBe(typeof(NullAvailabilityChangeNotifier));
     }
 
     [Fact]

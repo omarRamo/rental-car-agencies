@@ -1,4 +1,5 @@
 using System.Globalization;
+using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Auditing;
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Persistence;
@@ -19,12 +20,13 @@ namespace CarRental.Application.Customers.Documents;
 /// TODO(spec): disabled by default (<c>customers.document_image_retention_enabled</c> = false) because the legal
 /// destruction procedure is not validated: article 45 of law 2004-63 requires a report by a bailiff in the presence of
 /// an expert appointed by the INPDP. To be confirmed with the lawyer before enabling (points-ouverts.md).
-/// TODO(1E): skip persons with a booking still open once the Bookings contract exposes it.
+/// A person who is a driver of an open rental file (Bookings contract) keeps their images.
 /// </remarks>
 internal sealed partial class DocumentImageRetentionJob(
     IAppDbContext db,
     ISettingsReader settings,
     IAuditTrail auditTrail,
+    IBookingsQueries bookings,
     TimeProvider timeProvider,
     ILogger<DocumentImageRetentionJob> logger) : IRecurringJob
 {
@@ -48,21 +50,38 @@ internal sealed partial class DocumentImageRetentionJob(
         var now = timeProvider.GetUtcNow();
         var cutoff = now - TimeSpan.FromDays(days);
         var total = 0;
+        var withOpenBookings = new List<Guid>();
         for (var batch = 0; batch < MaxBatchesPerRun; batch++)
         {
             var persons = await db.Set<Person>()
                     .Where(p => p.AnonymizedAtUtc == null
+                            && !withOpenBookings.Contains(p.Id)
                             && (p.LastRentalClosedAtUtc == null || p.LastRentalClosedAtUtc < cutoff)
                             && p.Documents.Any(d => (d.FrontImage != null && d.FrontImage.UploadedAtUtc < cutoff)
                                                     || (d.BackImage != null && d.BackImage.UploadedAtUtc < cutoff)))
                 .OrderBy(p => p.Id)
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
-
-            var purged = persons.Sum(person => person.PurgeDocumentImages(cutoff, now));
-            if (purged == 0)
+            if (persons.Count == 0)
             {
                 break;
+            }
+
+            var purged = 0;
+            foreach (var person in persons)
+            {
+                if (await bookings.HasOpenBookingsAsync(person.Id, cancellationToken))
+                {
+                    withOpenBookings.Add(person.Id);
+                    continue;
+                }
+
+                purged += person.PurgeDocumentImages(cutoff, now);
+            }
+
+            if (purged == 0)
+            {
+                continue;
             }
 
             total += purged;

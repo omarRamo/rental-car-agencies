@@ -1,0 +1,37 @@
+@* Time left before a deadline (hold of a web request, option), refreshed every 30 seconds; below the urgency threshold
+   it is shown with an icon and in bold (never by colour alone). Not a live region: screen readers read it on demand. *@
+@implements IDisposable
+@inject TimeProvider Clock
+@inject IStringLocalizer<BookingsResources> L
+
+<span class="@($"booking-countdown{(IsUrgent ? " booking-countdown--urgent" : string.Empty)}")" data-testid="countdown">
+    <MudIcon Icon="@(IsUrgent ? Icons.Material.Filled.AlarmOn : Icons.Material.Outlined.Timer)" Size="Size.Small" aria-hidden="true" />
+    @if (Left > TimeSpan.Zero)
+    {
+        @L["Countdown.Left", BookingFormat.Duration(L, Left)]
+    }
+    else
+    {
+        @L["Duration.Over"]
+    }
+</span>
+
+@code {
+    private Timer? _timer;
+
+    [Parameter, EditorRequired]
+    public DateTimeOffset Until { get; set; }
+
+    /// <summary>Below this time left, the countdown is shown as urgent.</summary>
+    [Parameter]
+    public TimeSpan Urgent { get; set; } = TimeSpan.FromMinutes(30);
+
+    private TimeSpan Left => Until - Clock.GetUtcNow();
+
+    private bool IsUrgent => Left < Urgent;
+
+    protected override void OnInitialized() =>
+        _timer = new Timer(_ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
+    public void Dispose() => _timer?.Dispose();
+}

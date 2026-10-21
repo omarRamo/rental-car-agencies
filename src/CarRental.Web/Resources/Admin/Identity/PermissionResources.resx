@@ -123,4 +123,10 @@
   <data name="Permission.outbox.manage" xml:space="preserve">
     <value>Messages de fond (relancer)</value>
   </data>
+  <data name="Permission.bookings.discount" xml:space="preserve">
+    <value>Accorder des remises manuelles et offrir des frais d'annulation</value>
+  </data>
+  <data name="Permission.bookings.compliance.waive" xml:space="preserve">
+    <value>Déroger aux documents d'un véhicule lors d'une affectation</value>
+  </data>
 </root>

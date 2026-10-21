@@ -1,0 +1,1443 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action.Amend" xml:space="preserve">
+    <value>Amend</value>
+  </data>
+  <data name="Action.Assign" xml:space="preserve">
+    <value>Assign</value>
+  </data>
+  <data name="Action.Cancel" xml:space="preserve">
+    <value>Confirm the cancellation</value>
+  </data>
+  <data name="Action.CancelBooking" xml:space="preserve">
+    <value>Cancel the booking</value>
+  </data>
+  <data name="Action.ConfirmOption" xml:space="preserve">
+    <value>Confirm the option</value>
+  </data>
+  <data name="Action.Extend" xml:space="preserve">
+    <value>Extend</value>
+  </data>
+  <data name="Action.MarkPaid" xml:space="preserve">
+    <value>Mark as paid</value>
+  </data>
+  <data name="Action.NoShow" xml:space="preserve">
+    <value>Customer no-show</value>
+  </data>
+  <data name="Action.ProvideInformation" xml:space="preserve">
+    <value>Information received</value>
+  </data>
+  <data name="Action.Reassign" xml:space="preserve">
+    <value>Change the vehicle</value>
+  </data>
+  <data name="Action.Refuse" xml:space="preserve">
+    <value>Refuse</value>
+  </data>
+  <data name="Action.RequestInformation" xml:space="preserve">
+    <value>Request information</value>
+  </data>
+  <data name="Action.Swap" xml:space="preserve">
+    <value>Swap the vehicle</value>
+  </data>
+  <data name="Action.Unassign" xml:space="preserve">
+    <value>Remove the vehicle</value>
+  </data>
+  <data name="Action.Validate" xml:space="preserve">
+    <value>Validate</value>
+  </data>
+  <data name="Amend.Discount" xml:space="preserve">
+    <value>Manual discount (incl. VAT)</value>
+  </data>
+  <data name="Amend.Discount.Help" xml:space="preserve">
+    <value>Amount taken off the total incl. VAT (new quote version).</value>
+  </data>
+  <data name="Amend.Discount.Reason" xml:space="preserve">
+    <value>Reason for the discount</value>
+  </data>
+  <data name="Amend.Done" xml:space="preserve">
+    <value>Change saved: quote version {0}, total {1}.</value>
+  </data>
+  <data name="Amend.Invalid" xml:space="preserve">
+    <value>Check the dates and the main driver.</value>
+  </data>
+  <data name="Amend.Preview" xml:space="preserve">
+    <value>Compute the new price</value>
+  </data>
+  <data name="Amend.Preview.Caption" xml:space="preserve">
+    <value>New quote</value>
+  </data>
+  <data name="Amend.Preview.NotAvailable" xml:space="preserve">
+    <value>The category is no longer available for these dates: the change will be refused.</value>
+  </data>
+  <data name="Amend.Preview.SamePrice" xml:space="preserve">
+    <value>The price does not change: no new quote version.</value>
+  </data>
+  <data name="Amend.Preview.Total" xml:space="preserve">
+    <value>Current total {0} → new total {1}</value>
+  </data>
+  <data name="Amend.ReleaseVehicle" xml:space="preserve">
+    <value>Release the assigned vehicle</value>
+  </data>
+  <data name="Amend.Save" xml:space="preserve">
+    <value>Save the change</value>
+  </data>
+  <data name="Amend.Title" xml:space="preserve">
+    <value>Amend file {0}</value>
+  </data>
+  <data name="Amend.Title.Extension" xml:space="preserve">
+    <value>Extend rental {0}</value>
+  </data>
+  <data name="Assign.Done" xml:space="preserve">
+    <value>Vehicle {0} assigned.</value>
+  </data>
+  <data name="Assign.NoVehicle" xml:space="preserve">
+    <value>No vehicle in this category.</value>
+  </data>
+  <data name="Assign.Swap.Reason" xml:space="preserve">
+    <value>Reason for the swap</value>
+  </data>
+  <data name="Assign.Title" xml:space="preserve">
+    <value>Assign a vehicle — {0}</value>
+  </data>
+  <data name="Assign.Vehicles" xml:space="preserve">
+    <value>Vehicles of the category</value>
+  </data>
+  <data name="Assign.Waiver.ManagerOnly" xml:space="preserve">
+    <value>The documents of this vehicle do not cover the whole rental: only a manager can grant a waiver.</value>
+  </data>
+  <data name="Assign.Waiver.Message" xml:space="preserve">
+    <value>The documents of this vehicle (insurance, road tax or technical inspection) do not cover the whole rental. A waiver needs a reason; it is recorded.</value>
+  </data>
+  <data name="Assign.Waiver.Reason" xml:space="preserve">
+    <value>Reason for the waiver</value>
+  </data>
+  <data name="Booking.Actions" xml:space="preserve">
+    <value>File actions</value>
+  </data>
+  <data name="Booking.BackToList" xml:space="preserve">
+    <value>Back to the bookings</value>
+  </data>
+  <data name="Booking.ChannelReference" xml:space="preserve">
+    <value>Reference {0}</value>
+  </data>
+  <data name="Booking.CreatedAt" xml:space="preserve">
+    <value>created on {0}</value>
+  </data>
+  <data name="Booking.Late" xml:space="preserve">
+    <value>Late</value>
+  </data>
+  <data name="Booking.StatusReason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
+  <data name="Booking.Title" xml:space="preserve">
+    <value>File {0}</value>
+  </data>
+  <data name="Booking.TitleLoading" xml:space="preserve">
+    <value>Rental file</value>
+  </data>
+  <data name="BookingQuote.Line.Extension" xml:space="preserve">
+    <value>Extension of {0} day(s)</value>
+  </data>
+  <data name="BookingQuote.Line.ExtensionContribution" xml:space="preserve">
+    <value>Daily contribution of the extension: {0} day(s) ({1} excl. VAT per day)</value>
+  </data>
+  <data name="BookingQuote.Line.ManualDiscount" xml:space="preserve">
+    <value>Manual discount</value>
+  </data>
+  <data name="Bookings.Empty" xml:space="preserve">
+    <value>No file matches the filters.</value>
+  </data>
+  <data name="Bookings.Filter.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Bookings.Filter.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Bookings.Filter.From" xml:space="preserve">
+    <value>Pick-up from</value>
+  </data>
+  <data name="Bookings.Filter.Status" xml:space="preserve">
+    <value>Statuses</value>
+  </data>
+  <data name="Bookings.Filter.To" xml:space="preserve">
+    <value>Pick-up until</value>
+  </data>
+  <data name="Bookings.New" xml:space="preserve">
+    <value>New booking</value>
+  </data>
+  <data name="Bookings.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Bookings.Search.Help" xml:space="preserve">
+    <value>Number, name, phone, e-mail or channel reference</value>
+  </data>
+  <data name="Bookings.Title" xml:space="preserve">
+    <value>Bookings</value>
+  </data>
+  <data name="Cancel.Done" xml:space="preserve">
+    <value>Booking cancelled free of charge.</value>
+  </data>
+  <data name="Cancel.DoneWithFee" xml:space="preserve">
+    <value>Booking cancelled: cancellation fee {0}.</value>
+  </data>
+  <data name="Cancel.Fee" xml:space="preserve">
+    <value>Cancellation fee under the agency policy: {0} (free cancellation until {1}).</value>
+  </data>
+  <data name="Cancel.Free" xml:space="preserve">
+    <value>Free cancellation.</value>
+  </data>
+  <data name="Cancel.Reason" xml:space="preserve">
+    <value>Reason for the cancellation</value>
+  </data>
+  <data name="Cancel.Title" xml:space="preserve">
+    <value>Cancel booking {0}</value>
+  </data>
+  <data name="Cancel.WaiveFee" xml:space="preserve">
+    <value>Waive the cancellation fee</value>
+  </data>
+  <data name="Candidate.Current" xml:space="preserve">
+    <value>current vehicle</value>
+  </data>
+  <data name="Candidate.Free" xml:space="preserve">
+    <value>Free</value>
+  </data>
+  <data name="Candidate.NotCompliant" xml:space="preserve">
+    <value>Documents not valid for the period</value>
+  </data>
+  <data name="Candidate.Overlap" xml:space="preserve">
+    <value>Already busy during the period</value>
+  </data>
+  <data name="Candidate.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Channel.BookingCom" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+  <data name="Channel.Counter" xml:space="preserve">
+    <value>Counter</value>
+  </data>
+  <data name="Channel.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Channel.Web" xml:space="preserve">
+    <value>Website</value>
+  </data>
+  <data name="Channel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Check.AgeAndLicense" xml:space="preserve">
+    <value>Age and licence seniority</value>
+  </data>
+  <data name="Check.Availability" xml:space="preserve">
+    <value>Category still available</value>
+  </data>
+  <data name="Check.CustomerCheck" xml:space="preserve">
+    <value>Customer check</value>
+  </data>
+  <data name="Check.CustomerCheck.Attention" xml:space="preserve">
+    <value>The internal customer check is not conclusive: validating will refuse the request with a generic reason. See the manager.</value>
+  </data>
+  <data name="Check.Documents" xml:space="preserve">
+    <value>Identity documents and licences present, with their images, verified</value>
+  </data>
+  <data name="Check.Names" xml:space="preserve">
+    <value>Same names on the document, the licence and the request</value>
+  </data>
+  <data name="Check.Payment" xml:space="preserve">
+    <value>Payment pre-authorisation</value>
+  </data>
+  <data name="Check.Validity" xml:space="preserve">
+    <value>Documents valid until the return, international permit when needed</value>
+  </data>
+  <data name="CheckState.Attention" xml:space="preserve">
+    <value>needs attention</value>
+  </data>
+  <data name="CheckState.Manual" xml:space="preserve">
+    <value>to be checked by the agent</value>
+  </data>
+  <data name="CheckState.Ok" xml:space="preserve">
+    <value>checked</value>
+  </data>
+  <data name="CheckState.Pending" xml:space="preserve">
+    <value>phase 2 (Clic to Pay)</value>
+  </data>
+  <data name="Column.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Column.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Column.Customer" xml:space="preserve">
+    <value>Customer</value>
+  </data>
+  <data name="Column.Deadline" xml:space="preserve">
+    <value>Deadline</value>
+  </data>
+  <data name="Column.Number" xml:space="preserve">
+    <value>No.</value>
+  </data>
+  <data name="Column.Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Column.Pickup" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Column.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Column.Total" xml:space="preserve">
+    <value>Total incl. VAT</value>
+  </data>
+  <data name="Column.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Company.Address" xml:space="preserve">
+    <value>Billing address</value>
+  </data>
+  <data name="Company.Change" xml:space="preserve">
+    <value>Change the company</value>
+  </data>
+  <data name="Company.City" xml:space="preserve">
+    <value>City</value>
+  </data>
+  <data name="Company.Country" xml:space="preserve">
+    <value>Country (ISO code)</value>
+  </data>
+  <data name="Company.LegalName" xml:space="preserve">
+    <value>Legal name</value>
+  </data>
+  <data name="Company.New" xml:space="preserve">
+    <value>New company</value>
+  </data>
+  <data name="Company.New.Save" xml:space="preserve">
+    <value>Save the company</value>
+  </data>
+  <data name="Company.New.Title" xml:space="preserve">
+    <value>New paying company</value>
+  </data>
+  <data name="Company.NoResult" xml:space="preserve">
+    <value>No company found.</value>
+  </data>
+  <data name="Company.PostalCode" xml:space="preserve">
+    <value>Postal code</value>
+  </data>
+  <data name="Company.Results" xml:space="preserve">
+    <value>Companies found</value>
+  </data>
+  <data name="Company.Search" xml:space="preserve">
+    <value>Paying company (legal name or tax ID)</value>
+  </data>
+  <data name="Company.TaxIdentifier" xml:space="preserve">
+    <value>Tax ID (matricule fiscal)</value>
+  </data>
+  <data name="ConfirmOption.Done" xml:space="preserve">
+    <value>Option confirmed.</value>
+  </data>
+  <data name="ConfirmOption.Message" xml:space="preserve">
+    <value>Confirm the option: the booking becomes firm.</value>
+  </data>
+  <data name="ConfirmOption.Title" xml:space="preserve">
+    <value>Confirm the option</value>
+  </data>
+  <data name="Countdown.Left" xml:space="preserve">
+    <value>{0} left</value>
+  </data>
+  <data name="Deadline.AwaitingPayment" xml:space="preserve">
+    <value>Payment expected before {0}.</value>
+  </data>
+  <data name="Deadline.InformationRequested" xml:space="preserve">
+    <value>Information expected before {0}.</value>
+  </data>
+  <data name="Deadline.OptionHeld" xml:space="preserve">
+    <value>Option held until {0}.</value>
+  </data>
+  <data name="Deadline.PendingValidation" xml:space="preserve">
+    <value>Answer expected before {0}.</value>
+  </data>
+  <data name="Dialog.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Dialog.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="DocumentType.NationalId" xml:space="preserve">
+    <value>National ID card</value>
+  </data>
+  <data name="DocumentType.Passport" xml:space="preserve">
+    <value>Passport</value>
+  </data>
+  <data name="Documents.Complete" xml:space="preserve">
+    <value>Documents complete</value>
+  </data>
+  <data name="Documents.Missing" xml:space="preserve">
+    <value>Documents missing</value>
+  </data>
+  <data name="Documents.ToVerify" xml:space="preserve">
+    <value>Documents to verify</value>
+  </data>
+  <data name="Documents.Unknown" xml:space="preserve">
+    <value>Documents unknown</value>
+  </data>
+  <data name="Driver.Anonymized" xml:space="preserve">
+    <value>Anonymised person</value>
+  </data>
+  <data name="Driver.Eligible" xml:space="preserve">
+    <value>Eligible for the rental dates.</value>
+  </data>
+  <data name="Driver.NotEligible" xml:space="preserve">
+    <value>Not eligible for the rental dates:</value>
+  </data>
+  <data name="Drivers.None" xml:space="preserve">
+    <value>No driver yet.</value>
+  </data>
+  <data name="Duration.DaysHours" xml:space="preserve">
+    <value>{0} d {1} h</value>
+  </data>
+  <data name="Duration.HoursMinutes" xml:space="preserve">
+    <value>{0} h {1} min</value>
+  </data>
+  <data name="Duration.Over" xml:space="preserve">
+    <value>deadline passed</value>
+  </data>
+  <data name="Email.Escalation.Action" xml:space="preserve">
+    <value>Open the request queue</value>
+  </data>
+  <data name="Email.Escalation.Body" xml:space="preserve">
+    <value>{0} booking request(s) have been waiting beyond the expected delay:</value>
+  </data>
+  <data name="Email.Escalation.Greeting" xml:space="preserve">
+    <value>Hello {0},</value>
+  </data>
+  <data name="Email.Escalation.Line" xml:space="preserve">
+    <value>{0} ({1}) — pending since {2}, expires on {3}, pick-up on {4}</value>
+  </data>
+  <data name="Email.Escalation.Subject" xml:space="preserve">
+    <value>{0} request(s) awaiting validation</value>
+  </data>
+  <data name="Event.Amended" xml:space="preserve">
+    <value>File amended</value>
+  </data>
+  <data name="Event.Cancelled" xml:space="preserve">
+    <value>Booking cancelled</value>
+  </data>
+  <data name="Event.Closed" xml:space="preserve">
+    <value>File closed</value>
+  </data>
+  <data name="Event.Created" xml:space="preserve">
+    <value>File created</value>
+  </data>
+  <data name="Event.Escalated" xml:space="preserve">
+    <value>Escalated to the manager</value>
+  </data>
+  <data name="Event.Expired" xml:space="preserve">
+    <value>Deadline expired</value>
+  </data>
+  <data name="Event.Extended" xml:space="preserve">
+    <value>Rental extended</value>
+  </data>
+  <data name="Event.InformationProvided" xml:space="preserve">
+    <value>Information received</value>
+  </data>
+  <data name="Event.InformationRequested" xml:space="preserve">
+    <value>Information requested</value>
+  </data>
+  <data name="Event.NoShow" xml:space="preserve">
+    <value>Customer no-show</value>
+  </data>
+  <data name="Event.OptionConfirmed" xml:space="preserve">
+    <value>Option confirmed</value>
+  </data>
+  <data name="Event.Paid" xml:space="preserve">
+    <value>Payment received</value>
+  </data>
+  <data name="Event.Refused" xml:space="preserve">
+    <value>Request refused</value>
+  </data>
+  <data name="Event.RentalStarted" xml:space="preserve">
+    <value>Vehicle handed over</value>
+  </data>
+  <data name="Event.Returned" xml:space="preserve">
+    <value>Vehicle returned</value>
+  </data>
+  <data name="Event.Submitted" xml:space="preserve">
+    <value>Request submitted</value>
+  </data>
+  <data name="Event.Validated" xml:space="preserve">
+    <value>Request validated</value>
+  </data>
+  <data name="Event.VehicleAssigned" xml:space="preserve">
+    <value>Vehicle assigned</value>
+  </data>
+  <data name="Event.VehicleSwapped" xml:space="preserve">
+    <value>Vehicle swapped</value>
+  </data>
+  <data name="Event.VehicleUnassigned" xml:space="preserve">
+    <value>Vehicle removed</value>
+  </data>
+  <data name="Fact.actualPickupAt" xml:space="preserve">
+    <value>Actual pick-up: {0}</value>
+  </data>
+  <data name="Fact.actualReturnAt" xml:space="preserve">
+    <value>Actual return: {0}</value>
+  </data>
+  <data name="Fact.category" xml:space="preserve">
+    <value>Category changed</value>
+  </data>
+  <data name="Fact.computedFee" xml:space="preserve">
+    <value>Computed fee: {0} (waived)</value>
+  </data>
+  <data name="Fact.deadline" xml:space="preserve">
+    <value>Deadline: {0}</value>
+  </data>
+  <data name="Fact.drivers" xml:space="preserve">
+    <value>Drivers changed</value>
+  </data>
+  <data name="Fact.extras" xml:space="preserve">
+    <value>Extras: {0}</value>
+  </data>
+  <data name="Fact.fee" xml:space="preserve">
+    <value>Cancellation fee: {0}</value>
+  </data>
+  <data name="Fact.feeWaived" xml:space="preserve">
+    <value>Cancellation fee waived</value>
+  </data>
+  <data name="Fact.guaranteedVehicle" xml:space="preserve">
+    <value>Guaranteed model changed</value>
+  </data>
+  <data name="Fact.holdExpiresAt" xml:space="preserve">
+    <value>Answer expected before {0}</value>
+  </data>
+  <data name="Fact.notes" xml:space="preserve">
+    <value>Notes changed</value>
+  </data>
+  <data name="Fact.optionExpiresAt" xml:space="preserve">
+    <value>Option until {0}</value>
+  </data>
+  <data name="Fact.payer" xml:space="preserve">
+    <value>Payer changed</value>
+  </data>
+  <data name="Fact.paymentDueAt" xml:space="preserve">
+    <value>Payment expected before {0}</value>
+  </data>
+  <data name="Fact.paymentReference" xml:space="preserve">
+    <value>Payment reference: {0}</value>
+  </data>
+  <data name="Fact.pendingSince" xml:space="preserve">
+    <value>Pending since {0}</value>
+  </data>
+  <data name="Fact.pickupAt" xml:space="preserve">
+    <value>Pick-up: {0} → {1}</value>
+  </data>
+  <data name="Fact.pickupLocation" xml:space="preserve">
+    <value>Pick-up place changed</value>
+  </data>
+  <data name="Fact.promoCode" xml:space="preserve">
+    <value>Promo code: {0}</value>
+  </data>
+  <data name="Fact.quoteVersion" xml:space="preserve">
+    <value>Quote version {0}</value>
+  </data>
+  <data name="Fact.reason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
+  <data name="Fact.returnAt" xml:space="preserve">
+    <value>Return: {0} → {1}</value>
+  </data>
+  <data name="Fact.returnLocation" xml:space="preserve">
+    <value>Return place changed</value>
+  </data>
+  <data name="Fact.total" xml:space="preserve">
+    <value>Total incl. VAT: {0}</value>
+  </data>
+  <data name="Fact.vehicleReleased" xml:space="preserve">
+    <value>Vehicle released</value>
+  </data>
+  <data name="Fact.waiverReason" xml:space="preserve">
+    <value>Documents waiver: {0}</value>
+  </data>
+  <data name="Field.Actual" xml:space="preserve">
+    <value>actual: {0}</value>
+  </data>
+  <data name="Field.CancellationFee" xml:space="preserve">
+    <value>Cancellation fee</value>
+  </data>
+  <data name="Field.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Field.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Field.ChannelReference" xml:space="preserve">
+    <value>Channel reference</value>
+  </data>
+  <data name="Field.ChannelReference.Help" xml:space="preserve">
+    <value>Booking.com number or conversation reference (optional)</value>
+  </data>
+  <data name="Field.Deposit" xml:space="preserve">
+    <value>deposit {0}, not included</value>
+  </data>
+  <data name="Field.Extras" xml:space="preserve">
+    <value>Extras</value>
+  </data>
+  <data name="Field.MainDriver" xml:space="preserve">
+    <value>Main driver</value>
+  </data>
+  <data name="Field.Notes" xml:space="preserve">
+    <value>Internal notes</value>
+  </data>
+  <data name="Field.OptionExpiresAt" xml:space="preserve">
+    <value>Option held until</value>
+  </data>
+  <data name="Field.OptionExpiresAt.Help" xml:space="preserve">
+    <value>Default: {0}</value>
+  </data>
+  <data name="Field.Payer" xml:space="preserve">
+    <value>Payer</value>
+  </data>
+  <data name="Field.Pickup" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Field.PickupAt" xml:space="preserve">
+    <value>Pick-up date and time</value>
+  </data>
+  <data name="Field.PickupLocation" xml:space="preserve">
+    <value>Pick-up place</value>
+  </data>
+  <data name="Field.PromoCode" xml:space="preserve">
+    <value>Promo code</value>
+  </data>
+  <data name="Field.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Field.ReturnAt" xml:space="preserve">
+    <value>Return date and time</value>
+  </data>
+  <data name="Field.ReturnLocation" xml:space="preserve">
+    <value>Return place</value>
+  </data>
+  <data name="Field.SecondDriver" xml:space="preserve">
+    <value>Second driver</value>
+  </data>
+  <data name="Field.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Field.Total" xml:space="preserve">
+    <value>Total incl. VAT</value>
+  </data>
+  <data name="Filter.All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Information.Message" xml:space="preserve">
+    <value>Message sent to the customer</value>
+  </data>
+  <data name="Information.Reason" xml:space="preserve">
+    <value>Predefined reason</value>
+  </data>
+  <data name="Information.Sent" xml:space="preserve">
+    <value>Information request sent.</value>
+  </data>
+  <data name="Information.Title" xml:space="preserve">
+    <value>Request information</value>
+  </data>
+  <data name="InformationReason.DocumentExpiresBeforeReturn" xml:space="preserve">
+    <value>Document expiring before the return</value>
+  </data>
+  <data name="InformationReason.InternationalPermitRequired" xml:space="preserve">
+    <value>International permit required</value>
+  </data>
+  <data name="InformationReason.LicenseSeniority" xml:space="preserve">
+    <value>Licence held too short</value>
+  </data>
+  <data name="InformationReason.MissingDocuments" xml:space="preserve">
+    <value>Missing documents</value>
+  </data>
+  <data name="InformationReason.NameMismatch" xml:space="preserve">
+    <value>Names differ on the documents</value>
+  </data>
+  <data name="InformationReason.Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="InformationReason.Template.DocumentExpiresBeforeReturn" xml:space="preserve">
+    <value>One of your documents expires before the return date: please send us a valid document.</value>
+  </data>
+  <data name="InformationReason.Template.InternationalPermitRequired" xml:space="preserve">
+    <value>Your licence is not written in Latin characters: please send us your international driving permit.</value>
+  </data>
+  <data name="InformationReason.Template.LicenseSeniority" xml:space="preserve">
+    <value>Your licence has not been held long enough for this category: can another driver be declared?</value>
+  </data>
+  <data name="InformationReason.Template.MissingDocuments" xml:space="preserve">
+    <value>Please send us a photo of your identity document and of your driving licence (front and back).</value>
+  </data>
+  <data name="InformationReason.Template.NameMismatch" xml:space="preserve">
+    <value>The name of the request does not match the one on the documents: please confirm it.</value>
+  </data>
+  <data name="InformationReason.Template.Other" xml:space="preserve">
+    <value>Please contact us to complete your request.</value>
+  </data>
+  <data name="InformationReason.Template.UnreadableDocuments" xml:space="preserve">
+    <value>The photos of your documents cannot be read: please send them again, sharp and complete.</value>
+  </data>
+  <data name="InformationReason.UnreadableDocuments" xml:space="preserve">
+    <value>Unreadable documents</value>
+  </data>
+  <data name="Legend.NonCompliant" xml:space="preserve">
+    <value>Vehicle documents not valid</value>
+  </data>
+  <data name="Legend.Off" xml:space="preserve">
+    <value>Unavailable (maintenance, out of service)</value>
+  </data>
+  <data name="Legend.Shortfall" xml:space="preserve">
+    <value>Vehicle shortfall</value>
+  </data>
+  <data name="Legend.confirmed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="Legend.ended" xml:space="preserve">
+    <value>Ended</value>
+  </data>
+  <data name="Legend.option" xml:space="preserve">
+    <value>Option or payment due</value>
+  </data>
+  <data name="Legend.pending" xml:space="preserve">
+    <value>Pending request</value>
+  </data>
+  <data name="Legend.progress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="Legend.returned" xml:space="preserve">
+    <value>Returned or closed</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <data name="MarkPaid.Done" xml:space="preserve">
+    <value>Payment recorded: booking confirmed.</value>
+  </data>
+  <data name="MarkPaid.Message" xml:space="preserve">
+    <value>The payment by link was received: the booking becomes confirmed.</value>
+  </data>
+  <data name="MarkPaid.Reference" xml:space="preserve">
+    <value>Payment reference (optional)</value>
+  </data>
+  <data name="MarkPaid.Title" xml:space="preserve">
+    <value>Mark as paid</value>
+  </data>
+  <data name="New.AddSecondDriver" xml:space="preserve">
+    <value>Add a second driver</value>
+  </data>
+  <data name="New.Choose" xml:space="preserve">
+    <value>Choose</value>
+  </data>
+  <data name="New.ChooseCategory" xml:space="preserve">
+    <value>Choose {0} — {1}</value>
+  </data>
+  <data name="New.Column.Remaining" xml:space="preserve">
+    <value>Availability</value>
+  </data>
+  <data name="New.Created.Confirmed" xml:space="preserve">
+    <value>Booking {0} confirmed.</value>
+  </data>
+  <data name="New.Created.Option" xml:space="preserve">
+    <value>Option {0} held until {1}.</value>
+  </data>
+  <data name="New.Full" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="New.OptionInvalid" xml:space="preserve">
+    <value>Enter the end of the option.</value>
+  </data>
+  <data name="New.PeriodInvalid" xml:space="preserve">
+    <value>Enter a pick-up and a later return.</value>
+  </data>
+  <data name="New.Quoting" xml:space="preserve">
+    <value>Computing the prices</value>
+  </data>
+  <data name="New.Remaining" xml:space="preserve">
+    <value>{0} left</value>
+  </data>
+  <data name="New.SaveConfirmed" xml:space="preserve">
+    <value>Save the firm booking</value>
+  </data>
+  <data name="New.SaveOption" xml:space="preserve">
+    <value>Hold the option</value>
+  </data>
+  <data name="New.Section.Categories" xml:space="preserve">
+    <value>Available categories and prices</value>
+  </data>
+  <data name="New.Section.Customer" xml:space="preserve">
+    <value>Customer</value>
+  </data>
+  <data name="New.Section.Outcome" xml:space="preserve">
+    <value>Kind of booking</value>
+  </data>
+  <data name="New.Section.Rental" xml:space="preserve">
+    <value>Rental</value>
+  </data>
+  <data name="New.Summary" xml:space="preserve">
+    <value>{0}: {1} incl. VAT</value>
+  </data>
+  <data name="New.Summary.None" xml:space="preserve">
+    <value>Choose an available category.</value>
+  </data>
+  <data name="New.Title" xml:space="preserve">
+    <value>New booking</value>
+  </data>
+  <data name="NoShow.AllowedFrom" xml:space="preserve">
+    <value>No-show possible from {0}.</value>
+  </data>
+  <data name="NoShow.Done" xml:space="preserve">
+    <value>Customer marked as no-show.</value>
+  </data>
+  <data name="NoShow.Message" xml:space="preserve">
+    <value>The customer did not come: the booking is closed and the availability freed.</value>
+  </data>
+  <data name="NoShow.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="NoShow.Title" xml:space="preserve">
+    <value>Customer no-show</value>
+  </data>
+  <data name="Origin.Extension" xml:space="preserve">
+    <value>Extension</value>
+  </data>
+  <data name="Origin.Initial" xml:space="preserve">
+    <value>Initial quote</value>
+  </data>
+  <data name="Origin.LockedQuote" xml:space="preserve">
+    <value>Locked quote taken over</value>
+  </data>
+  <data name="Origin.ManualDiscount" xml:space="preserve">
+    <value>Manual discount</value>
+  </data>
+  <data name="Origin.Requote" xml:space="preserve">
+    <value>Re-quote</value>
+  </data>
+  <data name="Origin.Standalone" xml:space="preserve">
+    <value>Locked quote</value>
+  </data>
+  <data name="Outcome.Confirmed" xml:space="preserve">
+    <value>Firm booking</value>
+  </data>
+  <data name="Outcome.Option" xml:space="preserve">
+    <value>Dated option</value>
+  </data>
+  <data name="Pager.Info" xml:space="preserve">
+    <value>{first_item}–{last_item} of {all_items}</value>
+  </data>
+  <data name="Payer.Company" xml:space="preserve">
+    <value>A company</value>
+  </data>
+  <data name="Payer.Kind.Company" xml:space="preserve">
+    <value>company</value>
+  </data>
+  <data name="Payer.Kind.Individual" xml:space="preserve">
+    <value>individual</value>
+  </data>
+  <data name="Payer.MainDriver" xml:space="preserve">
+    <value>The main driver</value>
+  </data>
+  <data name="Payment.AwaitingPayment" xml:space="preserve">
+    <value>Payment due</value>
+  </data>
+  <data name="Person.BirthDate" xml:space="preserve">
+    <value>Date of birth</value>
+  </data>
+  <data name="Person.Change" xml:space="preserve">
+    <value>Change: {0}</value>
+  </data>
+  <data name="Person.ChangeShort" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Person.DocumentCountry" xml:space="preserve">
+    <value>Issuing country (ISO code)</value>
+  </data>
+  <data name="Person.DocumentNumber" xml:space="preserve">
+    <value>Document number</value>
+  </data>
+  <data name="Person.DocumentType" xml:space="preserve">
+    <value>Document type</value>
+  </data>
+  <data name="Person.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Person.FirstName" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Person.LastName" xml:space="preserve">
+    <value>Last name</value>
+  </data>
+  <data name="Person.Match.Created" xml:space="preserve">
+    <value>New customer created.</value>
+  </data>
+  <data name="Person.Match.Document" xml:space="preserve">
+    <value>Existing customer found by the document.</value>
+  </data>
+  <data name="Person.Match.Email" xml:space="preserve">
+    <value>Existing customer found by the e-mail.</value>
+  </data>
+  <data name="Person.Match.NameDiffers" xml:space="preserve">
+    <value>Warning: the name recorded for this document is different, check it.</value>
+  </data>
+  <data name="Person.Match.Phone" xml:space="preserve">
+    <value>Existing customer found by the phone number.</value>
+  </data>
+  <data name="Person.Match.Similar" xml:space="preserve">
+    <value>{0} other person(s) share this phone or e-mail.</value>
+  </data>
+  <data name="Person.Nationality" xml:space="preserve">
+    <value>Nationality (ISO code)</value>
+  </data>
+  <data name="Person.Nationality.Help" xml:space="preserve">
+    <value>Two letters, e.g. TN, FR</value>
+  </data>
+  <data name="Person.New" xml:space="preserve">
+    <value>New customer</value>
+  </data>
+  <data name="Person.New.Save" xml:space="preserve">
+    <value>Save the customer</value>
+  </data>
+  <data name="Person.New.Title" xml:space="preserve">
+    <value>New driver</value>
+  </data>
+  <data name="Person.NoResult" xml:space="preserve">
+    <value>No person found.</value>
+  </data>
+  <data name="Person.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Person.Results" xml:space="preserve">
+    <value>Results: {0}</value>
+  </data>
+  <data name="Person.Search.Help" xml:space="preserve">
+    <value>Name, phone, ID card, passport or e-mail</value>
+  </data>
+  <data name="PersonBookings.Empty" xml:space="preserve">
+    <value>No rental file for this person.</value>
+  </data>
+  <data name="PersonBookings.NotAllowed" xml:space="preserve">
+    <value>You have no access to the bookings.</value>
+  </data>
+  <data name="PersonBookings.Roles" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="PersonBookings.Title" xml:space="preserve">
+    <value>Rental files</value>
+  </data>
+  <data name="Planning.AssignVehicle" xml:space="preserve">
+    <value>Assign a vehicle…</value>
+  </data>
+  <data name="Planning.AssignedTo" xml:space="preserve">
+    <value>Vehicle {0}</value>
+  </data>
+  <data name="Planning.Buffer" xml:space="preserve">
+    <value>Vehicle preparation</value>
+  </data>
+  <data name="Planning.CategoryCount" xml:space="preserve">
+    <value>{0} vehicle(s)</value>
+  </data>
+  <data name="Planning.Empty" xml:space="preserve">
+    <value>No active category.</value>
+  </data>
+  <data name="Planning.Grid" xml:space="preserve">
+    <value>Planning from {0} to {1}</value>
+  </data>
+  <data name="Planning.Guaranteed" xml:space="preserve">
+    <value>guaranteed model</value>
+  </data>
+  <data name="Planning.Help" xml:space="preserve">
+    <value>Select a booking (click, tap or Enter) to assign it a vehicle; with a mouse you can also drag it onto a vehicle row.</value>
+  </data>
+  <data name="Planning.Late" xml:space="preserve">
+    <value>Late return</value>
+  </data>
+  <data name="Planning.Legend" xml:space="preserve">
+    <value>Legend</value>
+  </data>
+  <data name="Planning.Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="Planning.Next" xml:space="preserve">
+    <value>Next period</value>
+  </data>
+  <data name="Planning.NoCustomer" xml:space="preserve">
+    <value>No customer yet</value>
+  </data>
+  <data name="Planning.Off.Maintenance" xml:space="preserve">
+    <value>Maintenance from {0} to {1}</value>
+  </data>
+  <data name="Planning.Off.NonCompliant" xml:space="preserve">
+    <value>Documents not valid from {0} to {1}</value>
+  </data>
+  <data name="Planning.Off.OutOfService" xml:space="preserve">
+    <value>Out of service from {0} to {1}</value>
+  </data>
+  <data name="Planning.Period" xml:space="preserve">
+    <value>from {0} to {1}</value>
+  </data>
+  <data name="Planning.Previous" xml:space="preserve">
+    <value>Previous period</value>
+  </data>
+  <data name="Planning.Propose" xml:space="preserve">
+    <value>Propose assignments</value>
+  </data>
+  <data name="Planning.Range" xml:space="preserve">
+    <value>From {0} to {1}</value>
+  </data>
+  <data name="Planning.Selected" xml:space="preserve">
+    <value>Selected booking</value>
+  </data>
+  <data name="Planning.Shortfall" xml:space="preserve">
+    <value>{0} vehicle(s) short from {1} to {2}</value>
+  </data>
+  <data name="Planning.ShortfallTitle" xml:space="preserve">
+    <value>{0} vehicle shortfall(s) in the period</value>
+  </data>
+  <data name="Planning.Title" xml:space="preserve">
+    <value>Planning</value>
+  </data>
+  <data name="Planning.Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Planning.Unassigned" xml:space="preserve">
+    <value>Unassigned ({0})</value>
+  </data>
+  <data name="Planning.UseDialogForWaiver" xml:space="preserve">
+    <value>For a documents waiver, use "Assign a vehicle…".</value>
+  </data>
+  <data name="Planning.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Planning.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Planning.Waived" xml:space="preserve">
+    <value>documents waiver</value>
+  </data>
+  <data name="Planning.Week" xml:space="preserve">
+    <value>Week</value>
+  </data>
+  <data name="Promo.Applied" xml:space="preserve">
+    <value>Promo code applied.</value>
+  </data>
+  <data name="Promo.NotApplicable" xml:space="preserve">
+    <value>Promo code not applicable to this rental.</value>
+  </data>
+  <data name="Promo.NotRetained" xml:space="preserve">
+    <value>Valid promo code, but a better promotion was kept.</value>
+  </data>
+  <data name="Promo.Unknown" xml:space="preserve">
+    <value>Unknown promo code.</value>
+  </data>
+  <data name="Proposals.Applied" xml:space="preserve">
+    <value>Assigned</value>
+  </data>
+  <data name="Proposals.AppliedCount" xml:space="preserve">
+    <value>{0} assignment(s) applied.</value>
+  </data>
+  <data name="Proposals.Apply" xml:space="preserve">
+    <value>Apply {0} assignment(s)</value>
+  </data>
+  <data name="Proposals.Conflicts" xml:space="preserve">
+    <value>Conflicting assignments ({0})</value>
+  </data>
+  <data name="Proposals.Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Proposals.Help" xml:space="preserve">
+    <value>Review the proposals and untick those not to apply. Each assignment is checked again when it is saved.</value>
+  </data>
+  <data name="Proposals.Keep" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Proposals.KeepLabel" xml:space="preserve">
+    <value>Apply {0} → {1}</value>
+  </data>
+  <data name="Proposals.None" xml:space="preserve">
+    <value>No booking to assign in the period.</value>
+  </data>
+  <data name="Proposals.Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Proposals.PastRange" xml:space="preserve">
+    <value>The period shown is past: nothing to propose.</value>
+  </data>
+  <data name="Proposals.Title" xml:space="preserve">
+    <value>Assignment proposals</value>
+  </data>
+  <data name="Proposals.Unassignable" xml:space="preserve">
+    <value>Bookings that cannot be placed ({0})</value>
+  </data>
+  <data name="Provide.Done" xml:space="preserve">
+    <value>Request back to validation.</value>
+  </data>
+  <data name="Provide.Message" xml:space="preserve">
+    <value>The requested information was received (e-mail, WhatsApp or phone): the request goes back to validation.</value>
+  </data>
+  <data name="Provide.Title" xml:space="preserve">
+    <value>Information received</value>
+  </data>
+  <data name="Quote.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Quote.Column.CreatedAt" xml:space="preserve">
+    <value>Created on</value>
+  </data>
+  <data name="Quote.Column.ExclVat" xml:space="preserve">
+    <value>Excl. VAT</value>
+  </data>
+  <data name="Quote.Column.InclVat" xml:space="preserve">
+    <value>Incl. VAT</value>
+  </data>
+  <data name="Quote.Column.Label" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="Quote.Column.Origin" xml:space="preserve">
+    <value>Origin</value>
+  </data>
+  <data name="Quote.Column.Quantity" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="Quote.Column.UnitPrice" xml:space="preserve">
+    <value>Unit price incl. VAT</value>
+  </data>
+  <data name="Quote.Column.Vat" xml:space="preserve">
+    <value>VAT</value>
+  </data>
+  <data name="Quote.Column.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Quote.Current" xml:space="preserve">
+    <value>current</value>
+  </data>
+  <data name="Quote.Days" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="Quote.Deposit" xml:space="preserve">
+    <value>Deposit</value>
+  </data>
+  <data name="Quote.Deposit.NotIncluded" xml:space="preserve">
+    <value>not included, blocked at pick-up</value>
+  </data>
+  <data name="Quote.Deposit.Reduced" xml:space="preserve">
+    <value>reduced (franchise waiver), not included</value>
+  </data>
+  <data name="Quote.DiscountReason" xml:space="preserve">
+    <value>Discount reason</value>
+  </data>
+  <data name="Quote.History" xml:space="preserve">
+    <value>Version history</value>
+  </data>
+  <data name="Quote.Plan" xml:space="preserve">
+    <value>Rate plan</value>
+  </data>
+  <data name="Quote.PlanUnknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="Quote.PlanVersion" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
+  <data name="Quote.Promotions" xml:space="preserve">
+    <value>Promotions</value>
+  </data>
+  <data name="Quote.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Quote.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Quote.ViewVersion" xml:space="preserve">
+    <value>View quote version {0}</value>
+  </data>
+  <data name="QuoteVersion.Caption" xml:space="preserve">
+    <value>Quote version {0}</value>
+  </data>
+  <data name="QuoteVersion.Header" xml:space="preserve">
+    <value>Code {0} · {1} · {2} · {3}</value>
+  </data>
+  <data name="QuoteVersion.Title" xml:space="preserve">
+    <value>Quote version {0}</value>
+  </data>
+  <data name="Reason.booking.reason.customer_check" xml:space="preserve">
+    <value>Internal customer check not conclusive.</value>
+  </data>
+  <data name="Refuse.Done" xml:space="preserve">
+    <value>Request refused.</value>
+  </data>
+  <data name="Refuse.Message" xml:space="preserve">
+    <value>The reason is recorded in the file timeline.</value>
+  </data>
+  <data name="Refuse.Reason" xml:space="preserve">
+    <value>Reason for the refusal</value>
+  </data>
+  <data name="Refuse.Title" xml:space="preserve">
+    <value>Refuse the request</value>
+  </data>
+  <data name="Request.Escalated" xml:space="preserve">
+    <value>Escalated</value>
+  </data>
+  <data name="Requests.AttentionHelp" xml:space="preserve">
+    <value>Some points need attention: request information or refuse the request.</value>
+  </data>
+  <data name="Requests.Checklist" xml:space="preserve">
+    <value>Check of request {0}</value>
+  </data>
+  <data name="Requests.ChecklistItems" xml:space="preserve">
+    <value>Check items</value>
+  </data>
+  <data name="Requests.Empty" xml:space="preserve">
+    <value>No pending request.</value>
+  </data>
+  <data name="Requests.Help" xml:space="preserve">
+    <value>Requests from the website and WhatsApp, the most urgent first. A request not answered by the end of its delay expires and frees the availability.</value>
+  </data>
+  <data name="Requests.HoldUntil" xml:space="preserve">
+    <value>hold until {0}</value>
+  </data>
+  <data name="Requests.List" xml:space="preserve">
+    <value>{0} pending request(s)</value>
+  </data>
+  <data name="Requests.OpenFile" xml:space="preserve">
+    <value>Open the file</value>
+  </data>
+  <data name="Requests.Select" xml:space="preserve">
+    <value>Select a request to check it.</value>
+  </data>
+  <data name="Requests.SubmittedAt" xml:space="preserve">
+    <value>submitted on {0}</value>
+  </data>
+  <data name="Requests.Title" xml:space="preserve">
+    <value>Requests to validate</value>
+  </data>
+  <data name="Role.MainDriver" xml:space="preserve">
+    <value>Main driver</value>
+  </data>
+  <data name="Role.Payer" xml:space="preserve">
+    <value>Payer</value>
+  </data>
+  <data name="Role.SecondaryDriver" xml:space="preserve">
+    <value>Second driver</value>
+  </data>
+  <data name="Section.Drivers" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Section.Payer" xml:space="preserve">
+    <value>Payer</value>
+  </data>
+  <data name="Section.Quote" xml:space="preserve">
+    <value>Quote (version {0})</value>
+  </data>
+  <data name="Section.Rental" xml:space="preserve">
+    <value>Rental</value>
+  </data>
+  <data name="Section.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Shortcuts.Category" xml:space="preserve">
+    <value>choose category n</value>
+  </data>
+  <data name="Shortcuts.Confirmed" xml:space="preserve">
+    <value>firm booking</value>
+  </data>
+  <data name="Shortcuts.Customer" xml:space="preserve">
+    <value>search the customer</value>
+  </data>
+  <data name="Shortcuts.Modifier" xml:space="preserve">
+    <value>Alt+Shift</value>
+  </data>
+  <data name="Shortcuts.NewCustomer" xml:space="preserve">
+    <value>new customer</value>
+  </data>
+  <data name="Shortcuts.Option" xml:space="preserve">
+    <value>dated option</value>
+  </data>
+  <data name="Shortcuts.Pickup" xml:space="preserve">
+    <value>pick-up date</value>
+  </data>
+  <data name="Shortcuts.Save" xml:space="preserve">
+    <value>save</value>
+  </data>
+  <data name="Shortcuts.Title" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+  </data>
+  <data name="Status.AwaitingPayment" xml:space="preserve">
+    <value>Awaiting payment</value>
+  </data>
+  <data name="Status.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Status.Confirmed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="Status.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Status.Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Status.InProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="Status.InformationRequested" xml:space="preserve">
+    <value>Information requested</value>
+  </data>
+  <data name="Status.NoShow" xml:space="preserve">
+    <value>No-show</value>
+  </data>
+  <data name="Status.OptionHeld" xml:space="preserve">
+    <value>Option</value>
+  </data>
+  <data name="Status.PendingValidation" xml:space="preserve">
+    <value>Pending validation</value>
+  </data>
+  <data name="Status.Refused" xml:space="preserve">
+    <value>Refused</value>
+  </data>
+  <data name="Status.Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Timeline.Empty" xml:space="preserve">
+    <value>No event.</value>
+  </data>
+  <data name="Timeline.Reason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
+  <data name="Timeline.StatusChange" xml:space="preserve">
+    <value>{0} → {1}</value>
+  </data>
+  <data name="Timeline.System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Timeline.Title" xml:space="preserve">
+    <value>Timeline</value>
+  </data>
+  <data name="Unassign.Done" xml:space="preserve">
+    <value>Vehicle removed.</value>
+  </data>
+  <data name="Unassign.Message" xml:space="preserve">
+    <value>Remove the assigned vehicle? The booking stays in its category.</value>
+  </data>
+  <data name="Unassign.Title" xml:space="preserve">
+    <value>Remove the vehicle</value>
+  </data>
+  <data name="Validate.AwaitingPayment" xml:space="preserve">
+    <value>Request validated: awaiting the payment by link.</value>
+  </data>
+  <data name="Validate.Confirmed" xml:space="preserve">
+    <value>Request validated: booking confirmed.</value>
+  </data>
+  <data name="Validate.Message" xml:space="preserve">
+    <value>Validate the request after checking the documents?</value>
+  </data>
+  <data name="Validate.MessageFor" xml:space="preserve">
+    <value>Validate request {0} after checking the documents?</value>
+  </data>
+  <data name="Validate.RefusedAfterCustomerCheck" xml:space="preserve">
+    <value>Request refused: the internal customer check is not conclusive.</value>
+  </data>
+  <data name="Validate.Title" xml:space="preserve">
+    <value>Validate the request</value>
+  </data>
+  <data name="Vehicle.Guaranteed" xml:space="preserve">
+    <value>Guaranteed model: this exact vehicle was booked.</value>
+  </data>
+  <data name="Vehicle.None" xml:space="preserve">
+    <value>No vehicle assigned</value>
+  </data>
+  <data name="Vehicle.Waiver" xml:space="preserve">
+    <value>Documents waiver granted by {0} on {1}: {2}</value>
+  </data>
+  <data name="VehicleStatus.Active" xml:space="preserve">
+    <value>In service</value>
+  </data>
+  <data name="VehicleStatus.Maintenance" xml:space="preserve">
+    <value>In maintenance</value>
+  </data>
+  <data name="VehicleStatus.OutOfService" xml:space="preserve">
+    <value>Out of service</value>
+  </data>
+  <data name="VehicleStatus.Sold" xml:space="preserve">
+    <value>Sold</value>
+  </data>
+  <data name="Widget.AllRequests" xml:space="preserve">
+    <value>See the {0} requests</value>
+  </data>
+  <data name="Widget.Departures" xml:space="preserve">
+    <value>Today's departures ({0})</value>
+  </data>
+  <data name="Widget.Done" xml:space="preserve">
+    <value>done</value>
+  </data>
+  <data name="Widget.Error" xml:space="preserve">
+    <value>Today's bookings cannot be shown.</value>
+  </data>
+  <data name="Widget.Late" xml:space="preserve">
+    <value>Late returns ({0})</value>
+  </data>
+  <data name="Widget.LateItem" xml:space="preserve">
+    <value>late</value>
+  </data>
+  <data name="Widget.LateSince" xml:space="preserve">
+    <value>due back on {0}</value>
+  </data>
+  <data name="Widget.NoDeparture" xml:space="preserve">
+    <value>No departure today.</value>
+  </data>
+  <data name="Widget.NoLate" xml:space="preserve">
+    <value>No late return.</value>
+  </data>
+  <data name="Widget.NoRequest" xml:space="preserve">
+    <value>No pending request.</value>
+  </data>
+  <data name="Widget.NoReturn" xml:space="preserve">
+    <value>No return today.</value>
+  </data>
+  <data name="Widget.NoShortfall" xml:space="preserve">
+    <value>No vehicle shortfall over the next 30 days.</value>
+  </data>
+  <data name="Widget.NoUnassigned" xml:space="preserve">
+    <value>Every booking of the next 48 hours has a vehicle.</value>
+  </data>
+  <data name="Widget.NoVehicle" xml:space="preserve">
+    <value>no vehicle</value>
+  </data>
+  <data name="Widget.Planning" xml:space="preserve">
+    <value>Open the planning</value>
+  </data>
+  <data name="Widget.Requests" xml:space="preserve">
+    <value>Pending requests ({0})</value>
+  </data>
+  <data name="Widget.Returns" xml:space="preserve">
+    <value>Today's returns ({0})</value>
+  </data>
+  <data name="Widget.Shortfall" xml:space="preserve">
+    <value>{0}: {1} vehicle(s) short from {2} to {3}</value>
+  </data>
+  <data name="Widget.Shortfalls" xml:space="preserve">
+    <value>Vehicle shortfalls ({0})</value>
+  </data>
+  <data name="Widget.Title" xml:space="preserve">
+    <value>Today's bookings</value>
+  </data>
+  <data name="Widget.Unassigned" xml:space="preserve">
+    <value>Without vehicle within 48 h ({0})</value>
+  </data>
+</root>

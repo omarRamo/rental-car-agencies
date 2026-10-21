@@ -147,4 +147,52 @@
   <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
     <value>Durée de conservation des événements anonymes du parcours de réservation (recherche, résultats, étapes du tunnel), supprimés chaque nuit au-delà. Affichée sur la page de confidentialité.</value>
   </data>
+  <data name="Setting.bookings.information_request_extension.Label" xml:space="preserve">
+    <value>Prolongation du blocage après une demande d'informations</value>
+  </data>
+  <data name="Setting.bookings.information_request_extension.Help" xml:space="preserve">
+    <value>Durée ajoutée au blocage d'une demande web quand l'agent demande un complément au client.</value>
+  </data>
+  <data name="Setting.bookings.option_default_duration.Label" xml:space="preserve">
+    <value>Durée par défaut d'une option</value>
+  </data>
+  <data name="Setting.bookings.option_default_duration.Help" xml:space="preserve">
+    <value>Échéance proposée pour une option prise par téléphone, sans dépasser l'heure de départ.</value>
+  </data>
+  <data name="Setting.bookings.payment_link_validity.Label" xml:space="preserve">
+    <value>Délai de paiement après validation (mode de repli)</value>
+  </data>
+  <data name="Setting.bookings.payment_link_validity.Help" xml:space="preserve">
+    <value>En mode « lien de paiement après validation », temps laissé au client pour payer avant l'expiration.</value>
+  </data>
+  <data name="Setting.bookings.no_show_delay.Label" xml:space="preserve">
+    <value>Délai avant non-présentation</value>
+  </data>
+  <data name="Setting.bookings.no_show_delay.Help" xml:space="preserve">
+    <value>Délai après l'heure de départ prévue à partir duquel l'agent peut déclarer le client non présenté.</value>
+  </data>
+  <data name="Setting.bookings.escalation_delay.Label" xml:space="preserve">
+    <value>Délai d'escalade des demandes</value>
+  </data>
+  <data name="Setting.bookings.escalation_delay.Help" xml:space="preserve">
+    <value>Une demande web sans réponse après ce délai est signalée au gérant, par e-mail et dans la file des demandes.</value>
+  </data>
+  <data name="Setting.bookings.cancellation_free_until_days.Label" xml:space="preserve">
+    <value>Annulation gratuite jusqu'à J-x</value>
+  </data>
+  <data name="Setting.bookings.cancellation_free_until_days.Help" xml:space="preserve">
+    <value>Jours calendaires avant le départ jusqu'auxquels une réservation ferme s'annule sans frais.</value>
+  </data>
+  <data name="Setting.bookings.cancellation_fee_percent.Label" xml:space="preserve">
+    <value>Frais d'annulation tardive</value>
+  </data>
+  <data name="Setting.bookings.cancellation_fee_percent.Help" xml:space="preserve">
+    <value>Part du total TTC retenue après la date limite, entre 0 et 1 (0,20 = 20 %).</value>
+  </data>
+  <data name="Setting.bookings.validation_payment_mode.Label" xml:space="preserve">
+    <value>Paiement à la validation</value>
+  </data>
+  <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
+    <value>« Capture à la validation » : la demande validée est confirmée (capture Clic to Pay, phase 2). « Lien de paiement après validation » (repli) : elle attend son paiement par lien.</value>
+  </data>
 </root>

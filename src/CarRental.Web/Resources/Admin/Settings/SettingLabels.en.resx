@@ -147,4 +147,52 @@
   <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
     <value>How long the anonymous booking journey events (search, results, funnel steps) are kept; older ones are deleted every night. Shown on the privacy page.</value>
   </data>
+  <data name="Setting.bookings.information_request_extension.Label" xml:space="preserve">
+    <value>Hold extension after an information request</value>
+  </data>
+  <data name="Setting.bookings.information_request_extension.Help" xml:space="preserve">
+    <value>Time added to the hold of a web request when the agent asks the customer for more information.</value>
+  </data>
+  <data name="Setting.bookings.option_default_duration.Label" xml:space="preserve">
+    <value>Default option duration</value>
+  </data>
+  <data name="Setting.bookings.option_default_duration.Help" xml:space="preserve">
+    <value>Expiry proposed for a phone option, never after the pick-up time.</value>
+  </data>
+  <data name="Setting.bookings.payment_link_validity.Label" xml:space="preserve">
+    <value>Payment time after validation (fallback mode)</value>
+  </data>
+  <data name="Setting.bookings.payment_link_validity.Help" xml:space="preserve">
+    <value>In the "payment link after validation" mode, time given to the customer to pay before the booking expires.</value>
+  </data>
+  <data name="Setting.bookings.no_show_delay.Label" xml:space="preserve">
+    <value>No-show delay</value>
+  </data>
+  <data name="Setting.bookings.no_show_delay.Help" xml:space="preserve">
+    <value>Delay after the planned pick-up time after which the agent may record a no-show.</value>
+  </data>
+  <data name="Setting.bookings.escalation_delay.Label" xml:space="preserve">
+    <value>Request escalation delay</value>
+  </data>
+  <data name="Setting.bookings.escalation_delay.Help" xml:space="preserve">
+    <value>A web request still unanswered after this delay is escalated to the manager, by e-mail and in the request queue.</value>
+  </data>
+  <data name="Setting.bookings.cancellation_free_until_days.Label" xml:space="preserve">
+    <value>Free cancellation until D-x</value>
+  </data>
+  <data name="Setting.bookings.cancellation_free_until_days.Help" xml:space="preserve">
+    <value>Calendar days before the pick-up until which a firm booking is cancelled free of charge.</value>
+  </data>
+  <data name="Setting.bookings.cancellation_fee_percent.Label" xml:space="preserve">
+    <value>Late cancellation fee</value>
+  </data>
+  <data name="Setting.bookings.cancellation_fee_percent.Help" xml:space="preserve">
+    <value>Share of the total incl. VAT charged after the deadline, between 0 and 1 (0.20 = 20 %).</value>
+  </data>
+  <data name="Setting.bookings.validation_payment_mode.Label" xml:space="preserve">
+    <value>Payment at validation</value>
+  </data>
+  <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
+    <value>"Capture at validation": the validated request is confirmed (Clic to Pay capture, phase 2). "Payment link after validation" (fallback): it waits for its payment through a link.</value>
+  </data>
 </root>

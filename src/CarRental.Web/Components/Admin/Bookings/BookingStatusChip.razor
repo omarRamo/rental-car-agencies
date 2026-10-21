@@ -1,0 +1,12 @@
+@* The status of a rental file: dark text on a light tint, an icon and a border style (WCAG contrast; never colour alone). *@
+@inject IStringLocalizer<BookingsResources> L
+
+<span class="@($"booking-status booking-status--{BookingFormat.StatusClass(Status)}")" data-status="@Status.ToString()">
+    <MudIcon Icon="@BookingFormat.StatusIcon(Status)" Size="Size.Small" aria-hidden="true" />
+    @L[$"Status.{Status}"]
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public BookingStatus Status { get; set; }
+}

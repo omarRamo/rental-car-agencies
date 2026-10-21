@@ -1,0 +1,197 @@
+@page "/admin/bookings"
+@attribute [HasPermission(Permissions.BookingsRead)]
+@using CarRental.Application.Fleet.Contracts
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Bookings.Title"]</PageTitle>
+<BookingStyles />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Bookings.Title"]</MudText>
+    <AuthorizeView Policy="@PermissionPolicy.For(Permissions.BookingsManage)">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/bookings/new">@L["Bookings.New"]</MudButton>
+    </AuthorizeView>
+</MudStack>
+
+<MudPaper Elevation="1" Class="pa-3 mb-4">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" md="4">
+            <MudTextField T="string" @bind-Value="_search" Label="@L["Bookings.Search"]" HelperText="@L["Bookings.Search.Help"]" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350" OnDebounceIntervalElapsed="ReloadAsync" Clearable="true"
+                          OnClearButtonClick="ReloadAsync" autocomplete="off" InputId="bookings-search" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="BookingStatus" MultiSelection="true" SelectedValues="_statuses" SelectedValuesChanged="StatusesChangedAsync" Label="@L["Bookings.Filter.Status"]"
+                       ToStringFunc="@(status => L[$"Status.{status}"].Value)" Clearable="true">
+                @foreach (var status in Enum.GetValues<BookingStatus>())
+                {
+                    <MudSelectItem T="BookingStatus" Value="@status">@L[$"Status.{status}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="SalesChannel?" Value="_channel" ValueChanged="ChannelChangedAsync" Label="@L["Bookings.Filter.Channel"]"
+                       ToStringFunc="@(c => c is { } value ? L[$"Channel.{value}"] : L["Filter.All"])">
+                <MudSelectItem T="SalesChannel?" Value="@((SalesChannel?)null)">@L["Filter.All"]</MudSelectItem>
+                @foreach (var channel in Enum.GetValues<SalesChannel>())
+                {
+                    <MudSelectItem T="SalesChannel?" Value="@channel">@L[$"Channel.{channel}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="Guid?" Value="_categoryId" ValueChanged="CategoryChangedAsync" Label="@L["Bookings.Filter.Category"]"
+                       ToStringFunc="@(id => _categories.FirstOrDefault(c => c.Id == id)?.AcrissCode ?? L["Filter.All"])">
+                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["Filter.All"]</MudSelectItem>
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem T="Guid?" Value="@category.Id">@category.AcrissCode — @category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" md="4">
+            <MudTextField T="string" Value="_from" ValueChanged="FromChangedAsync" Label="@L["Bookings.Filter.From"]" InputType="InputType.Date" ShrinkLabel="true" InputId="bookings-from" />
+        </MudItem>
+        <MudItem xs="6" md="4">
+            <MudTextField T="string" Value="_to" ValueChanged="ToChangedAsync" Label="@L["Bookings.Filter.To"]" InputType="InputType.Date" ShrinkLabel="true" InputId="bookings-to" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" T="BookingListItem" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Bookings.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@L["Column.Number"]</MudTh>
+        <MudTh>@L["Column.Status"]</MudTh>
+        <MudTh>@L["Column.Channel"]</MudTh>
+        <MudTh>@L["Column.Customer"]</MudTh>
+        <MudTh>@L["Column.Category"]</MudTh>
+        <MudTh>@L["Column.Pickup"]</MudTh>
+        <MudTh>@L["Column.Return"]</MudTh>
+        <MudTh>@L["Column.Vehicle"]</MudTh>
+        <MudTh Style="text-align:end">@L["Column.Total"]</MudTh>
+        <MudTh>@L["Column.Deadline"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Column.Number"]"><MudLink Href="@($"/admin/bookings/{context.Id}")">@context.Number</MudLink></MudTd>
+        <MudTd DataLabel="@L["Column.Status"]">
+            <BookingStatusChip Status="context.Status" />
+            @if (context.IsLate)
+            {
+                <span class="booking-flag ms-1"><MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />@L["Booking.Late"]</span>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Column.Channel"]">@L[$"Channel.{context.Channel}"]</MudTd>
+        <MudTd DataLabel="@L["Column.Customer"]">@(string.IsNullOrEmpty(context.CustomerName) ? "—" : context.CustomerName)</MudTd>
+        <MudTd DataLabel="@L["Column.Category"]">@context.CategoryCode</MudTd>
+        <MudTd DataLabel="@L["Column.Pickup"]">@BookingFormat.Instant(context.PickupAt)</MudTd>
+        <MudTd DataLabel="@L["Column.Return"]">@BookingFormat.Instant(context.ReturnAt)</MudTd>
+        <MudTd DataLabel="@L["Column.Vehicle"]">@(context.PlateNumber ?? "—")</MudTd>
+        <MudTd DataLabel="@L["Column.Total"]" Style="text-align:end;white-space:nowrap">@BookingFormat.Amount(context.TotalInclVat)</MudTd>
+        <MudTd DataLabel="@L["Column.Deadline"]">@BookingFormat.Instant(context.Deadline)</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@L["Bookings.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<BookingListItem>? _table;
+    private IReadOnlyList<VehicleCategoryInfo> _categories = [];
+    private Guid? _agencyId;
+    private string? _search;
+    private IReadOnlyCollection<BookingStatus> _statuses = [];
+    private SalesChannel? _channel;
+    private Guid? _categoryId;
+    private string? _from;
+    private string? _to;
+
+    /// <summary>Initial status filter, e.g. <c>?status=Confirmed,OptionHeld</c> (links of the dashboard).</summary>
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? StatusQuery { get; set; }
+
+    /// <summary>Initial search, e.g. a number or a phone number.</summary>
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? SearchQuery { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _search = SearchQuery;
+        if (!string.IsNullOrWhiteSpace(StatusQuery))
+        {
+            _statuses = [.. StatusQuery.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => Enum.TryParse<BookingStatus>(s, ignoreCase: true, out var status) ? status : (BookingStatus?)null)
+                .OfType<BookingStatus>()];
+        }
+
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        if (agency.IsSuccess)
+        {
+            var agencyId = agency.Value.Id;
+            _agencyId = agencyId;
+            _categories = await Runner.RunAsync<IFleetQueries, IReadOnlyList<VehicleCategoryInfo>>((fleet, ct) => fleet.GetCategoriesAsync(agencyId, includeInactive: true, ct));
+        }
+    }
+
+    private async Task<TableData<BookingListItem>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var filter = new BookingListFilter(
+            _agencyId,
+            _statuses.Count > 0 ? [.. _statuses] : null,
+            _channel,
+            _categoryId,
+            ParseDate(_from),
+            ParseDate(_to),
+            _search);
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<PagedResult<BookingListItem>>>((queries, ct) => queries.ListAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<BookingListItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<BookingListItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private static DateOnly? ParseDate(string? value) =>
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
+
+    private Task ReloadAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task StatusesChangedAsync(IEnumerable<BookingStatus>? statuses)
+    {
+        _statuses = [.. statuses ?? []];
+        return ReloadAsync();
+    }
+
+    private Task ChannelChangedAsync(SalesChannel? channel)
+    {
+        _channel = channel;
+        return ReloadAsync();
+    }
+
+    private Task CategoryChangedAsync(Guid? categoryId)
+    {
+        _categoryId = categoryId;
+        return ReloadAsync();
+    }
+
+    private Task FromChangedAsync(string? value)
+    {
+        _from = value;
+        return ReloadAsync();
+    }
+
+    private Task ToChangedAsync(string? value)
+    {
+        _to = value;
+        return ReloadAsync();
+    }
+}

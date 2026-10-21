@@ -1,14 +1,102 @@
-@* Rental files of the person. Placeholder until the Bookings package (1E) fills it with the bookings where the person
-   is a driver or the payer (IBookingsQueries), ordered by pick-up date. *@
-@inject IStringLocalizer<CustomersAdminResources> L
+@* Rental files of the person (Bookings package 1E): the files where the person is the main driver, the second driver
+   or the payer, the latest pick-up first, with their status, roles, category, dates and total. Shown to the users who
+   may read the bookings (bookings.read). *@
+@using CarRental.Application.Bookings.Administration
+@using CarRental.Application.Bookings.Contracts
+@using CarRental.Web.Components.Admin.Bookings
+@using CarRental.Web.Resources.Admin.Bookings
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> B
+@inject IStringLocalizer<SharedResources> Shared
 
 <MudPaper Class="pa-4" Elevation="1">
-    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Bookings.Title"]</MudText>
-    <MudText Typo="Typo.body2">@L["Bookings.ComingSoon"]</MudText>
+    <BookingStyles />
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@B["PersonBookings.Title"]</MudText>
+    <AuthorizeView Policy="@PermissionPolicy.For(Permissions.BookingsRead)">
+        <Authorized>
+            @if (_bookings is null)
+            {
+                @if (_error is not null)
+                {
+                    <MudText Typo="Typo.body2">@_error</MudText>
+                }
+                else
+                {
+                    <MudProgressLinear Indeterminate="true" aria-label="@B["Loading"]" />
+                }
+            }
+            else if (_bookings.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@B["PersonBookings.Empty"]</MudText>
+            }
+            else
+            {
+                <div class="booking-scroll" tabindex="0" role="region" aria-label="@B["PersonBookings.Title"]">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr>
+                                <th scope="col">@B["Column.Number"]</th>
+                                <th scope="col">@B["Column.Status"]</th>
+                                <th scope="col">@B["PersonBookings.Roles"]</th>
+                                <th scope="col">@B["Column.Category"]</th>
+                                <th scope="col">@B["Column.Pickup"]</th>
+                                <th scope="col">@B["Column.Return"]</th>
+                                <th scope="col" class="booking-number">@B["Column.Total"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _bookings)
+                            {
+                                <tr data-booking="@item.Booking.Number">
+                                    <td><MudLink Href="@($"/admin/bookings/{item.Booking.Id}")">@item.Booking.Number</MudLink></td>
+                                    <td><BookingStatusChip Status="@BookingFormat.ToStatus(item.Booking.Status)" /></td>
+                                    <td>@string.Join(", ", item.Roles.Select(r => B[$"Role.{r}"].Value))</td>
+                                    <td>@item.CategoryCode</td>
+                                    <td>@BookingFormat.Instant(item.Booking.PickupAt)</td>
+                                    <td>@BookingFormat.Instant(item.Booking.ReturnAt)</td>
+                                    <td class="booking-number">@BookingFormat.Amount(item.Booking.TotalInclVat)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <MudText Typo="Typo.body2">@B["PersonBookings.NotAllowed"]</MudText>
+        </NotAuthorized>
+    </AuthorizeView>
 </MudPaper>
 
 @code {
-    /// <summary>The person whose rental files are listed (used by the Bookings package).</summary>
+    private IReadOnlyList<PersonBookingInfo>? _bookings;
+    private string? _error;
+
+    /// <summary>The person whose rental files are listed.</summary>
     [Parameter, EditorRequired]
     public Guid PersonId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
+        {
+            return;
+        }
+
+        var personId = PersonId;
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<IReadOnlyList<PersonBookingInfo>>>((queries, ct) => queries.GetPersonBookingsAsync(personId, ct));
+        if (result.IsSuccess)
+        {
+            _bookings = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _bookings = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
 }
