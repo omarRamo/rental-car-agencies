@@ -195,8 +195,8 @@ public sealed class Invoice : BillingDocument
 
     public IReadOnlyList<InvoiceLine> Lines => [.. _lines.OrderBy(l => l.Position)];
 
-    /// <summary>Totals per VAT rate, by ascending rate.</summary>
-    public IReadOnlyList<VatRateTotal> VatTotals => InvoiceTaxes.Breakdown(_lines.Select(l => (l.VatRate, l.Amounts)));
+    /// <summary>Totals per VAT rate, by ascending rate (computed from the lines).</summary>
+    public IReadOnlyList<VatRateTotal> VatBreakdown() => InvoiceTaxes.Breakdown(_lines.Select(l => (l.VatRate, l.Amounts)));
 
     /// <summary>
     /// Issues <paramref name="draft"/> under <paramref name="number"/>, an invoice number of the Tunis year of

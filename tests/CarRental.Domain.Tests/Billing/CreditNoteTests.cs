@@ -125,6 +125,6 @@ public sealed class CreditNoteTests
         var ttn = CreditNote.Issue(draft, CreditNoteNumber(1, 2026), IssuedAt, Accountant, EInvoiceMode.Ttn).Value;
         ttn.EInvoiceStatus.ShouldBe(EInvoiceStatus.Pending);
         ttn.BookingNumber.ShouldBe(invoice.BookingNumber);
-        ttn.VatTotals.ShouldHaveSingleItem().InclVat.ShouldBe(Money.Tnd(-681.4m));
+        ttn.VatBreakdown().ShouldHaveSingleItem().InclVat.ShouldBe(Money.Tnd(-681.4m));
     }
 }

@@ -135,4 +135,10 @@
   <data name="Permission.handovers.payment.defer" xml:space="preserve">
     <value>Départ avec solde reporté ou sans caution (motif)</value>
   </data>
+  <data name="Permission.fines.manage" xml:space="preserve">
+    <value>Amendes (saisir, désigner, refacturer)</value>
+  </data>
+  <data name="Permission.claims.manage" xml:space="preserve">
+    <value>Sinistres (gérer)</value>
+  </data>
 </root>

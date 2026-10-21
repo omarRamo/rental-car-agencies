@@ -146,7 +146,7 @@ public sealed class InvoiceTests
     {
         var invoice = Issued([Line(60m, InvoiceLineNature.FineReinvoicing, rate: 0m, code: "FINE"), Line(23.8m, InvoiceLineNature.ManagementFee)]);
 
-        invoice.VatTotals.ShouldBe([
+        invoice.VatBreakdown().ShouldBe([
             new VatRateTotal(0m, Money.Tnd(60m), Money.Zero, Money.Tnd(60m)),
             new VatRateTotal(Rate, Money.Tnd(20m), Money.Tnd(3.8m), Money.Tnd(23.8m)),
         ]);

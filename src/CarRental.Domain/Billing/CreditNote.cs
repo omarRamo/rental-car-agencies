@@ -272,8 +272,8 @@ public sealed class CreditNote : BillingDocument
 
     public IReadOnlyList<CreditNoteLine> Lines => [.. _lines.OrderBy(l => l.Position)];
 
-    /// <summary>Totals per VAT rate (negative), by ascending rate.</summary>
-    public IReadOnlyList<VatRateTotal> VatTotals => InvoiceTaxes.Breakdown(_lines.Select(l => (l.VatRate, l.Amounts)));
+    /// <summary>Totals per VAT rate (negative), by ascending rate (computed from the lines).</summary>
+    public IReadOnlyList<VatRateTotal> VatBreakdown() => InvoiceTaxes.Breakdown(_lines.Select(l => (l.VatRate, l.Amounts)));
 
     /// <summary>
     /// Issues <paramref name="draft"/> under <paramref name="number"/>, a credit note number of the Tunis year of
