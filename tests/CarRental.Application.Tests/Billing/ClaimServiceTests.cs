@@ -18,6 +18,16 @@ public sealed class ClaimServiceTests
     private static ClaimForm Form(string? bookingNumber = null) =>
         new(BillingHarness.AgencyId, BillingHarness.VehicleId, bookingNumber, BillingHarness.Now.AddDays(-1), "Rond-point", "Accrochage arrière", "STAR", "SIN-1", 500m);
 
+    [Theory]
+    [InlineData(@"C:\scans\constat.pdf", "constat.pdf")]
+    [InlineData("/home/agent/photos/arriere.jpg", "arriere.jpg")]
+    [InlineData(" arriere.jpg ", "arriere.jpg")]
+    [InlineData("dossier/", "")]
+    [InlineData("  ", null)]
+    [InlineData(null, null)]
+    public void The_name_of_a_file_keeps_no_folder_whatever_the_system_of_the_device(string? sent, string? kept) =>
+        ClaimFiles.NameOf(sent).ShouldBe(kept);
+
     [Fact]
     public async Task A_claim_is_opened_for_a_vehicle_of_the_agency_and_its_file()
     {

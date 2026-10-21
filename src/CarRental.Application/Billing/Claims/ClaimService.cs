@@ -234,10 +234,11 @@ public sealed class ClaimService
         try
         {
             var claim = await _store.Db.Set<Claim>().FirstOrDefaultAsync(c => c.Id == claimId, cancellationToken);
+            var name = ClaimFiles.NameOf(fileName);
             added = claim is null
                 ? BillingErrors.ClaimNotFound
                 : claim.AddDocument(
-                    new ClaimFileInput(kind, string.IsNullOrWhiteSpace(fileName) ? $"{kind}.{type.Extension}" : Path.GetFileName(fileName), path, type.ContentType, bytes.LongLength, Convert.ToHexStringLower(SHA256.HashData(bytes))),
+                    new ClaimFileInput(kind, string.IsNullOrWhiteSpace(name) ? $"{kind}.{type.Extension}" : name, path, type.ContentType, bytes.LongLength, Convert.ToHexStringLower(SHA256.HashData(bytes))),
                     _store.Actor(),
                     _store.Now());
             if (added.IsSuccess)
@@ -338,6 +339,13 @@ public sealed class ClaimService
 internal static class ClaimFiles
 {
     public sealed record FileType(string ContentType, string Extension);
+
+    /// <summary>
+    /// The name of a file as a device sent it, without its folders whatever their separator (a Windows path read on Linux
+    /// keeps its backslashes with <see cref="Path.GetFileName(string)"/>); kept for display only.
+    /// </summary>
+    public static string? NameOf(string? fileName) =>
+        string.IsNullOrWhiteSpace(fileName) ? null : fileName[(fileName.LastIndexOfAny(['/', '\\']) + 1)..].Trim();
 
     /// <summary>The whole content when it has at most <paramref name="maxBytes"/> bytes, else <see langword="null"/>.</summary>
     public static async Task<byte[]?> ReadBoundedAsync(Stream content, long maxBytes, CancellationToken cancellationToken)
