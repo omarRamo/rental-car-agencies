@@ -4,7 +4,7 @@
 - Outils locaux (dotnet-ef) : `dotnet tool restore`
 - Dépendances locales (SQL Server 2022 sur `localhost,14333`, Azurite) : `docker compose up -d`
 - Build : `dotnet build -warnaserror`
-- Tests : `dotnet test` (les cinq projets ; Docker requis pour l'intégration et l'E2E)
+- Tests : `dotnet test` (les cinq projets ; Docker requis pour l'intégration et l'E2E, ou des serveurs déjà démarrés désignés par `CARRENTAL_TEST_SQL` et `CARRENTAL_TEST_STORAGE`, voir `tests/Shared/TestInfrastructure.cs`)
 - Format : `dotnet format` (la CI vérifie `dotnet format --verify-no-changes`)
 - Lancer : `dotnet run --project src/CarRental.Web` (https://localhost:7180 ; migrations et données de démonstration appliquées au démarrage en développement)
 - Migration : `dotnet ef migrations add <Name> -p src/CarRental.Infrastructure -s src/CarRental.Web -o Persistence/Migrations`

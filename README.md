@@ -113,3 +113,12 @@ dotnet test                                # Docker requis pour l'intégration e
 ```
 
 Les tests d'intégration et de bout en bout démarrent eux-mêmes SQL Server et Azurite (Testcontainers) ainsi que l'application ; les tests de bout en bout installent Chromium au premier lancement.
+
+Sans Docker, ils peuvent utiliser des serveurs déjà démarrés : SQL Server 2019 ou plus récent (LocalDB suffit) et Azurite. Les bases reçoivent un suffixe propre à l'exécution et sont supprimées à la fin.
+
+```bash
+npx azurite --inMemoryPersistence --skipApiVersionCheck --silent &   # Azurite sur 10000-10002
+export CARRENTAL_TEST_SQL='Server=(localdb)MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
+export CARRENTAL_TEST_STORAGE='UseDevelopmentStorage=true'
+dotnet test
+```
