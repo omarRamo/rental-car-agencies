@@ -172,7 +172,9 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
 
         Location(robot).ShouldBe($"/fr/reserver/{token}/paiement?erreur=booking.funnel.verification_failed");
         (await visitor.TextAsync(Location(robot), Ct)).ShouldContain("La vérification anti-robot a échoué");
-        host.Factory.TurnstileVerifier.Calls.ShouldContain(c => c.Token == FakeTurnstileVerifier.RejectedToken && c.Action == "booking_submit");
+        host.Factory.TurnstileVerifier.Calls.ShouldContain(
+            c => c.Token == FakeTurnstileVerifier.RejectedToken && c.Action == "booking_submit" && c.Hostname == "localhost",
+            "the challenge must have been solved on the host that receives the form");
         (await visitor.PageAsync($"/fr/reserver/{token}/paiement", Ct)).ShouldContain("data-testid=\"funnel-submit\"");
     }
 

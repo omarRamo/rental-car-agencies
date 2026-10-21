@@ -11,22 +11,29 @@ public sealed class TurnstileVerifierTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static (TurnstileVerifier Verifier, StubHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond, string? secret = TurnstileTestKeys.AlwaysPassesSecretKey)
+    private static (TurnstileVerifier Verifier, StubHandler Handler) Create(
+        Func<HttpRequestMessage, HttpResponseMessage> respond,
+        string? secret = TurnstileTestKeys.AlwaysPassesSecretKey,
+        bool acceptTestingKeys = false)
     {
         var handler = new StubHandler(respond);
-        var options = Options.Create(new TurnstileOptions { SiteKey = TurnstileTestKeys.AlwaysPassesSiteKey, SecretKey = secret });
+        var options = Options.Create(new TurnstileOptions { SiteKey = TurnstileTestKeys.AlwaysPassesSiteKey, SecretKey = secret, AcceptTestingKeys = acceptTestingKeys });
         return (new TurnstileVerifier(new HttpClient(handler), options, NullLogger<TurnstileVerifier>.Instance), handler);
     }
 
     private static HttpResponseMessage Json(string body, HttpStatusCode status = HttpStatusCode.OK) =>
         new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 
+    /// <summary>What siteverify answers for the always-passing test secret (recorded on 21/10/2026): no action, a fixed host.</summary>
+    private const string TestingKeyAnswer =
+        """{"challenge_ts":"2026-10-21T21:01:51.842Z","error-codes":[],"hostname":"example.com","metadata":{"result_with_testing_key":true},"success":true}""";
+
     [Fact]
     public async Task A_valid_token_is_verified_with_the_secret_and_the_client_address()
     {
         var (verifier, handler) = Create(_ => Json("""{"success":true,"error-codes":[],"hostname":"www.example.tn","action":"booking_submit"}"""));
 
-        var result = await verifier.VerifyAsync("token-123", "203.0.113.9", "booking_submit", Ct);
+        var result = await verifier.VerifyAsync("token-123", "203.0.113.9", "booking_submit", "www.example.tn", Ct);
 
         result.Success.ShouldBeTrue();
         result.Hostname.ShouldBe("www.example.tn");
@@ -54,10 +61,44 @@ public sealed class TurnstileVerifierTests
     {
         var (verifier, _) = Create(_ => Json("""{"success":true,"action":"magic_link"}"""));
 
-        var result = await verifier.VerifyAsync("token", null, "booking_submit", Ct);
+        var result = await verifier.VerifyAsync("token", null, "booking_submit", cancellationToken: Ct);
 
         result.Success.ShouldBeFalse();
         result.ErrorCodes.ShouldBe([TurnstileVerification.ActionMismatch]);
+    }
+
+    [Theory]
+    [InlineData("""{"success":true,"hostname":"copy-of-the-site.example","action":"booking_submit"}""")]
+    [InlineData("""{"success":true,"action":"booking_submit"}""")]
+    public async Task A_token_solved_on_another_site_or_without_a_host_name_is_refused(string answer)
+    {
+        var (verifier, _) = Create(_ => Json(answer));
+
+        var result = await verifier.VerifyAsync("token", null, "booking_submit", "www.example.tn", Ct);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorCodes.ShouldBe([TurnstileVerification.HostnameMismatch]);
+    }
+
+    [Fact]
+    public async Task The_host_name_is_compared_without_case()
+    {
+        var (verifier, _) = Create(_ => Json("""{"success":true,"hostname":"www.example.tn","action":"my_booking_access"}"""));
+
+        (await verifier.VerifyAsync("token", null, "my_booking_access", "WWW.Example.TN", Ct)).Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task The_answer_of_a_test_key_is_accepted_outside_production_only()
+    {
+        var (development, _) = Create(_ => Json(TestingKeyAnswer), acceptTestingKeys: true);
+        var (production, _) = Create(_ => Json(TestingKeyAnswer), acceptTestingKeys: false);
+
+        // The test keys report no action and "example.com": development (real widget, test keys) works again.
+        (await development.VerifyAsync(TurnstileTestKeys.DummyToken, null, "booking_submit", "localhost", Ct)).Success.ShouldBeTrue();
+        var refused = await production.VerifyAsync(TurnstileTestKeys.DummyToken, null, "booking_submit", "www.example.tn", Ct);
+        refused.Success.ShouldBeFalse();
+        refused.ErrorCodes.ShouldBe([TurnstileVerification.TestingKey]);
     }
 
     [Theory]
@@ -115,7 +156,7 @@ public sealed class TurnstileVerifierTests
     {
         var fake = new CarRental.Testing.FakeTurnstileVerifier();
 
-        (await fake.VerifyAsync(TurnstileTestKeys.DummyToken, null, "booking_submit", Ct)).Success.ShouldBeTrue();
+        (await fake.VerifyAsync(TurnstileTestKeys.DummyToken, null, "booking_submit", cancellationToken: Ct)).Success.ShouldBeTrue();
         (await fake.VerifyAsync(CarRental.Testing.FakeTurnstileVerifier.RejectedToken, null, cancellationToken: Ct)).Success.ShouldBeFalse();
         (await fake.VerifyAsync(null, null, cancellationToken: Ct)).Success.ShouldBeFalse();
         fake.Calls.Count.ShouldBe(3);

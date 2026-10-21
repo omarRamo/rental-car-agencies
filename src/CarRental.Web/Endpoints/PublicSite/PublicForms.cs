@@ -71,14 +71,22 @@ public static class PublicForms
         return Text(form, name) is "1" or "on" or "true";
     }
 
-    /// <summary>The anti-robot check of a form (Turnstile, ADR-0037) for <paramref name="action"/>.</summary>
+    /// <summary>
+    /// The anti-robot check of a form (Turnstile, ADR-0037) for <paramref name="action"/>, solved on the site that
+    /// receives the form (host names filtered by <c>HostFiltering</c>).
+    /// </summary>
     public static async Task<bool> IsHumanAsync(HttpContext context, IFormCollection form, string action)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(form);
         var verifier = context.RequestServices.GetRequiredService<ITurnstileVerifier>();
         var ip = context.RequestServices.GetRequiredService<ClientIpResolver>().Resolve(context);
-        var verification = await verifier.VerifyAsync(form[TurnstileOptions.ResponseFieldName].ToString(), ip, action, context.RequestAborted);
+        var verification = await verifier.VerifyAsync(
+            form[TurnstileOptions.ResponseFieldName].ToString(),
+            ip,
+            action,
+            context.Request.Host.Host,
+            context.RequestAborted);
         return verification.Success;
     }
 
