@@ -12,7 +12,8 @@ namespace CarRental.Infrastructure.BackgroundJobs;
 /// <summary>
 /// The single Hangfire entry point for <see cref="IRecurringJob"/> implementations: resolves the job by id in the job's
 /// DI scope, runs it as the system actor, and never lets two runs of the same job overlap (distributed lock; a run that
-/// cannot get it is skipped). Jobs handle their own retries: Hangfire retries are disabled.
+/// cannot get it is skipped). Jobs handle their own retries: Hangfire retries are disabled. Each run of a registered job
+/// is counted in <see cref="CarRentalTelemetry.RecurringJobRuns"/> with its outcome.
 /// </summary>
 public sealed partial class RecurringJobRunner(
     IServiceProvider services,
@@ -40,6 +41,7 @@ public sealed partial class RecurringJobRunner(
         catch (DistributedLockTimeoutException)
         {
             LogSkipped(jobId);
+            Count(descriptor, CarRentalTelemetry.JobOutcomes.Skipped);
             return;
         }
 
@@ -49,9 +51,30 @@ public sealed partial class RecurringJobRunner(
             services.GetRequiredService<ScopedUserContext>()
                 .Initialize(UserContextSnapshot.System($"system:job:{jobId}", Activity.Current?.TraceId.ToString()));
             var job = (IRecurringJob)services.GetRequiredService(descriptor.JobType);
-            await job.ExecuteAsync(cancellationToken);
+            var outcome = CarRentalTelemetry.JobOutcomes.Failed;
+            try
+            {
+                await job.ExecuteAsync(cancellationToken);
+                outcome = CarRentalTelemetry.JobOutcomes.Succeeded;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                outcome = CarRentalTelemetry.JobOutcomes.Cancelled;
+                throw;
+            }
+            finally
+            {
+                Count(descriptor, outcome);
+            }
         }
     }
+
+    /// <summary>The id comes from the registered descriptor, never from storage: the tag values stay a known, short list.</summary>
+    private static void Count(RecurringJobDescriptor descriptor, string outcome) =>
+        CarRentalTelemetry.RecurringJobRuns.Add(
+            1,
+            new KeyValuePair<string, object?>(CarRentalTelemetry.JobTag, descriptor.JobId),
+            new KeyValuePair<string, object?>(CarRentalTelemetry.OutcomeTag, outcome));
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Recurring job {JobId} is not registered; run ignored.")]
     private partial void LogUnknownJob(string jobId);

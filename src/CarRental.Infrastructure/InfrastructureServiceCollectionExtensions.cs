@@ -18,7 +18,9 @@ using CarRental.Infrastructure.DataProtection;
 using CarRental.Infrastructure.Email;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Messaging;
+using CarRental.Infrastructure.Observability;
 using CarRental.Infrastructure.Outbox;
+using CarRental.Infrastructure.Payments;
 using CarRental.Infrastructure.Payments.ClicToPay;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Infrastructure.Persistence.Auditing;
@@ -72,11 +74,18 @@ public static class InfrastructureServiceCollectionExtensions
         var dataProtection = configuration.GetSection(DataProtectionSettings.SectionName).Get<DataProtectionSettings>() ?? new DataProtectionSettings();
         services.AddCarRentalDataProtection(dataProtection, () => credential);
 
+        // The jobs entry keeps its evaluation a few minutes: one instance for the probes and the telemetry.
+        services.AddSingleton<RecurringJobsHealthCheck>();
         services.AddHealthChecks()
             .AddDbContextCheck<CarRentalDbContext>("sql", tags: [HealthTags.Ready])
             .AddCheck<BlobStorageHealthCheck>("storage", tags: [HealthTags.Ready])
             .AddCheck<HangfireHealthCheck>("hangfire", tags: [HealthTags.Ready])
-            .AddCheck<OutboxHealthCheck>("outbox", tags: [HealthTags.Ready]);
+            .AddCheck<RecurringJobsHealthCheck>("jobs", tags: [HealthTags.Ready])
+            .AddCheck<OutboxHealthCheck>("outbox", tags: [HealthTags.Ready])
+            .AddCheck<PaymentsHealthCheck>("payments", tags: [HealthTags.Ready]);
+
+        // Every entry, whichever module registers it, is evaluated each minute and exported as carrental.health.status.
+        services.AddHealthTelemetry();
 
         services.AddSingleton<DatabaseInitializer>();
         return services;

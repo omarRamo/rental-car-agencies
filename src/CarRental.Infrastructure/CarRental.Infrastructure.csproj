@@ -32,6 +32,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="CarRental.Integration.Tests" />
+    <!-- Unit tests of the health and telemetry plumbing that need no container (tests/CarRental.Architecture.Tests/Observability). -->
+    <InternalsVisibleTo Include="CarRental.Architecture.Tests" />
   </ItemGroup>
 
 </Project>
