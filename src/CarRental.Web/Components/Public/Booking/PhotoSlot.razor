@@ -1,0 +1,43 @@
+@* A photo of a document side (ADR-0050). Sent by the upload module (wwwroot/js/document-upload.js): compressed in the
+   browser, sent with a progress bar and a retry button, the server answering with a text only (never the image or an
+   address of it). As a form of its own ("Ma réservation"), it also works without JavaScript; inside the drivers form
+   of the funnel it needs the module (the photos can be sent later from "Ma réservation"). *@
+@inject IStringLocalizer<BookingResources> L
+
+@if (Action is not null)
+{
+    <li class="photo-slot@(Received ? " photo-slot--received" : string.Empty)">
+        <form method="post" enctype="multipart/form-data" action="@Action" data-upload-slot="@Key" data-upload-url="@Action">
+            <AntiforgeryToken />
+            <input type="hidden" name="slot" value="@Key" />
+            <SlotBody Key="@Key" Label="@Label" Received="@Received" Optional="@Optional" Named="true" />
+            <button type="submit" class="button button--secondary photo-slot__send" data-upload-submit>@L["Photo.Send"]</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="photo-slot@(Received ? " photo-slot--received" : string.Empty)" data-upload-slot="@Key">
+        <SlotBody Key="@Key" Label="@Label" Received="@Received" Optional="@Optional" Named="false" />
+    </li>
+}
+
+@code {
+    /// <summary>The slot (<c>main.license.front</c>).</summary>
+    [Parameter, EditorRequired]
+    public string Key { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>A photo was already received for this slot.</summary>
+    [Parameter]
+    public bool Received { get; set; }
+
+    [Parameter]
+    public bool Optional { get; set; }
+
+    /// <summary>The upload address when the slot is a form of its own; inside another form, the closest <c>data-upload-url</c>.</summary>
+    [Parameter]
+    public string? Action { get; set; }
+}

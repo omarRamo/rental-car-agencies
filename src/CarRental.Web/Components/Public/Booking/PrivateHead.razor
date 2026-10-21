@@ -1,0 +1,24 @@
+@* Title and head of a page of the booking funnel or of "Ma réservation": never indexed nor followed, no canonical or
+   Open Graph address (the address of these pages holds a token or depends on a session, it is never published). *@
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<PageTitle>@L["Title.Format", Title, Site.Value.AgencyName]</PageTitle>
+<HeadContent>
+    <meta name="description" content="@Description" />
+    <meta name="robots" content="noindex, nofollow" />
+    @ChildContent
+</HeadContent>
+
+@code {
+    /// <summary>Title of the page; the brand is appended.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>Extra head content (the immediate redirection of the payment page).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

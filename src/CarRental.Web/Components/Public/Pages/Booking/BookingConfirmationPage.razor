@@ -1,0 +1,128 @@
+@page "/{culture:length(2)}/reserver/confirmation/{Number}"
+@page "/{culture:length(2)}/book/confirmation/{Number}"
+@* The confirmation of a request (ADR-0049), also the return address of its guarantee: "request received, answer
+   within two business hours", and where the guarantee stands as confirmed by the bank (held, being verified, failed with
+   a new attempt, or the payment link to come). Details are shown to the browser that sent the request only (protected
+   cookie); any other visitor gets a neutral page that tells nothing about the number. Records the confirmation step
+   once per session. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject FunnelTracker Tracker
+@inject PublicBookingCookies Cookies
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Confirmation.Title"]" Description="@L["Confirmation.Description"]" />
+
+@if (_confirmation is not { } confirmation)
+{
+    <section class="status-page" aria-labelledby="confirmation-heading">
+        <h1 id="confirmation-heading">@L["Confirmation.Neutral.Heading"]</h1>
+        <p>@L["Confirmation.Neutral.Text"]</p>
+        <p><a class="button" href="@BookingRoutes.MyBooking(Lang)">@L["Confirmation.MyBooking"]</a></p>
+    </section>
+    return;
+}
+
+<section class="confirmation" aria-labelledby="confirmation-heading">
+    <p class="confirmation__badge" aria-hidden="true">✓</p>
+    <h1 id="confirmation-heading">@(Waiting ? L["Confirmation.Heading"] : L[$"Confirmation.Status.{confirmation.Status}.Heading"])</h1>
+    <p class="confirmation__number">@L["Confirmation.Number"] <strong data-testid="booking-number">@confirmation.Number</strong></p>
+    @if (Waiting)
+    {
+        <p class="confirmation__answer">@L["Confirmation.Answer"]</p>
+    }
+
+    <div class="confirmation__payment alert alert--@Tone" role="status" data-testid="guarantee-state" data-state="@confirmation.Payment">
+        <p>@PaymentText</p>
+        @if (confirmation.Payment == FunnelPaymentState.AwaitingCustomer && !confirmation.CanRetryPayment)
+        {
+            <p><a href="@BookingRoutes.Confirmation(Lang, confirmation.Number)">@L["Confirmation.Payment.Refresh"]</a></p>
+        }
+    </div>
+
+    @if (confirmation.CanRetryPayment)
+    {
+        <form method="post" action="@BookingRoutes.ConfirmationPayment(Lang, confirmation.Number)" class="confirmation__retry">
+            <AntiforgeryToken />
+            <button type="submit" class="button" data-testid="guarantee-retry">@L["Confirmation.Payment.Retry", PublicFormat.Price(confirmation.Guarantee.Amount)]</button>
+        </form>
+    }
+
+    <h2 class="confirmation__next-title">@L["Confirmation.Next.Title"]</h2>
+    <ol class="steps">
+        <li>@L["Confirmation.Next.Email"]</li>
+        <li>@L["Confirmation.Next.Answer"]</li>
+        <li>@L["Confirmation.Next.Documents"]</li>
+    </ol>
+    <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Lang)">@L["Confirmation.MyBooking"]</a></p>
+</section>
+
+@code {
+    private bool _ready;
+    private FunnelConfirmation? _confirmation;
+
+    [Parameter]
+    public string Number { get; set; } = string.Empty;
+
+    private bool Waiting => _confirmation?.Status is BookingStatusInfo.PendingValidation or BookingStatusInfo.InformationRequested;
+
+    private string Tone => _confirmation!.Payment switch
+    {
+        FunnelPaymentState.Held or FunnelPaymentState.Captured => "success",
+        FunnelPaymentState.Failed => "error",
+        _ => "warning",
+    };
+
+    private string PaymentText
+    {
+        get
+        {
+            var confirmation = _confirmation!;
+            var amount = PublicFormat.Price(confirmation.Guarantee.Amount);
+            return confirmation.Payment switch
+            {
+                FunnelPaymentState.Held => L["Confirmation.Payment.Held", amount],
+                FunnelPaymentState.Captured => L["Confirmation.Payment.Captured", amount],
+                FunnelPaymentState.Failed => L["Confirmation.Payment.Failed", amount],
+                FunnelPaymentState.AwaitingCustomer when confirmation.CanRetryPayment => L["Confirmation.Payment.Expired", amount],
+                FunnelPaymentState.AwaitingCustomer => L["Confirmation.Payment.Verifying"],
+                _ => L["Confirmation.Payment.Link"],
+            };
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.Confirmation(Lang, Number)))
+        {
+            return;
+        }
+
+        if (Cookies.ReadRequest(HttpContext) is { } bookingId)
+        {
+            await using var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel);
+            var funnel = scope.ServiceProvider.GetRequiredService<FunnelService>();
+            var confirmation = await funnel.GetConfirmationAsync(bookingId, Aborted);
+            if (confirmation is not null && string.Equals(confirmation.Number, Number, StringComparison.Ordinal))
+            {
+                _confirmation = confirmation;
+                if (await funnel.MarkConfirmationShownAsync(bookingId, Aborted) is { FirstVisit: true } visit)
+                {
+                    await Tracker.TrackAsync(
+                        HttpContext,
+                        FunnelStepInfo.Confirmation,
+                        TrafficOf(visit.Attribution, visit.Attribution?.Source == TrafficSource.WhatsAppSource ? SalesChannel.WhatsApp : SalesChannel.Web),
+                        visit.CategoryCode,
+                        bookingId,
+                        Aborted);
+                }
+            }
+        }
+
+        _ready = true;
+    }
+}

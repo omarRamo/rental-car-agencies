@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Subject.Format" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Greeting" xml:space="preserve">
+    <value>Bonjour {0},</value>
+  </data>
+  <data name="Greeting.Anonymous" xml:space="preserve">
+    <value>Bonjour,</value>
+  </data>
+  <data name="Signature" xml:space="preserve">
+    <value>L'équipe {0}</value>
+  </data>
+  <data name="Footer" xml:space="preserve">
+    <value>Message automatique au sujet de la réservation {0}. Pour toute question, contactez l'agence sur WhatsApp ou par téléphone.</value>
+  </data>
+  <data name="DateTime" xml:space="preserve">
+    <value>{0:dddd d MMMM yyyy} à {0:HH:mm}</value>
+  </data>
+  <data name="Fact.Number" xml:space="preserve">
+    <value>Numéro de réservation</value>
+  </data>
+  <data name="Fact.Amount" xml:space="preserve">
+    <value>Montant à payer</value>
+  </data>
+  <data name="Fact.PayBefore" xml:space="preserve">
+    <value>À payer avant le</value>
+  </data>
+  <data name="Fact.Fee" xml:space="preserve">
+    <value>Frais d'annulation</value>
+  </data>
+  <data name="Fact.NoFee" xml:space="preserve">
+    <value>aucuns</value>
+  </data>
+  <data name="Fact.Refund" xml:space="preserve">
+    <value>Remboursement</value>
+  </data>
+  <data name="Action.Follow" xml:space="preserve">
+    <value>Suivre ma demande</value>
+  </data>
+  <data name="Action.View" xml:space="preserve">
+    <value>Voir ma réservation</value>
+  </data>
+  <data name="Action.CompleteFile" xml:space="preserve">
+    <value>Compléter mon dossier</value>
+  </data>
+  <data name="Action.Search" xml:space="preserve">
+    <value>Faire une nouvelle recherche</value>
+  </data>
+  <data name="Action.Pay" xml:space="preserve">
+    <value>Payer en ligne</value>
+  </data>
+  <data name="Action.Open" xml:space="preserve">
+    <value>Ouvrir ma réservation</value>
+  </data>
+  <data name="Note.PersonalLink" xml:space="preserve">
+    <value>Ce lien personnel est valable jusqu'au {0}. Ne le transférez pas.</value>
+  </data>
+  <data name="Released" xml:space="preserve">
+    <value>Si un montant avait été bloqué sur votre carte, il est libéré ; selon votre banque, cela peut prendre quelques jours.</value>
+  </data>
+  <data name="SearchAgain" xml:space="preserve">
+    <value>Vous pouvez faire une nouvelle recherche sur notre site ou nous contacter : nous ferons de notre mieux pour vous proposer une autre solution.</value>
+  </data>
+  <data name="RequestReceived.Subject" xml:space="preserve">
+    <value>Demande {0} reçue</value>
+  </data>
+  <data name="RequestReceived.Preheader" xml:space="preserve">
+    <value>L'agence vous répond sous 2 heures ouvrées.</value>
+  </data>
+  <data name="RequestReceived.Heading" xml:space="preserve">
+    <value>Nous avons bien reçu votre demande</value>
+  </data>
+  <data name="RequestReceived.Body" xml:space="preserve">
+    <value>Votre demande de réservation {0} est enregistrée. L'agence la vérifie et vous répond sous 2 heures ouvrées.</value>
+  </data>
+  <data name="RequestReceived.Guarantee" xml:space="preserve">
+    <value>Si un montant a été bloqué sur votre carte (pré-autorisation), il n'est débité qu'à la validation de votre demande ; il est libéré si elle n'aboutit pas.</value>
+  </data>
+  <data name="InformationRequested.Subject" xml:space="preserve">
+    <value>Réservation {0} : informations demandées</value>
+  </data>
+  <data name="InformationRequested.Preheader" xml:space="preserve">
+    <value>L'agence a besoin d'informations pour valider votre demande.</value>
+  </data>
+  <data name="InformationRequested.Heading" xml:space="preserve">
+    <value>Il nous manque des informations</value>
+  </data>
+  <data name="InformationRequested.Body" xml:space="preserve">
+    <value>Pour valider votre demande {0}, l'agence a besoin d'informations complémentaires.</value>
+  </data>
+  <data name="InformationRequested.Message" xml:space="preserve">
+    <value>Message de l'agence : « {0} »</value>
+  </data>
+  <data name="InformationRequested.How" xml:space="preserve">
+    <value>Envoyez-les depuis votre espace « Ma réservation » avec le bouton ci-dessous.</value>
+  </data>
+  <data name="CompleteFileLink.Subject" xml:space="preserve">
+    <value>Réservation {0} : complétez votre dossier</value>
+  </data>
+  <data name="CompleteFileLink.Preheader" xml:space="preserve">
+    <value>Envoyez les photos de vos documents avant le départ.</value>
+  </data>
+  <data name="CompleteFileLink.Heading" xml:space="preserve">
+    <value>Complétez votre dossier</value>
+  </data>
+  <data name="CompleteFileLink.Body" xml:space="preserve">
+    <value>Pour préparer votre réservation {0}, envoyez les photos de vos documents (permis de conduire, pièce d'identité) depuis votre espace personnel.</value>
+  </data>
+  <data name="Confirmed.Subject" xml:space="preserve">
+    <value>Réservation {0} confirmée</value>
+  </data>
+  <data name="Confirmed.Preheader" xml:space="preserve">
+    <value>Votre réservation est confirmée.</value>
+  </data>
+  <data name="Confirmed.Heading" xml:space="preserve">
+    <value>Votre réservation est confirmée</value>
+  </data>
+  <data name="Confirmed.Body" xml:space="preserve">
+    <value>Bonne nouvelle : l'agence a validé votre réservation {0}.</value>
+  </data>
+  <data name="Confirmed.Departure" xml:space="preserve">
+    <value>Le jour du départ, présentez votre permis de conduire, votre pièce d'identité et la carte bancaire qui servira à la caution.</value>
+  </data>
+  <data name="Refused.Subject" xml:space="preserve">
+    <value>Votre demande {0}</value>
+  </data>
+  <data name="Refused.Preheader" xml:space="preserve">
+    <value>Nous ne pouvons pas donner suite à votre demande.</value>
+  </data>
+  <data name="Refused.Heading" xml:space="preserve">
+    <value>Nous ne pouvons pas donner suite à votre demande</value>
+  </data>
+  <data name="Refused.Body" xml:space="preserve">
+    <value>Nous sommes désolés : votre demande de réservation {0} n'a pas pu être acceptée.</value>
+  </data>
+  <data name="Expired.Subject" xml:space="preserve">
+    <value>Votre demande {0} a expiré</value>
+  </data>
+  <data name="Expired.Preheader" xml:space="preserve">
+    <value>Votre demande n'a pas pu être finalisée à temps.</value>
+  </data>
+  <data name="Expired.Heading" xml:space="preserve">
+    <value>Votre demande a expiré</value>
+  </data>
+  <data name="Expired.Body" xml:space="preserve">
+    <value>Votre demande de réservation {0} n'a pas pu être finalisée à temps et a expiré.</value>
+  </data>
+  <data name="PaymentLink.Subject" xml:space="preserve">
+    <value>Réservation {0} : votre lien de paiement</value>
+  </data>
+  <data name="PaymentLink.Preheader" xml:space="preserve">
+    <value>Payez en ligne pour confirmer votre réservation.</value>
+  </data>
+  <data name="PaymentLink.Heading" xml:space="preserve">
+    <value>Votre demande est validée</value>
+  </data>
+  <data name="PaymentLink.Body" xml:space="preserve">
+    <value>L'agence a validé votre demande {0}. Pour la confirmer, payez en ligne avec le bouton ci-dessous, sur la page sécurisée de la banque.</value>
+  </data>
+  <data name="PaymentLink.Note" xml:space="preserve">
+    <value>Sans paiement avant cette date, la réservation ne sera pas confirmée.</value>
+  </data>
+  <data name="CancellationConfirmed.Subject" xml:space="preserve">
+    <value>Réservation {0} annulée</value>
+  </data>
+  <data name="CancellationConfirmed.Preheader" xml:space="preserve">
+    <value>Votre annulation est enregistrée.</value>
+  </data>
+  <data name="CancellationConfirmed.Heading" xml:space="preserve">
+    <value>Votre réservation est annulée</value>
+  </data>
+  <data name="CancellationConfirmed.Body" xml:space="preserve">
+    <value>Votre réservation {0} est annulée comme vous l'avez demandé.</value>
+  </data>
+  <data name="Refund.None" xml:space="preserve">
+    <value>Aucun remboursement n'est dû.</value>
+  </data>
+  <data name="Refund.Requested" xml:space="preserve">
+    <value>Le remboursement de {0} a été demandé à votre banque ; il apparaîtra sur votre compte d'ici quelques jours.</value>
+  </data>
+  <data name="Refund.AwaitingApproval" xml:space="preserve">
+    <value>Le remboursement de {0} doit d'abord être validé par un responsable de l'agence ; il sera ensuite envoyé à votre banque.</value>
+  </data>
+  <data name="Refund.ByTheAgency" xml:space="preserve">
+    <value>L'agence vous contactera pour le remboursement de {0}.</value>
+  </data>
+  <data name="Access.Subject" xml:space="preserve">
+    <value>Votre accès à la réservation {0}</value>
+  </data>
+  <data name="Access.Preheader" xml:space="preserve">
+    <value>Votre lien et votre code d'accès.</value>
+  </data>
+  <data name="Access.Heading" xml:space="preserve">
+    <value>Accéder à votre réservation</value>
+  </data>
+  <data name="Access.Body" xml:space="preserve">
+    <value>Vous avez demandé à consulter la réservation {0}. Ouvrez-la avec le bouton ci-dessous, ou saisissez ce code sur la page « Ma réservation ».</value>
+  </data>
+  <data name="Access.CodeLabel" xml:space="preserve">
+    <value>Votre code</value>
+  </data>
+  <data name="Access.Note" xml:space="preserve">
+    <value>Le lien et le code sont valables jusqu'au {0} et ne servent qu'une fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : personne ne peut ouvrir votre réservation sans lui.</value>
+  </data>
+</root>

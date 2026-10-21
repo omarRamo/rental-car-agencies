@@ -1,0 +1,47 @@
+@* The three steps of the booking funnel: done steps are links (their forms keep what was entered), the current step
+   is marked aria-current="step", the next ones are plain text. The counter "Step 2 of 3" is read first. *@
+@inject IStringLocalizer<BookingResources> L
+
+<nav class="funnel-progress" aria-label="@L["Progress.Label"]">
+    <p class="funnel-progress__count">@L["Progress.Count", (int)Current, Steps.Length]</p>
+    <ol class="funnel-progress__list">
+        @foreach (var step in Steps)
+        {
+            var reachable = step < Current || (step > Current && (step != FunnelStep.Payment || DriversSaved));
+            <li class="funnel-progress__step@(StepClass(step))">
+                @if (step == Current)
+                {
+                    <span aria-current="step">@L[$"Progress.{step}"]</span>
+                }
+                else if (reachable)
+                {
+                    <a href="@BookingRoutes.Step(Culture, Token, step)">@L[$"Progress.{step}"]</a>
+                }
+                else
+                {
+                    <span>@L[$"Progress.{step}"]</span>
+                }
+            </li>
+        }
+    </ol>
+</nav>
+
+@code {
+    private static readonly FunnelStep[] Steps = [FunnelStep.Options, FunnelStep.Drivers, FunnelStep.Payment];
+
+    [Parameter, EditorRequired]
+    public FunnelStep Current { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Culture { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Token { get; set; } = string.Empty;
+
+    /// <summary>Valid drivers were saved: the payment step can be reached.</summary>
+    [Parameter]
+    public bool DriversSaved { get; set; }
+
+    private string StepClass(FunnelStep step) =>
+        step == Current ? " funnel-progress__step--current" : step < Current ? " funnel-progress__step--done" : string.Empty;
+}

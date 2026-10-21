@@ -664,4 +664,13 @@
   <data name="WhatsApp.Region" xml:space="preserve">
     <value>WhatsApp contact</value>
   </data>
+  <data name="Results.Info.indisponible" xml:space="preserve">
+    <value>This vehicle is no longer available on these dates: choose another one below.</value>
+  </data>
+  <data name="Results.Info.expire" xml:space="preserve">
+    <value>The guaranteed price of your selection has expired: here are the current prices for the same dates.</value>
+  </data>
+  <data name="Results.Info.lien" xml:space="preserve">
+    <value>This booking link is no longer valid: please search again.</value>
+  </data>
 </root>

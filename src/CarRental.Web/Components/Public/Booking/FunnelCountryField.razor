@@ -1,0 +1,82 @@
+@* A country of a public form (ISO 3166 code posted): Tunisia and the usual countries of the customers first, then
+   every country by its name in the language of the page. *@
+@using CarRental.Web.Components.Admin.Customers
+@inject IStringLocalizer<BookingResources> L
+
+<div class="form-field@(Class is null ? string.Empty : " " + Class)">
+    <label for="@Id">
+        @Label
+        @if (!Required)
+        {
+            <span class="form-field__optional">@L["Field.Optional"]</span>
+        }
+    </label>
+    @if (Hint is not null)
+    {
+        <p id="@($"{Id}-hint")" class="field-hint">@Hint</p>
+    }
+    <select id="@Id" name="@Name" autocomplete="@Autocomplete" aria-required="@(Required ? "true" : null)"
+            aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" data-country="@DataCountry">
+        <option value="" selected="@string.IsNullOrEmpty(Value)">@(Placeholder ?? L["Field.CountryChoose"])</option>
+        @foreach (var country in CustomerLabels.Countries())
+        {
+            <option value="@country" selected="@(country == Value)">@CustomerLabels.CountryName(country)</option>
+        }
+    </select>
+    <FieldMessage Id="@($"{Id}-error")" Message="@Error" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Marks the nationality select (the form shows the passport fields for a foreign nationality).</summary>
+    [Parameter]
+    public string? DataCountry { get; set; }
+
+    private string? DescribedBy
+    {
+        get
+        {
+            var ids = new List<string>(2);
+            if (Hint is not null)
+            {
+                ids.Add($"{Id}-hint");
+            }
+
+            if (Error is not null)
+            {
+                ids.Add($"{Id}-error");
+            }
+
+            return ids.Count == 0 ? null : string.Join(' ', ids);
+        }
+    }
+}

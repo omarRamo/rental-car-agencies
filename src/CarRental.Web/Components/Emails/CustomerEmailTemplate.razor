@@ -1,0 +1,79 @@
+@* An e-mail to a customer (ADR-0051): a whole HTML document with inline styles (mail clients ignore style sheets and
+   scripts), one column of at most 600 px that reads well on a phone, rendered by CustomerEmailComposer with the
+   HtmlRenderer. The plain text alternative is made from the same content (CustomerEmailContent.ToText). Every text is
+   encoded by Razor; the only addresses are the absolute links of the site or of the bank. *@
+<!DOCTYPE html>
+<html lang="@Content.Language">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>@Content.Subject</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;color:#1b1f24;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;">@Content.Preheader</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f9;">
+        <tr>
+            <td align="center" style="padding:24px 12px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:8px;">
+                    <tr>
+                        <td style="background:#0b3d91;color:#ffffff;padding:16px 24px;font-size:20px;font-weight:bold;border-radius:8px 8px 0 0;">@Brand</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px;font-size:16px;line-height:1.5;">
+                            <p style="margin:0 0 16px;">@Content.Greeting</p>
+                            <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#1b1f24;">@Content.Heading</h1>
+                            @foreach (var paragraph in Content.Paragraphs)
+                            {
+                                <p style="margin:0 0 16px;">@paragraph</p>
+                            }
+                            @if (Content.Facts.Count > 0)
+                            {
+                                <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;border-collapse:collapse;">
+                                    @foreach (var fact in Content.Facts)
+                                    {
+                                        <tr>
+                                            <td style="padding:4px 16px 4px 0;color:#4a5361;vertical-align:top;">@fact.Label</td>
+                                            <td style="padding:4px 0;font-weight:bold;vertical-align:top;">@fact.Value</td>
+                                        </tr>
+                                    }
+                                </table>
+                            }
+                            @if (Content.Code is not null)
+                            {
+                                <p style="margin:0 0 4px;">@Content.CodeLabel</p>
+                                <p style="margin:0 0 16px;font-size:28px;font-weight:bold;letter-spacing:6px;font-family:Consolas,'Courier New',monospace;">@Content.Code</p>
+                            }
+                            @if (Content.Action is { } action)
+                            {
+                                <p style="margin:24px 0 8px;">
+                                    <a href="@action.Url" style="display:inline-block;background:#0b57d0;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:8px;">@action.Label</a>
+                                </p>
+                                <p style="margin:0 0 16px;font-size:13px;color:#4a5361;word-break:break-all;">@action.Url</p>
+                            }
+                            @if (Content.Note is not null)
+                            {
+                                <p style="margin:0 0 16px;color:#4a5361;">@Content.Note</p>
+                            }
+                            <p style="margin:0;">@Content.Signature</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:16px 24px;font-size:12px;line-height:1.5;color:#4a5361;border-top:1px solid #c9d1dc;">@Content.Footer</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
+@code {
+    /// <summary>What the e-mail says, localized.</summary>
+    [Parameter, EditorRequired]
+    public CustomerEmailContent Content { get; set; } = default!;
+
+    /// <summary>Name of the agency (header of the e-mail).</summary>
+    [Parameter, EditorRequired]
+    public string Brand { get; set; } = string.Empty;
+}

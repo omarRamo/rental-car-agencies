@@ -31,6 +31,9 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         KeysDirectory = Path.Combine(root, "keys");
     }
 
+    /// <summary>Key of the public quote API in the test hosts (test-only value).</summary>
+    public const string QuoteApiKey = "test-quote-api-key-2c"; // gitleaks:allow (test-only API key)
+
     /// <summary>Folder of the .eml files written by the development e-mail transport.</summary>
     public string EmailDirectory { get; }
 
@@ -41,6 +44,9 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
 
     /// <summary>Permits of each public rate limiting policy (lifted by default: all tests share one client address).</summary>
     public int RateLimitPermits { get; init; } = 100_000;
+
+    /// <summary>Configuration applied after the defaults of the test hosts (a dedicated host: online payment off…).</summary>
+    public IReadOnlyDictionary<string, string?> ExtraSettings { get; init; } = new Dictionary<string, string?>();
 
     /// <summary>Turnstile verifier of the host: accepts any token except <see cref="FakeTurnstileVerifier.RejectedToken"/>.</summary>
     public FakeTurnstileVerifier TurnstileVerifier { get; } = new();
@@ -74,6 +80,7 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("DataProtection:KeysDirectory", KeysDirectory);
         builder.UseSetting("HostFiltering:AllowedHosts", "*");
         builder.UseSetting("PublicSite:WhatsAppNumber", "21600000000");
+        builder.UseSetting("PublicApi:QuoteApiKeys:0", QuoteApiKey);
         builder.UseSetting("BackgroundJobs:WorkerCount", "2");
         builder.ConfigureTestServices(services => services.AddSettingDefinitions(TestSettings.All));
 
@@ -95,6 +102,11 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("ClicToPay:RefundedStatusCodes", "4");
         builder.UseSetting("ClicToPay:DeclinedStatusCodes", "6");
         builder.UseSetting("ClicToPay:StatusRetryDelayMilliseconds", "0");
+
+        foreach (var (key, value) in ExtraSettings)
+        {
+            builder.UseSetting(key, value);
+        }
 
         if (_configureServices is not null)
         {

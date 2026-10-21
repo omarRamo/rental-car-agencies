@@ -105,7 +105,7 @@ public sealed class PublicHttpTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task Choosing_a_category_needs_the_antiforgery_token_and_brings_back_the_results_with_a_notice()
+    public async Task Choosing_a_category_needs_the_antiforgery_token_and_opens_the_booking_funnel()
     {
         using var client = host.CreateClient();
         var search = $"lieu=TUN&depart={LocalDate(45)}&retour={LocalDate(48)}&src=whatsapp&utm_campaign=ete";
@@ -128,10 +128,34 @@ public sealed class PublicHttpTests(IntegrationHost host)
         refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         accepted.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
         var location = Uri.UnescapeDataString(HttpSignIn.PathAndQuery(accepted.Headers.Location!));
-        location.ShouldBe($"/fr/reserver?lieu=TUN&depart={LocalDate(45)}&retour={LocalDate(48)}&cat=ECMR&src=whatsapp&utm_campaign=ete&info=bientot");
+        location.ShouldMatch("^/fr/reserver/[A-Za-z0-9_-]{43}/options$");
+        var options = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri(location, UriKind.Relative), Ct));
+        options.ShouldContain("Options et prix");
+        options.ShouldContain("<meta name=\"robots\" content=\"noindex, nofollow\"");
+    }
+
+    [Fact]
+    public async Task Choosing_a_category_the_agency_does_not_have_brings_back_the_results_with_a_notice()
+    {
+        using var client = host.CreateClient();
+        var search = $"lieu=TUN&depart={LocalDate(46)}&retour={LocalDate(49)}";
+        var page = await client.GetStringAsync(new Uri($"/fr/reserver?{search}", UriKind.Relative), Ct);
+        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["lieu"] = "TUN",
+            ["depart"] = LocalDate(46),
+            ["retour"] = LocalDate(49),
+            ["cat"] = "XXXX",
+            ["__RequestVerificationToken"] = HttpSignIn.AntiforgeryToken(page),
+        });
+
+        var response = await client.PostAsync(new Uri("/fr/reserver/selection", UriKind.Relative), form, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
+        var location = Uri.UnescapeDataString(HttpSignIn.PathAndQuery(response.Headers.Location!));
+        location.ShouldBe($"/fr/reserver?lieu=TUN&depart={LocalDate(46)}&retour={LocalDate(49)}&info=indisponible");
         var back = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri(location, UriKind.Relative), Ct));
-        back.ShouldContain("La réservation en ligne ouvre bientôt");
-        OfferCodes(back)[0].ShouldBe("ECMR");
+        back.ShouldContain("Ce véhicule n'est plus disponible à ces dates");
     }
 
     [Fact]

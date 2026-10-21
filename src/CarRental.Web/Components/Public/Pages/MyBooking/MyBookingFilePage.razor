@@ -1,0 +1,276 @@
+@page "/{culture:length(2)}/ma-reservation/dossier"
+@page "/{culture:length(2)}/my-booking/file"
+@* The booking of the "Ma réservation" session (ADR-0051): where it stands and its public timeline, what the agency asked
+   for, the photos of the documents of each driver (sent to the agent, never applied to a person without its review),
+   the balance to pay online, the cancellation under the policy, the contract and invoices once they exist. Only the
+   booking of the session is ever shown; a session that is over leads back to the access page. *@
+@using CarRental.Application.Payments.Contracts
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject PublicBookingCookies Cookies
+@inject PublicAgencyDirectory Directory
+@inject IOnlinePayments Payments
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["File.Title", _file!.Number]" Description="@L["File.Description"]" />
+
+<div class="my-booking">
+    <header class="my-booking__header">
+        <h1>@L["File.Heading", _file.Number]</h1>
+        <p class="my-booking__status status-badge status-badge--@StatusTone" data-testid="booking-status" data-status="@_file.Status">@L[$"Status.{_file.Status}"]</p>
+        <p class="my-booking__explain">@StatusText</p>
+    </header>
+
+    @if (_notice is not null)
+    {
+        <p class="alert alert--success" role="status" data-testid="file-notice">@_notice</p>
+    }
+    @if (_paymentNotice is not null)
+    {
+        <p class="alert alert--@_paymentTone" role="status" data-testid="payment-notice">@_paymentNotice</p>
+    }
+    @if (LastError is { } error)
+    {
+        <div class="alert alert--error" role="alert" tabindex="-1" autofocus data-testid="file-error">
+            <p>@ErrorText(error)</p>
+        </div>
+    }
+
+    <section class="card my-booking__section" aria-labelledby="trip-title">
+        <h2 id="trip-title">@L["File.Trip"]</h2>
+        <dl class="facts">
+            @if (_category is not null)
+            {
+                <div><dt>@L["File.Vehicle"]</dt><dd>@_category.Name (@_category.AcrissCode) — @L["Summary.OrSimilar", _category.ExampleModel]</dd></div>
+            }
+            <div><dt>@L["Summary.Pickup"]</dt><dd>@LocationName(_file.PickupLocationId) — @Instant(_file.PickupAt)</dd></div>
+            <div><dt>@L["Summary.Return"]</dt><dd>@LocationName(_file.ReturnLocationId) — @Instant(_file.ReturnAt)</dd></div>
+            <div><dt>@L["Summary.Total"]</dt><dd>@PublicFormat.Price(_file.TotalInclVat)</dd></div>
+            <div><dt>@L["File.Paid"]</dt><dd data-testid="paid">@PublicFormat.Price(_file.Paid)</dd></div>
+            @if (_file.Balance.IsPositive)
+            {
+                <div><dt>@L["File.Balance"]</dt><dd data-testid="balance">@PublicFormat.Price(_file.Balance)</dd></div>
+            }
+            <div><dt>@L["File.Deposit"]</dt><dd>@PublicFormat.Price(_file.Deposit)</dd></div>
+        </dl>
+        @if (PaymentStateText is { } paymentState)
+        {
+            <p class="field-hint" data-testid="payment-state">@paymentState</p>
+        }
+        @if (_file.CanPayBalance)
+        {
+            <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.PayBalance)">
+                <AntiforgeryToken />
+                <button type="submit" class="button" data-testid="pay-balance">@L["File.PayBalance", PublicFormat.Price(_file.Balance)]</button>
+            </form>
+        }
+    </section>
+
+    @if (_file.Status == BookingStatusInfo.InformationRequested)
+    {
+        <section class="card my-booking__section my-booking__request" aria-labelledby="request-title">
+            <h2 id="request-title">@L["File.Information.Title"]</h2>
+            @if (!string.IsNullOrWhiteSpace(_file.InformationMessage))
+            {
+                <blockquote class="my-booking__message">@_file.InformationMessage</blockquote>
+            }
+            <p>@L["File.Information.Text"]</p>
+            @if (_file.CanProvideInformation)
+            {
+                <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.InformationProvided)">
+                    <AntiforgeryToken />
+                    <button type="submit" class="button" data-testid="information-provided">@L["File.Information.Done"]</button>
+                </form>
+            }
+        </section>
+    }
+
+    <section class="card my-booking__section" id="@PublicBookingPaths.DocumentsSection" aria-labelledby="documents-title" tabindex="-1">
+        <h2 id="documents-title">@L["File.Documents.Title"]</h2>
+        @if (_file.CanSendDocuments)
+        {
+            <p>@L["File.Documents.Intro"]</p>
+            <div class="photos" data-photos data-upload-url="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.Documents)"
+                 data-text-sending="@L["Photo.Status.Sending"]" data-text-received="@L["Photo.Status.Received"]"
+                 data-text-failed="@L["Photo.Status.Failed"]" data-text-too-large="@ErrorText("customers.document_image.too_large")"
+                 data-text-type="@ErrorText("customers.document_image.unsupported_type")">
+                @foreach (var driver in _file.Drivers)
+                {
+                    <h3 class="driver-fields__section">@(driver.Role == FunnelFields.Second ? L["File.Documents.Second", driver.Name] : L["File.Documents.Main", driver.Name])</h3>
+                    <ul class="photo-slots">
+                        @foreach (var slot in driver.Slots)
+                        {
+                            <PhotoSlot Key="@slot.Key" Label="@SlotLabel(slot, driver.IdentityType)" Received="@slot.Received" Optional="@slot.Optional"
+                                       Action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.Documents)" />
+                        }
+                    </ul>
+                }
+            </div>
+            <p class="field-hint">@L["File.Documents.Review"]</p>
+        }
+        else
+        {
+            <p>@L["File.Documents.Closed"]</p>
+        }
+    </section>
+
+    <section class="card my-booking__section" aria-labelledby="papers-title">
+        <h2 id="papers-title">@L["File.Papers.Title"]</h2>
+        @if (_file.Documents.Count == 0)
+        {
+            <p data-testid="no-documents">@L[_file.DocumentsAvailable ? "File.Papers.None" : "File.Papers.NotYet"]</p>
+        }
+        else
+        {
+            <ul class="papers">
+                @foreach (var document in _file.Documents)
+                {
+                    <li>
+                        <a href="@BookingRoutes.MyBookingDocument(Lang, document.Id)" download>
+                            @L[$"File.Papers.{document.Kind}", document.Number ?? string.Empty]
+                        </a>
+                        <span class="field-hint">@L["File.Papers.Issued", PublicFormat.Date(document.IssuedAtUtc)]</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="card my-booking__section" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">@L["File.Timeline.Title"]</h2>
+        <ol class="timeline">
+            @foreach (var entry in _file.Timeline)
+            {
+                <li class="timeline__entry">
+                    <span class="timeline__label">@L[$"Timeline.{entry.Type}"]</span>
+                    <span class="timeline__date">@Instant(entry.OccurredAtUtc)</span>
+                </li>
+            }
+        </ol>
+    </section>
+
+    @if (_file.Cancellation is { } cancellation)
+    {
+        <section class="card my-booking__section" aria-labelledby="cancel-title">
+            <h2 id="cancel-title">@L["File.Cancel.Title"]</h2>
+            <p>@(cancellation.IsFree ? L["File.Cancel.Free"] : L["File.Cancel.Fee", PublicFormat.Price(cancellation.Fee)])</p>
+            <p><a class="button button--secondary" href="@BookingRoutes.MyBookingCancellation(Lang)" data-testid="cancel-link">@L["File.Cancel.Link"]</a></p>
+        </section>
+    }
+
+    <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.SignOut)" class="my-booking__signout">
+        <AntiforgeryToken />
+        <button type="submit" class="link-button">@L["File.SignOut"]</button>
+    </form>
+</div>
+
+<script type="module" src="@Assets["js/document-upload.js"]"></script>
+
+@code {
+    private bool _ready;
+    private MyBookingView? _file;
+    private PublicAgency? _agency;
+    private VehicleCategoryInfo? _category;
+    private string? _notice;
+    private string? _paymentNotice;
+    private string _paymentTone = "success";
+
+    private string StatusTone => _file!.Status switch
+    {
+        BookingStatusInfo.Confirmed or BookingStatusInfo.InProgress or BookingStatusInfo.Returned or BookingStatusInfo.Closed => "success",
+        BookingStatusInfo.Refused or BookingStatusInfo.Expired or BookingStatusInfo.Cancelled or BookingStatusInfo.NoShow => "neutral",
+        _ => "pending",
+    };
+
+    private string StatusText => _file!.Status switch
+    {
+        BookingStatusInfo.AwaitingPayment when _file.PaymentDueAt is { } due => L["Status.AwaitingPayment.Text", Instant(due)],
+        BookingStatusInfo.InformationRequested when _file.HoldExpiresAt is { } hold => L["Status.InformationRequested.Text", Instant(hold)],
+        _ => L[$"Status.{_file.Status}.Text"],
+    };
+
+    private string? PaymentStateText => _file!.PaymentState switch
+    {
+        RequestPaymentState.PreAuthorized => L["File.Payment.PreAuthorized"].Value,
+        RequestPaymentState.Failed => L["File.Payment.Failed"].Value,
+        RequestPaymentState.Expired => L["File.Payment.Expired"].Value,
+        RequestPaymentState.Released => L["File.Payment.Released"].Value,
+        RequestPaymentState.Refunded => L["File.Payment.Refunded"].Value,
+        _ => null,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingFile(Lang)))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.MyBooking))
+        {
+            var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
+            if (await MyBookingEndpoints.SessionAsync(HttpContext, Cookies, service) is not { } session)
+            {
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                return;
+            }
+
+            var file = await service.GetFileAsync(session.BookingId, Aborted);
+            if (file.IsFailure)
+            {
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                return;
+            }
+
+            _file = file.Value;
+        }
+
+        _category = _agency?.Categories.FirstOrDefault(c => c.Id == _file.CategoryId);
+        _notice = Query(MyBookingEndpoints.NoticeParameter) switch
+        {
+            MyBookingEndpoints.Notices.DocumentReceived => L["File.Notice.Document"],
+            MyBookingEndpoints.Notices.InformationSent => L["File.Notice.Information"],
+            MyBookingEndpoints.Notices.Cancelled => CancelledText(Query("remboursement")),
+            _ => null,
+        };
+        if (Guid.TryParse(Query("paiement"), out var paymentId) && await Payments.FindAsync(paymentId, Aborted) is { } payment && payment.BookingId == _file.BookingId)
+        {
+            (_paymentNotice, _paymentTone) = payment.Status switch
+            {
+                PaymentStatusInfo.Captured or PaymentStatusInfo.Refunded => ((string?)L["File.Payment.Received", PublicFormat.Price(payment.Amount)].Value, "success"),
+                PaymentStatusInfo.Failed or PaymentStatusInfo.Cancelled => (L["File.Payment.NotPaid"].Value, "error"),
+                _ => (L["File.Payment.Verifying"].Value, "warning"),
+            };
+        }
+
+        _ready = true;
+    }
+
+    private string CancelledText(string? refund) => refund switch
+    {
+        nameof(CancellationRefundState.Requested) => L["File.Notice.Cancelled.Requested"],
+        nameof(CancellationRefundState.AwaitingApproval) => L["File.Notice.Cancelled.AwaitingApproval"],
+        nameof(CancellationRefundState.ByTheAgency) => L["File.Notice.Cancelled.ByTheAgency"],
+        _ => L["File.Notice.Cancelled"],
+    };
+
+    private string LocationName(Guid id) => _agency?.Locations.FirstOrDefault(l => l.Id == id)?.Name ?? string.Empty;
+
+    private string Instant(DateTimeOffset instant) => FunnelTexts.Instant(L, instant);
+
+    private string SlotLabel(MyBookingSlot slot, IdentityDocumentTypeInfo identity)
+    {
+        var document = slot.Document switch
+        {
+            FunnelDocument.Identity => identity == IdentityDocumentTypeInfo.Passport ? "passport" : "cin",
+            FunnelDocument.License => "license",
+            _ => "permit",
+        };
+        return L[$"Photo.{document}.{slot.Side.ToString().ToLowerInvariant()}"];
+    }
+}

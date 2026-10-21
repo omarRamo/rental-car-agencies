@@ -1,0 +1,39 @@
+@* The inside of a photo slot: the label of the document side, the file input (a phone offers its camera), the status
+   announced politely, the progress bar and the retry button revealed by the upload module. *@
+@inject IStringLocalizer<BookingResources> L
+
+<label class="photo-slot__label" for="@InputId">
+    @Label
+    @if (Optional)
+    {
+        <span class="form-field__optional">@L["Field.Optional"]</span>
+    }
+</label>
+<input class="photo-slot__input" type="file" id="@InputId" name="@(Named ? "file" : null)" accept="image/jpeg,image/png,application/pdf"
+       aria-describedby="@StatusId" data-upload-input />
+<progress class="photo-slot__progress" max="100" value="0" hidden data-upload-progress>0 %</progress>
+<p class="photo-slot__status" id="@StatusId" role="status" data-upload-status>@(Received ? L["Photo.Status.Received"] : L["Photo.Status.None"])</p>
+<img class="photo-slot__preview" alt="" hidden data-upload-preview />
+<button type="button" class="button button--secondary photo-slot__retry" hidden data-upload-retry>@L["Photo.Retry"]<span class="visually-hidden"> — @Label</span></button>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Key { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool Received { get; set; }
+
+    [Parameter]
+    public bool Optional { get; set; }
+
+    /// <summary>The file input is named <c>file</c> (a form of its own) or not (sent by the module only).</summary>
+    [Parameter]
+    public bool Named { get; set; }
+
+    private string InputId => $"photo-{Key.Replace('.', '-')}";
+
+    private string StatusId => $"{InputId}-status";
+}

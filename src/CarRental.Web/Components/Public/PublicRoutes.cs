@@ -144,6 +144,7 @@ public static class PublicRoutes
         ("redirection", "redirect"),
         ("dossier", "file"),
         ("acces", "access"),
+        ("annulation", "cancellation"),
     ];
 
     /// <summary>The slug of a step of the booking funnel or of "Ma réservation" in <paramref name="culture"/> (<c>drivers</c>, <c>conducteurs</c>).</summary>

@@ -1,0 +1,93 @@
+@page "/{culture:length(2)}/ma-reservation/dossier/annulation"
+@page "/{culture:length(2)}/my-booking/file/cancellation"
+@* The cancellation of the booking of the session (ADR-0051), the fee shown first: free until the date of the policy of
+   the agency, then its percentage of the total; what was paid online minus the fee is refunded online (above the
+   approval threshold of the agency, a manager validates the refund first). The fee posted back must still be the fee
+   of the policy, otherwise this page is shown again with the new one. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject PublicBookingCookies Cookies
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Cancel.Title", _file!.Number]" Description="@L["Cancel.Description"]" />
+
+<section class="account account--wide my-booking-cancel" aria-labelledby="cancel-heading">
+    <h1 id="cancel-heading">@L["Cancel.Heading", _file.Number]</h1>
+    @if (Query(MyBookingEndpoints.NoticeParameter) == MyBookingEndpoints.Notices.FeeChanged)
+    {
+        <p class="alert alert--warning" role="alert">@L["Cancel.FeeChanged"]</p>
+    }
+    @if (LastError is { } error)
+    {
+        <div class="alert alert--error" role="alert" tabindex="-1" autofocus>
+            <p>@ErrorText(error)</p>
+        </div>
+    }
+
+    @if (_file.Cancellation is { } cancellation)
+    {
+        <dl class="facts">
+            <div>
+                <dt>@L["Cancel.Fee"]</dt>
+                <dd data-testid="cancellation-fee">@(cancellation.IsFree ? L["Cancel.Fee.None"] : L["Cancel.Fee.Amount", PublicFormat.Price(cancellation.Fee), cancellation.FeePercent.ToString("0.##", CultureInfo.CurrentCulture)])</dd>
+            </div>
+            @if (cancellation.FreeUntil is { } freeUntil)
+            {
+                <div>
+                    <dt>@L["Cancel.FreeUntil"]</dt>
+                    <dd>@freeUntil.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)</dd>
+                </div>
+            }
+            <div>
+                <dt>@L["Cancel.Refund"]</dt>
+                <dd data-testid="refund-estimate">@PublicFormat.Price(cancellation.RefundEstimate)</dd>
+            </div>
+        </dl>
+        <p>@L["Cancel.RefundHow"]</p>
+        <p class="field-hint">@L["Cancel.Approval"]</p>
+        <form method="post" action="@BookingRoutes.MyBookingCancellation(Lang)" class="actions">
+            <AntiforgeryToken />
+            <input type="hidden" name="@MyBookingEndpoints.FeeField" value="@cancellation.Fee.Amount.ToString("0.000", CultureInfo.InvariantCulture)" />
+            <button type="submit" class="button button--danger" data-testid="confirm-cancel">@L["Cancel.Confirm"]</button>
+            <a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Lang)">@L["Cancel.Keep"]</a>
+        </form>
+    }
+    else
+    {
+        <p>@L["Cancel.NotAllowed"]</p>
+        <p><a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Lang)">@L["Cancel.Back"]</a></p>
+    }
+</section>
+
+@code {
+    private bool _ready;
+    private MyBookingView? _file;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCancellation(Lang)))
+        {
+            return;
+        }
+
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.MyBooking))
+        {
+            var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
+            var session = await MyBookingEndpoints.SessionAsync(HttpContext, Cookies, service);
+            var file = session is null ? null : await service.GetFileAsync(session.BookingId, Aborted);
+            if (file is not { IsSuccess: true })
+            {
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                return;
+            }
+
+            _file = file.Value;
+        }
+
+        _ready = true;
+    }
+}

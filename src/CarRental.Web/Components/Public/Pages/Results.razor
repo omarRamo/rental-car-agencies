@@ -29,6 +29,10 @@
 @if (_criteria is null)
 {
     <h1>@L["Results.SearchTitle"]</h1>
+    @if (_query.Info is { } startInfo && startInfo != SearchQuery.SoonInfo)
+    {
+        <p class="notice notice--info" role="status">@L[$"Results.Info.{startInfo}"]</p>
+    }
     @if (_errors.Count == 0)
     {
         <p class="results-intro">@L["Results.Start"]</p>
@@ -67,6 +71,13 @@
         {
             <p><a class="button button--whatsapp" href="@soonLink" target="_blank" rel="noopener noreferrer">@L["Results.Soon.WhatsApp"] <span class="visually-hidden">@L["ExternalLink"]</span></a></p>
         }
+    </div>
+}
+
+@if (_criteria.Query.Info is { } info && info != SearchQuery.SoonInfo)
+{
+    <div class="notice notice--info" role="status">
+        <p>@L[$"Results.Info.{info}"]</p>
     </div>
 }
 

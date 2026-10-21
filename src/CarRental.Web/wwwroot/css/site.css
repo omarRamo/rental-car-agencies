@@ -952,6 +952,475 @@ address {
   align-items: center;
 }
 
+/* ---------------------------------------------------------------- Booking funnel (package 2C) */
+
+.funnel-progress {
+  margin-block-end: var(--space-4);
+}
+
+.funnel-progress__count {
+  margin-block-end: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.funnel-progress__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.funnel-progress__step {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--tap);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  counter-increment: step;
+}
+
+.funnel-progress__step::before {
+  content: counter(step) ". ";
+  margin-inline-end: var(--space-1);
+  font-weight: 700;
+}
+
+.funnel-progress__step--current {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 700;
+}
+
+.funnel-progress__step--done a {
+  font-weight: 600;
+}
+
+.funnel-layout {
+  display: grid;
+  gap: var(--space-6);
+  margin-block-start: var(--space-4);
+}
+
+.funnel-layout__main {
+  min-inline-size: 0;
+}
+
+.funnel-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.funnel-form fieldset,
+.consents,
+.options,
+.form-choice {
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.form-choice {
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+.form-choice legend,
+.options__legend,
+.driver__legend {
+  padding-inline: var(--space-1);
+  font-weight: 700;
+}
+
+.driver__legend {
+  font-size: 1.125rem;
+}
+
+.funnel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.funnel-actions .button {
+  flex: 1 1 14rem;
+}
+
+.funnel-back {
+  margin-block-start: var(--space-4);
+}
+
+.form-grid {
+  display: grid;
+  gap: 0 var(--space-4);
+}
+
+.form-field__optional {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.form-field--code input {
+  max-inline-size: 12rem;
+  font-family: var(--font-mono);
+  font-size: 1.375rem;
+  letter-spacing: 0.3em;
+}
+
+.form-check--top {
+  align-items: flex-start;
+}
+
+.form-check--top input {
+  margin-block-start: 0.15rem;
+  flex: none;
+}
+
+.option + .option {
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.option .form-check {
+  margin-block-end: 0;
+}
+
+.option__hint {
+  margin: 0;
+  padding-inline-start: calc(1.375rem + var(--space-3));
+}
+
+.options__driver {
+  margin-block: var(--space-4) 0;
+}
+
+.driver-fields__section {
+  margin-block: var(--space-6) var(--space-3);
+  font-size: 1.0625rem;
+}
+
+.driver-fields__eligibility ul {
+  margin: 0;
+}
+
+/* The second driver shows when its box is ticked, the international permit when the licence is not in latin script,
+   the passport fields unless Tunisia is the nationality. Without :has() everything stays visible. */
+.driver--second,
+.driver-fields__permit {
+  display: none;
+}
+
+.drivers:has([data-second-driver]:checked) .driver--second {
+  display: block;
+}
+
+.driver-fields:has([data-latin-no]:checked) .driver-fields__permit {
+  display: block;
+}
+
+.driver-fields:has([data-country="nationality"] option[value="TN"]:checked) .driver-fields__passport {
+  display: none;
+}
+
+@supports not selector(:has(*)) {
+  .driver--second,
+  .driver-fields__permit {
+    display: block;
+  }
+}
+
+.photos[hidden] {
+  display: none;
+}
+
+.photo-slots {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo-slot {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-muted);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.photo-slot form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.photo-slot--received {
+  border-style: solid;
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.photo-slot--failed {
+  border-style: solid;
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.photo-slot__label {
+  font-weight: 600;
+}
+
+.photo-slot__input {
+  inline-size: 100%;
+  min-block-size: var(--tap);
+  font: inherit;
+}
+
+.photo-slot__progress {
+  inline-size: 100%;
+  block-size: 0.75rem;
+}
+
+.photo-slot__status {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.photo-slot--received .photo-slot__status {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.photo-slot--failed .photo-slot__status {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.photo-slot__preview {
+  max-block-size: 8rem;
+  inline-size: auto;
+  border-radius: var(--radius);
+  object-fit: contain;
+  justify-self: start;
+}
+
+.funnel-summary {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.funnel-summary__title {
+  font-size: 1.25rem;
+}
+
+.funnel-summary p {
+  margin-block-end: var(--space-2);
+}
+
+.funnel-summary__model,
+.funnel-summary__included,
+.funnel-summary__daily,
+.funnel-summary__eur,
+.funnel-summary__guarantee,
+.funnel-summary__code {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.funnel-summary__trip,
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.funnel-summary__trip dt,
+.facts dt {
+  font-weight: 700;
+}
+
+.funnel-summary__trip dd,
+.facts dd {
+  margin: 0;
+}
+
+.price-table {
+  inline-size: 100%;
+  margin-block-end: var(--space-3);
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.price-table th,
+.price-table td {
+  padding: var(--space-2) 0;
+  border-block-end: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.price-table th {
+  padding-inline-end: var(--space-3);
+  font-weight: 400;
+  text-align: start;
+}
+
+.price-table td {
+  white-space: nowrap;
+  text-align: end;
+}
+
+.price-table__detail {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.price-table__total th,
+.price-table__total td {
+  border-block-end: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary-strong);
+}
+
+.recap,
+.guarantee {
+  margin-block-end: var(--space-4);
+}
+
+.recap__title {
+  font-size: 1.125rem;
+}
+
+.recap__list {
+  margin-block: 0 var(--space-2);
+}
+
+.confirmation {
+  max-inline-size: 44rem;
+}
+
+.confirmation__badge {
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  margin-block-end: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-success);
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.confirmation__number strong {
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+}
+
+.confirmation__answer {
+  font-size: 1.125rem;
+}
+
+.confirmation__next-title {
+  margin-block-start: var(--space-6);
+}
+
+/* ---------------------------------------------------------------- "Ma réservation" (package 2C) */
+
+.my-booking {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: 48rem;
+}
+
+.my-booking__header h1 {
+  margin-block-end: var(--space-2);
+}
+
+.my-booking__section h2 {
+  font-size: 1.25rem;
+}
+
+.my-booking__section:focus {
+  outline: 3px solid var(--color-focus);
+}
+
+.my-booking__message {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 4px solid var(--color-info-text);
+  background: var(--color-info-bg);
+}
+
+.my-booking__signout {
+  margin-block-start: var(--space-2);
+}
+
+.status-badge {
+  display: inline-block;
+  margin-block-end: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius);
+  font-weight: 700;
+}
+
+.status-badge--success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-badge--pending {
+  background: var(--color-notice-bg);
+  color: var(--color-notice-text);
+}
+
+.status-badge--neutral {
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+}
+
+.timeline {
+  margin: 0;
+  padding-inline-start: var(--space-6);
+}
+
+.timeline__entry {
+  margin-block-end: var(--space-2);
+}
+
+.timeline__label {
+  display: block;
+  font-weight: 600;
+}
+
+.timeline__date {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.papers {
+  margin: 0;
+  padding-inline-start: var(--space-6);
+}
+
+.papers .field-hint {
+  display: block;
+}
+
 /* ---------------------------------------------------------------- Larger screens */
 
 @media (min-width: 40rem) {
@@ -990,6 +1459,25 @@ address {
   .manage-nav ul {
     flex-direction: column;
   }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .photo-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .funnel-summary__trip,
+  .facts {
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .funnel-summary__trip > div,
+  .facts > div {
+    display: contents;
+  }
 }
 
 @media (min-width: 56rem) {
@@ -1006,6 +1494,16 @@ address {
   .offer__card {
     grid-template-columns: 14rem minmax(0, 1fr) 15rem;
     align-items: start;
+  }
+
+  .funnel-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    align-items: start;
+  }
+
+  .funnel-layout__aside {
+    position: sticky;
+    inset-block-start: var(--space-4);
   }
 }
 
