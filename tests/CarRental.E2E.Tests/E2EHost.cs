@@ -67,6 +67,13 @@ public sealed class E2EHost : IAsyncLifetime
 /// </summary>
 public abstract class BrowserTest(E2EHost host) : IAsyncLifetime
 {
+    static BrowserTest()
+    {
+        // The suite runs in parallel and CI runners are several times slower than a developer machine: a results page that
+        // prices every category can take more than the 5-second default under load (navigations already wait 30 s).
+        Assertions.SetDefaultExpectTimeout(15_000);
+    }
+
     protected E2EHost Host { get; } = host;
 
     protected IBrowserContext Context { get; private set; } = null!;
