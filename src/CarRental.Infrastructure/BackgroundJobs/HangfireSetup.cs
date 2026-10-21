@@ -45,10 +45,19 @@ public static class HangfireSetup
                 server.WorkerCount = Math.Max(1, options.WorkerCount);
                 server.ServerName = $"{Environment.MachineName}:{Environment.ProcessId}";
             });
+
+            // Commits wake an in-process pump; the every-minute job stays as a safety net (ADR-0043).
+            services.AddSingleton<OutboxWakeup>();
+            services.AddSingleton<IOutboxDispatcher, InProcessOutboxDispatcher>();
+            services.AddHostedService<OutboxPump>();
+        }
+        else
+        {
+            // No job server here: hand the run over to the instance that processes jobs.
+            services.AddSingleton<IOutboxDispatcher, HangfireOutboxDispatcher>();
         }
 
         services.AddScoped<RecurringJobRunner>();
-        services.AddSingleton<IOutboxDispatcher, HangfireOutboxDispatcher>();
         services.AddHostedService<RecurringJobsRegistrar>();
         return services;
     }

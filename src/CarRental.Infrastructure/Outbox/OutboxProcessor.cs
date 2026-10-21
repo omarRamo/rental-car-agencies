@@ -28,6 +28,12 @@ public sealed class OutboxOptions
 
     /// <summary>The readiness check turns Degraded when the oldest pending message is older than this (30 minutes).</summary>
     public TimeSpan PendingAlertAge { get; set; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>Without a commit signal, the in-process pump still runs this often, for due retries (15 seconds).</summary>
+    public TimeSpan PumpIdleInterval { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>How long the pump waits for another processor (scheduled job, other instance) to release the lock (30 seconds).</summary>
+    public TimeSpan PumpLockTimeout { get; set; } = TimeSpan.FromSeconds(30);
 }
 
 /// <summary>
@@ -204,7 +210,7 @@ public sealed partial class OutboxProcessor(
     private partial void LogFailure(Exception exception, string messageType, Guid messageId, int attempt);
 }
 
-/// <summary>Every minute, and on demand right after a commit that wrote outbox messages.</summary>
+/// <summary>Every minute, as a safety net: commits wake the in-process <see cref="OutboxPump"/> (ADR-0043).</summary>
 public sealed class OutboxProcessingJob(OutboxProcessor processor) : IRecurringJob
 {
     public static string JobId => "outbox.process";
