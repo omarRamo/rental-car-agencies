@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Handover;
+using CarRental.Application.Common.Email;
 using CarRental.Application.Common.Files;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Identity.Contracts;
@@ -9,6 +10,8 @@ using CarRental.Application.Payments.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Bookings.Handover;
 using CarRental.Domain.Common;
+using CarRental.Infrastructure.Email;
+using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Fleet;
 using CarRental.Integration.Tests.Support;
@@ -81,12 +84,27 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
 
         (await RunAsync<IFleetQueries, VehicleInfo?>(host, agent, q => q.GetVehicleAsync(file.VehicleId, Ct))).ShouldNotBeNull().Mileage.ShouldBe(15_100);
 
-        // The outbox sends the e-mail with the PDF attached (development pickup directory).
-        var email = await WaitForEmailAsync(file.DriverEmail);
-        email.ShouldContain("multipart/mixed");
-        email.ShouldContain($"Content-Disposition: attachment; filename=\"{file.Number}-v1.pdf\"");
-        var attached = AttachmentOf(email);
-        attached.ShouldBe(pdf, "the attachment is the stored contract");
+        // The e-mail of the main driver is queued in the outbox with the stored PDF attached by container and name...
+        var queued = await QueuedEmailAsync(file.DriverEmail);
+        queued.Subject.ShouldContain(file.Number);
+        var attachment = queued.Attachments.ShouldHaveSingleItem();
+        (attachment.Container, attachment.Path, attachment.FileName, attachment.ContentType).ShouldBe((FileContainers.Contracts, contract.StoragePath, $"{file.Number}-v1.pdf", "application/pdf"));
+
+        // ...and the transport reads it when it sends: the development .eml carries the PDF. (The outbox of the run may be
+        // drained by another host of the test database, which writes to its own folder: the sender is called here.)
+        var folder = Path.Combine(Path.GetTempPath(), "carrental-tests", $"handover-mail-{Guid.NewGuid():N}");
+        try
+        {
+            await new PickupDirectoryEmailSender(folder, TimeProvider.System, storage).SendAsync(queued, Ct);
+            var email = await File.ReadAllTextAsync(Directory.EnumerateFiles(folder, "*.eml").ShouldHaveSingleItem(), Ct);
+            email.ShouldContain("multipart/mixed");
+            email.ShouldContain($"Content-Disposition: attachment; filename=\"{file.Number}-v1.pdf\"");
+            AttachmentOf(email).ShouldBe(pdf, "the attachment is the stored contract");
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     [Fact]
@@ -260,26 +278,16 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         return Convert.FromBase64String(Whitespace().Replace(base64, string.Empty));
     }
 
-    private async Task<string> WaitForEmailAsync(string to)
+    /// <summary>The e-mail queued for <paramref name="to"/> in the outbox, as the e-mail handler will read it.</summary>
+    private async Task<EmailMessage> QueuedEmailAsync(string to)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(60);
-        while (true)
-        {
-            if (Directory.Exists(host.Factory.EmailDirectory))
-            {
-                foreach (var path in Directory.EnumerateFiles(host.Factory.EmailDirectory, "*.eml"))
-                {
-                    var content = await File.ReadAllTextAsync(path, Ct);
-                    if (content.Contains($"<{to}>", StringComparison.Ordinal) || content.Contains($"To: {to}", StringComparison.Ordinal))
-                    {
-                        return content;
-                    }
-                }
-            }
-
-            DateTime.UtcNow.ShouldBeLessThan(deadline, $"no e-mail to {to}");
-            await Task.Delay(200, Ct);
-        }
+        await using var scope = host.CreateScope();
+        var payload = await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<OutboxMessage>()
+            .AsNoTracking()
+            .Where(m => m.Type == typeof(EmailRequested).FullName && m.Payload.Contains(to))
+            .Select(m => m.Payload)
+            .ToListAsync(Ct);
+        return ((EmailRequested)new OutboxSerializer().Deserialize(payload.ShouldHaveSingleItem(), typeof(EmailRequested))).Message;
     }
 
     [GeneratedRegex(@"\s+")]
