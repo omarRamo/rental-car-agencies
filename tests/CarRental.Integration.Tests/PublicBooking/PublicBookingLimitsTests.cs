@@ -14,10 +14,11 @@ namespace CarRental.Integration.Tests.PublicBooking;
 /// <summary>
 /// The abuse limits of the booking funnel and of "Ma réservation" (ADR-0037, ADR-0049, ADR-0051) on the dedicated host of
 /// the public scenarios (3 requests per window and per client): choices and access requests beyond the submission limit
-/// get a 429, and a refused anti-robot check issues no access to the booking it names.
+/// get a 429, and a refused anti-robot check issues no access to the booking it names. Everything goes through that host
+/// (its services and its pages), whatever database it runs on.
 /// </summary>
 [Collection(PublicScenarioCollection.Name)]
-public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario, IntegrationHost host)
+public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -49,8 +50,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario, Integr
     [Fact]
     public async Task Access_requests_beyond_the_submission_limit_get_a_429_and_a_refused_robot_check_issues_no_access()
     {
-        var agency = await BookingWorld.CreateAsync(host, Ct);
-        var request = await FunnelWorld.SubmitAsync(host, agency, BookingWorld.InDays(80), BookingWorld.InDays(83), Ct);
+        var request = await FunnelWorld.SubmitDemoAsync(scenario.Factory, BookingWorld.InDays(101), BookingWorld.InDays(104), Ct);
         using var visitor = Create(scenario.Factory);
         var token = Support.HttpSignIn.AntiforgeryToken(await visitor.PageAsync("/fr/ma-reservation", Ct));
 
@@ -80,7 +80,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario, Integr
         statuses[^1].ShouldBe(HttpStatusCode.TooManyRequests);
 
         // An access is issued (and its e-mail queued) within the request itself: none exists for the booking.
-        await using var scope = host.CreateScope();
+        await using var scope = FunnelWorld.CreateScope(scenario.Factory, FunnelWorld.Funnel);
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var issued = await db.Set<BookingAccessGrant>()
             .AnyAsync(g => g.BookingId == request.BookingId && g.Purpose == AccessPurpose.MyBooking, Ct);

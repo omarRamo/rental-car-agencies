@@ -2,10 +2,14 @@ using CarRental.Application.Bookings;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Integration.Tests.Bookings;
+using CarRental.Integration.Tests.Public;
+using CarRental.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.PublicBooking;
@@ -47,6 +51,57 @@ internal static class FunnelWorld
         saved.Value.IsValid.ShouldBeTrue(string.Join(", ", saved.Value.Errors.Select(e => $"{e.Field}:{e.Code}")));
 
         var submitted = await funnel.SubmitAsync(token, termsAccepted: true, "http://localhost/", culture, cancellationToken);
+        submitted.IsSuccess.ShouldBeTrue(submitted.IsFailure ? submitted.Error.ToString() : null);
+        return new FunnelRequest(submitted.Value.BookingId, submitted.Value.Number, main.Email!, main.LastName!, submitted.Value.Guarantee);
+    }
+
+    /// <summary>A scope of the services of <paramref name="factory"/> acting as <paramref name="actor"/>: for a host of its own.</summary>
+    public static AsyncServiceScope CreateScope(CarRentalAppFactory factory, UserContextSnapshot actor)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        var scope = factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(actor);
+        return scope;
+    }
+
+    /// <summary>
+    /// A funnel of the demo agency of <paramref name="factory"/> (ECMR from and to its TUN office), its main driver typed
+    /// in step 2: for the host of the public scenarios, whatever database it runs on. Returns the token of its addresses.
+    /// </summary>
+    public static async Task<(string Token, FunnelDriverInput Driver)> StartDemoAsync(
+        CarRentalAppFactory factory,
+        DateTimeOffset pickupAt,
+        DateTimeOffset returnAt,
+        CancellationToken cancellationToken)
+    {
+        var main = Driver(Visitor.Unique());
+        await using var scope = CreateScope(factory, Funnel);
+        var referential = scope.ServiceProvider.GetRequiredService<IReferentialQueries>();
+        var agency = (await referential.GetAgenciesAsync(cancellationToken)).Single(a => a.Name == PublicTestData.DemoAgencyName);
+        var office = (await referential.GetLocationsAsync(agency.Id, cancellationToken)).Single(l => l.Code == "TUN");
+        var category = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().FindCategoryByCodeAsync(agency.Id, "ECMR", cancellationToken)).ShouldNotBeNull();
+        var funnel = scope.ServiceProvider.GetRequiredService<FunnelService>();
+        var started = await funnel.StartAsync(
+            new FunnelStartRequest(agency.Id, "fr", SalesChannel.Web, null, category.Id, "ECMR", office.Id, office.Id, pickupAt, returnAt, "?lieu=TUN", null),
+            cancellationToken);
+        started.IsSuccess.ShouldBeTrue(started.IsFailure ? started.Error.ToString() : null);
+
+        var saved = await funnel.SaveDriversAsync(started.Value.Token, new FunnelDriversInput(main, false, null, true, false, false), cancellationToken);
+        saved.IsSuccess.ShouldBeTrue(saved.IsFailure ? saved.Error.ToString() : null);
+        saved.Value.IsValid.ShouldBeTrue(string.Join(", ", saved.Value.Errors.Select(e => $"{e.Field}:{e.Code}")));
+        return (started.Value.Token, main);
+    }
+
+    /// <summary>A request of the demo agency of <paramref name="factory"/>, submitted as the public site does (see <see cref="StartDemoAsync"/>).</summary>
+    public static async Task<FunnelRequest> SubmitDemoAsync(
+        CarRentalAppFactory factory,
+        DateTimeOffset pickupAt,
+        DateTimeOffset returnAt,
+        CancellationToken cancellationToken)
+    {
+        var (token, main) = await StartDemoAsync(factory, pickupAt, returnAt, cancellationToken);
+        await using var scope = CreateScope(factory, Funnel);
+        var submitted = await scope.ServiceProvider.GetRequiredService<FunnelService>().SubmitAsync(token, termsAccepted: true, "http://localhost/", "fr", cancellationToken);
         submitted.IsSuccess.ShouldBeTrue(submitted.IsFailure ? submitted.Error.ToString() : null);
         return new FunnelRequest(submitted.Value.BookingId, submitted.Value.Number, main.Email!, main.LastName!, submitted.Value.Guarantee);
     }

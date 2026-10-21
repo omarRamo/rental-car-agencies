@@ -7,14 +7,20 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CarRental.Integration.Tests.Public;
 
 /// <summary>
-/// A second application host on the shared database for the scenarios the shared host cannot play: public rate limits
-/// of <see cref="RateLimit"/> requests per client, engines that answer "nothing available" or "minimum duration not
-/// met" for a pick-up at a marker minute, whatever the demo data, and online payment switched off
-/// (<c>ClicToPay:Enabled</c> false). Scenarios use their own client address (CF-Connecting-IP), hence their own rate
-/// limit partition.
+/// A second application host for the scenarios the shared host cannot play: public rate limits of
+/// <see cref="RateLimit"/> requests per client, and engines that answer "nothing available" or "minimum duration not
+/// met" for a pick-up at a marker minute, whatever the demo data. Scenarios use their own client address
+/// (CF-Connecting-IP), hence their own rate limit partition.
 /// </summary>
+/// <remarks>
+/// It has its own database (migrated and seeded with the demo data at start-up, like the shared one): on the shared
+/// database its outbox pump and Hangfire server would process the other tests' messages with its own handlers and
+/// e-mail folder, so that those tests would wait in vain for their e-mails or their probe.
+/// </remarks>
 public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
 {
+    public const string Database = "CarRental_PublicScenarios";
+
     public const int RateLimit = 3;
 
     /// <summary>Pick-up minute (Tunis time) for which no category is available.</summary>
@@ -25,7 +31,7 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
 
     public const int RequiredMinimumDays = 5;
 
-    public CarRentalAppFactory Factory { get; } = new(host.Containers, IntegrationHost.Database, services =>
+    public CarRentalAppFactory Factory { get; } = new(host.Containers, Database, services =>
     {
         Decorate<IAvailabilityQueries>(services, inner => new ScenarioAvailability(inner));
         Decorate<IPricingService>(services, inner => new ScenarioPricing(inner));
@@ -33,13 +39,9 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
     {
         RateLimitPermits = RateLimit,
 
-        // The shared host alone processes the jobs and the outbox of the shared database (its simulated bank knows the
-        // orders of the tests); e-mails would go to its folder anyway. No online payment here: the funnel of this host
-        // sends its requests in the payment link mode.
+        // No online payment on this host: its funnel sends the requests in the payment link mode.
         ExtraSettings = new Dictionary<string, string?>
         {
-            ["BackgroundJobs:RunServer"] = "false",
-            ["Email:PickupDirectory"] = host.Factory.EmailDirectory,
             ["ClicToPay:Enabled"] = "false",
         },
     };
