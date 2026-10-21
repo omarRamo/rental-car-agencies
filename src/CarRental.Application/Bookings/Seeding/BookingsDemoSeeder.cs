@@ -612,10 +612,21 @@ internal sealed partial class BookingsDemoSeeder(
         return created.Value.BookingId;
     }
 
+    /// <summary>
+    /// Validates a demo request. Demo requests carry no online pre-authorization, so the validation waits for a payment by
+    /// link (ADR-0051): a validated demo file is then marked paid, as if its customer had paid the link.
+    /// </summary>
     private async Task<Result> ValidateAsync(Guid bookingId, CancellationToken cancellationToken)
     {
         var validated = await workflow.ValidateAsync(bookingId, cancellationToken);
-        return validated.IsSuccess ? Result.Success() : validated.Error;
+        if (validated.IsFailure)
+        {
+            return validated.Error;
+        }
+
+        return validated.Value == ValidationOutcome.AwaitingPayment
+            ? await workflow.MarkPaidAsync(bookingId, "DEMO-LINK", cancellationToken)
+            : Result.Success();
     }
 
     private async Task<Result> CancelAsync(Guid bookingId, string? reason, CancellationToken cancellationToken)
