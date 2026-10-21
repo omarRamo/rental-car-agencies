@@ -337,7 +337,7 @@
     <value>Émettre maintenant</value>
   </data>
   <data name="ToInvoice.Issue.Label" xml:space="preserve">
-    <value>Émettre la facture du dossier {0}</value>
+    <value>Émettre maintenant la facture du dossier {0}</value>
   </data>
   <data name="ToInvoice.Issued" xml:space="preserve">
     <value>Facture {0} émise.</value>

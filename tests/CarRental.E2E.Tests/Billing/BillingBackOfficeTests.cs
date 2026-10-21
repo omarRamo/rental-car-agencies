@@ -73,8 +73,13 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         await dialog.GetByLabel("Montant TTC à créditer pour").First.FillAsync("50");
         await dialog.GetByLabel("Motif de l'avoir").FillAsync("Geste commercial");
         await Expect(dialog.GetByTestId("credit-sum")).ToContainTextAsync("50,000 TND");
+        var submit = dialog.GetByTestId("credit-submit");
+        await Expect(submit).ToBeEnabledAsync();
+
+        // The button fades from its disabled colours: axe would compute the contrast of the blend.
+        await submit.EvaluateAsync("button => Promise.all(button.getAnimations({ subtree: true }).map(a => a.finished))");
         await AssertAccessibleAsync();
-        await dialog.GetByTestId("credit-submit").ClickAsync();
+        await submit.ClickAsync();
 
         await Expect(dialog).ToHaveCountAsync(0);
         var note = Page.GetByTestId("credit-note");

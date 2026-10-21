@@ -337,7 +337,7 @@
     <value>Issue now</value>
   </data>
   <data name="ToInvoice.Issue.Label" xml:space="preserve">
-    <value>Issue the invoice of file {0}</value>
+    <value>Issue now the invoice of file {0}</value>
   </data>
   <data name="ToInvoice.Issued" xml:space="preserve">
     <value>Invoice {0} issued.</value>
