@@ -13,7 +13,9 @@
 <PageTitle>@Title</PageTitle>
 <BookingStyles />
 
-<MudBreadcrumbs Items="@Breadcrumbs" Class="px-0 pt-0" />
+<MudLink Href="/admin/bookings" Class="d-inline-flex align-center gap-1 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" aria-hidden="true" />@L["Booking.BackToList"]
+</MudLink>
 
 @if (_file is null)
 {
@@ -24,7 +26,7 @@
     }
     else
     {
-        <MudProgressLinear Indeterminate="true" />
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
     }
 }
 else
@@ -228,7 +230,7 @@ else
                                         }
                                         else
                                         {
-                                            <MudLink Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
                                         }
                                         <span class="booking-muted"> · @L[$"Role.{driver.Role}"]</span>
                                     </MudText>
@@ -326,13 +328,9 @@ else
 
     private string Title => _file is { } file ? L["Booking.Title", file.Number] : L["Booking.TitleLoading"];
 
-    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
-    [
-        new(L["Bookings.Title"], "/admin/bookings"),
-        new(_file?.Number ?? "…", null, disabled: true),
-    ];
 
-    protected override Task OnParametersSetAsync() => ReloadAsync();
+    // Loaded once interactive: the prerendered pass would load the file a second time for nothing.
+    protected override Task OnParametersSetAsync() => RendererInfo.IsInteractive ? ReloadAsync() : Task.CompletedTask;
 
     private async Task ReloadAsync()
     {

@@ -126,6 +126,9 @@
   <data name="Booking.Actions" xml:space="preserve">
     <value>Actions sur le dossier</value>
   </data>
+  <data name="Booking.BackToList" xml:space="preserve">
+    <value>Retour aux réservations</value>
+  </data>
   <data name="Booking.ChannelReference" xml:space="preserve">
     <value>Référence {0}</value>
   </data>
@@ -719,6 +722,9 @@
   </data>
   <data name="Legend.returned" xml:space="preserve">
     <value>Rendue ou clôturée</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement en cours</value>
   </data>
   <data name="MarkPaid.Done" xml:space="preserve">
     <value>Paiement enregistré : réservation confirmée.</value>

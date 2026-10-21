@@ -63,10 +63,11 @@
         </Notice>
     }
 
+    <div @ref="_selectionPanel" tabindex="-1" class="planning-selection">
     @if (_selected is { } selected)
     {
         var status = BookingFormat.ToStatus(selected.Status);
-        <MudPaper Elevation="1" Class="pa-3 mb-3" role="region" aria-live="polite" aria-label="@L["Planning.Selected"]">
+        <MudPaper Elevation="1" Class="pa-3 mb-3" role="region" aria-label="@L["Planning.Selected"]">
             <div class="d-flex flex-wrap align-center gap-2">
                 <strong data-testid="planning-selected">@selected.Number</strong>
                 <BookingStatusChip Status="status" />
@@ -90,6 +91,7 @@
             </div>
         </MudPaper>
     }
+    </div>
 
     @if (planning.Categories.Count == 0)
     {
@@ -104,13 +106,15 @@
 }
 else if (_error is null)
 {
-    <MudProgressLinear Indeterminate="true" />
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
 }
 
 @code {
     private static readonly BookingStatus[] LegendStatuses =
         [BookingStatus.PendingValidation, BookingStatus.OptionHeld, BookingStatus.Confirmed, BookingStatus.InProgress, BookingStatus.Returned];
 
+    private ElementReference _selectionPanel;
+    private bool _focusSelection;
     private Guid? _agencyId;
     private PlanningView _view = PlanningView.Week;
     private DateOnly _from;
@@ -130,6 +134,14 @@ else if (_error is null)
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
+    /// <summary>A day of the period to show (<c>yyyy-MM-dd</c>), e.g. from a link of the dashboard; today by default.</summary>
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromQuery { get; set; }
+
+    /// <summary><c>month</c> for the month view; the week view by default.</summary>
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? ViewQuery { get; set; }
+
     private int Days => _view == PlanningView.Week ? 7 : _from.AddMonths(1).DayNumber - _from.DayNumber;
 
     protected override async Task OnInitializedAsync()
@@ -137,7 +149,14 @@ else if (_error is null)
         var user = (await AuthenticationState).User;
         _canManage = user.HasPermission(Permissions.BookingsManage);
         _canWaive = user.HasPermission(Permissions.BookingsComplianceWaive);
-        _from = StartOf(TunisTime.Today(Clock));
+        _view = string.Equals(ViewQuery, "month", StringComparison.OrdinalIgnoreCase) ? PlanningView.Month : PlanningView.Week;
+        _from = StartOf(DateOnly.TryParseExact(FromQuery, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var anchor) ? anchor : TunisTime.Today(Clock));
+        if (!RendererInfo.IsInteractive)
+        {
+            // The planning is loaded once, when the screen is interactive (drag and drop and dialogs need the circuit).
+            return;
+        }
+
         var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
         if (agency.IsFailure)
         {
@@ -208,7 +227,21 @@ else if (_error is null)
         await LoadAsync();
     }
 
-    private void Select(PlanningBookingInfo booking) => _selected = _selected?.BookingId == booking.BookingId ? null : booking;
+    private void Select(PlanningBookingInfo booking)
+    {
+        _selected = _selected?.BookingId == booking.BookingId ? null : booking;
+        _focusSelection = _selected is not null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusSelection)
+        {
+            // Keyboard path: the actions of the selected file come next, without tabbing back through the grid.
+            _focusSelection = false;
+            await _selectionPanel.FocusAsync();
+        }
+    }
 
     private async Task AssignAsync(PlanningBookingInfo booking)
     {

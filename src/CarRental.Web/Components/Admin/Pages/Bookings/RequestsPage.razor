@@ -26,7 +26,7 @@
         <MudPaper Elevation="1" Class="pa-2">
             @if (_requests is null)
             {
-                <MudProgressLinear Indeterminate="true" />
+                <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
             }
             else if (_requests.Count == 0)
             {
@@ -75,7 +75,7 @@
 
                 @if (_checklist is null)
                 {
-                    <MudProgressLinear Indeterminate="true" />
+                    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
                 }
                 else
                 {
@@ -106,7 +106,7 @@
                     @foreach (var driver in _checklist.Drivers)
                     {
                         <MudText Typo="Typo.body2">
-                            <MudLink Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
+                            <MudLink Underline="Underline.Always" Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
                             · @L[$"Role.{driver.Role}"] · @L[$"Documents.{driver.Documents}"]
                         </MudText>
                     }
@@ -158,6 +158,12 @@
     protected override async Task OnInitializedAsync()
     {
         _canManage = (await AuthenticationState).User.HasPermission(Permissions.RequestsManage);
+        if (!RendererInfo.IsInteractive)
+        {
+            // Loaded (and refreshed every minute) once interactive only.
+            return;
+        }
+
         var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
         _agencyId = agency.IsSuccess ? agency.Value.Id : null;
         await LoadAsync();

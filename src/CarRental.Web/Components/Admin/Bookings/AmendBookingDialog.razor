@@ -14,7 +14,7 @@
     <DialogContent>
         @if (_context is null)
         {
-            <MudProgressLinear Indeterminate="true" />
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
         }
         else
         {

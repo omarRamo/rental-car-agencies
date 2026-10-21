@@ -9,7 +9,7 @@
     <DialogContent>
         @if (_candidates is null)
         {
-            <MudProgressLinear Indeterminate="true" />
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
         }
         else if (_candidates.Count == 0)
         {

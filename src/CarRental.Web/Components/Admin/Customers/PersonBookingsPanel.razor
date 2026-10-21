@@ -22,7 +22,7 @@
                 }
                 else
                 {
-                    <MudProgressLinear Indeterminate="true" />
+                    <MudProgressLinear Indeterminate="true" aria-label="@B["Loading"]" />
                 }
             }
             else if (_bookings.Count == 0)
@@ -81,7 +81,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
+        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
         {
             return;
         }

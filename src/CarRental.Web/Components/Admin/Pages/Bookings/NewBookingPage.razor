@@ -31,7 +31,7 @@
     }
     else
     {
-        <MudProgressLinear Indeterminate="true" />
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
     }
 }
 else
@@ -275,6 +275,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (!RendererInfo.IsInteractive)
+        {
+            // The live table prices every category: done once, when the screen is interactive.
+            return;
+        }
+
         var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
         if (agency.IsFailure)
         {

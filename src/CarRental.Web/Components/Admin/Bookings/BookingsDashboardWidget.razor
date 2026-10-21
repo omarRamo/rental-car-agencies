@@ -12,7 +12,7 @@
             <MudPaper Elevation="1" Class="pa-4">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                     <MudText Typo="Typo.h6" HtmlTag="h2" id="bookings-widget-title">@L["Widget.Title"]</MudText>
-                    <MudLink Href="/admin/planning">@L["Widget.Planning"]</MudLink>
+                    <MudLink Underline="Underline.Always" Href="/admin/planning">@L["Widget.Planning"]</MudLink>
                 </MudStack>
                 @if (_dashboard is null)
                 {
@@ -22,7 +22,7 @@
                     }
                     else
                     {
-                        <MudProgressLinear Indeterminate="true" Class="mt-3" />
+                        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" Class="mt-3" />
                     }
                 }
                 else
@@ -52,7 +52,7 @@
                                         {
                                             <li>
                                                 <Countdown Until="request.HoldExpiresAt" />
-                                                <MudLink Href="/admin/requests">@request.Number</MudLink>
+                                                <MudLink Underline="Underline.Always" Href="/admin/requests">@request.Number</MudLink>
                                                 <span>@request.CustomerName</span>
                                                 <span class="booking-muted">@request.CategoryCode · @BookingFormat.Instant(request.PickupAt)</span>
                                                 @if (request.IsEscalated)
@@ -64,7 +64,7 @@
                                     </ul>
                                     @if (requests.Count > 5)
                                     {
-                                        <MudLink Href="/admin/requests" Class="d-inline-block mt-2">@L["Widget.AllRequests", requests.Count]</MudLink>
+                                        <MudLink Underline="Underline.Always" Href="/admin/requests" Class="d-inline-block mt-2">@L["Widget.AllRequests", requests.Count]</MudLink>
                                     }
                                 }
                             </MudItem>
@@ -83,12 +83,12 @@
                                     {
                                         <li>
                                             <MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />
-                                            <MudLink Href="@($"/admin/bookings/{late.BookingId}")">@late.Number</MudLink>
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{late.BookingId}")">@late.Number</MudLink>
                                             <span>@late.CustomerName</span>
                                             <span class="booking-muted">@(late.PlateNumber ?? string.Empty) · @L["Widget.LateSince", BookingFormat.Instant(late.ReturnAt)]</span>
                                             @if (!string.IsNullOrEmpty(late.Phone))
                                             {
-                                                <MudLink Href="@($"tel:{late.Phone}")">@late.Phone</MudLink>
+                                                <MudLink Underline="Underline.Always" Href="@($"tel:{late.Phone}")">@late.Phone</MudLink>
                                             }
                                         </li>
                                     }
@@ -108,7 +108,7 @@
                                     @foreach (var booking in _dashboard.UnassignedSoon)
                                     {
                                         <li>
-                                            <MudLink Href="@($"/admin/bookings/{booking.Id}")">@booking.Number</MudLink>
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{booking.Id}")">@booking.Number</MudLink>
                                             <span>@booking.CustomerName</span>
                                             <span class="booking-muted">@booking.CategoryCode · @BookingFormat.Instant(booking.PickupAt)</span>
                                         </li>
@@ -130,7 +130,9 @@
                                     {
                                         <li>
                                             <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" aria-hidden="true" />
-                                            <span>@L["Widget.Shortfall", shortfall.CategoryCode, shortfall.Missing, BookingFormat.Instant(shortfall.Period.Start), BookingFormat.Instant(shortfall.Period.End)]</span>
+                                            <MudLink Underline="Underline.Always" Href="@($"/admin/planning?from={TunisTime.DateOf(shortfall.Period.Start).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">
+                                                @L["Widget.Shortfall", shortfall.CategoryCode, shortfall.Missing, BookingFormat.Instant(shortfall.Period.Start), BookingFormat.Instant(shortfall.Period.End)]
+                                            </MudLink>
                                         </li>
                                     }
                                 </ul>
@@ -152,7 +154,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
+        // Loaded once interactive: the prerendered pass would compute the dashboard twice.
+        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.BookingsRead))
         {
             return;
         }
@@ -179,7 +182,7 @@
             {
                 <li data-agenda="@item.Number">
                     <strong>@BookingFormat.Time(item.At)</strong>
-                    <MudLink Href="@($"/admin/bookings/{item.BookingId}")">@item.Number</MudLink>
+                    <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{item.BookingId}")">@item.Number</MudLink>
                     <span>@item.CustomerName</span>
                     <span class="booking-muted">@item.CategoryCode@(item.PlateNumber is { } plate ? $" · {plate}" : $" · {L["Widget.NoVehicle"]}")</span>
                     <span class="booking-muted">@L[$"Documents.{item.Documents}"]</span>

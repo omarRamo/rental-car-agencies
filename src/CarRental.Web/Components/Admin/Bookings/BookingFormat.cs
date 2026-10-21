@@ -15,6 +15,8 @@ internal static class BookingFormat
 {
     private const string LocalInputFormat = "yyyy-MM-dd'T'HH:mm";
 
+    private static readonly string[] LocalInputFormats = [LocalInputFormat, "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF"];
+
     /// <summary>Options of the bookings dialogs: full width up to <paramref name="maxWidth"/>, closed by the Escape key.</summary>
     public static DialogOptions Dialog(MaxWidth maxWidth = MaxWidth.Small) =>
         new() { MaxWidth = maxWidth, FullWidth = true, CloseOnEscapeKey = true };
@@ -51,9 +53,12 @@ internal static class BookingFormat
     public static string ToLocalInput(DateTimeOffset instant) =>
         TunisTime.ToTunis(instant).ToString(LocalInputFormat, CultureInfo.InvariantCulture);
 
-    /// <summary>The instant of a <c>datetime-local</c> input value (Tunis wall clock), or <see langword="null"/>.</summary>
+    /// <summary>
+    /// The instant of a <c>datetime-local</c> input value (Tunis wall clock), or <see langword="null"/>. Browsers send
+    /// the value with or without seconds (and fractions), whatever was displayed.
+    /// </summary>
     public static DateTimeOffset? FromLocalInput(string? value) =>
-        DateTime.TryParseExact(value, LocalInputFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
+        DateTime.TryParseExact(value, LocalInputFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
             ? TunisTime.FromLocal(local)
             : null;
 
