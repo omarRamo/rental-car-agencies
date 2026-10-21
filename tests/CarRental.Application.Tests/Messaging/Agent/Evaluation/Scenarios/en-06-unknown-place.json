@@ -1,0 +1,22 @@
+{
+  "id": "en-06-unknown-place",
+  "title": "A place the agency does not serve: the bot offers the agency's places, no option invented",
+  "language": "en",
+  "covers": ["lieu inconnu", "erreur d'outil rendue au modèle", "anglais"],
+  "turns": [
+    {
+      "customer": "I want a car in Sousse tomorrow morning at 9 until Friday 9am.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "Sousse", "depart": "2027-06-21T09:00", "retour": "2027-06-25T09:00" } },
+        { "reply": "Sorry, we don't serve Sousse. You can pick up the car at our agency in Tunis city centre, at Tunis-Carthage airport or at Enfidha-Hammamet airport. Which one suits you?" }
+      ],
+      "expect": {
+        "noTools": ["creer_lien_devis"],
+        "handOver": false,
+        "link": false,
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "tools": ["rechercher_disponibilites"], "outcome": "Replied" }
+    }
+  ]
+}

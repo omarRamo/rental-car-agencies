@@ -1,0 +1,22 @@
+{
+  "id": "ar-01-demande",
+  "title": "طلب كامل بالعربية : ثلاثة اختيارات بأسعار المحرك، الرد بالعربية",
+  "language": "ar",
+  "covers": ["recherche", "arabe", "boutons", "chiffres arabes"],
+  "turns": [
+    {
+      "customer": "مرحبا، أريد سيارة من مطار تونس قرطاج من ١ جويلية ٢٠٢٧ الساعة ١٠ صباحا إلى ٥ جويلية ٢٠٢٧ الساعة ١٠ صباحا، لأربعة أشخاص.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        { "reply": "مرحبا! هذه السيارات المتوفرة من 1 إلى 5 جويلية في مطار تونس قرطاج:\n1. {{rechercher_disponibilites:options[0].categorie}} : {{rechercher_disponibilites:options[0].total_ttc}}\n2. {{rechercher_disponibilites:options[1].categorie}} : {{rechercher_disponibilites:options[1].total_ttc}}\n3. {{rechercher_disponibilites:options[2].categorie}} : {{rechercher_disponibilites:options[2].total_ttc}}\nأي اختيار يناسبك؟" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        "handOver": false,
+        "replyLanguage": ["ar"]
+      },
+      "expectScripted": { "buttons": true, "outcome": "Replied" }
+    }
+  ]
+}

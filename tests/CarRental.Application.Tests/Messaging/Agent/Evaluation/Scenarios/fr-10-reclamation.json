@@ -1,0 +1,22 @@
+{
+  "id": "fr-10-reclamation",
+  "title": "Réclamation d'un client mécontent : transfert immédiat, message poli",
+  "language": "fr",
+  "covers": ["transfert", "réclamation", "client mécontent"],
+  "turns": [
+    {
+      "customer": "La voiture que j'ai louée hier était sale et le réservoir à moitié vide, c'est inadmissible !",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "reclamation", "resume": "Réclamation : véhicule sale et réservoir à moitié vide à la remise." } },
+        { "reply": "Je suis désolé pour ce désagrément. Je transmets votre réclamation à un responsable de l'agence, qui vous répond ici très bientôt." }
+      ],
+      "expect": {
+        "tools": ["transferer_a_un_agent"],
+        "noTools": ["rechercher_disponibilites"],
+        "handOver": true,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "handOverReasonContains": "Réclamation", "outcome": "TransferredByModel" }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "ar-06-hors-sujet",
+  "title": "سؤال خارج الموضوع (واجب رياضيات) : اعتذار مهذب والعودة إلى الكراء",
+  "language": "ar",
+  "covers": ["hors sujet refusé poliment", "arabe"],
+  "turns": [
+    {
+      "customer": "هل يمكنك مساعدتي في واجب الرياضيات؟ ما هو حل المعادلة 2x+3=7؟",
+      "script": [
+        { "reply": "عذرا، لا أستطيع المساعدة إلا في كراء السيارات لدى الوكالة. هل تحتاج سيارة؟ أخبرني بمكان الاستلام والتواريخ." }
+      ],
+      "expect": {
+        "noTools": ["rechercher_disponibilites", "creer_lien_devis", "transferer_a_un_agent"],
+        "handOver": false,
+        "replyLanguage": ["ar"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

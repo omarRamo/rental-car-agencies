@@ -1,0 +1,25 @@
+{
+  "id": "darija-05-incomprehension",
+  "title": "Zouz incompréhensions wara b3adhhom : transfert l wa7ed mel agence",
+  "language": "darija",
+  "covers": ["deux incompréhensions de suite", "transfert", "darija"],
+  "turns": [
+    {
+      "customer": "ok ok ama el 7aja hedhi kifech?",
+      "script": [
+        { "reply": "Samahni, ma fhemtech mlih. T7eb tekri karhba? Kolli el blasa w el tawarikh." }
+      ],
+      "expect": { "noTools": ["creer_lien_devis"], "replyLanguage": ["darija", "fr", "ar"] },
+      "expectScripted": { "handOver": false, "outcome": "Replied" }
+    },
+    {
+      "customer": "la la mouch hakka, el 7aja lokhra",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "incomprehension", "resume": "Deux incompréhensions de suite : la demande du client n'est pas claire." } },
+        { "reply": "Samahni, taw nkallem wa7ed mel agence bech y3awnek." }
+      ],
+      "expect": { "handOver": true },
+      "expectScripted": { "tools": ["transferer_a_un_agent"], "handOverReasonContains": "Incompréhensions", "outcome": "TransferredByModel" }
+    }
+  ]
+}

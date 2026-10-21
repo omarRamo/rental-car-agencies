@@ -1,0 +1,32 @@
+{
+  "id": "en-02-documents",
+  "title": "Documents needed, in English: the validated answer, uploaded on the secure link only",
+  "language": "en",
+  "covers": ["infos_agence", "anglais", "aucune photo de pièce demandée"],
+  "world": {
+    "knowledge": [
+      {
+        "topic": "documents",
+        "title": "Documents requis",
+        "keywords": "documents, papiers, CIN, passeport, permis, licence, passport",
+        "french": "Pour chaque conducteur : sa pièce d'identité (CIN ou passeport) et son permis de conduire, valides jusqu'à la date de retour. Les photos se déposent en ligne, sur le lien sécurisé du site.",
+        "english": "For each driver: an ID card or passport and a driving licence, valid until the return date. You upload the photos online, on the secure link of the site."
+      }
+    ]
+  },
+  "turns": [
+    {
+      "customer": "Hi! What documents do I need to rent a car?",
+      "script": [
+        { "call": "infos_agence", "arguments": { "sujet": "documents" } },
+        { "reply": "For each driver: an ID card or passport and a driving licence, valid until the return date. You upload them on our secure link when you finalise your request — never on WhatsApp." }
+      ],
+      "expect": {
+        "tools": ["infos_agence"],
+        "handOver": false,
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

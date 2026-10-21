@@ -1,0 +1,25 @@
+{
+  "id": "ar-05-statut",
+  "title": "حالة حجز من رقم السائق : الحالة كما سجلتها الوكالة، دون مبلغ ولا معطيات شخصية",
+  "language": "ar",
+  "covers": ["statut_reservation", "numéro du conducteur", "arabe"],
+  "world": {
+    "bookings": [ { "status": "Confirmed", "driver": "self", "pickup": "2027-07-01T10:00", "return": "2027-07-05T10:00" } ]
+  },
+  "turns": [
+    {
+      "customer": "مرحبا، ما هي حالة حجزي رقم LOC-2027-000001؟",
+      "script": [
+        { "call": "statut_reservation", "arguments": { "reference": "LOC-2027-000001" } },
+        { "reply": "حجزك رقم LOC-2027-000001 مؤكد من طرف الوكالة: الاستلام يوم 1 جويلية 2027 على الساعة 10:00 والإرجاع يوم 5 جويلية 2027 على الساعة 10:00." }
+      ],
+      "expect": {
+        "tools": ["statut_reservation"],
+        "handOver": false,
+        "allowConfirmation": true,
+        "replyLanguage": ["ar"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

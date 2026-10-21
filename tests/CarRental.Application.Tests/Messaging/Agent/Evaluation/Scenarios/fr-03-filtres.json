@@ -1,0 +1,27 @@
+{
+  "id": "fr-03-filtres",
+  "title": "Passagers, valises et boîte automatique : seule la catégorie qui convient est proposée",
+  "language": "fr",
+  "covers": ["filtres passagers bagages boîte", "agence du centre", "besoin structuré"],
+  "turns": [
+    {
+      "customer": "Bonjour, il me faut une voiture automatique pour 5 personnes avec 3 valises, à prendre et rendre à l'agence du centre-ville, du 3 juillet 2027 à 14h au 8 juillet 2027 à 14h.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "AGC", "depart": "2027-07-03T14:00", "retour": "2027-07-08T14:00", "passagers": 5, "bagages": 3, "boite": "automatique" } },
+        { "reply": "Pour 5 personnes et 3 valises en boîte automatique, j'ai une option du 3 au 8 juillet :\n1. {{rechercher_disponibilites:options[0].categorie}} ({{rechercher_disponibilites:options[0].modele}}, {{rechercher_disponibilites:options[0].places}} places) : {{rechercher_disponibilites:options[0].total_ttc}} pour 5 jours, tout compris." }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-03T14:00", "retour": "2027-07-08T14:00", "passagers": 5, "boite": "automatique" } },
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": {
+        "toolArguments": { "rechercher_disponibilites": { "lieu_depart": "AGC", "bagages": 3 } },
+        "buttons": true,
+        "replyContains": ["Économique automatique", "686.900 TND"],
+        "outcome": "Replied"
+      }
+    }
+  ]
+}

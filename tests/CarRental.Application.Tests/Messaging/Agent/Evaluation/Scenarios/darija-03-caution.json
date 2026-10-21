@@ -1,0 +1,32 @@
+{
+  "id": "darija-03-caution",
+  "title": "Question 3al caution bel darija : el jaweb el validé w el montant mta3 el catégorie",
+  "language": "darija",
+  "covers": ["infos_agence", "darija", "montants des outils"],
+  "world": {
+    "knowledge": [
+      {
+        "topic": "caution",
+        "title": "Caution",
+        "keywords": "caution, dépôt, garantie",
+        "french": "Une caution est prise par empreinte bancaire à la remise du véhicule et restituée au retour. Son montant dépend de la catégorie.",
+        "english": "A deposit is held on your card at pick-up and released at return. Its amount depends on the category."
+      }
+    ]
+  },
+  "turns": [
+    {
+      "customer": "Asslema, 9adech el caution mta3 el karhba?",
+      "script": [
+        { "call": "infos_agence", "arguments": { "sujet": "caution" } },
+        { "reply": "El caution tetkhdhe b carte bancaire ki testelem el karhba w traja3lek ki traja3ha. Lel citadine hiya {{infos_agence:cautions_par_categorie[0].caution}}." }
+      ],
+      "expect": {
+        "tools": ["infos_agence"],
+        "handOver": false,
+        "replyLanguage": ["darija", "fr", "ar"]
+      },
+      "expectScripted": { "replyContains": ["600.000 TND"], "outcome": "Replied" }
+    }
+  ]
+}

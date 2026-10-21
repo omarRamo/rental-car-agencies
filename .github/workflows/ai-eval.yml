@@ -1,0 +1,91 @@
+# Evaluation of the WhatsApp agent against the REAL model (package 4B, ADR-0056): the 30 scripted conversations of
+# tests/CarRental.Application.Tests/Messaging/Agent/Evaluation, through the production Claude adapter, with the
+# agency's API key. Real cost (about 0.04 USD per full run with the default price grid; check the pricing page).
+# Manual only: never on push nor pull request. The report of the gaps is uploaded as the "ai-eval-report" artifact.
+#
+# Every third-party action is pinned to a full commit SHA (same versions as ci.yml).
+name: AI evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Claude model to evaluate
+        required: false
+        default: claude-haiku-5-5
+      scenarios:
+        description: Scenario ids separated by commas (all when empty)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eval
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  evaluate:
+    name: Real-model evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET (SDK from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '.config/dotnet-tools.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Check the secret
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY secret is not set: the evaluation needs the agency's API key."
+            exit 1
+          fi
+
+      - name: Evaluate against the real model
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_EVAL_MODEL: ${{ inputs.model }}
+          AI_EVAL_SCENARIOS: ${{ inputs.scenarios }}
+          AI_EVAL_REPORT_DIR: ${{ runner.temp }}/ai-eval-report
+        run: >-
+          dotnet test tests/CarRental.Application.Tests
+          --configuration Release
+          --filter "Category=AiEvaluation"
+          --logger "console;verbosity=normal"
+
+      - name: Summary
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/ai-eval-report/ai-eval-report.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-eval-report
+          path: ${{ runner.temp }}/ai-eval-report
+          if-no-files-found: warn
+          retention-days: 30

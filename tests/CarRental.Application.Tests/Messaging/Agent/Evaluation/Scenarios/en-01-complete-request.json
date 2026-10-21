@@ -1,0 +1,36 @@
+{
+  "id": "en-01-complete-request",
+  "title": "Complete request in English: three options with buttons, then the English link of the funnel",
+  "language": "en",
+  "covers": ["recherche", "anglais", "boutons", "lien de devis verrouillé /en/book"],
+  "turns": [
+    {
+      "customer": "Hello, I need a car at Tunis-Carthage airport from July 1st to July 5th 2027, 10am both ways, for 4 people with a manual gearbox.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4, "boite": "manuelle" } },
+        { "reply": "Here are the cars available from July 1 to July 5 at Tunis-Carthage airport:\n1. {{rechercher_disponibilites:options[0].categorie}} ({{rechercher_disponibilites:options[0].modele}}): {{rechercher_disponibilites:options[0].total_ttc}} for 4 days, all included\n2. {{rechercher_disponibilites:options[1].categorie}}: {{rechercher_disponibilites:options[1].total_ttc}}\n3. {{rechercher_disponibilites:options[2].categorie}}: {{rechercher_disponibilites:options[2].total_ttc}}\nWhich one would you like?" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        "handOver": false,
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "buttons": true, "outcome": "Replied" }
+    },
+    {
+      "tap": { "id": "option:A1", "title": "1. Citadine" },
+      "script": [
+        { "call": "creer_lien_devis", "arguments": { "option_id": "A1" } },
+        { "reply": "Great choice! Here is your secure link to complete your request (price guaranteed for 24 hours, {{creer_lien_devis:total_ttc}}): {{creer_lien_devis:lien}}\nAn agent then validates your request, usually within 2 business hours; the confirmation comes by e-mail and WhatsApp." }
+      ],
+      "expect": {
+        "tools": ["creer_lien_devis"],
+        "link": true,
+        "handOver": false,
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "replyContains": ["/en/book?lieu=TUN"], "outcome": "Replied" }
+    }
+  ]
+}

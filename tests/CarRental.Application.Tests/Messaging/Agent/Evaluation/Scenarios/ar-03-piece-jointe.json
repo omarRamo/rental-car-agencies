@@ -1,0 +1,25 @@
+{
+  "id": "ar-03-piece-jointe",
+  "title": "صورة بطاقة التعريف عبر واتساب : لا تُفتح ولا تُعالج، والرد يوجّه إلى الرابط الآمن دون نموذج",
+  "language": "ar",
+  "covers": ["pièce jointe jamais traitée", "réponse fixe sans appel au modèle", "arabe"],
+  "turns": [
+    {
+      "customer": "مرحبا، أريد كراء سيارة الأسبوع القادم.",
+      "script": [
+        { "reply": "مرحبا! بكل سرور. من أين تريد استلام السيارة (وكالة تونس، مطار تونس قرطاج أو مطار النفيضة)، وما هي تواريخ وساعات الاستلام والإرجاع؟" }
+      ],
+      "expect": { "noTools": ["creer_lien_devis"], "handOver": false, "replyLanguage": ["ar"] }
+    },
+    {
+      "attachments": ["image"],
+      "expect": {
+        "modelCalls": 0,
+        "replyIs": "attachment",
+        "outcome": "AttachmentReply",
+        "handOver": false,
+        "replyLanguage": ["ar"]
+      }
+    }
+  ]
+}

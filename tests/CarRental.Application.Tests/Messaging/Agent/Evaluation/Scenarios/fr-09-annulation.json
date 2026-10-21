@@ -1,0 +1,29 @@
+{
+  "id": "fr-09-annulation",
+  "title": "Annulation d'une réservation existante : transfert à un agent avec le motif",
+  "language": "fr",
+  "covers": ["transfert", "modification ou annulation", "le bot se tait ensuite"],
+  "world": {
+    "bookings": [ { "status": "Confirmed", "driver": "self", "pickup": "2027-07-01T10:00", "return": "2027-07-05T10:00" } ]
+  },
+  "turns": [
+    {
+      "customer": "Bonjour, je dois annuler ma réservation LOC-2027-000001, comment faire ?",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "modification_annulation", "resume": "Le client veut annuler la réservation LOC-2027-000001." } },
+        { "reply": "Je transmets votre demande d'annulation à un conseiller de l'agence : il revient vers vous très vite ici." }
+      ],
+      "expect": {
+        "tools": ["transferer_a_un_agent"],
+        "handOver": true,
+        "handOverReasonContains": "annulation",
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "outcome": "TransferredByModel" }
+    },
+    {
+      "customer": "Merci, j'attends.",
+      "expect": { "silent": true, "modelCalls": 0 }
+    }
+  ]
+}

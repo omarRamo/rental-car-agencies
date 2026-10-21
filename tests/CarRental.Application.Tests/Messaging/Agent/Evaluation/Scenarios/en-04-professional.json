@@ -1,0 +1,22 @@
+{
+  "id": "en-04-professional",
+  "title": "Company request for several cars over months: handed over to an agent",
+  "language": "en",
+  "covers": ["transfert", "demande professionnelle", "longue durée", "anglais"],
+  "turns": [
+    {
+      "customer": "Hi, we are a company and we need five cars for three months from August, can you make us an offer?",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "demande_professionnelle", "resume": "Company request: five cars for three months from August." } },
+        { "reply": "Thank you! Long-term rentals for companies are handled by our team: I am passing your request to an agent, who will reply here very soon." }
+      ],
+      "expect": {
+        "tools": ["transferer_a_un_agent"],
+        "noTools": ["creer_lien_devis"],
+        "handOver": true,
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "handOverReasonContains": "Demande professionnelle", "outcome": "TransferredByModel" }
+    }
+  ]
+}

@@ -150,6 +150,10 @@ internal sealed class AgentConversation(AgentHarness harness, string number)
     public Task<ConversationReply> SendMediaAsync(params MediaKindInfo[] kinds) =>
         TurnAsync([.. kinds.Select(kind => Customer(MessageKindInfo.Media, null, mediaKind: kind))]);
 
+    /// <summary>Attachments then a text, in one turn (the customer sends a photo and writes about it).</summary>
+    public Task<ConversationReply> SendWithAttachmentsAsync(string text, params MediaKindInfo[] kinds) =>
+        TurnAsync([.. kinds.Select(kind => Customer(MessageKindInfo.Media, null, mediaKind: kind)), Customer(MessageKindInfo.Text, text)]);
+
     public Task<ConversationReply> TapAsync(string replyId, string title) =>
         TurnAsync([Customer(MessageKindInfo.ButtonReply, title, replyId)]);
 

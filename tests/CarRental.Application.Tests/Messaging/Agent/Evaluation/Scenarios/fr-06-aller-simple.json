@@ -1,0 +1,42 @@
+{
+  "id": "fr-06-aller-simple",
+  "title": "Aller simple Tunis-Carthage vers Enfidha : le lien porte le lieu de retour",
+  "language": "fr",
+  "covers": ["aller simple", "boutons", "lien de devis verrouillé"],
+  "turns": [
+    {
+      "customer": "Bonjour, prise à l'aéroport Tunis-Carthage le 5 juillet 2027 à 11h et retour à l'aéroport d'Enfidha le 12 juillet 2027 à 11h, s'il vous plaît.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "lieu_retour": "NBE", "depart": "2027-07-05T11:00", "retour": "2027-07-12T11:00" } },
+        { "reply": "Voici les options pour un aller simple Tunis-Carthage → Enfidha du 5 au 12 juillet :\n1. {{rechercher_disponibilites:options[0].categorie}} — {{rechercher_disponibilites:options[0].total_ttc}}\n2. {{rechercher_disponibilites:options[1].categorie}} — {{rechercher_disponibilites:options[1].total_ttc}}\n3. {{rechercher_disponibilites:options[2].categorie}} — {{rechercher_disponibilites:options[2].total_ttc}}" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-05T11:00", "retour": "2027-07-12T11:00" } },
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": {
+        "toolArguments": { "rechercher_disponibilites": { "lieu_retour": "NBE" } },
+        "buttons": true,
+        "outcome": "Replied"
+      }
+    },
+    {
+      "tap": { "id": "option:A2", "title": "2. Économique" },
+      "script": [
+        { "call": "creer_lien_devis", "arguments": { "option_id": "A2" } },
+        { "reply": "Voici votre lien sécurisé, prix garanti 24 heures ({{creer_lien_devis:total_ttc}}) : {{creer_lien_devis:lien}}" }
+      ],
+      "expect": {
+        "tools": ["creer_lien_devis"],
+        "link": true,
+        "handOver": false
+      },
+      "expectScripted": {
+        "replyContains": ["lieu=TUN&retour_lieu=NBE", "cat=ECMR", "786.660 TND"],
+        "outcome": "Replied"
+      }
+    }
+  ]
+}

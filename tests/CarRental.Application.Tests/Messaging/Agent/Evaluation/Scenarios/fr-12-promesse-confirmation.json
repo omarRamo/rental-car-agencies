@@ -1,0 +1,19 @@
+{
+  "id": "fr-12-promesse-confirmation",
+  "title": "Le client veut une confirmation immédiate : aucune promesse, un agent valide la demande",
+  "language": "fr",
+  "covers": ["garde-fou confirmation", "transfert"],
+  "turns": [
+    {
+      "customer": "C'est bon pour moi, vous pouvez me confirmer la réservation tout de suite ?",
+      "script": [
+        { "reply": "Oui, c'est confirmé ! Votre réservation est confirmée, à bientôt." }
+      ],
+      "expect": {
+        "noTools": ["creer_lien_devis"],
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "handOver": true, "replyIs": "handOver", "handOverReasonContains": "confirmation", "outcome": "BlockedByGuardrail" }
+    }
+  ]
+}
