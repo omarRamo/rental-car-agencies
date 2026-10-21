@@ -59,6 +59,16 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Contrat Booking.com | Taux et TVA de la commission, prépayé ou payé au comptoir, formule et relevé des versements, règles de non-présentation et d'annulation, devises (seul le TND est accepté) | Agence / Booking.com | 5 |
 | Codes des canaux | Codes Booking.com des catégories et des lieux, codes OpenTravel des options, assurances et frais ; politique de quotas (ex. 2 véhicules hors Booking.com en haute saison) ; qui reporte les changements sur l'extranet | Agence | 5 |
 | Certificat client derrière Cloudflare | L'authentification par certificat client d'un canal suppose un accès direct à l'origine ou un en-tête de confiance (`Channels:Inbound:TrustArrClientCertHeader`) | Agence (infra) | 5 |
+| Facture électronique TTN | Schéma TEIF (version, correspondance des champs), signature XAdES (certificat de l'agence, prestataire, code ou HSM), transport (adresses, authentification, idempotence par numéro), référence retournée et codes d'erreur ; d'ici là l'adaptateur TTN répond « non configuré » ([ADR-0058](adr/0058-documents-de-facturation-pdf-envoi-et-facture-electronique.md)) | TTN / expert-comptable | 3 |
+| Mentions des factures | Liste définitive des mentions obligatoires des factures et des avoirs, et libellé de la mention du régime papier transitoire (paramètres `billing.invoice_mentions` et `billing.einvoice_transitional_mention`) | Expert-comptable | 3 |
+| Droit de timbre — avoirs et solde | Un avoir reprend-il le timbre ? Le timbre est-il encaissé au comptoir ou intégré au solde de clôture du dossier (il n'y entre pas aujourd'hui : la facture d'un dossier soldé l'affiche en reste à payer) ? | Expert-comptable | 3 |
+| TVA des refacturations | Frais d'annulation ; dommages et retenues sur caution ; amende refacturée (débours sans TVA, comme aujourd'hui ?) et frais de gestion (taux de l'agence aujourd'hui) | Expert-comptable | 3 |
+| Séries de numéros | Une seule série `FAC` / `AV` pour la plateforme ; une série par agence si les agences sont des sociétés distinctes | Expert-comptable | 3 |
+| Facture d'un dossier Booking.com | Payeur facturé (client ou Booking.com), mentions et commission selon le contrat du canal ; seule la référence du canal est imprimée aujourd'hui | Agence / expert-comptable | 3 |
+| Factures après anonymisation | Les factures et avoirs gardent l'identité de l'acheteur après l'anonymisation du client (pièces comptables) : durée de conservation et base légale | Avocat / expert-comptable | 3 |
+| Fiche de désignation | Modèle officiel attendu par chaque autorité (police, garde nationale, municipalités), délai et mode d'envoi ; la plateforme produit une lettre de désignation générique ([ADR-0059](adr/0059-amendes-designation-du-conducteur-et-sinistres.md)) | Agence / avocat | 3 |
+| Sinistres | Comptabilisation des coûts et des remboursements (lot 3B) ; refacturation au client de la franchise au-delà de la caution retenue | Expert-comptable / agence | 3 |
+| Facture hors dossier | Pas de facture manuelle (hors dossier et hors amende) dans le lot 3A : l'agence en a-t-elle besoin ? | Agence | 3 |
 
 ## Incohérences relevées dans la spec v1
 
