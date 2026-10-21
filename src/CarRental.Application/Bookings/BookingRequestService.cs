@@ -133,6 +133,14 @@ internal sealed class BookingRequestService(
         return await writer.RunAsync<BookingRequestResult>(
             async (touched, ct) =>
             {
+                // The availability lock before the number, as every writer takes them (lock, then number): a request and
+                // a phone booking racing for the same category would otherwise wait on each other (deadlock).
+                var locked = await writer.Guard.LockAsync([prepared.Value.Content.CategoryId], ct);
+                if (locked.IsFailure)
+                {
+                    return locked.Error;
+                }
+
                 var created = await CreateDraftAsync(prepared.Value, ct);
                 if (created.IsFailure)
                 {

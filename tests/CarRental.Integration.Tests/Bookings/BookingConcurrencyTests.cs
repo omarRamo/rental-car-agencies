@@ -71,6 +71,36 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task Web_requests_and_phone_bookings_racing_for_the_last_vehicles_never_deadlock()
+    {
+        var agency = await CreateAsync(host, Ct, ecmrVehicles: 2);
+        var pickup = InDays(55);
+        var drivers = new List<Guid>();
+        for (var i = 0; i < 40; i++)
+        {
+            drivers.Add(await NewDriverAsync(host, Ct));
+        }
+
+        // A request draws its number after the availability lock, like a phone booking: neither waits on the other.
+        var outcomes = await Task.WhenAll(drivers.Select((driver, i) => i % 2 == 0
+            ? RunAsync<QuickBookingService, Result>(
+                host,
+                Agent,
+                async s => await s.CreateAsync(Quick(agency, driver, pickup.AddHours(i % 4), pickup.AddDays(2)), Ct))
+            : RunAsync<IBookingRequests, Result>(
+                host,
+                UserContextSnapshot.System("system:public-funnel"),
+                async s => await s.SubmitRequestAsync(
+                    new BookingRequestDraft(SalesChannel.Web, Price: new PriceRequest(agency.AgencyId, agency.Ecmr, agency.OfficeId, agency.OfficeId, pickup.AddHours(i % 4), pickup.AddDays(2), SalesChannel.Web)),
+                    new BookingRequestParties(driver),
+                    Ct))));
+
+        outcomes.Count(o => o.IsSuccess).ShouldBe(2, string.Join(", ", outcomes.Select(o => o.ToString())));
+        outcomes.Where(o => o.IsFailure).ShouldAllBe(o => o.Error == AvailabilityErrors.NotAvailable, "never availability.lock_deadlock nor lock_timeout");
+        (await OccupyingAsync(agency.Ecmr)).ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Committed_booking_numbers_of_the_year_are_gapless_even_when_an_operation_is_replayed()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 2);
