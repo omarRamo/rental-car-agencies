@@ -1,12 +1,18 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using CarRental.Application.Messaging.Agent;
 using CarRental.Domain.Messaging;
 using Microsoft.Extensions.AI;
 
 namespace CarRental.Infrastructure.Messaging.Agent;
 
-/// <summary>A scripted answer of <see cref="ScriptedChatClient"/>: a text, a tool call, a refusal, a cut reply or a failure.</summary>
+/// <summary>
+/// A scripted answer of <see cref="ScriptedChatClient"/>: a text, a tool call, a refusal, a cut reply or a failure. Texts and
+/// arguments may quote the latest tool results of the request: <c>{{rechercher_disponibilites:options[0].total_ttc}}</c>,
+/// <c>{{creer_lien_devis:lien}}</c>.
+/// </summary>
 public sealed record ScriptedResponse
 {
     private ScriptedResponse()
@@ -62,7 +68,7 @@ public sealed record ScriptedRequest(IReadOnlyList<ChatMessage> Messages, ChatOp
 /// does). A conversation without a script gets the demonstration reply. It records the requests and the concurrency of
 /// the calls per number, so that tests check the requests and the serialization of the turns.
 /// </summary>
-public sealed class ScriptedChatClient : IChatClient
+public sealed partial class ScriptedChatClient : IChatClient
 {
     public const string DemoReply =
         "Bonjour ! Je suis l'assistant de démonstration de l'agence : aucun modèle d'IA n'est configuré ici. Un conseiller vous répondra.";
@@ -96,10 +102,11 @@ public sealed class ScriptedChatClient : IChatClient
         var key = options?.AdditionalProperties?.TryGetValue(IAgentModel.ScriptKeyProperty, out var value) == true && value is string number ? Key(number) : null;
         if (key is null || !_scripts.TryGetValue(key, out var script))
         {
-            return Respond(ScriptedResponse.Reply(DemoReply), callIndex: 0);
+            return Respond(ScriptedResponse.Reply(DemoReply), callIndex: 0, []);
         }
 
-        var (response, index) = script.Next(new ScriptedRequest([.. messages], options?.Clone()));
+        var request = new ScriptedRequest([.. messages], options?.Clone());
+        var (response, index) = script.Next(request);
         try
         {
             if (response.Gate is { } gate)
@@ -112,7 +119,7 @@ public sealed class ScriptedChatClient : IChatClient
                 throw failure();
             }
 
-            return Respond(response, index);
+            return Respond(response, index, request.Messages);
         }
         finally
         {
@@ -131,17 +138,17 @@ public sealed class ScriptedChatClient : IChatClient
         // Nothing to release.
     }
 
-    private static ChatResponse Respond(ScriptedResponse response, int callIndex)
+    private static ChatResponse Respond(ScriptedResponse response, int callIndex, IReadOnlyList<ChatMessage> messages)
     {
         var contents = new List<AIContent>();
         if (response.Text is { } text)
         {
-            contents.Add(new Microsoft.Extensions.AI.TextContent(text));
+            contents.Add(new Microsoft.Extensions.AI.TextContent(Resolve(text, messages)));
         }
 
         if (response.ToolName is { } tool)
         {
-            var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(response.ToolArguments ?? "{}");
+            var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(Resolve(response.ToolArguments ?? "{}", messages));
             contents.Add(new FunctionCallContent($"toolu_scripted_{callIndex}_{tool}", tool, arguments));
         }
 
@@ -161,6 +168,41 @@ public sealed class ScriptedChatClient : IChatClient
 
     private static string Key(string number) =>
         WhatsAppNumbers.Normalize(number) is { IsSuccess: true } normalized ? normalized.Value : number.Trim();
+
+    /// <summary>Replaces <c>{{tool:path}}</c> by the value at <c>path</c> in the latest result of <c>tool</c> among <paramref name="messages"/>.</summary>
+    private static string Resolve(string template, IReadOnlyList<ChatMessage> messages) =>
+        Placeholder().Replace(template, match =>
+        {
+            var tool = match.Groups["tool"].Value;
+            var element = LatestResult(messages, tool) ?? throw new InvalidOperationException($"The script quotes {match.Value}, but {tool} returned nothing in this turn.");
+            foreach (Match segment in PathSegment().Matches(match.Groups["path"].Value))
+            {
+                element = segment.Groups["index"].Success
+                    ? element[int.Parse(segment.Groups["index"].Value, CultureInfo.InvariantCulture)]
+                    : element.GetProperty(segment.Groups["name"].Value);
+            }
+
+            return element.ValueKind == JsonValueKind.String ? element.GetString()! : element.GetRawText();
+        });
+
+    private static JsonElement? LatestResult(IReadOnlyList<ChatMessage> messages, string tool)
+    {
+        var calls = messages.SelectMany(m => m.Contents).OfType<FunctionCallContent>().Where(c => c.Name == tool).Select(c => c.CallId).ToHashSet(StringComparer.Ordinal);
+        var result = messages.SelectMany(m => m.Contents).OfType<FunctionResultContent>().LastOrDefault(r => calls.Contains(r.CallId));
+        if (result?.Result is not string json)
+        {
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
+    [GeneratedRegex(@"\{\{(?<tool>[a-z_]+):(?<path>[^}]+)\}\}", RegexOptions.CultureInvariant)]
+    private static partial Regex Placeholder();
+
+    [GeneratedRegex(@"(?<name>[A-Za-z_][A-Za-z0-9_]*)|\[(?<index>\d+)\]", RegexOptions.CultureInvariant)]
+    private static partial Regex PathSegment();
 
     private sealed class ScriptState(IReadOnlyList<ScriptedResponse> responses)
     {

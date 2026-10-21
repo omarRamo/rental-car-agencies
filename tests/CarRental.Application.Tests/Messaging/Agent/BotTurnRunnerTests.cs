@@ -145,6 +145,7 @@ public sealed class BotTurnRunnerTests : IAsyncDisposable
         _harness.Clock.Advance(TimeSpan.FromSeconds(2));
         (await DueAsync(options)).ShouldBe([ConversationId]);
         (await DueAsync(options, running: [ConversationId])).ShouldBeEmpty("a turn already running here is not started twice");
+        (await NextDueAtAsync(options, excluded: [ConversationId])).ShouldBeNull("a running turn signals its end: no wait on it");
     }
 
     [Fact]
@@ -188,8 +189,8 @@ public sealed class BotTurnRunnerTests : IAsyncDisposable
     private Task<IReadOnlyList<Guid>> DueAsync(BotTurnOptions options, IReadOnlyCollection<Guid>? running = null, int take = 10) =>
         _harness.RunAsync<IBotTurnQueue, IReadOnlyList<Guid>>(q => q.DueAsync(options, running ?? [], take, Ct));
 
-    private Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options) =>
-        _harness.RunAsync<IBotTurnQueue, DateTimeOffset?>(q => q.NextDueAtAsync(options, Ct));
+    private Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options, IReadOnlyCollection<Guid>? excluded = null) =>
+        _harness.RunAsync<IBotTurnQueue, DateTimeOffset?>(q => q.NextDueAtAsync(options, excluded ?? [], Ct));
 
     /// <summary>Records the turns handed over, as the background executor would receive them.</summary>
     private sealed class DeferredDispatcher : IBotTurnDispatcher

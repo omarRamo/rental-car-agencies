@@ -121,17 +121,30 @@ internal sealed partial class BotTurnPump(
         }
     }
 
-    /// <summary>Until the next pending turn is due, the sweep interval at most, 50 ms at least.</summary>
+    /// <summary>
+    /// Until the next pending turn is due — those running here are left out (their end signals), those resting count from
+    /// the end of their cooldown —, the sweep interval at most, 50 ms at least.
+    /// </summary>
     private async Task<TimeSpan> NextWaitAsync(BotTurnOptions settings, CancellationToken cancellationToken)
     {
-        await using var scope = CreateScope();
-        var next = await scope.ServiceProvider.GetRequiredService<IBotTurnQueue>().NextDueAtAsync(settings, cancellationToken);
-        if (next is not { } due)
+        DateTimeOffset? next;
+        await using (var scope = CreateScope())
+        {
+            var excluded = _running.Keys.Concat(_resting.Keys).ToList();
+            next = await scope.ServiceProvider.GetRequiredService<IBotTurnQueue>().NextDueAtAsync(settings, excluded, cancellationToken);
+        }
+
+        foreach (var until in _resting.Values)
+        {
+            next = next is { } due && due <= until ? due : until;
+        }
+
+        if (next is not { } at)
         {
             return settings.SweepInterval;
         }
 
-        var wait = due - clock.GetUtcNow();
+        var wait = at - clock.GetUtcNow();
         return wait < TimeSpan.FromMilliseconds(50) ? TimeSpan.FromMilliseconds(50) : (wait > settings.SweepInterval ? settings.SweepInterval : wait);
     }
 
@@ -167,7 +180,10 @@ internal sealed partial class BotTurnPump(
                     return;
                 }
 
-                _running[conversationId] = RunAsync(conversationId, slots, cancellationToken);
+                // Marked running before it starts: a turn that ends at once removes the mark itself, never a later one.
+                _running[conversationId] = Task.CompletedTask;
+                var turn = RunAsync(conversationId, slots, cancellationToken);
+                _running.TryUpdate(conversationId, turn, Task.CompletedTask);
             }
         }
     }

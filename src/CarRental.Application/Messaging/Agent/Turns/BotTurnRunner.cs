@@ -47,8 +47,8 @@ public interface IBotTurnQueue
     /// <summary>Conversations whose turn is due now, the oldest first, except those already running here.</summary>
     Task<IReadOnlyList<Guid>> DueAsync(BotTurnOptions options, IReadOnlyCollection<Guid> running, int take, CancellationToken cancellationToken);
 
-    /// <summary>When the next pending turn becomes due, or <see langword="null"/> when none waits.</summary>
-    Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options, CancellationToken cancellationToken);
+    /// <summary>When the next pending turn becomes due, except those of <paramref name="excluded"/>, or <see langword="null"/> when none waits.</summary>
+    Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options, IReadOnlyCollection<Guid> excluded, CancellationToken cancellationToken);
 }
 
 /// <inheritdoc cref="IBotTurnRunner"/>
@@ -179,12 +179,17 @@ internal sealed class BotTurnQueue(IAppDbContext db, TimeProvider clock) : IBotT
         return await due.Take(take).ToListAsync(cancellationToken);
     }
 
-    /// <summary>When the next pending turn becomes due (quiet period over, retry time reached), or <see langword="null"/> when none waits.</summary>
-    public async Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options, CancellationToken cancellationToken)
+    /// <summary>
+    /// When the next pending turn becomes due (quiet period over, retry time reached), except those of
+    /// <paramref name="excluded"/> (running or resting), or <see langword="null"/> when none waits.
+    /// </summary>
+    public async Task<DateTimeOffset?> NextDueAtAsync(BotTurnOptions options, IReadOnlyCollection<Guid> excluded, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(excluded);
+        var excludedIds = excluded.ToList();
         var latest = await db.Set<Message>()
-            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending)
+            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending && !excludedIds.Contains(m.ConversationId))
             .GroupBy(m => m.ConversationId)
             .Select(g => new { ConversationId = g.Key, Latest = g.Max(m => m.CreatedAtUtc) })
             .ToListAsync(cancellationToken);
