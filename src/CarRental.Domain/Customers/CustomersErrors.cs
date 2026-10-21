@@ -94,6 +94,29 @@ public static class CustomersErrors
         "customers.document_image.purpose_invalid",
         "Unknown purpose for viewing an identity document.");
 
+    // Public submissions (booking funnel, "Ma réservation"): ADR-0050.
+    public static readonly Error StagedImageNotFound = Error.NotFound(
+        "customers.staged_image.not_found",
+        "The uploaded file is unknown, was already used or has expired: send it again.");
+
+    public static readonly Error SubmissionNotFound = Error.NotFound("customers.submission.not_found", "The submission does not exist.");
+
+    public static readonly Error SubmissionEmpty = Error.Validation(
+        "customers.submission.empty",
+        "A submission carries the details of the driver or at least one document image.");
+
+    public static readonly Error SubmissionConsentRequired = Error.Validation(
+        "customers.submission.consent_required",
+        "The consent to the processing of the identity documents is required to send them.");
+
+    public static readonly Error SubmissionNotPending = Error.Conflict(
+        "customers.submission.not_pending",
+        "The submission was already reviewed.");
+
+    public static readonly Error SubmissionDocumentMissing = Error.Conflict(
+        "customers.submission.document_missing",
+        "Images were sent for a document that is not on file: enter the document first, then accept the submission.");
+
     // Consents.
     public static readonly Error ConsentPurposeInvalid = Error.Validation("customers.consent.purpose_invalid", "Unknown consent purpose.");
 

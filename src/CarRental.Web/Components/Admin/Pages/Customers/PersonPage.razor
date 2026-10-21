@@ -73,6 +73,10 @@ else
     {
         <Notice Class="mb-4">@L["Person.Anonymized.Message", CustomerLabels.Instant(file.AnonymizedAtUtc)]</Notice>
     }
+    else
+    {
+        <DriverSubmissionsPanel PersonId="file.Id" CanManage="file.Permissions.CanManage" CanViewImages="file.Permissions.CanViewDocumentImages" OnReviewed="ReloadAsync" />
+    }
 
     <MudGrid Spacing="3">
         <MudItem xs="12" md="6">

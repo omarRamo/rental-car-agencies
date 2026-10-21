@@ -10,6 +10,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
+using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Bookings.Quotes;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -304,7 +305,13 @@ public sealed class BookingAdministrationQueries
             var person = await _parties.PersonAsync(driver.PersonId, cancellationToken);
             var hasImages = person?.Documents.Where(d => d.Type is IdentityDocumentTypeInfo.NationalId or IdentityDocumentTypeInfo.Passport or IdentityDocumentTypeInfo.DrivingLicense)
                 .All(d => d.HasFrontImage) ?? false;
-            if (driver.Documents is not DocumentsStateInfo.Complete || !hasImages)
+            var submissionPending = (await _customers.GetDriverSubmissionsAsync(driver.PersonId, bookingId, cancellationToken)).Any(s => s.IsPending);
+            if (submissionPending)
+            {
+                // Documents sent online for a person already known: the agent reconciles them on the driver's page (ADR-0050).
+                documents.Add(new ChecklistDetail(driver.FullName, null, SubmissionPending: true, driver.PersonId));
+            }
+            else if (driver.Documents is not DocumentsStateInfo.Complete || !hasImages)
             {
                 documents.Add(new ChecklistDetail(driver.FullName, null));
             }
@@ -336,9 +343,29 @@ public sealed class BookingAdministrationQueries
             new(ChecklistItemKind.Validity, drivers.Count > 0 && validity.Count == 0 ? ChecklistState.Ok : ChecklistState.Attention, validity),
             new(ChecklistItemKind.CustomerCheck, customerCheck ? ChecklistState.Attention : ChecklistState.Ok, []),
             new(ChecklistItemKind.Availability, available ? ChecklistState.Ok : ChecklistState.Attention, []),
-            new(ChecklistItemKind.Payment, ChecklistState.Pending, []),
+            await PaymentItemAsync(booking, cancellationToken),
         ];
         return new RequestChecklist(booking.Id, items, drivers);
+    }
+
+    /// <summary>
+    /// The payment item (ADR-0051), from the payment state the Bookings module keeps from the confirmed changes of the
+    /// online payments: held or taken is fine; a payment still being made, failed, expired or released means a validation
+    /// in the payment link mode; no online payment at all is expected in the payment link mode; a late payment is flagged.
+    /// </summary>
+    private async Task<ChecklistItem> PaymentItemAsync(Booking booking, CancellationToken cancellationToken)
+    {
+        var track = await _db.Set<BookingPaymentTrack>().AsNoTracking().FirstOrDefaultAsync(t => t.BookingId == booking.Id, cancellationToken);
+        var mode = await _settings.GetAsync(BookingSettings.ValidationPaymentMode, booking.AgencyId, cancellationToken);
+        var state = track?.State ?? RequestPaymentState.None;
+        var checkState = state switch
+        {
+            _ when track?.PaidLate == true => ChecklistState.Attention,
+            RequestPaymentState.PreAuthorized or RequestPaymentState.Captured => ChecklistState.Ok,
+            RequestPaymentState.None when mode == BookingValidationPaymentMode.PaymentLinkAfterValidation => ChecklistState.Manual,
+            _ => ChecklistState.Attention,
+        };
+        return new ChecklistItem(ChecklistItemKind.Payment, checkState, [], new ChecklistPayment(state, track?.Amount, track?.PaidLate == true, mode));
     }
 
     /// <summary>The planning of an agency over a range (vehicles × days).</summary>

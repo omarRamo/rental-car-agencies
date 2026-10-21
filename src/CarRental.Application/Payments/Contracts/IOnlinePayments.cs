@@ -19,6 +19,12 @@ namespace CarRental.Application.Payments.Contracts;
 public interface IOnlinePayments
 {
     /// <summary>
+    /// Whether online payment can be offered now (<c>ClicToPay:Enabled</c>): otherwise every operation fails with
+    /// <c>payments.gateway.disabled</c> and the booking funnel submits without pre-authorization (payment link mode).
+    /// </summary>
+    bool IsAvailable { get; }
+
+    /// <summary>
     /// Web submission: creates the pending online payment of the guaranteed amount, registers the pre-authorization
     /// (<c>registerPreAuth.do</c>, order number = payment id) and returns the address of the payment page to send the
     /// customer to. A second call for the same booking, amount and paths within ten minutes returns the same page

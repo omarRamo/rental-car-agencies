@@ -282,7 +282,7 @@ internal sealed class BookingRequestService(
     private async Task<Result<Booking>> CreateDraftAsync(PreparedRequest request, CancellationToken cancellationToken)
     {
         var now = writer.Now();
-        var bookingId = Entity.NewId();
+        var bookingId = request.Draft.BookingId is { } chosen && chosen != Guid.Empty ? chosen : Entity.NewId();
         var number = await writer.NextNumberAsync(now, cancellationToken);
         var actor = writer.Actor(request.Draft.Channel);
         var quote = await quotes.AddVersionAsync(bookingId, 1, request.Origin, request.Content, actor.Name, now, cancellationToken, request.SourceQuoteId);

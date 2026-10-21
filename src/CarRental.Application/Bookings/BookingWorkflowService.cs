@@ -3,6 +3,7 @@ using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Parties;
 using CarRental.Application.Bookings.Writing;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Common;
@@ -16,7 +17,10 @@ public static class BookingReasons
     /// <summary>A request refused by the internal customer check (never more specific: SPEC §5).</summary>
     public const string CustomerCheck = "booking.reason.customer_check";
 
-    public static IReadOnlyList<string> All { get; } = [CustomerCheck];
+    /// <summary>Cancelled by the customer from "Ma réservation".</summary>
+    public const string CustomerCancelled = "booking.reason.customer_cancelled";
+
+    public static IReadOnlyList<string> All { get; } = [CustomerCheck, CustomerCancelled];
 }
 
 /// <summary>
@@ -29,20 +33,34 @@ public sealed class BookingWorkflowService
     private readonly BookingWriter _writer;
     private readonly DriverChecks _checks;
     private readonly ISettingsReader _settings;
+    private readonly IOnlinePayments? _payments;
 
-    internal BookingWorkflowService(BookingWriter writer, DriverChecks checks, ISettingsReader settings)
+    internal BookingWorkflowService(BookingWriter writer, DriverChecks checks, ISettingsReader settings, IOnlinePayments? payments = null)
     {
         _writer = writer;
         _checks = checks;
         _settings = settings;
+        _payments = payments;
     }
 
     /// <summary>
-    /// <c>PendingValidation</c> → <c>Confirmed</c>, or <c>AwaitingPayment</c> in the fallback payment mode. A driver who
+    /// <c>PendingValidation</c> → <c>Confirmed</c>, or <c>AwaitingPayment</c> in the payment link mode. A driver who
     /// fails the internal customer check gets the request refused with a generic reason; a driver who is not eligible
-    /// blocks the validation (<see cref="BookingErrors.DriversNotEligible"/>).
+    /// blocks the validation (<see cref="BookingErrors.DriversNotEligible"/>), and so do documents sent online that
+    /// wait for a review (<see cref="BookingErrors.SubmissionPending"/>).
     /// </summary>
-    public async Task<Result<ValidationOutcome>> ValidateAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// In the <c>CaptureAtValidation</c> mode the pre-authorization of the request is captured first, outside any unit of
+    /// work and before the transition (ADR-0051): a capture the bank has not confirmed yet keeps the request pending
+    /// (<see cref="BookingErrors.CaptureUnconfirmed"/>), a refused one too (<see cref="BookingErrors.CaptureRejected"/>:
+    /// validate with <see cref="ValidationPaymentChoice.PaymentLink"/>). A request without pre-authorization (online
+    /// payment off at the submission, payment failed or abandoned) is validated in the payment link mode.
+    /// </remarks>
+    public Task<Result<ValidationOutcome>> ValidateAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
+        ValidateAsync(bookingId, ValidationPaymentChoice.Automatic, cancellationToken);
+
+    /// <inheritdoc cref="ValidateAsync(Guid, CancellationToken)"/>
+    public async Task<Result<ValidationOutcome>> ValidateAsync(Guid bookingId, ValidationPaymentChoice choice, CancellationToken cancellationToken = default)
     {
         if (!_writer.User.HasPermission(Permissions.RequestsManage))
         {
@@ -81,21 +99,76 @@ public sealed class BookingWorkflowService
             return BookingErrors.DriversNotEligible;
         }
 
+        if (await _checks.AnySubmissionPendingAsync(drivers, bookingId, cancellationToken))
+        {
+            return BookingErrors.SubmissionPending;
+        }
+
         var mode = await _settings.GetAsync(BookingSettings.ValidationPaymentMode, booking.AgencyId, cancellationToken);
+        var linkMode = mode == BookingValidationPaymentMode.PaymentLinkAfterValidation || choice == ValidationPaymentChoice.PaymentLink;
+        if (!linkMode)
+        {
+            var captured = await CaptureAsync(booking, cancellationToken);
+            if (captured.IsFailure)
+            {
+                return captured.Error;
+            }
+
+            linkMode = !captured.Value;
+        }
+
         var validity = await _settings.GetAsync(BookingSettings.PaymentLinkValidity, booking.AgencyId, cancellationToken);
         var validated = await _writer.TransitionAsync(
             bookingId,
-            (tracked, now, _) => Task.FromResult(tracked.Validate(
-                mode == BookingValidationPaymentMode.PaymentLinkAfterValidation ? now + validity : null,
-                _writer.Actor(),
-                now)),
+            (tracked, now, _) => Task.FromResult(tracked.Validate(linkMode ? now + validity : null, _writer.Actor(), now)),
             cancellationToken);
         if (validated.IsFailure)
         {
             return validated.Error;
         }
 
-        return mode == BookingValidationPaymentMode.PaymentLinkAfterValidation ? ValidationOutcome.AwaitingPayment : ValidationOutcome.Confirmed;
+        return linkMode ? ValidationOutcome.AwaitingPayment : ValidationOutcome.Confirmed;
+    }
+
+    /// <summary>
+    /// The capture step of a validation (never inside a unit of work): <see langword="true"/> when the pre-authorization
+    /// of the request is captured (now or before), <see langword="false"/> when the request has none (payment link mode).
+    /// </summary>
+    private async Task<Result<bool>> CaptureAsync(Booking booking, CancellationToken cancellationToken)
+    {
+        if (_payments is null || !_payments.IsAvailable)
+        {
+            return false;
+        }
+
+        var guarantees = (await _payments.GetBookingOnlinePaymentsAsync(booking.Id, cancellationToken))
+            .Where(p => p.Flow == OnlinePaymentFlowInfo.PreAuthorization)
+            .ToList();
+        if (guarantees.Any(p => p.Status is PaymentStatusInfo.Captured or PaymentStatusInfo.Refunded))
+        {
+            return true;
+        }
+
+        var held = guarantees.LastOrDefault(p => p.Status == PaymentStatusInfo.PreAuthorized);
+        if (held is null)
+        {
+            return false;
+        }
+
+        // At most the pre-authorized amount; less when the quote went down since the submission.
+        decimal? amount = booking.TotalInclVat < held.Amount ? booking.TotalInclVat.Amount : null;
+        var capture = await _payments.CaptureBookingAsync(booking.Id, amount, cancellationToken);
+        if (capture.IsSuccess)
+        {
+            return true;
+        }
+
+        return capture.Error.Code switch
+        {
+            "payments.online.capture_unconfirmed" => BookingErrors.CaptureUnconfirmed,
+            "payments.gateway.rejected" => BookingErrors.CaptureRejected,
+            _ => BookingErrors.PaymentUnavailable,
+        };
     }
 
     /// <summary><c>PendingValidation</c> → <c>InformationRequested</c>: the hold is extended by <c>bookings.information_request_extension</c>.</summary>

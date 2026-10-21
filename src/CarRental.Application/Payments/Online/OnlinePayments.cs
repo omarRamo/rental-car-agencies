@@ -45,6 +45,8 @@ internal sealed partial class OnlinePayments(
 
     private const int ConcurrencyAttempts = 3;
 
+    public bool IsAvailable => gateway.IsEnabled;
+
     private AuditActor Actor => userContext.ToAuditActor();
 
     /// <summary>Approving a refund above the threshold takes a person holding the permission (never the system actor).</summary>

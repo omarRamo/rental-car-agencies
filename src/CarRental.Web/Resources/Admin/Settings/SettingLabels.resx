@@ -216,4 +216,40 @@
   <data name="Setting.payments.online_attempt_validity.Help" xml:space="preserve">
     <value>Durée pendant laquelle un paiement commencé sur le site (réservation, solde) peut être terminé avant d'être clos comme expiré.</value>
   </data>
+  <data name="Setting.bookings.online_guarantee_ratio.Label" xml:space="preserve">
+    <value>Part garantie à la demande</value>
+  </data>
+  <data name="Setting.bookings.online_guarantee_ratio.Help" xml:space="preserve">
+    <value>Part du total TTC pré-autorisée sur la carte du client à l'envoi d'une demande web, entre 0,01 et 1 (1 = la totalité). Politique de garantie par saison et par canal à confirmer avec l'agence.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_link_validity.Label" xml:space="preserve">
+    <value>Validité du lien « Ma réservation »</value>
+  </data>
+  <data name="Setting.bookings.my_booking_link_validity.Help" xml:space="preserve">
+    <value>Durée pendant laquelle le lien et le code à 6 chiffres envoyés sur demande restent utilisables (une seule fois).</value>
+  </data>
+  <data name="Setting.bookings.complete_file_link_validity.Label" xml:space="preserve">
+    <value>Validité du lien « Compléter mon dossier »</value>
+  </data>
+  <data name="Setting.bookings.complete_file_link_validity.Help" xml:space="preserve">
+    <value>Durée pendant laquelle le lien envoyé après une demande de complément (ou par un agent) reste utilisable (une seule fois).</value>
+  </data>
+  <data name="Setting.bookings.my_booking_session_idle.Label" xml:space="preserve">
+    <value>Session « Ma réservation » sans activité</value>
+  </data>
+  <data name="Setting.bookings.my_booking_session_idle.Help" xml:space="preserve">
+    <value>Une session se ferme après cette durée sans activité, et 24 heures après son ouverture dans tous les cas.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_code_attempts.Label" xml:space="preserve">
+    <value>Essais de code autorisés</value>
+  </data>
+  <data name="Setting.bookings.my_booking_code_attempts.Help" xml:space="preserve">
+    <value>Nombre de codes erronés après lequel le lien et le code d'accès ne sont plus utilisables.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_requests_per_hour.Label" xml:space="preserve">
+    <value>E-mails d'accès par heure et par dossier</value>
+  </data>
+  <data name="Setting.bookings.my_booking_requests_per_hour.Help" xml:space="preserve">
+    <value>Au-delà, les demandes d'accès d'un même dossier reçoivent la même réponse mais aucun e-mail n'est envoyé (protection contre l'envoi massif).</value>
+  </data>
 </root>

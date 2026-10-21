@@ -60,6 +60,48 @@ internal sealed partial class DocumentImageStore(IFileStorage storage, TimeProvi
         return DocumentImage.Create(path, contentType, stored.Length, timeProvider.GetUtcNow()).Value;
     }
 
+    /// <summary>
+    /// Uploads a prepared image sent by a visitor under a new staging path (<c>staged/{id}.{ext}</c>) and returns the
+    /// staging record to add to the unit of work (ADR-0050).
+    /// </summary>
+    public async Task<StagedDocumentImage> StageAsync(PreparedDocumentImage image, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        var id = Guid.CreateVersion7();
+        var contentType = DocumentFileFormats.ContentTypeOf(image.Format);
+        var path = StagedDocumentImage.PathFor(id, image.Format);
+        using var stream = new MemoryStream(image.Content, writable: false);
+        var stored = await storage.UploadAsync(FileContainers.Documents, path, stream, contentType, cancellationToken);
+        var reference = DocumentImage.Create(path, contentType, stored.Length, timeProvider.GetUtcNow()).Value;
+        return StagedDocumentImage.Create(id, reference).Value;
+    }
+
+    /// <summary>
+    /// Copies a staged image to a new path of the person (checked again on its content: the staging area is never
+    /// trusted more than the browser). Fails when the staged file is gone.
+    /// </summary>
+    public async Task<Result<DocumentImage>> CopyStagedAsync(Guid personId, StagedDocumentImage staged, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(staged);
+        await using var download = await storage.OpenReadAsync(FileContainers.Documents, staged.Image.Path, cancellationToken);
+        if (download is null)
+        {
+            return CustomersErrors.StagedImageNotFound;
+        }
+
+        var prepared = await PrepareAsync(download.Content, cancellationToken);
+        if (prepared.IsFailure)
+        {
+            return prepared.Error;
+        }
+
+        return await StoreAsync(personId, prepared.Value, cancellationToken);
+    }
+
+    /// <summary>Deletes a staged file (used or expired); a failure is only logged (the staging purge retries).</summary>
+    public Task DeleteStagedAsync(string path) =>
+        path.StartsWith(StagedDocumentImage.PathPrefix, StringComparison.Ordinal) ? DeleteUnreferencedAsync(path) : Task.CompletedTask;
+
     /// <summary>Deletes a file that the database does not reference (failed operation); a failure is only logged.</summary>
     public async Task DeleteUnreferencedAsync(string path)
     {

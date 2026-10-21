@@ -35,6 +35,7 @@ public static class CustomersModule
         services.AddScoped<CompanyCustomerAdministrationService>();
         services.AddScoped<DocumentImageAccess>();
         services.AddScoped<PersonalDataService>();
+        services.AddScoped<DriverSubmissionReviewService>();
 
         // Internals.
         services.AddScoped<DriverEligibilityChecker>();
@@ -43,6 +44,7 @@ public static class CustomersModule
         services.AddSettingDefinitions(CustomerSettings.All);
         services.AddOutboxHandler<DocumentImagesDiscarded, DocumentImagesDiscardedHandler>();
         services.AddRecurringJob<DocumentImageRetentionJob>();
+        services.AddRecurringJob<StagedDocumentImagePurgeJob>();
         services.AddDataSeeder<CustomersDemoSeeder>();
         return services;
     }

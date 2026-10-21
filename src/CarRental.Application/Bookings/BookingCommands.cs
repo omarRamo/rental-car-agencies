@@ -55,6 +55,16 @@ public enum ValidationOutcome
     RefusedAfterCustomerCheck = 3,
 }
 
+/// <summary>What the agent asks for the payment when validating a web request (ADR-0051).</summary>
+public enum ValidationPaymentChoice
+{
+    /// <summary>Capture the pre-authorization; without one, the payment link mode.</summary>
+    Automatic = 1,
+
+    /// <summary>Validate in the payment link mode (the capture was refused, or the agent prefers a link).</summary>
+    PaymentLink = 2,
+}
+
 /// <summary>The fee a cancellation would cost now, and until when it is free.</summary>
 public sealed record CancellationPreview(Money Fee, DateOnly FreeUntil, decimal FeePercent, bool IsFree);
 

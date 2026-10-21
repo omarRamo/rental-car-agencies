@@ -15,19 +15,80 @@ public sealed class BookingWorkflowServiceTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Validation_confirms_an_eligible_request_without_checking_the_capacity_again()
+    public async Task Validation_captures_the_pre_authorization_then_confirms_without_checking_the_capacity_again()
+    {
+        var harness = new BookingsHarness();
+        var booking = await harness.PendingAsync();
+        harness.OnlinePayments.PreAuthorize(booking.Id, booking.TotalInclVat.Amount);
+
+        var validated = await harness.Workflow.ValidateAsync(booking.Id, Ct);
+
+        validated.Value.ShouldBe(ValidationOutcome.Confirmed);
+        booking.Status.ShouldBe(BookingStatus.Confirmed);
+        harness.OnlinePayments.Captures.ShouldBe([(booking.Id, (decimal?)null)], "the whole pre-authorization (the guaranteed total)");
+        harness.Guard.AvailabilityChecks.ShouldBeEmpty("a validated request already holds its capacity");
+        harness.Customers.BlacklistChecks.ShouldBe([harness.MainDriverId]);
+        harness.Outbox.Messages.OfType<BookingStatusChanged>().ShouldHaveSingleItem().PreviousStatus.ShouldBe(BookingStatusInfo.PendingValidation);
+        harness.Journal.Entries.Skip(harness.JournalStart).ShouldBe(["capture", "begin", "commit", $"notify {harness.Ecmr.Id}"], "captured outside the unit of work, before the transition");
+    }
+
+    [Fact]
+    public async Task A_capture_the_bank_has_not_confirmed_keeps_the_request_pending()
+    {
+        var harness = new BookingsHarness();
+        var booking = await harness.PendingAsync();
+        harness.OnlinePayments.PreAuthorize(booking.Id, booking.TotalInclVat.Amount);
+        harness.OnlinePayments.CaptureError = Error.Conflict("payments.online.capture_unconfirmed", "Unconfirmed.");
+
+        (await harness.Workflow.ValidateAsync(booking.Id, Ct)).Error.ShouldBe(BookingErrors.CaptureUnconfirmed);
+
+        booking.Status.ShouldBe(BookingStatus.PendingValidation);
+        harness.Outbox.Messages.OfType<BookingStatusChanged>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_refused_capture_offers_the_payment_link_mode()
+    {
+        var harness = new BookingsHarness();
+        var booking = await harness.PendingAsync();
+        harness.OnlinePayments.PreAuthorize(booking.Id, booking.TotalInclVat.Amount);
+        harness.OnlinePayments.CaptureError = Error.Failure("payments.gateway.rejected", "Rejected.");
+
+        (await harness.Workflow.ValidateAsync(booking.Id, Ct)).Error.ShouldBe(BookingErrors.CaptureRejected);
+        booking.Status.ShouldBe(BookingStatus.PendingValidation);
+
+        var withLink = await harness.Workflow.ValidateAsync(booking.Id, ValidationPaymentChoice.PaymentLink, Ct);
+
+        withLink.Value.ShouldBe(ValidationOutcome.AwaitingPayment);
+        booking.Status.ShouldBe(BookingStatus.AwaitingPayment);
+        harness.OnlinePayments.Captures.Count.ShouldBe(1, "the payment link mode does not capture again");
+    }
+
+    [Fact]
+    public async Task A_request_without_pre_authorization_is_validated_in_the_payment_link_mode()
     {
         var harness = new BookingsHarness();
         var booking = await harness.PendingAsync();
 
         var validated = await harness.Workflow.ValidateAsync(booking.Id, Ct);
 
-        validated.Value.ShouldBe(ValidationOutcome.Confirmed);
-        booking.Status.ShouldBe(BookingStatus.Confirmed);
-        harness.Guard.AvailabilityChecks.ShouldBeEmpty("a validated request already holds its capacity");
-        harness.Customers.BlacklistChecks.ShouldBe([harness.MainDriverId]);
-        harness.Outbox.Messages.OfType<BookingStatusChanged>().ShouldHaveSingleItem().PreviousStatus.ShouldBe(BookingStatusInfo.PendingValidation);
-        harness.Journal.Entries.Skip(harness.JournalStart).ShouldBe(["begin", "commit", $"notify {harness.Ecmr.Id}"]);
+        validated.Value.ShouldBe(ValidationOutcome.AwaitingPayment, "online payment off at the submission, or payment failed");
+        booking.Status.ShouldBe(BookingStatus.AwaitingPayment);
+        harness.OnlinePayments.Captures.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Documents_sent_online_for_a_known_person_block_the_validation_until_reviewed()
+    {
+        var harness = new BookingsHarness();
+        var booking = await harness.PendingAsync();
+        harness.OnlinePayments.PreAuthorize(booking.Id, booking.TotalInclVat.Amount);
+        harness.Customers.Submissions.Add(new DriverSubmissionInfo(Guid.CreateVersion7(), harness.MainDriverId, booking.Id, DriverSubmissionStateInfo.Pending, BookingsHarness.Start, []));
+
+        (await harness.Workflow.ValidateAsync(booking.Id, Ct)).Error.ShouldBe(BookingErrors.SubmissionPending);
+
+        booking.Status.ShouldBe(BookingStatus.PendingValidation);
+        harness.OnlinePayments.Captures.ShouldBeEmpty("nothing is captured while the documents wait for a review");
     }
 
     [Fact]

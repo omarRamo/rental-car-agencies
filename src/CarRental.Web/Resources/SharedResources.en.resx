@@ -1119,4 +1119,94 @@
   <data name="Error.payments.gateway.amount_not_representable" xml:space="preserve">
     <value>This amount cannot be expressed in the unit configured for the payment gateway.</value>
   </data>
+  <data name="Error.customers.staged_image.not_found" xml:space="preserve">
+    <value>A photo you sent is no longer available (already used or expired): send it again.</value>
+  </data>
+  <data name="Error.customers.submission.not_found" xml:space="preserve">
+    <value>This online submission does not exist.</value>
+  </data>
+  <data name="Error.customers.submission.empty" xml:space="preserve">
+    <value>A submission carries the driver's details or at least one document photo.</value>
+  </data>
+  <data name="Error.customers.submission.consent_required" xml:space="preserve">
+    <value>Your consent to the processing of identity documents is required to send them.</value>
+  </data>
+  <data name="Error.customers.submission.not_pending" xml:space="preserve">
+    <value>This submission was already reviewed.</value>
+  </data>
+  <data name="Error.customers.submission.document_missing" xml:space="preserve">
+    <value>Photos were sent for a document that is not on file: enter the document first, then accept the submission.</value>
+  </data>
+  <data name="Error.booking.validation.capture_unconfirmed" xml:space="preserve">
+    <value>The bank has not confirmed the capture yet: the request stays pending; validate again in a few minutes.</value>
+  </data>
+  <data name="Error.booking.validation.capture_rejected" xml:space="preserve">
+    <value>The bank refused the capture of the pre-authorization: validate with a payment link instead.</value>
+  </data>
+  <data name="Error.booking.validation.payment_unavailable" xml:space="preserve">
+    <value>The payment cannot be captured now (gateway unavailable or an operation in progress): try again.</value>
+  </data>
+  <data name="Error.booking.drivers.submission_pending" xml:space="preserve">
+    <value>Documents sent online wait for a review: accept or reject them on the driver's page first.</value>
+  </data>
+  <data name="Error.booking.funnel.session_not_found" xml:space="preserve">
+    <value>This booking link is unknown or has expired: search again.</value>
+  </data>
+  <data name="Error.booking.funnel.session_expired" xml:space="preserve">
+    <value>Your selection has expired (the price was guaranteed for 24 hours): search again.</value>
+  </data>
+  <data name="Error.booking.funnel.already_submitted" xml:space="preserve">
+    <value>This request was already sent.</value>
+  </data>
+  <data name="Error.booking.funnel.category_unavailable" xml:space="preserve">
+    <value>This category is no longer available for these dates: choose another one.</value>
+  </data>
+  <data name="Error.booking.funnel.drivers_required" xml:space="preserve">
+    <value>Enter the drivers first (step 2).</value>
+  </data>
+  <data name="Error.booking.funnel.document_consent_required" xml:space="preserve">
+    <value>Your consent to the processing of your identity documents is required to send the request.</value>
+  </data>
+  <data name="Error.booking.funnel.terms_required" xml:space="preserve">
+    <value>Accept the rental terms to send the request.</value>
+  </data>
+  <data name="Error.booking.funnel.verification_failed" xml:space="preserve">
+    <value>The anti-robot check failed: please try again.</value>
+  </data>
+  <data name="Error.booking.funnel.upload_slot_invalid" xml:space="preserve">
+    <value>Unknown photo slot.</value>
+  </data>
+  <data name="Error.booking.funnel.upload_limit" xml:space="preserve">
+    <value>Too many photos were sent for this booking: contact the agency.</value>
+  </data>
+  <data name="Error.booking.funnel.drivers_not_eligible" xml:space="preserve">
+    <value>A driver does not meet the rental conditions.</value>
+  </data>
+  <data name="Error.booking.access.invalid" xml:space="preserve">
+    <value>This link or code is not valid (or no longer): ask for a new one.</value>
+  </data>
+  <data name="Error.booking.access.locked" xml:space="preserve">
+    <value>Too many wrong codes: ask for a new link.</value>
+  </data>
+  <data name="Error.booking.access.session_required" xml:space="preserve">
+    <value>Open your booking with the link or the code received by e-mail.</value>
+  </data>
+  <data name="Error.booking.access.cancellation_not_allowed" xml:space="preserve">
+    <value>This booking can no longer be cancelled online: contact the agency.</value>
+  </data>
+  <data name="Error.booking.access.nothing_to_pay" xml:space="preserve">
+    <value>Nothing is left to pay online for this booking.</value>
+  </data>
+  <data name="Error.booking.access.payment_unavailable" xml:space="preserve">
+    <value>Online payment is not available at the moment: contact the agency.</value>
+  </data>
+  <data name="Error.booking.access.documents_not_expected" xml:space="preserve">
+    <value>Documents can no longer be sent for this booking: contact the agency.</value>
+  </data>
+  <data name="Error.booking.access.document_not_found" xml:space="preserve">
+    <value>This document is not available.</value>
+  </data>
+  <data name="Error.booking.access.no_contact_email" xml:space="preserve">
+    <value>The main driver has no e-mail address: add it on the driver's page first.</value>
+  </data>
 </root>
