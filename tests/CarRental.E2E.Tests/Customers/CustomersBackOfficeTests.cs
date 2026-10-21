@@ -65,6 +65,9 @@ public sealed partial class CustomersBackOfficeTests(E2EHost host) : BrowserTest
     {
         await SignInAsync(await NewStaffAsync(Roles.Agent), "/admin/customers");
         await WaitForPersonsAsync();
+
+        // Searched: the persons created by the other tests of the run push the demo customer off the first page.
+        await Page.GetByLabel("Rechercher une personne").FillAsync("trabelsi");
         await Expect(Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Sami Trabelsi" })).ToBeVisibleAsync();
 
         await AssertNoSeriousViolationAsync();
