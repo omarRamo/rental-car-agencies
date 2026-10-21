@@ -57,16 +57,17 @@ public sealed class HealthTelemetryTests(IntegrationHost host)
     [Fact]
     public async Task A_flagged_online_payment_turns_the_payments_entry_degraded()
     {
-        var before = await StatisticsAsync();
         var paymentId = await FlaggedPaymentAsync();
         try
         {
-            var after = await StatisticsAsync();
+            // Other tests flag and clear payments of the shared database meanwhile: only the lower bound is certain.
+            var statistics = await StatisticsAsync();
             var entry = await EntryAsync("payments");
 
-            after.FlaggedCount.ShouldBe(before.FlaggedCount + 1);
+            statistics.FlaggedCount.ShouldBeGreaterThanOrEqualTo(1);
             entry.Status.ShouldBe(HealthStatus.Degraded);
             entry.Description.ShouldNotBeNull().ShouldContain("/admin/payments");
+            ((int)entry.Data["flagged"]).ShouldBeGreaterThanOrEqualTo(1);
         }
         finally
         {

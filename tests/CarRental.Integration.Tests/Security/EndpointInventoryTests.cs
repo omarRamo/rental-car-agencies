@@ -26,6 +26,7 @@ public sealed partial class EndpointInventoryTests(IntegrationHost host)
         ["/error"] = "error page of the exception handler",
         ["/status/{StatusCode:int}"] = "status code pages (re-executed)",
         ["/not-found"] = "page of the router for unknown addresses",
+        ["/{**path:file}"] = "fallback of the static files of the build output (development and tests), files only",
     };
 
     [Fact]
