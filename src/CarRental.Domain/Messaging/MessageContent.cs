@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using System.Text.RegularExpressions;
 using CarRental.Domain.Common;
@@ -9,7 +10,11 @@ namespace CarRental.Domain.Messaging;
 /// reply buttons, list, template); inbound ones are kept as received (truncated to the same limits). A media is never
 /// downloaded: only its kind and Meta id are kept (invariant 9: no identity document image travels through WhatsApp).
 /// </summary>
-/// <remarks><see cref="ToString"/> prints the kind only, so that a content never reaches a log by accident.</remarks>
+/// <remarks>
+/// <see cref="ToString"/> prints the kind only, so that a content never reaches a log by accident.
+/// [NotMapped] (BCL annotation): a value stored in one column of its message (JSON), never an entity of its own.
+/// </remarks>
+[NotMapped]
 public abstract record MessageContent
 {
     private protected MessageContent()

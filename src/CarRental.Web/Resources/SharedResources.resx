@@ -1113,4 +1113,7 @@
   <data name="Error.messaging.send.outcome_unknown" xml:space="preserve">
     <value>Meta n'a pas répondu à temps : le message est peut-être parti, vérifiez avec le client avant de le renvoyer.</value>
   </data>
+  <data name="Error.messaging.webhook.unreadable" xml:space="preserve">
+    <value>Le contenu reçu de Meta n'est pas lisible.</value>
+  </data>
 </root>

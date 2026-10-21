@@ -195,4 +195,61 @@
   <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
     <value>« Capture à la validation » : la demande validée est confirmée (capture Clic to Pay, phase 2). « Lien de paiement après validation » (repli) : elle attend son paiement par lien.</value>
   </data>
+  <data name="Group.messaging" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Setting.messaging.retention_days.Label" xml:space="preserve">
+    <value>Conservation des conversations (jours)</value>
+  </data>
+  <data name="Setting.messaging.retention_days.Help" xml:space="preserve">
+    <value>Les messages WhatsApp plus anciens, puis les conversations sans activité depuis, sont supprimés chaque nuit (365 jours par défaut).</value>
+  </data>
+  <data name="Setting.messaging.template_language.Label" xml:space="preserve">
+    <value>Langue des modèles WhatsApp</value>
+  </data>
+  <data name="Setting.messaging.template_language.Help" xml:space="preserve">
+    <value>Code de langue des modèles approuvés par Meta (fr, en, en_US…) ; il règle aussi le format des dates et des montants envoyés.</value>
+  </data>
+  <data name="Setting.messaging.templates.booking_confirmed.Label" xml:space="preserve">
+    <value>Modèle : dossier confirmé</value>
+  </data>
+  <data name="Setting.messaging.templates.booking_confirmed.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé envoyé à la confirmation d'un dossier ; paramètres : prénom, numéro du dossier, date et heure de départ, lieu de départ. Vide : pas d'envoi.</value>
+  </data>
+  <data name="Setting.messaging.templates.payment_link.Label" xml:space="preserve">
+    <value>Modèle : paiement attendu</value>
+  </data>
+  <data name="Setting.messaging.templates.payment_link.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé envoyé quand une demande validée attend son paiement ; paramètres : prénom, numéro du dossier, montant dû, échéance. Vide : pas d'envoi.</value>
+  </data>
+  <data name="Setting.messaging.templates.pickup_reminder.Label" xml:space="preserve">
+    <value>Modèle : rappel la veille du départ</value>
+  </data>
+  <data name="Setting.messaging.templates.pickup_reminder.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé ; paramètres : prénom, numéro du dossier, date et heure de départ, lieu, adresse. Vide : pas d'envoi.</value>
+  </data>
+  <data name="Setting.messaging.templates.return_reminder.Label" xml:space="preserve">
+    <value>Modèle : rappel la veille du retour</value>
+  </data>
+  <data name="Setting.messaging.templates.return_reminder.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé ; paramètres : prénom, numéro du dossier, date et heure de retour, lieu, adresse. Vide : pas d'envoi.</value>
+  </data>
+  <data name="Setting.messaging.templates.review_request.Label" xml:space="preserve">
+    <value>Modèle : demande d'avis</value>
+  </data>
+  <data name="Setting.messaging.templates.review_request.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé envoyé le lendemain du retour ; paramètres : prénom, lien de l'avis. Vide : pas d'envoi.</value>
+  </data>
+  <data name="Setting.messaging.templates.follow_up.Label" xml:space="preserve">
+    <value>Modèle : relance d'une conversation</value>
+  </data>
+  <data name="Setting.messaging.templates.follow_up.Help" xml:space="preserve">
+    <value>Nom du modèle approuvé qu'un agent envoie pour reprendre contact après la fenêtre de 24 heures ; paramètre : nom du client.</value>
+  </data>
+  <data name="Setting.messaging.review_link.Label" xml:space="preserve">
+    <value>Lien de la demande d'avis</value>
+  </data>
+  <data name="Setting.messaging.review_link.Help" xml:space="preserve">
+    <value>Adresse de la page d'avis de l'agence (Google), envoyée avec la demande d'avis. Vide : pas de demande d'avis.</value>
+  </data>
 </root>

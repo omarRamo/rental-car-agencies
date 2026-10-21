@@ -87,6 +87,10 @@ public static class MessagingErrors
         "messaging.disabled",
         "WhatsApp is not configured on this platform (WhatsApp:Mode): messages cannot be sent.");
 
+    public static readonly Error WebhookUnreadable = Error.Validation(
+        "messaging.webhook.unreadable",
+        "The webhook payload is not the JSON envelope of the WhatsApp Cloud API.");
+
     // Delivery failures recorded on outbound messages.
     public static readonly Error SendRejected = Error.Failure(
         "messaging.send.rejected",
