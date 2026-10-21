@@ -133,13 +133,18 @@ internal sealed partial class OnlinePayments(
             return PaymentsErrors.OnlineCaptureExceedsAuthorization;
         }
 
+        if (payment.ExternalReference is not { } gatewayOrderId)
+        {
+            return PaymentsErrors.OnlinePaymentNotFound;
+        }
+
         var marked = await MarkCaptureAsync(payment, target, cancellationToken);
         if (marked.IsFailure)
         {
             return marked.Error;
         }
 
-        var deposit = await gateway.DepositAsync(new GatewayOrderOperation(payment.OrderNumber, payment.ExternalReference!, marked.Value), cancellationToken);
+        var deposit = await gateway.DepositAsync(new GatewayOrderOperation(payment.OrderNumber, gatewayOrderId, marked.Value), cancellationToken);
         if (deposit.IsSuccess)
         {
             await ChangeAsync(payment.Id, p => p.AcknowledgeGatewayOperation(PendingGatewayOperation.Capture), cancellationToken);
@@ -688,6 +693,11 @@ internal sealed partial class OnlinePayments(
             // Not paid yet: the release waits for a pre-authorization (catch-up job); an unpaid order expires.
             var recorded = await ChangeAsync(payment.Id, p => p.RequestGatewayReverse(now), cancellationToken);
             return recorded.IsFailure ? recorded.Error : await ReloadAsync(payment.Id, cancellationToken);
+        }
+
+        if (payment.ExternalReference is null)
+        {
+            return PaymentsErrors.OnlinePaymentNotFound;
         }
 
         switch (payment.PendingGatewayOperation, payment.PendingGatewayAcknowledged)
