@@ -83,6 +83,27 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         pdf.LongLength.ShouldBe(contract.Length);
         TextOf(pdf).ShouldContain(file.Number);
 
+        // "Ma réservation" lists the contract and opens the same PDF, for its own booking only.
+        await using (var documentsScope = host.CreateScope())
+        {
+            var providers = documentsScope.ServiceProvider.GetServices<ICustomerDocumentProvider>().ToList();
+            var listed = new List<(ICustomerDocumentProvider Provider, CustomerDocumentInfo Document)>();
+            foreach (var provider in providers)
+            {
+                listed.AddRange((await provider.GetDocumentsAsync(file.BookingId, Ct)).Select(d => (provider, d)));
+            }
+
+            var (contractProvider, document) = listed.ShouldHaveSingleItem();
+            document.Kind.ShouldBe(CustomerDocumentKind.RentalContract);
+            document.Number.ShouldBe($"{file.Number} v1");
+            (await contractProvider.OpenAsync(Guid.NewGuid(), document.Id, Ct)).ShouldBeNull();
+            await using var opened = (await contractProvider.OpenAsync(file.BookingId, document.Id, Ct)).ShouldNotBeNull();
+            opened.FileName.ShouldBe($"contrat-{file.Number}-v1.pdf");
+            using var copy = new MemoryStream();
+            await opened.Content.CopyToAsync(copy, Ct);
+            copy.ToArray().ShouldBe(pdf);
+        }
+
         (await RunAsync<IFleetQueries, VehicleInfo?>(host, agent, q => q.GetVehicleAsync(file.VehicleId, Ct))).ShouldNotBeNull().Mileage.ShouldBe(15_100);
 
         // The e-mail of the main driver is queued in the outbox with the stored PDF attached by container and name...

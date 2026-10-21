@@ -27,6 +27,7 @@ internal static class HandoverServiceCollectionExtensions
         services.AddScoped<ContractDocumentBuilder>();
         services.AddScoped<IHandoverQueries, HandoverContractQueries>();
         services.AddScoped<IBookingChargesSource, ReturnChargesReportingSource>();
+        services.AddScoped<ICustomerDocumentProvider, RentalContractDocumentProvider>();
 
         // Back office services (their constructors are internal: built here).
         services.AddScoped(sp => new HandoverInspectionService(sp.GetRequiredService<HandoverStore>()));
