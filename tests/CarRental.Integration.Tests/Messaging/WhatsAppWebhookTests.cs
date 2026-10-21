@@ -4,6 +4,10 @@ using CarRental.Domain.Messaging;
 using CarRental.Infrastructure.Messaging;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Web.Endpoints;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Messaging.WhatsAppTestData;
@@ -25,13 +29,13 @@ public sealed class WhatsAppWebhookTests(IntegrationHost host)
         using var client = host.CreateClient();
 
         var accepted = await client.GetAsync(
-            new Uri($"{Route}?hub.mode=subscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}&hub.challenge=1158201444", UriKind.Relative),
+            new Uri($"{WebhookRoute}?hub.mode=subscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}&hub.challenge=1158201444", UriKind.Relative),
             Ct);
-        var wrongToken = await client.GetAsync(new Uri($"{Route}?hub.mode=subscribe&hub.verify_token=not-the-token&hub.challenge=1158201444", UriKind.Relative), Ct);
+        var wrongToken = await client.GetAsync(new Uri($"{WebhookRoute}?hub.mode=subscribe&hub.verify_token=not-the-token&hub.challenge=1158201444", UriKind.Relative), Ct);
         var wrongMode = await client.GetAsync(
-            new Uri($"{Route}?hub.mode=unsubscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}&hub.challenge=1158201444", UriKind.Relative),
+            new Uri($"{WebhookRoute}?hub.mode=unsubscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}&hub.challenge=1158201444", UriKind.Relative),
             Ct);
-        var noChallenge = await client.GetAsync(new Uri($"{Route}?hub.mode=subscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}", UriKind.Relative), Ct);
+        var noChallenge = await client.GetAsync(new Uri($"{WebhookRoute}?hub.mode=subscribe&hub.verify_token={WhatsAppDevelopmentKeys.VerifyToken}", UriKind.Relative), Ct);
 
         accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await accepted.Content.ReadAsStringAsync(Ct)).ShouldBe("1158201444");
@@ -150,7 +154,20 @@ public sealed class WhatsAppWebhookTests(IntegrationHost host)
         response.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
     }
 
-    private const int WhatsAppWebhookEndpointsLimit = 1024 * 1024;
+    [Fact]
+    public void The_webhook_is_anonymous_and_limited_by_a_policy_of_its_own()
+    {
+        var endpoints = host.Factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.RoutePattern.RawText?.TrimEnd('/') == WebhookRoute)
+            .ToList();
+
+        endpoints.Count.ShouldBe(2, "GET for the handshake, POST for the deliveries");
+        endpoints.ShouldAllBe(e => e.Metadata.GetMetadata<EnableRateLimitingAttribute>()!.PolicyName == WhatsAppWebhookEndpoints.RateLimitPolicy);
+        endpoints.ShouldAllBe(e => e.Metadata.GetMetadata<IAllowAnonymous>() != null);
+    }
+
+    private const int WhatsAppWebhookEndpointsLimit = WhatsAppWebhookEndpoints.MaxBodyBytes;
 
     /// <summary>Stored webhook deliveries mentioning <paramref name="marker"/> not processed yet.</summary>
     private async Task<int> PendingDeliveriesAsync(string marker)

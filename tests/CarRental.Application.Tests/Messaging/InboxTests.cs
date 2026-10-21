@@ -153,7 +153,7 @@ public sealed class InboxTests : IAsyncDisposable
         var item = all.Items.Single(i => i.Id == botConversation);
         item.Mode.ShouldBe(ConversationModeInfo.Bot);
         item.UnreadCount.ShouldBe(1);
-        item.WindowClosesAtUtc.ShouldBe(_harness.Clock.GetUtcNow().AddHours(24));
+        item.WindowClosesAtUtc.ShouldBe(_harness.Messages.Single(m => m.ConversationId == botConversation).OccurredAtUtc.AddHours(24));
         item.LastMessage!.Text.ShouldBe("Bonjour, avez-vous une Clio ?");
         item.LastMessage.Direction.ShouldBe(MessageDirectionInfo.Inbound);
         human.Items.ShouldHaveSingleItem().Id.ShouldBe(humanConversation);

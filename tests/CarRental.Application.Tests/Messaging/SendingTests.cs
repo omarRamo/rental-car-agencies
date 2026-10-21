@@ -30,7 +30,7 @@ public sealed class SendingTests : IAsyncDisposable
         var message = Reply(queued);
         message.Status.ShouldBe(MessageStatus.Accepted);
         message.MetaMessageId.ShouldBe("wamid.test1");
-        message.AcceptedAtUtc.ShouldBe(_harness.Clock.GetUtcNow());
+        message.AcceptedAtUtc.ShouldNotBeNull().ShouldBeGreaterThan(message.CreatedAtUtc);
     }
 
     [Fact]

@@ -19,7 +19,7 @@ namespace CarRental.Integration.Tests.Messaging;
 /// </summary>
 internal static class WhatsAppTestData
 {
-    public const string Route = "/webhooks/whatsapp";
+    public const string WebhookRoute = "/webhooks/whatsapp";
 
     /// <summary>A French mobile number nobody else uses in the run, as a Meta <c>wa_id</c> (digits only).</summary>
     public static string NewWaId() =>
@@ -57,7 +57,7 @@ internal static class WhatsAppTestData
         var body = Encoding.UTF8.GetBytes(payload);
         using var content = new ByteArrayContent(body);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(Route, UriKind.Relative)) { Content = content };
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(WebhookRoute, UriKind.Relative)) { Content = content };
         if (sign)
         {
             request.Headers.TryAddWithoutValidation(

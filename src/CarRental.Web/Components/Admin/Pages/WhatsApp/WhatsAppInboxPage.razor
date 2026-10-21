@@ -172,6 +172,7 @@
     private bool _canReadBookings;
     private bool _busy;
     private bool _refreshAgain;
+    private bool _disposed;
     private Timer? _timer;
 
     /// <summary>A conversation to open at once (<c>/admin/whatsapp?conversation={id}</c>, a link from another screen).</summary>
@@ -206,6 +207,7 @@
 
     public void Dispose()
     {
+        _disposed = true;
         Activity.Changed -= OnActivity;
         _timer?.Dispose();
         _refreshLock.Dispose();
@@ -288,6 +290,11 @@
     /// </summary>
     private async Task RefreshAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (!await _refreshLock.WaitAsync(0))
         {
             _refreshAgain = true;
@@ -299,7 +306,7 @@
             do
             {
                 _refreshAgain = false;
-                if (_busy)
+                if (_busy || _disposed)
                 {
                     break;
                 }

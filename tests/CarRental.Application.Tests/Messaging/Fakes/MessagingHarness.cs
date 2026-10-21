@@ -56,7 +56,8 @@ internal sealed class MessagingHarness : IAsyncDisposable
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
     }
 
-    public FakeTimeProvider Clock { get; } = new(Start);
+    /// <summary>The clock of the tests: each reading moves it a millisecond forward, so that what happens later is later.</summary>
+    public FakeTimeProvider Clock { get; } = new(Start) { AutoAdvanceAmount = TimeSpan.FromMilliseconds(1) };
 
     public InMemoryAppDbContext Db { get; } = new();
 

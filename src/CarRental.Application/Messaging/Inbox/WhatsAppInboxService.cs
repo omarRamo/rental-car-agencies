@@ -235,7 +235,9 @@ public sealed class WhatsAppInboxService(
 
     /// <summary>
     /// Loads the conversation and applies <paramref name="change"/> in a unit of work, as the current user (an agent of the
-    /// back office); a concurrent change of the same conversation becomes <see cref="MessagingErrors.ConcurrentUpdate"/>.
+    /// back office). A customer message recorded at the same instant changes the same row: the change is replayed once on
+    /// fresh data (its rules — mode, window — checked again); a second conflict becomes
+    /// <see cref="MessagingErrors.ConcurrentUpdate"/>.
     /// </summary>
     private async Task<Result> ChangeAsync(
         Guid conversationId,
@@ -248,21 +250,28 @@ public sealed class WhatsAppInboxService(
         }
 
         var actor = user.ToAuditActor();
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            return await unitOfWork.ExecuteAsync(
-                async ct =>
-                {
-                    var conversation = await db.Set<Conversation>().FirstOrDefaultAsync(c => c.Id == conversationId, ct);
-                    return conversation is null
-                        ? MessagingErrors.ConversationNotFound
-                        : await change(conversation, actor, clock.GetUtcNow(), ct);
-                },
-                cancellationToken: cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return MessagingErrors.ConcurrentUpdate;
+            try
+            {
+                return await unitOfWork.ExecuteAsync(
+                    async ct =>
+                    {
+                        var conversation = await db.Set<Conversation>().FirstOrDefaultAsync(c => c.Id == conversationId, ct);
+                        return conversation is null
+                            ? MessagingErrors.ConversationNotFound
+                            : await change(conversation, actor, clock.GetUtcNow(), ct);
+                    },
+                    cancellationToken: cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException) when (attempt == 1)
+            {
+                // The unit of work cleared its change tracker: the next attempt reloads the conversation.
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return MessagingErrors.ConcurrentUpdate;
+            }
         }
     }
 

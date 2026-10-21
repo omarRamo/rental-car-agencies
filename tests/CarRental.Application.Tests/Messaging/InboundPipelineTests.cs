@@ -88,7 +88,7 @@ public sealed class InboundPipelineTests : IAsyncDisposable
         turn.ProfileName.ShouldBe("Hédi");
         turn.NewMessages.ShouldHaveSingleItem().Text.ShouldBe("Bonjour, 4 personnes, boîte automatique, à l'aéroport");
         turn.History.ShouldBeEmpty();
-        turn.WindowClosesAtUtc.ShouldBe(_harness.Clock.GetUtcNow().AddHours(24));
+        turn.WindowClosesAtUtc.ShouldBe(_harness.Messages.Single(m => m.IsInbound).OccurredAtUtc.AddHours(24));
         turn.Need.ShouldBe(ConversationNeedInfo.Empty);
 
         var sent = _harness.WhatsApp.Sent.ShouldHaveSingleItem();
