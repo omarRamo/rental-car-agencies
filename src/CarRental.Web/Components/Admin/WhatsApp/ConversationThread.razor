@@ -1,0 +1,82 @@
+@* The thread of a conversation, oldest first: who wrote each message and when, its text (a media is never shown, only
+   its kind), the choices of an interactive message and, for the platform's messages, the delivery state reported by
+   Meta with the reason of a failure. Scrollable and focusable for keyboard users. *@
+@inject IStringLocalizer<WhatsAppResources> L
+@inject IStringLocalizer<SharedResources> Shared
+@inject TimeProvider Clock
+
+@if (HasEarlier)
+{
+    <MudText Typo="Typo.caption" Class="d-block mb-1">@L["Thread.Earlier"]</MudText>
+}
+@if (Messages.Count == 0)
+{
+    <MudText Typo="Typo.body2" role="status">@L["Thread.Empty"]</MudText>
+}
+else
+{
+    <ol class="whatsapp-thread" aria-label="@L["Thread.Label"]" tabindex="0" data-testid="thread">
+        @foreach (var message in Messages)
+        {
+            <li class="@CssOf(message)" data-message="@message.Id" data-author="@message.Author" data-status="@message.Status">
+                <div class="whatsapp-message__meta">
+                    <strong>@WhatsAppFormat.Author(L, message)</strong>
+                    · <time datetime="@message.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture)">@WhatsAppFormat.When(message.OccurredAtUtc, Clock.GetUtcNow())</time>
+                    @if (message.Kind is MessageKindInfo.ButtonReply or MessageKindInfo.ListReply)
+                    {
+                        <span> · @L["Message.Reply"]</span>
+                    }
+                </div>
+                <div class="whatsapp-message__text">@WhatsAppFormat.Body(L, message.Kind, message.Text, message.MediaKind, message.UnsupportedType, message.TemplateName)</div>
+                @if (message.Choices.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@(message.ListButton is { } button ? L["Message.ListOffered", button] : L["Message.ButtonsOffered"])</MudText>
+                    <ul class="whatsapp-choices">
+                        @foreach (var choice in message.Choices)
+                        {
+                            <li>@choice</li>
+                        }
+                    </ul>
+                }
+                @if (message.Direction == MessageDirectionInfo.Outbound)
+                {
+                    var failed = message.Status is MessageStatusInfo.Failed or MessageStatusInfo.Cancelled;
+                    <div class="@(failed ? "whatsapp-message__status whatsapp-message__status--failed" : "whatsapp-message__status")">
+                        <MudIcon Icon="@StatusIcon(message.Status)" Size="Size.Small" aria-hidden="true" />
+                        <span>@WhatsAppFormat.Status(L, Shared, message)</span>
+                        @if (message.PricingCategory is { } category)
+                        {
+                            <span> · @L["Message.Pricing", category]</span>
+                        }
+                    </div>
+                }
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<InboxMessage> Messages { get; set; } = [];
+
+    [Parameter]
+    public bool HasEarlier { get; set; }
+
+    private static string CssOf(InboxMessage message) => message switch
+    {
+        { Direction: MessageDirectionInfo.Inbound } => "whatsapp-message",
+        { Author: MessageAuthorInfo.System } => "whatsapp-message whatsapp-message--out whatsapp-message--system",
+        _ => "whatsapp-message whatsapp-message--out",
+    };
+
+    private static string StatusIcon(MessageStatusInfo status) => status switch
+    {
+        MessageStatusInfo.Queued => Icons.Material.Outlined.Schedule,
+        MessageStatusInfo.Accepted or MessageStatusInfo.Sent => Icons.Material.Filled.Check,
+        MessageStatusInfo.Delivered => Icons.Material.Filled.DoneAll,
+        MessageStatusInfo.Read => Icons.Material.Filled.MarkChatRead,
+        MessageStatusInfo.Failed => Icons.Material.Filled.ErrorOutline,
+        MessageStatusInfo.Cancelled => Icons.Material.Filled.Block,
+        _ => Icons.Material.Outlined.Circle,
+    };
+}

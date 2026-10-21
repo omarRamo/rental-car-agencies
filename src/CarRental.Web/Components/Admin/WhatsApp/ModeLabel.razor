@@ -1,0 +1,25 @@
+@* Who answers the conversation: the bot, an agent (named), or nobody yet after a hand-over by the bot — in words, with
+   an icon (never colour alone). *@
+@inject IStringLocalizer<WhatsAppResources> L
+
+<span class="whatsapp-window" data-mode="@Mode">
+    <MudIcon Icon="@Icon" Size="Size.Small" aria-hidden="true" />
+    @Text
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public ConversationModeInfo Mode { get; set; }
+
+    /// <summary>The agent who took the conversation over (human mode), if any.</summary>
+    [Parameter]
+    public string? AgentName { get; set; }
+
+    private string Icon => Mode == ConversationModeInfo.Bot
+        ? Icons.Material.Outlined.SmartToy
+        : AgentName is null ? Icons.Material.Filled.PersonSearch : Icons.Material.Filled.SupportAgent;
+
+    private string Text => Mode == ConversationModeInfo.Bot
+        ? L["Mode.Bot"]
+        : AgentName is { } name ? L["Mode.Agent", name] : L["Mode.AwaitingAgent"];
+}

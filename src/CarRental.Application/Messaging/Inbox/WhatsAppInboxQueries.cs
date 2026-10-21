@@ -6,6 +6,7 @@ using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Messaging.Notifications;
+using CarRental.Application.Messaging.Sending;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
@@ -24,6 +25,8 @@ public sealed class WhatsAppInboxQueries(
     ICustomersQueries customers,
     IBookingsQueries bookings,
     ISettingsReader settings,
+    IWhatsAppClient client,
+    IIdentityQueries identity,
     TimeProvider clock)
 {
     /// <summary>Messages of the thread shown at once (the most recent ones).</summary>
@@ -77,6 +80,7 @@ public sealed class WhatsAppInboxQueries(
             }
         }
 
+        var agents = await DisplayNamesAsync(conversations.Select(c => c.HumanAgentId), cancellationToken);
         var items = conversations.Select(c =>
         {
             var last = lastMessages.GetValueOrDefault(c.Id);
@@ -91,7 +95,7 @@ public sealed class WhatsAppInboxQueries(
                 c.Mode.ToInfo(),
                 c.Status == ConversationStatus.Open,
                 c.Mode == ConversationMode.Human && c.HumanAgentId is null,
-                c.HumanAgentName,
+                AgentName(agents, c.HumanAgentId, c.HumanAgentName),
                 c.UnreadCount,
                 c.LastActivityAtUtc,
                 c.WindowClosesAtUtc,
@@ -123,7 +127,9 @@ public sealed class WhatsAppInboxQueries(
             .Take(ThreadSize + 1)
             .ToListAsync(cancellationToken);
         var hasEarlier = latest.Count > ThreadSize;
-        var thread = latest.Take(ThreadSize).Reverse().Select(ToInboxMessage).ToList();
+        var shown = latest.Take(ThreadSize).Reverse().ToList();
+        var names = await DisplayNamesAsync(shown.Select(m => m.AuthorUserId).Append(conversation.HumanAgentId), cancellationToken);
+        var thread = shown.Select(m => ToInboxMessage(m, names)).ToList();
 
         InboxLinkedPerson? person = null;
         IReadOnlyList<InboxPersonCandidate> candidates = [];
@@ -173,7 +179,7 @@ public sealed class WhatsAppInboxQueries(
             conversation.Status == ConversationStatus.Open,
             conversation.HumanSinceUtc,
             conversation.HumanAgentId,
-            conversation.HumanAgentName,
+            AgentName(names, conversation.HumanAgentId, conversation.HumanAgentName),
             conversation.HandoverReason,
             conversation.UnreadCount,
             conversation.CreatedAtUtc,
@@ -189,6 +195,13 @@ public sealed class WhatsAppInboxQueries(
             conversation.Usage.ToInfo(),
             thread,
             hasEarlier);
+    }
+
+    /// <summary>Whether WhatsApp is configured (messages can be sent) and the templates an agent can send.</summary>
+    public async Task<Result<InboxOverview>> GetOverviewAsync(CancellationToken cancellationToken)
+    {
+        var templates = await GetTemplatesAsync(cancellationToken);
+        return templates.IsSuccess ? new InboxOverview(client.IsEnabled, templates.Value) : templates.Error;
     }
 
     /// <summary>The templates an agent can send (those with a configured name), the follow-up first.</summary>
@@ -237,6 +250,16 @@ public sealed class WhatsAppInboxQueries(
             : query.Where(c => c.ProfileName != null && c.ProfileName.Contains(search));
     }
 
+    /// <summary>The display name of a user of the back office (Identity module), else the name recorded with the action.</summary>
+    private static string? AgentName(IReadOnlyDictionary<Guid, string> names, Guid? userId, string? recorded) =>
+        userId is { } id && names.TryGetValue(id, out var name) && !string.IsNullOrWhiteSpace(name) ? name : recorded;
+
+    private async Task<IReadOnlyDictionary<Guid, string>> DisplayNamesAsync(IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
+    {
+        var ids = userIds.OfType<Guid>().Distinct().ToList();
+        return ids.Count == 0 ? new Dictionary<Guid, string>() : await identity.GetDisplayNamesAsync(ids, cancellationToken);
+    }
+
     private static string? Preview(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -251,7 +274,7 @@ public sealed class WhatsAppInboxQueries(
     private static InboxLinkedBooking ToLinked(BookingSummaryInfo booking) =>
         new(booking.Id, booking.Number, booking.Status, booking.PickupAt, booking.ReturnAt);
 
-    private static InboxMessage ToInboxMessage(Message message)
+    private static InboxMessage ToInboxMessage(Message message, IReadOnlyDictionary<Guid, string> names)
     {
         IReadOnlyList<string> choices = message.Content switch
         {
@@ -264,7 +287,7 @@ public sealed class WhatsAppInboxQueries(
             message.Id,
             message.Direction.ToInfo(),
             message.Author.ToInfo(),
-            message.AuthorName,
+            AgentName(names, message.AuthorUserId, message.AuthorName),
             message.Kind.ToInfo(),
             message.Text,
             choices,
@@ -287,7 +310,7 @@ public sealed class WhatsAppInboxQueries(
 }
 
 /// <summary>The settings and parameter counts of the templates an agent can send (ADR-0048).</summary>
-internal static class InboxTemplates
+public static class InboxTemplates
 {
     public static SettingDefinition<string> SettingOf(InboxTemplateKind kind) => kind switch
     {

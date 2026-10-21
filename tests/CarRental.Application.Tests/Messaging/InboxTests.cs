@@ -163,6 +163,24 @@ public sealed class InboxTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Agents_are_shown_by_their_display_name()
+    {
+        var conversationId = await ConversationAsync();
+        _harness.Identity.Names[_agent.UserId!.Value] = "Amel Trabelsi";
+        await Inbox(s => s.TakeOverAsync(conversationId, TestContext.Current.CancellationToken));
+        await Inbox(s => s.SendTextAsync(conversationId, "Bonjour", TestContext.Current.CancellationToken));
+
+        var item = (await ListAsync(new InboxFilter(InboxView.Human))).Items.ShouldHaveSingleItem();
+        var details = (await _harness.RunAsync<WhatsAppInboxQueries, Result<InboxConversationDetails>>(
+            q => q.GetAsync(conversationId, TestContext.Current.CancellationToken),
+            _agent)).Value;
+
+        item.HumanAgentName.ShouldBe("Amel Trabelsi");
+        details.HumanAgentName.ShouldBe("Amel Trabelsi");
+        details.Messages.Single(m => m.Author == MessageAuthorInfo.Agent).AuthorName.ShouldBe("Amel Trabelsi");
+    }
+
+    [Fact]
     public async Task Closing_hides_the_conversation_until_the_customer_writes_again()
     {
         var conversationId = await ConversationAsync();

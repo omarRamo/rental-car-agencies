@@ -1,0 +1,360 @@
+@page "/admin/whatsapp"
+@attribute [HasPermission(Permissions.WhatsAppInbox)]
+@implements IDisposable
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Messaging.Contracts
+@using CarRental.Application.Messaging.Inbox
+@using CarRental.Web.Components.Admin.WhatsApp
+@using CarRental.Web.Resources.Admin.WhatsApp
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IWhatsAppInboxActivity Activity
+@inject IStringLocalizer<WhatsAppResources> L
+@inject IStringLocalizer<SharedResources> Shared
+@inject TimeProvider Clock
+
+<PageTitle>@L["Inbox.Title"]</PageTitle>
+<WhatsAppStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Inbox.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Inbox.Help"]</MudText>
+
+@if (_overview is { IsEnabled: false })
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-3">@L["Inbox.Disabled"]</MudAlert>
+}
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="5" lg="4">
+        <section aria-labelledby="whatsapp-list-title">
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="whatsapp-list-title" Class="mb-2">@L["List.Title"]</MudText>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                <MudSelect T="InboxView" Value="_view" ValueChanged="ViewChangedAsync" Label="@L["List.View"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           ToStringFunc="@(view => L[$"List.View.{view}"])" Class="flex-grow-1">
+                    @foreach (var view in Enum.GetValues<InboxView>())
+                    {
+                        <MudSelectItem T="InboxView" Value="view">@L[$"List.View.{view}"]</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" @bind-Value="_search" Label="@L["List.Search"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="300" Immediate="true"
+                              OnDebounceIntervalElapsed="SearchAsync" InputId="whatsapp-search" autocomplete="off" Class="flex-grow-1" />
+            </div>
+            <MudTable @ref="_table" T="InboxConversationItem" ServerData="LoadAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1"
+                      Breakpoint="Breakpoint.None" TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["List.Title"].Value })">
+                <HeaderContent>
+                    <MudTh>@L["List.Column.Conversation"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["List.Column.Conversation"]" Class="pa-1">
+                        @{
+                            var selected = context.Id == _selectedId;
+                        }
+                        <MudButton Variant="@(selected ? Variant.Outlined : Variant.Text)" Color="@(selected ? Color.Primary : Color.Default)" FullWidth="true"
+                                   Class="whatsapp-item" OnClick="@(() => SelectAsync(context.Id))" aria-pressed="@(selected ? "true" : "false")"
+                                   data-conversation="@context.Id">
+                            <span class="whatsapp-item__line">
+                                <strong>@WhatsAppFormat.Title(context.PersonName, context.ProfileName, context.WhatsAppNumber)</strong>
+                                @if (context.UnreadCount > 0)
+                                {
+                                    <span class="whatsapp-unread">@L["List.Unread", context.UnreadCount]</span>
+                                }
+                                @if (!context.IsOpen)
+                                {
+                                    <span class="whatsapp-muted">@L["List.Closed"]</span>
+                                }
+                            </span>
+                            <span class="whatsapp-item__line whatsapp-muted">
+                                <ModeLabel Mode="context.Mode" AgentName="@(context.AwaitsAgent ? null : context.HumanAgentName)" />
+                                @if (context.BookingNumber is { } number)
+                                {
+                                    <span>· @number</span>
+                                }
+                                <span>· @WhatsAppFormat.When(context.LastActivityAtUtc, Clock.GetUtcNow())</span>
+                            </span>
+                            @if (context.LastMessage is { } last)
+                            {
+                                <span class="whatsapp-item__preview whatsapp-muted">
+                                    @(last.Direction == MessageDirectionInfo.Outbound ? L["List.You"] : string.Empty)@WhatsAppFormat.Body(L, last.Kind, last.Text, null, null, null)
+                                </span>
+                            }
+                            <span class="whatsapp-item__line"><WindowCountdown ClosesAt="context.WindowClosesAtUtc" /></span>
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Typo="Typo.body2">@L["List.Empty"]</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <AdminTablePager />
+                </PagerContent>
+            </MudTable>
+        </section>
+    </MudItem>
+
+    <MudItem xs="12" md="7" lg="8">
+        <section aria-labelledby="whatsapp-conversation-title" data-testid="conversation">
+            @if (_details is { } details)
+            {
+                <MudPaper Elevation="1" Class="pa-4">
+                    <div class="d-flex flex-wrap justify-space-between align-start gap-2">
+                        <div>
+                            <MudText Typo="Typo.h6" HtmlTag="h2" id="whatsapp-conversation-title">
+                                @WhatsAppFormat.Title(details.Person is { IsAnonymized: false } person ? person.FullName : null, details.ProfileName, details.WhatsAppNumber)
+                            </MudText>
+                            <MudText Typo="Typo.body2" Class="whatsapp-muted">
+                                @WhatsAppFormat.Number(details.WhatsAppNumber)@(details.ProfileName is { } profile ? $" · {L["Conversation.Profile", profile]}" : string.Empty)
+                            </MudText>
+                        </div>
+                        <div class="d-flex flex-column align-end gap-1">
+                            <ModeLabel Mode="details.Mode" AgentName="details.HumanAgentName" />
+                            <WindowCountdown ClosesAt="details.WindowClosesAtUtc" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        @if (details.Mode == ConversationModeInfo.Bot || details.HumanAgentId != _userId)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PanTool" Disabled="_busy" OnClick="TakeOverAsync">
+                                @L["Action.TakeOver"]
+                            </MudButton>
+                        }
+                        @if (details.Mode == ConversationModeInfo.Human)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.SmartToy" Disabled="_busy" OnClick="HandBackAsync">
+                                @L["Action.HandBack"]
+                            </MudButton>
+                        }
+                        @if (details.IsOpen)
+                        {
+                            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Archive" Disabled="_busy" OnClick="CloseAsync">@L["Action.Close"]</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Unarchive" Disabled="_busy" OnClick="ReopenAsync">@L["Action.Reopen"]</MudButton>
+                        }
+                    </div>
+
+                    @if (details.Mode == ConversationModeInfo.Human && details.HandoverReason is { } reason)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@L["Conversation.HandedOver", reason]</MudAlert>
+                    }
+
+                    <ConversationLinks Details="details" CanLinkPerson="_canReadCustomers" CanLinkBooking="_canReadBookings" Changed="ReloadSelectedAsync" />
+                    <BotStatePanel Need="details.Need" Usage="details.Usage" />
+
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4 mb-1">@L["Thread.Title"]</MudText>
+                    <ConversationThread Messages="details.Messages" HasEarlier="details.HasEarlierMessages" />
+                    <ReplyComposer Details="details" Templates="@(_overview?.Templates ?? [])" Enabled="@(_overview?.IsEnabled ?? false)" Sent="ReloadSelectedAsync" />
+                </MudPaper>
+            }
+            else
+            {
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="whatsapp-conversation-title">@L["Conversation.Title"]</MudText>
+                <MudText Typo="Typo.body2">@L["Conversation.Select"]</MudText>
+            }
+        </section>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private static readonly TimeSpan PeriodicRefresh = TimeSpan.FromSeconds(30);
+
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private MudTable<InboxConversationItem>? _table;
+    private InboxOverview? _overview;
+    private InboxConversationDetails? _details;
+    private InboxView _view = InboxView.Open;
+    private string? _search;
+    private Guid? _selectedId;
+    private Guid? _userId;
+    private bool _canReadCustomers;
+    private bool _canReadBookings;
+    private bool _busy;
+    private bool _refreshAgain;
+    private Timer? _timer;
+
+    /// <summary>A conversation to open at once (<c>/admin/whatsapp?conversation={id}</c>, a link from another screen).</summary>
+    [SupplyParameterFromQuery(Name = "conversation")]
+    public Guid? ConversationId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            // Loaded, then kept up to date, once interactive only.
+            return;
+        }
+
+        var user = (await AuthenticationState).User;
+        _userId = user.GetUserId();
+        _canReadCustomers = user.HasPermission(Permissions.CustomersRead);
+        _canReadBookings = user.HasPermission(Permissions.BookingsRead);
+        var overview = await Runner.RunAsync<WhatsAppInboxQueries, Result<InboxOverview>>((queries, ct) => queries.GetOverviewAsync(ct));
+        _overview = overview.IsSuccess ? overview.Value : null;
+        if (ConversationId is { } conversationId)
+        {
+            await SelectAsync(conversationId);
+        }
+
+        Activity.Changed += OnActivity;
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshAsync), null, PeriodicRefresh, PeriodicRefresh);
+    }
+
+    public void Dispose()
+    {
+        Activity.Changed -= OnActivity;
+        _timer?.Dispose();
+        _refreshLock.Dispose();
+    }
+
+    private async Task<TableData<InboxConversationItem>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return new TableData<InboxConversationItem> { Items = [], TotalItems = 0 };
+        }
+
+        var filter = new InboxFilter(_view, _search);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<WhatsAppInboxQueries, Result<PagedResult<InboxConversationItem>>>(
+            (queries, ct) => queries.ListAsync(filter, page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<InboxConversationItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<InboxConversationItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task ViewChangedAsync(InboxView view)
+    {
+        _view = view;
+        await ReloadListAsync();
+    }
+
+    private Task SearchAsync(string _) => ReloadListAsync();
+
+    private async Task ReloadListAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task SelectAsync(Guid conversationId)
+    {
+        _selectedId = conversationId;
+        await ReloadSelectedAsync();
+    }
+
+    /// <summary>Reloads the open conversation (and marks its customer messages read: the agent is looking at them).</summary>
+    private async Task ReloadSelectedAsync()
+    {
+        if (_selectedId is not { } conversationId)
+        {
+            return;
+        }
+
+        var details = await Runner.RunAsync<WhatsAppInboxQueries, Result<InboxConversationDetails>>((queries, ct) => queries.GetAsync(conversationId, ct));
+        if (details.IsFailure)
+        {
+            _details = null;
+            _selectedId = null;
+            Snackbar.Add(ErrorMessages.For(Shared, details.Error), Severity.Error);
+            return;
+        }
+
+        _details = details.Value;
+        if (_details.UnreadCount > 0)
+        {
+            // A concurrent change only delays the read mark to the next refresh.
+            await Runner.RunAsync<WhatsAppInboxService, Result>((service, ct) => service.MarkReadAsync(conversationId, ct));
+            await ReloadListAsync();
+        }
+    }
+
+    private void OnActivity(object? sender, EventArgs e) => _ = InvokeAsync(RefreshAsync);
+
+    /// <summary>
+    /// Reloads the list and the open conversation. Notifications arriving during a refresh coalesce into one more refresh,
+    /// so a burst of webhook events never piles up reloads.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        if (!await _refreshLock.WaitAsync(0))
+        {
+            _refreshAgain = true;
+            return;
+        }
+
+        try
+        {
+            do
+            {
+                _refreshAgain = false;
+                if (_busy)
+                {
+                    break;
+                }
+
+                await ReloadListAsync();
+                await ReloadSelectedAsync();
+                StateHasChanged();
+            }
+            while (_refreshAgain);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The circuit closed during the refresh.
+        }
+        finally
+        {
+            try
+            {
+                _refreshLock.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed meanwhile.
+            }
+        }
+    }
+
+    private Task TakeOverAsync() => ActAsync((service, id, ct) => service.TakeOverAsync(id, ct), L["Action.TakeOver.Done"]);
+
+    private Task HandBackAsync() => ActAsync((service, id, ct) => service.HandBackToBotAsync(id, ct), L["Action.HandBack.Done"]);
+
+    private Task CloseAsync() => ActAsync((service, id, ct) => service.CloseAsync(id, ct), L["Action.Close.Done"]);
+
+    private Task ReopenAsync() => ActAsync((service, id, ct) => service.ReopenAsync(id, ct), L["Action.Reopen.Done"]);
+
+    private async Task ActAsync(Func<WhatsAppInboxService, Guid, CancellationToken, Task<Result>> action, string success)
+    {
+        if (_selectedId is not { } conversationId)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await Runner.RunAsync<WhatsAppInboxService, Result>((service, ct) => action(service, conversationId, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add(success, Severity.Success);
+        }
+
+        await ReloadSelectedAsync();
+        await ReloadListAsync();
+    }
+}

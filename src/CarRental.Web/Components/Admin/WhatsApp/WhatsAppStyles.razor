@@ -1,0 +1,27 @@
+@* Styles of the WhatsApp inbox (rendered once by the page; the back office has no CSS isolation bundle). Text keeps a
+   contrast of at least 4.5:1 on its background; who wrote a message is said in words, not by its side or colour only.
+   Logical properties for the future right-to-left layout. *@
+<style>
+    .whatsapp-muted { color: #4a5361; font-size: 0.875rem; }
+    .whatsapp-item { inline-size: 100%; min-inline-size: 0; text-transform: none; }
+    .whatsapp-item .mud-button-label { display: block; min-inline-size: 0; inline-size: 100%; text-align: start; overflow-wrap: anywhere; }
+    .whatsapp-item__line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+    .whatsapp-item__preview { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-inline-size: 100%; }
+    .whatsapp-unread { display: inline-flex; align-items: center; padding: 0 0.5rem; border-radius: 1rem; background: #0b57d0; color: #ffffff; font-size: 0.75rem; font-weight: 700; }
+    .whatsapp-thread { list-style: none; margin: 0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; max-block-size: 60vh; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 0.375rem; background: #f8fafc; }
+    .whatsapp-thread:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; }
+    .whatsapp-message { max-inline-size: 85%; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #ffffff; color: #1b1f24; }
+    .whatsapp-message--out { align-self: flex-end; background: #eaf3ec; border-color: #94b49f; }
+    .whatsapp-message--system { align-self: center; background: #f1f5f9; }
+    .whatsapp-message__meta { font-size: 0.8125rem; color: #4a5361; overflow-wrap: anywhere; }
+    .whatsapp-message__text { white-space: pre-line; overflow-wrap: anywhere; margin-block: 0.25rem; }
+    .whatsapp-message__status { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; color: #4a5361; }
+    .whatsapp-message__status--failed { color: #b3261e; font-weight: 500; }
+    .whatsapp-choices { margin: 0.25rem 0 0; padding-inline-start: 1.25rem; font-size: 0.875rem; }
+    .whatsapp-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0; }
+    .whatsapp-facts dt { color: #4a5361; font-size: 0.875rem; }
+    .whatsapp-facts dd { margin: 0; }
+    .whatsapp-window { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.875rem; color: #1b1f24; }
+    .whatsapp-window--closed { color: #4a5361; }
+    .whatsapp-window--urgent { font-weight: 700; }
+</style>

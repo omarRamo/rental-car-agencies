@@ -51,6 +51,7 @@ internal sealed class MessagingHarness : IAsyncDisposable
         services.AddSingleton<ISettingsReader>(Settings);
         services.AddSingleton<IWhatsAppClient>(WhatsApp);
         services.AddSingleton<IWhatsAppWebhookParser>(Parser);
+        services.AddSingleton<IIdentityQueries>(Identity);
         services.Replace(ServiceDescriptor.Scoped<IConversationResponder>(_ => Responder));
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
     }
@@ -76,6 +77,8 @@ internal sealed class MessagingHarness : IAsyncDisposable
     public FakeWebhookParser Parser { get; } = new();
 
     public ScriptedResponder Responder { get; } = new();
+
+    public FakeIdentityQueries Identity { get; } = new();
 
     public ServiceProvider Services { get; }
 

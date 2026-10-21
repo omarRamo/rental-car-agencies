@@ -1,0 +1,148 @@
+@* Answering the customer once the conversation is taken over: a free-form text within the 24-hour window, an approved
+   template (with its parameters) at any time — the only message possible once the window is closed. In bot mode the
+   agent is told to take over first. *@
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<WhatsAppResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<section aria-labelledby="whatsapp-reply-title" class="mt-3" data-testid="composer">
+    <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="whatsapp-reply-title">@L["Reply.Title"]</MudText>
+    @if (!Enabled)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">@L["Reply.Disabled"]</MudAlert>
+    }
+    else if (Details.Mode != ConversationModeInfo.Human)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">@L["Reply.TakeOverFirst"]</MudAlert>
+    }
+    else
+    {
+        @if (Details.IsWindowOpen)
+        {
+            <MudTextField T="string" @bind-Value="_text" Label="@L["Reply.Text"]" Variant="Variant.Outlined" Lines="3" Sizing="InputSizing.Auto" MaxLines="8"
+                          MaxLength="4096" Counter="4096" Immediate="true" InputId="whatsapp-reply-text" HelperText="@L["Reply.Text.Help"]" />
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                           Disabled="@(_busy || string.IsNullOrWhiteSpace(_text))" OnClick="SendTextAsync">@L["Reply.Send"]</MudButton>
+                @if (Templates.Count > 0 && !_showTemplates)
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Article" OnClick="@(() => _showTemplates = true)">@L["Reply.UseTemplate"]</MudButton>
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">@L["Reply.WindowClosed"]</MudAlert>
+        }
+
+        @if (!Details.IsWindowOpen || _showTemplates)
+        {
+            @if (Templates.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">@L["Reply.NoTemplate"]</MudText>
+            }
+            else
+            {
+                <div class="mt-2" data-testid="template-picker">
+                    <MudSelect T="InboxTemplateKind?" Value="_template" ValueChanged="TemplateChanged" Label="@L["Reply.Template"]" Variant="Variant.Outlined"
+                               ToStringFunc="@(kind => kind is { } k ? L[$"Template.{k}"] : string.Empty)">
+                        @foreach (var template in Templates)
+                        {
+                            <MudSelectItem T="InboxTemplateKind?" Value="@template.Kind">@L[$"Template.{template.Kind}"]</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (Selected is { } selected)
+                    {
+                        <MudText Typo="Typo.caption" Class="d-block mt-1">@L["Reply.Template.Approved", selected.Name, selected.Language]</MudText>
+                        @for (var index = 0; index < selected.ParameterCount; index++)
+                        {
+                            var position = index;
+                            <MudTextField T="string" Value="@_parameters[position]" ValueChanged="@(value => _parameters[position] = value)" Immediate="true"
+                                          Label="@L[$"Template.{selected.Kind}.Param{position + 1}"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          MaxLength="300" InputId="@($"whatsapp-template-param-{position + 1}")" Class="mt-1" />
+                        }
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" Class="mt-2"
+                                   Disabled="@(_busy || _parameters.Take(selected.ParameterCount).Any(string.IsNullOrWhiteSpace))" OnClick="SendTemplateAsync">@L["Reply.SendTemplate"]</MudButton>
+                    }
+                </div>
+            }
+        }
+    }
+</section>
+
+@code {
+    private readonly string?[] _parameters = new string?[10];
+    private string? _text;
+    private bool _busy;
+    private bool _showTemplates;
+    private InboxTemplateKind? _template;
+
+    [Parameter, EditorRequired]
+    public InboxConversationDetails Details { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<InboxTemplate> Templates { get; set; } = [];
+
+    [Parameter]
+    public bool Enabled { get; set; }
+
+    /// <summary>Raised after a message was queued (the page reloads the conversation).</summary>
+    [Parameter]
+    public EventCallback Sent { get; set; }
+
+    private InboxTemplate? Selected => Templates.FirstOrDefault(t => t.Kind == _template);
+
+    private void TemplateChanged(InboxTemplateKind? kind)
+    {
+        _template = kind;
+        Array.Clear(_parameters);
+        if (kind == InboxTemplateKind.FollowUp)
+        {
+            _parameters[0] = Details.ProfileName;
+        }
+    }
+
+    private async Task SendTextAsync()
+    {
+        var conversationId = Details.Id;
+        var text = _text;
+        if (await SendAsync((service, ct) => service.SendTextAsync(conversationId, text, ct)))
+        {
+            _text = null;
+        }
+    }
+
+    private async Task SendTemplateAsync()
+    {
+        if (Selected is not { } selected)
+        {
+            return;
+        }
+
+        var conversationId = Details.Id;
+        IReadOnlyList<string?> parameters = [.. _parameters.Take(selected.ParameterCount)];
+        if (await SendAsync((service, ct) => service.SendTemplateAsync(conversationId, selected.Kind, parameters, ct)))
+        {
+            _template = null;
+            _showTemplates = false;
+            Array.Clear(_parameters);
+        }
+    }
+
+    private async Task<bool> SendAsync(Func<WhatsAppInboxService, CancellationToken, Task<Result>> send)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<WhatsAppInboxService, Result>(send);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return false;
+        }
+
+        Snackbar.Add(L["Reply.Queued"], Severity.Success);
+        await Sent.InvokeAsync();
+        return true;
+    }
+}
