@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Result.Title" xml:space="preserve">
+    <value>Your payment</value>
+  </data>
+  <data name="Result.Description" xml:space="preserve">
+    <value>Outcome of your online payment with Clic to Pay.</value>
+  </data>
+  <data name="Result.Authorized.Heading" xml:space="preserve">
+    <value>Payment authorized</value>
+  </data>
+  <data name="Result.Authorized.Text" xml:space="preserve">
+    <value>The amount of {0} is guaranteed on your card (pre-authorization): it will only be debited when your request is validated.</value>
+  </data>
+  <data name="Result.Paid.Heading" xml:space="preserve">
+    <value>Payment received</value>
+  </data>
+  <data name="Result.Paid.Text" xml:space="preserve">
+    <value>We received your payment of {0}. Thank you!</value>
+  </data>
+  <data name="Result.Pending.Heading" xml:space="preserve">
+    <value>Payment being checked</value>
+  </data>
+  <data name="Result.Pending.Text" xml:space="preserve">
+    <value>We are waiting for the bank to confirm your payment of {0}. It usually takes a few minutes; reload this page to see it.</value>
+  </data>
+  <data name="Result.Failed.Heading" xml:space="preserve">
+    <value>Payment declined</value>
+  </data>
+  <data name="Result.Failed.Text" xml:space="preserve">
+    <value>The payment of {0} did not go through and nothing was debited. You can try again with another card or contact the agency.</value>
+  </data>
+  <data name="Result.Cancelled.Heading" xml:space="preserve">
+    <value>Payment cancelled or expired</value>
+  </data>
+  <data name="Result.Cancelled.Text" xml:space="preserve">
+    <value>This payment of {0} is no longer valid. Contact the agency to get a new payment link.</value>
+  </data>
+  <data name="Result.NotFound.Heading" xml:space="preserve">
+    <value>Payment not found</value>
+  </data>
+  <data name="Result.NotFound.Text" xml:space="preserve">
+    <value>We cannot find this payment. Check the link you received or contact the agency.</value>
+  </data>
+  <data name="Result.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Result.Reference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Result.Home" xml:space="preserve">
+    <value>Back to the home page</value>
+  </data>
+</root>

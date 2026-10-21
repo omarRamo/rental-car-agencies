@@ -1,0 +1,92 @@
+@* Development and Testing page (rendered by ClicToPayEndpoints with the simulated gateway only) to start an online
+   payment without the booking funnel: it calls IOnlinePayments like the funnel will, then sends the browser to the
+   payment page of the gateway. *@
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Web.Endpoints
+@using CarRental.Web.Resources.Dev
+@using Microsoft.AspNetCore.Antiforgery
+@inject IStringLocalizer<ClicToPayDevResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>@L["Start.Title"]</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <span class="site-brand">@L["Pay.Brand"]</span>
+        </div>
+    </header>
+    <main id="main" class="site-main container">
+        <section class="card account" aria-labelledby="start-heading">
+            <h1 id="start-heading">@L["Start.Heading"]</h1>
+            <p class="notice">@L["Start.Notice"]</p>
+            @if (ErrorCode is not null)
+            {
+                <p class="alert alert--error" role="alert">@ErrorText(ErrorCode)</p>
+            }
+            <form method="post" action="@ClicToPayEndpoints.DevStartPath">
+                <input type="hidden" name="@Antiforgery.FormFieldName" value="@Antiforgery.RequestToken" />
+                <div class="form-field">
+                    <label for="start-agency">@L["Start.Agency"]</label>
+                    <select id="start-agency" name="AgencyId">
+                        @foreach (var agency in Agencies)
+                        {
+                            <option value="@agency.Id">@agency.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="start-booking">@L["Start.Booking"]</label>
+                    <input id="start-booking" name="BookingId" autocomplete="off" aria-describedby="start-booking-hint" />
+                    <span id="start-booking-hint" class="field-hint">@L["Start.Booking.Hint"]</span>
+                </div>
+                <div class="form-field">
+                    <label for="start-amount">@L["Start.Amount"]</label>
+                    <input id="start-amount" name="Amount" inputmode="decimal" value="100.000" autocomplete="off" required />
+                </div>
+                <fieldset class="form-field">
+                    <legend>@L["Start.Flow"]</legend>
+                    <label><input type="radio" name="Flow" value="@PreAuthorizationFlow" checked /> @L["Start.Flow.PreAuthorization"]</label>
+                    <label><input type="radio" name="Flow" value="@OneStepFlow" /> @L["Start.Flow.OneStep"]</label>
+                </fieldset>
+                <div class="form-field">
+                    <label for="start-culture">@L["Start.Culture"]</label>
+                    <select id="start-culture" name="Culture">
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <button class="button" type="submit">@L["Start.Submit"]</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
+
+@code {
+    public const string PreAuthorizationFlow = "preAuthorization";
+    public const string OneStepFlow = "oneStep";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public AntiforgeryTokenSet Antiforgery { get; set; } = default!;
+
+    /// <summary>Error code of the previous attempt, shown with its text.</summary>
+    [Parameter]
+    public string? ErrorCode { get; set; }
+
+    private string ErrorText(string code)
+    {
+        var text = Shared[$"Error.{code}"];
+        return text.ResourceNotFound ? Shared["Error.Generic", code].Value : text.Value;
+    }
+}

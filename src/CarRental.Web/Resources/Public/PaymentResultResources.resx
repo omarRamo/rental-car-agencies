@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Result.Title" xml:space="preserve">
+    <value>Votre paiement</value>
+  </data>
+  <data name="Result.Description" xml:space="preserve">
+    <value>Résultat de votre paiement en ligne par Clic to Pay.</value>
+  </data>
+  <data name="Result.Authorized.Heading" xml:space="preserve">
+    <value>Paiement autorisé</value>
+  </data>
+  <data name="Result.Authorized.Text" xml:space="preserve">
+    <value>Le montant de {0} est garanti sur votre carte (pré-autorisation) : il ne sera débité qu'à la validation de votre demande.</value>
+  </data>
+  <data name="Result.Paid.Heading" xml:space="preserve">
+    <value>Paiement reçu</value>
+  </data>
+  <data name="Result.Paid.Text" xml:space="preserve">
+    <value>Nous avons bien reçu votre paiement de {0}. Merci !</value>
+  </data>
+  <data name="Result.Pending.Heading" xml:space="preserve">
+    <value>Paiement en cours de vérification</value>
+  </data>
+  <data name="Result.Pending.Text" xml:space="preserve">
+    <value>Nous attendons la confirmation de la banque pour votre paiement de {0}. Elle arrive en général en quelques minutes ; rechargez cette page pour la voir.</value>
+  </data>
+  <data name="Result.Failed.Heading" xml:space="preserve">
+    <value>Paiement refusé</value>
+  </data>
+  <data name="Result.Failed.Text" xml:space="preserve">
+    <value>Le paiement de {0} n'a pas abouti et rien n'a été débité. Vous pouvez réessayer avec une autre carte ou contacter l'agence.</value>
+  </data>
+  <data name="Result.Cancelled.Heading" xml:space="preserve">
+    <value>Paiement annulé ou expiré</value>
+  </data>
+  <data name="Result.Cancelled.Text" xml:space="preserve">
+    <value>Ce paiement de {0} n'est plus valable. Contactez l'agence pour obtenir un nouveau lien de paiement.</value>
+  </data>
+  <data name="Result.NotFound.Heading" xml:space="preserve">
+    <value>Paiement introuvable</value>
+  </data>
+  <data name="Result.NotFound.Text" xml:space="preserve">
+    <value>Nous ne trouvons pas ce paiement. Vérifiez le lien reçu ou contactez l'agence.</value>
+  </data>
+  <data name="Result.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Result.Reference" xml:space="preserve">
+    <value>Référence</value>
+  </data>
+  <data name="Result.Home" xml:space="preserve">
+    <value>Retour à l'accueil</value>
+  </data>
+</root>
