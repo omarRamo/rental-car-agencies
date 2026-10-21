@@ -165,17 +165,26 @@ public sealed class VehicleAssignmentService
                 continue;
             }
 
-            var vehicles = await _loader.LoadVehiclesAsync(category.Id, range, cancellationToken);
-            var intervals = await _loader.LoadOccupancyAsync(context, range, excludedBookingId: null, cancellationToken);
+            // A proposal holds for the whole file, not only for its part inside the range: the occupancy is read over
+            // every file of the range, and the windows of the vehicles over all of it (the fleet clips them to the
+            // period it is asked for, so a file ending after the range would never fit a vehicle).
+            var ofRange = await _loader.LoadOccupancyAsync(context, range, excludedBookingId: null, cancellationToken);
+            var coverage = Covering(range, ofRange);
+            var intervals = coverage.End > range.End ? await _loader.LoadOccupancyAsync(context, coverage, excludedBookingId: null, cancellationToken) : ofRange;
+            var vehicles = await _loader.LoadVehiclesAsync(category.Id, Covering(coverage, intervals), cancellationToken);
             var plan = GreedyVehicleAssigner.Assign(vehicles, intervals, notBefore: range.Start);
-            if (plan.Proposals.Count == 0 && plan.Unassignable.Count == 0 && plan.Conflicts.Count == 0)
+            var inRange = ofRange.Select(i => i.BookingId).ToHashSet();
+            var planned = plan.Proposals.Where(p => inRange.Contains(p.BookingId)).ToList();
+            var unplaced = plan.Unassignable.Where(u => inRange.Contains(u.BookingId)).ToList();
+            var broken = plan.Conflicts.Where(c => inRange.Contains(c.BookingId)).ToList();
+            if (planned.Count == 0 && unplaced.Count == 0 && broken.Count == 0)
             {
                 continue;
             }
 
-            var bookingIds = plan.Proposals.Select(p => p.BookingId)
-                .Concat(plan.Unassignable.Select(u => u.BookingId))
-                .Concat(plan.Conflicts.Select(c => c.BookingId))
+            var bookingIds = planned.Select(p => p.BookingId)
+                .Concat(unplaced.Select(u => u.BookingId))
+                .Concat(broken.Select(c => c.BookingId))
                 .ToList();
             var bookings = await _writer.Db.Set<Booking>()
                 .AsNoTracking()
@@ -185,7 +194,7 @@ public sealed class VehicleAssignmentService
             var plates = vehicles.ToDictionary(v => v.Id, v => v.PlateNumber);
 
             // Only files not handed over yet are proposed: a rental in progress always has its vehicle.
-            foreach (var proposal in plan.Proposals.Where(p => bookings.TryGetValue(p.BookingId, out var b) && Planned.Contains(b.Status)))
+            foreach (var proposal in planned.Where(p => bookings.TryGetValue(p.BookingId, out var b) && Planned.Contains(b.Status)))
             {
                 var booking = bookings[proposal.BookingId];
                 proposals.Add(new AssignmentProposalView(
@@ -199,10 +208,10 @@ public sealed class VehicleAssignmentService
                     plates.GetValueOrDefault(proposal.VehicleId, string.Empty)));
             }
 
-            unassignable.AddRange(plan.Unassignable
+            unassignable.AddRange(unplaced
                 .Where(u => bookings.ContainsKey(u.BookingId))
                 .Select(u => new AssignmentIssueView(u.BookingId, bookings[u.BookingId].Number, category.AcrissCode, null, null, u.Reason)));
-            conflicts.AddRange(plan.Conflicts
+            conflicts.AddRange(broken
                 .Where(c => bookings.ContainsKey(c.BookingId))
                 .Select(c => new AssignmentIssueView(c.BookingId, bookings[c.BookingId].Number, category.AcrissCode, c.VehicleId, plates.GetValueOrDefault(c.VehicleId), c.Reason)));
         }
@@ -229,6 +238,13 @@ public sealed class VehicleAssignmentService
         }
 
         return outcomes;
+    }
+
+    /// <summary><paramref name="range"/>, extended to the end of the latest of <paramref name="intervals"/>.</summary>
+    private static Period Covering(Period range, IReadOnlyList<OccupancyInterval> intervals)
+    {
+        var end = intervals.Count == 0 ? range.End : intervals.Max(i => i.Period.End);
+        return end > range.End ? Period.Create(range.Start, end).Value : range;
     }
 
     private static VehicleCandidate Candidate(VehicleInfo vehicle, VehicleCandidateState state, Booking booking) => new(
