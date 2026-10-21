@@ -77,7 +77,8 @@ internal static class ReportingWorld
         var createdAt = pickupAt.AddDays(-5);
         var content = Content(agency, channel, pickupAt, days, rentalInclVat);
         var quote = Quote.CreateVersion(id, 1, QuoteOrigin.Initial, content, QuoteCode.Generate(), "tests", createdAt).Value;
-        var number = DocumentNumber.Create(DocumentType.Booking, Random.Shared.Next(2001, 2100), Random.Shared.NextInt64(1, 999_999)).Value;
+        // A past year only: the numbers of the current year are checked gapless by other tests of the run.
+        var number = DocumentNumber.Create(DocumentType.Booking, Random.Shared.Next(2001, 2021), Random.Shared.NextInt64(1, 999_999)).Value;
         var actor = new BookingActor(Manager.UserId, Manager.UserName, channel);
         var location = Guid.CreateVersion7();
         var details = new BookingDetails(

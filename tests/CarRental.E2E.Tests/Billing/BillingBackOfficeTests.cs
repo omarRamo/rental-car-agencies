@@ -269,13 +269,21 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
 
     private async Task AssertAccessibleAsync()
     {
-        // Toasts fade in and out (transient blended colours): close them, the page content is what is checked.
+        // Toasts fade in and out (transient blended colours): close them, the page content is what is checked. A toast may
+        // also close by itself while it is clicked (slow runs): its button is then gone, which is the goal.
         foreach (var close in await Page.Locator(".mud-snackbar button").AllAsync())
         {
-            await close.ClickAsync();
+            try
+            {
+                await close.ClickAsync(new LocatorClickOptions { Timeout = 3_000 });
+            }
+            catch (TimeoutException)
+            {
+                // Closed by itself meanwhile.
+            }
         }
 
-        await Expect(Page.Locator(".mud-snackbar")).ToHaveCountAsync(0);
+        await Expect(Page.Locator(".mud-snackbar")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
     }
 
