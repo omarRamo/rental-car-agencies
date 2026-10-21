@@ -771,4 +771,109 @@
   <data name="Error.cash.adjustment.corrected_session_invalid" xml:space="preserve">
     <value>La caisse corrigée doit être une autre caisse, clôturée ou verrouillée.</value>
   </data>
+  <data name="Error.acriss.required" xml:space="preserve">
+    <value>Le code ACRISS est obligatoire.</value>
+  </data>
+  <data name="Error.acriss.invalid_length" xml:space="preserve">
+    <value>Un code ACRISS compte exactement quatre lettres.</value>
+  </data>
+  <data name="Error.acriss.invalid_category" xml:space="preserve">
+    <value>La première lettre n'est pas une catégorie ACRISS.</value>
+  </data>
+  <data name="Error.acriss.invalid_type" xml:space="preserve">
+    <value>La deuxième lettre n'est pas un type de véhicule ACRISS.</value>
+  </data>
+  <data name="Error.acriss.invalid_transmission" xml:space="preserve">
+    <value>La troisième lettre n'est pas un code ACRISS de transmission.</value>
+  </data>
+  <data name="Error.acriss.invalid_fuel_air" xml:space="preserve">
+    <value>La quatrième lettre n'est pas un code ACRISS de carburant et de climatisation.</value>
+  </data>
+  <data name="Error.document_number.unknown_type" xml:space="preserve">
+    <value>Type de pièce inconnu.</value>
+  </data>
+  <data name="Error.document_number.invalid_year" xml:space="preserve">
+    <value>L'exercice doit compter quatre chiffres.</value>
+  </data>
+  <data name="Error.document_number.invalid_sequence" xml:space="preserve">
+    <value>La numérotation commence à 1.</value>
+  </data>
+  <data name="Error.document_number.invalid_format" xml:space="preserve">
+    <value>Numéro attendu sous la forme FAC-2027-000045.</value>
+  </data>
+  <data name="Error.money.currency_required" xml:space="preserve">
+    <value>La devise est obligatoire.</value>
+  </data>
+  <data name="Error.money.unknown_currency" xml:space="preserve">
+    <value>Cette devise n'est pas prise en charge.</value>
+  </data>
+  <data name="Error.money.too_many_decimals" xml:space="preserve">
+    <value>Le montant compte trop de décimales (trois au plus pour le dinar).</value>
+  </data>
+  <data name="Error.period.end_must_be_after_start" xml:space="preserve">
+    <value>La fin doit être postérieure au début.</value>
+  </data>
+  <data name="Error.referential.agency_required" xml:space="preserve">
+    <value>L'agence est obligatoire.</value>
+  </data>
+  <data name="Error.referential.agency_name_invalid" xml:space="preserve">
+    <value>Le nom de l'agence est obligatoire (120 caractères au plus).</value>
+  </data>
+  <data name="Error.referential.agency_city_invalid" xml:space="preserve">
+    <value>La ville de l'agence est obligatoire (80 caractères au plus).</value>
+  </data>
+  <data name="Error.referential.agency_field_too_long" xml:space="preserve">
+    <value>Un champ de l'agence est trop long.</value>
+  </data>
+  <data name="Error.referential.agency_email_invalid" xml:space="preserve">
+    <value>L'adresse e-mail de l'agence n'est pas valide.</value>
+  </data>
+  <data name="Error.referential.location_code_invalid" xml:space="preserve">
+    <value>Le code d'un lieu compte 2 à 16 caractères : lettres A à Z, chiffres ou tiret.</value>
+  </data>
+  <data name="Error.referential.location_name_invalid" xml:space="preserve">
+    <value>Le nom du lieu est obligatoire (120 caractères au plus).</value>
+  </data>
+  <data name="Error.referential.location_kind_invalid" xml:space="preserve">
+    <value>Type de lieu inconnu.</value>
+  </data>
+  <data name="Error.referential.location_address_too_long" xml:space="preserve">
+    <value>L'adresse est trop longue (300 caractères au plus).</value>
+  </data>
+  <data name="Error.referential.setting_key_invalid" xml:space="preserve">
+    <value>Une clé de paramètre est faite de segments en minuscules séparés par des points, par exemple bookings.hold_duration.</value>
+  </data>
+  <data name="Error.referential.setting_value_invalid" xml:space="preserve">
+    <value>Cette valeur n'est pas valide pour ce paramètre.</value>
+  </data>
+  <data name="Error.outbox.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les messages de fond.</value>
+  </data>
+  <data name="Error.outbox.message_not_found" xml:space="preserve">
+    <value>Ce message n'existe plus ou vient d'être traité : actualisez la liste.</value>
+  </data>
+  <data name="Error.referential.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les paramètres.</value>
+  </data>
+  <data name="Error.referential.setting_unknown" xml:space="preserve">
+    <value>Ce paramètre n'est déclaré par aucun module.</value>
+  </data>
+  <data name="Error.referential.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas.</value>
+  </data>
+  <data name="Error.referential.setting_concurrent_update" xml:space="preserve">
+    <value>Le paramètre a été modifié entre-temps : rechargez la page puis recommencez.</value>
+  </data>
+  <data name="Error.referential.platform_setting_required" xml:space="preserve">
+    <value>La valeur de la plateforme ne se supprime pas : rétablissez plutôt sa valeur par défaut.</value>
+  </data>
+  <data name="Error.identity.permission_unknown" xml:space="preserve">
+    <value>Cette permission n'existe pas.</value>
+  </data>
+  <data name="Error.identity.cannot_change_own_permissions" xml:space="preserve">
+    <value>Vous ne pouvez pas modifier vos propres permissions.</value>
+  </data>
+  <data name="Error.referential.setting_platform_only" xml:space="preserve">
+    <value>Ce paramètre a une seule valeur pour toute la plateforme : une agence ne peut pas avoir la sienne.</value>
+  </data>
 </root>

@@ -81,12 +81,6 @@
   <data name="Audit.Title" xml:space="preserve">
     <value>Journal d'audit</value>
   </data>
-  <data name="Pager.Info" xml:space="preserve">
-    <value>{first_item}–{last_item} sur {all_items}</value>
-  </data>
-  <data name="Pager.RowsPerPage" xml:space="preserve">
-    <value>Lignes par page</value>
-  </data>
   <data name="Role.Accountant" xml:space="preserve">
     <value>Comptable</value>
   </data>
@@ -176,5 +170,35 @@
   </data>
   <data name="Users.Unlocked" xml:space="preserve">
     <value>Compte déverrouillé.</value>
+  </data>
+  <data name="Users.Column.ExtraPermissions" xml:space="preserve">
+    <value>Permissions supplémentaires</value>
+  </data>
+  <data name="Users.ExtraPermissions.None" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Users.Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="Users.Permissions.Label" xml:space="preserve">
+    <value>Permissions de {0}</value>
+  </data>
+  <data name="Users.Permissions.Title" xml:space="preserve">
+    <value>Permissions de {0}</value>
+  </data>
+  <data name="Users.Permissions.Intro" xml:space="preserve">
+    <value>Les permissions de son rôle ({0}) sont acquises. Cochez les permissions supplémentaires à lui confier : elles s'appliquent dès sa prochaine action, sans nouvelle connexion, et chaque changement est tracé dans le journal d'audit.</value>
+  </data>
+  <data name="Users.Permissions.FromRole" xml:space="preserve">
+    <value>{0} (rôle)</value>
+  </data>
+  <data name="Users.Permissions.Included" xml:space="preserve">
+    <value>{0} (incluse)</value>
+  </data>
+  <data name="Users.Permissions.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Users.Permissions.Saved" xml:space="preserve">
+    <value>Permissions enregistrées : elles s'appliquent à la prochaine action de l'utilisateur.</value>
   </data>
 </root>

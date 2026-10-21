@@ -22,7 +22,9 @@
         <AdminNavMenu />
     </MudDrawer>
     <MudMainContent>
-        <main id="admin-main" tabindex="-1" @ref="_main">
+        @* data-interactive: "true" once the circuit renders the page (the prerendered HTML says "false"); browser tests
+           wait for it before clicking. *@
+        <main id="admin-main" tabindex="-1" @ref="_main" data-interactive="@(RendererInfo.IsInteractive ? "true" : "false")">
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
                 @Body
             </MudContainer>

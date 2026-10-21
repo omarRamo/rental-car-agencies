@@ -34,6 +34,9 @@ internal static class WebServiceCollectionExtensions
             options.SnackbarConfiguration.VisibleStateDuration = 5000;
         });
 
+        // MudBlazor's own texts (pager, pickers, dialogs…) in the user interface language.
+        services.AddTransient<MudLocalizer, MudBlazorLocalizer>();
+
         AddLocalization(services);
         AddAuthentication(services, environment);
         AddAuthorization(services);
@@ -48,7 +51,6 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();
         services.AddFleetWeb();
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
-        services.AddScoped<SignInRecorder>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 
         services.AddAntiforgery(options =>
@@ -124,8 +126,17 @@ internal static class WebServiceCollectionExtensions
             options.Cookie.SecurePolicy = securePolicy;
         });
 
-        // A locked account or a changed password ends HTTP sessions within a minute.
-        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
+        // A locked account or a changed password ends HTTP sessions within a minute; the claims of a valid session are
+        // rebuilt at the same time, keeping how the user signed in (amr). A change of permissions refreshes the claims of
+        // the user's sessions at their next request (UserSessionRegistry), without signing in again.
+        services.Configure<SecurityStampValidatorOptions>(options =>
+        {
+            options.ValidationInterval = TimeSpan.FromMinutes(1);
+            options.OnRefreshingPrincipal = SessionClaims.KeepAuthenticationMethodAsync;
+        });
+        services.AddSingleton<UserSessionRegistry>();
+        services.AddSingleton<IUserSessions>(provider => provider.GetRequiredService<UserSessionRegistry>());
+        services.AddScoped<ISecurityStampValidator, CarRentalSecurityStampValidator>();
     }
 
     private static void AddAuthorization(IServiceCollection services)

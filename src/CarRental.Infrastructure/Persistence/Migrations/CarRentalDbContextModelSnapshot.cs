@@ -2567,6 +2567,10 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProcessedAtUtc")
+                        .HasDatabaseName("IX_OutboxMessages_Processed")
+                        .HasFilter("[ProcessedAtUtc] IS NOT NULL");
+
                     b.HasIndex("OccurredAtUtc", "NextAttemptAtUtc")
                         .HasDatabaseName("IX_OutboxMessages_Pending")
                         .HasFilter("[ProcessedAtUtc] IS NULL");

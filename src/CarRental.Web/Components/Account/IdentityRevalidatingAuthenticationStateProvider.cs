@@ -1,5 +1,6 @@
-using System.Security.Claims;
+using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
+using CarRental.Web.Security;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
@@ -9,11 +10,14 @@ namespace CarRental.Web.Components.Account;
 
 /// <summary>
 /// Revalidates the user of an interactive circuit every two minutes: a changed security stamp (password change, lock by
-/// the manager, role change) or a lockout ends the back office session.
+/// the manager, role change), a lockout or a revoked permission ends the authentication state of the circuit; the page
+/// then reloads over HTTP (<c>NotAuthorizedRedirect</c>), where the cookie is validated at once with the current state
+/// of the account: fresh claims, or the login page.
 /// </summary>
 internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     ILoggerFactory loggerFactory,
     IServiceScopeFactory scopeFactory,
+    IUserSessions sessions,
     IOptions<IdentityOptions> options)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
@@ -25,25 +29,17 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     {
         ArgumentNullException.ThrowIfNull(authenticationState);
         await using var scope = scopeFactory.CreateAsyncScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        return await ValidateAsync(userManager, authenticationState.User);
-    }
-
-    private async Task<bool> ValidateAsync(UserManager<ApplicationUser> userManager, ClaimsPrincipal principal)
-    {
-        var user = await userManager.GetUserAsync(principal);
-        if (user is null || await userManager.IsLockedOutAsync(user))
+        var valid = await SessionClaims.IsStillValidAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+            authenticationState.User,
+            options.Value);
+        if (!valid && authenticationState.User.GetUserId() is { } userId)
         {
-            return false;
+            // The reload must not wait for the validation interval of the cookie.
+            sessions.RefreshClaims(userId);
         }
 
-        if (!userManager.SupportsUserSecurityStamp)
-        {
-            return true;
-        }
-
-        var principalStamp = principal.FindFirstValue(options.Value.ClaimsIdentity.SecurityStampClaimType);
-        var userStamp = await userManager.GetSecurityStampAsync(user);
-        return string.Equals(principalStamp, userStamp, StringComparison.Ordinal);
+        return valid;
     }
 }

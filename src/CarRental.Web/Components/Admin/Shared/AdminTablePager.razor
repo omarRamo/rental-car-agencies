@@ -1,0 +1,40 @@
+@* Accessible pager of every back office MudTable (WCAG 2.2 AA): MudTablePager renders its page-size select without a
+   label, hence without an accessible name, so this pager hides it and renders a labelled select (MudSelect names its
+   combobox after its Label) bound to the same table. The page information and the navigation buttons stay
+   MudTablePager's; their names come from MudBlazorLocalizer. Usage:
+       <MudTable ... RowsPerPage="25"> ... <PagerContent><AdminTablePager /></PagerContent></MudTable>
+   The table's RowsPerPage must be one of PageSizeOptions. *@
+@inject IStringLocalizer<AdminResources> L
+
+<div class="admin-table-pager">
+    @if (!HideRowsPerPage)
+    {
+        <div class="admin-table-pager__size">
+            <MudSelect T="int" Value="@RowsPerPage" ValueChanged="SetRowsPerPage" Label="@L["Pager.RowsPerPage"]"
+                       Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var size in PageSizeOptions)
+                {
+                    <MudSelectItem T="int" Value="@size">@size.ToString(CultureInfo.CurrentCulture)</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    }
+    <MudTablePager HideRowsPerPage="true" InfoFormat="@L["Pager.Info"]" />
+</div>
+
+@code {
+    /// <summary>Page sizes offered to the user; the table's <c>RowsPerPage</c> must be one of them.</summary>
+    [Parameter]
+    public IReadOnlyList<int> PageSizeOptions { get; set; } = [25, 50, 100];
+
+    /// <summary>Hides the page-size select (fixed page size).</summary>
+    [Parameter]
+    public bool HideRowsPerPage { get; set; }
+
+    [CascadingParameter]
+    private TableContext? Context { get; set; }
+
+    private int RowsPerPage => Context?.Table?.RowsPerPage ?? PageSizeOptions[0];
+
+    private void SetRowsPerPage(int size) => Context?.Table?.SetRowsPerPage(size);
+}

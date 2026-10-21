@@ -1,0 +1,208 @@
+@page "/admin/settings"
+@attribute [HasPermission(Permissions.SettingsManage)]
+@using CarRental.Application.Referential.Administration
+@using CarRental.Web.Components.Admin.Settings
+@using CarRental.Web.Resources.Admin.Settings
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SettingsAdminResources> L
+@inject IStringLocalizer<SettingLabels> Labels
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Settings.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Settings.Title"]</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Settings.Intro"]</MudText>
+
+@if (_overview is { } overview)
+{
+    @if (_agency is not null)
+    {
+        <MudSelect T="Guid" Value="_agency.Id" ValueChanged="AgencyChanged" Label="@L["Settings.Agency"]" Class="mb-6 settings-agency">
+            @foreach (var agency in overview.Agencies)
+            {
+                <MudSelectItem T="Guid" Value="agency.Id">@agency.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-6">@L["Settings.NoAgency"]</MudAlert>
+    }
+
+    @foreach (var group in overview.Settings.GroupBy(s => s.Group).OrderBy(g => SettingText.Group(Labels, g.Key), StringComparer.CurrentCulture))
+    {
+        var headingId = $"settings-{group.Key}";
+        <section aria-labelledby="@headingId" class="mb-6" data-settings-group="@group.Key">
+            <MudText Typo="Typo.h5" HtmlTag="h2" id="@headingId" GutterBottom="true">@SettingText.Group(Labels, group.Key)</MudText>
+            <MudTable T="SettingItem" Items="group" Elevation="1" Breakpoint="Breakpoint.Sm" Class="settings-table"
+                      TableAttributes="@(new Dictionary<string, object> { ["aria-labelledby"] = headingId })">
+                <HeaderContent>
+                    <MudTh>@L["Settings.Column.Setting"]</MudTh>
+                    <MudTh>@L["Settings.Column.Default"]</MudTh>
+                    <MudTh>@L["Settings.Column.Platform"]</MudTh>
+                    @if (_agency is not null)
+                    {
+                        <MudTh>@L["Settings.Column.Agency"]</MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    @{
+                        var label = SettingText.Label(Labels, context.Key);
+                        var help = SettingText.Help(Labels, context.Key);
+                    }
+                    <MudTd DataLabel="@L["Settings.Column.Setting"]" data-setting-key="@context.Key">
+                        <strong>@label</strong>
+                        @if (help is not null)
+                        {
+                            <MudText Typo="Typo.body2">@help</MudText>
+                        }
+                        <MudText Typo="Typo.caption" Class="settings-key">@L["Settings.Key", context.Key]</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Settings.Column.Default"]">@SettingText.Display(L, context.Editor.Kind, context.DefaultValue)</MudTd>
+                    <MudTd DataLabel="@L["Settings.Column.Platform"]" data-setting-scope="platform">
+                        <span class="settings-value">@SettingText.Display(L, context.Editor.Kind, context.PlatformOrDefault)</span>
+                        @if (context.PlatformOrDefault == context.DefaultValue)
+                        {
+                            <MudText Typo="Typo.caption" Class="ms-1">(@L["Settings.IsDefault"])</MudText>
+                        }
+                        <div class="settings-actions">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="() => EditAsync(context, agency: null)" aria-label="@L["Settings.Edit.Platform.Label", label]">@L["Settings.Edit"]</MudButton>
+                            @if (context.PlatformOrDefault != context.DefaultValue)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.RestartAlt"
+                                           OnClick="() => ResetAsync(context, label)" aria-label="@L["Settings.Reset.Platform.Label", label]">@L["Settings.Reset"]</MudButton>
+                            }
+                        </div>
+                    </MudTd>
+                    @if (_agency is { } agency)
+                    {
+                        var hasOwnValue = context.AgencyValues.TryGetValue(agency.Id, out var own);
+                        <MudTd DataLabel="@L["Settings.Column.Agency"]" data-setting-scope="agency">
+                            @if (!context.AgencyOverridable)
+                            {
+                                <MudText Typo="Typo.body2" Class="settings-inherited">@L["Settings.PlatformOnly"]</MudText>
+                            }
+                            else if (hasOwnValue)
+                            {
+                                <span class="settings-value">@SettingText.Display(L, context.Editor.Kind, own!)</span>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Class="settings-inherited">@L["Settings.Inherited"]</MudText>
+                            }
+                            <div class="settings-actions">
+                                @if (context.AgencyOverridable)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Store"
+                                               OnClick="() => EditAsync(context, agency)" aria-label="@L["Settings.Edit.Agency.Label", label]">@(hasOwnValue ? L["Settings.Edit"] : L["Settings.SetForAgency"])</MudButton>
+                                }
+                                @if (hasOwnValue)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Clear"
+                                               OnClick="() => RemoveAsync(context, agency, label)" aria-label="@L["Settings.Remove.Agency.Label", label]">@L["Settings.Remove"]</MudButton>
+                                }
+                            </div>
+                        </MudTd>
+                    }
+                </RowTemplate>
+            </MudTable>
+        </section>
+    }
+}
+
+@code {
+    private SettingsOverview? _overview;
+    private SettingsAgency? _agency;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var overview = await Runner.RunAsync<SettingsAdministrationService, Result<SettingsOverview>>((service, ct) => service.GetOverviewAsync(ct));
+        if (overview.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, overview.Error), Severity.Error);
+            return;
+        }
+
+        _overview = overview.Value;
+
+        // Keep the selected agency; otherwise the first active one (the demo agency at launch).
+        _agency = _overview.Agencies.FirstOrDefault(a => a.Id == _agency?.Id)
+            ?? _overview.Agencies.FirstOrDefault(a => a.IsActive)
+            ?? _overview.Agencies.FirstOrDefault();
+    }
+
+    private void AgencyChanged(Guid agencyId) => _agency = _overview?.Agencies.FirstOrDefault(a => a.Id == agencyId);
+
+    private async Task EditAsync(SettingItem item, SettingsAgency? agency)
+    {
+        var label = SettingText.Label(Labels, item.Key);
+        var parameters = new DialogParameters<SettingEditDialog>
+        {
+            { d => d.Item, item },
+            { d => d.Agency, agency },
+            { d => d.Help, SettingText.Help(Labels, item.Key) },
+        };
+        var title = agency is null ? L["Settings.Dialog.Platform", label] : L["Settings.Dialog.Agency", label, agency.Name];
+        var dialog = await Dialogs.ShowAsync<SettingEditDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Settings.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ResetAsync(SettingItem item, string label)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Settings.Reset.Confirm.Title"],
+            L["Settings.Reset.Confirm.Message", label, SettingText.Display(L, item.Editor.Kind, item.DefaultValue)],
+            yesText: L["Settings.Reset"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var key = item.Key;
+        await NotifyAsync(
+            await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => service.ResetPlatformValueAsync(key, ct)),
+            L["Settings.ResetDone"]);
+    }
+
+    private async Task RemoveAsync(SettingItem item, SettingsAgency agency, string label)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Settings.Remove.Confirm.Title"],
+            L["Settings.Remove.Confirm.Message", label, SettingText.Display(L, item.Editor.Kind, item.PlatformOrDefault), agency.Name],
+            yesText: L["Settings.Remove"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var key = item.Key;
+        var agencyId = agency.Id;
+        await NotifyAsync(
+            await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => service.RemoveAgencyValueAsync(key, agencyId, ct)),
+            L["Settings.Removed"]);
+    }
+
+    private async Task NotifyAsync(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

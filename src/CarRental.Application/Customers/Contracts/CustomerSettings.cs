@@ -21,14 +21,14 @@ public static class CustomerSettings
     /// destruction procedure (law 2004-63 art. 45: report by a bailiff, expert appointed by the INPDP) is not validated.
     /// </summary>
     public static readonly SettingDefinition<bool> DocumentImageRetentionEnabled =
-        SettingDefinitions.Boolean("customers.document_image_retention_enabled", false);
+        SettingDefinitions.Boolean("customers.document_image_retention_enabled", false).PlatformOnly();
 
     /// <summary>
     /// Days during which document images are kept after the last closed rental of the person (or after their upload):
     /// 400 by default, i.e. a year for traffic fines to arrive plus a margin.
     /// </summary>
     public static readonly SettingDefinition<int> DocumentImageRetentionDays =
-        SettingDefinitions.WholeNumber("customers.document_image_retention_days", 400, 30, 3650);
+        SettingDefinitions.WholeNumber("customers.document_image_retention_days", 400, 30, 3650).PlatformOnly();
 
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Outbox.Title" xml:space="preserve">
+    <value>Background messages</value>
+  </data>
+  <data name="Outbox.Intro" xml:space="preserve">
+    <value>Side effects (e-mails, notifications, synchronisations) go through the outbox, with automatic retries. After {0} failures a message is no longer retried: fix the cause, then retry it. Processed messages are purged every night.</value>
+  </data>
+  <data name="Outbox.TimeZoneNote" xml:space="preserve">
+    <value>Tunis time.</value>
+  </data>
+  <data name="Outbox.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Outbox.Summary.Label" xml:space="preserve">
+    <value>Queue status</value>
+  </data>
+  <data name="Outbox.Summary.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Outbox.Summary.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Outbox.Summary.Retrying" xml:space="preserve">
+    <value>Of which retrying</value>
+  </data>
+  <data name="Outbox.Summary.Oldest" xml:space="preserve">
+    <value>Oldest pending</value>
+  </data>
+  <data name="Outbox.Summary.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Outbox.Summary.Alert" xml:space="preserve">
+    <value>Beyond {0} of waiting, the application health turns to "degraded".</value>
+  </data>
+  <data name="Outbox.Filter" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Outbox.Filter.All" xml:space="preserve">
+    <value>All unprocessed messages</value>
+  </data>
+  <data name="Outbox.Filter.Failed" xml:space="preserve">
+    <value>Failed messages</value>
+  </data>
+  <data name="Outbox.Filter.Pending" xml:space="preserve">
+    <value>Pending messages</value>
+  </data>
+  <data name="Outbox.Column.OccurredAt" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Outbox.Column.Type" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="Outbox.Column.State" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Outbox.Column.Attempts" xml:space="preserve">
+    <value>Failures</value>
+  </data>
+  <data name="Outbox.Column.NextAttempt" xml:space="preserve">
+    <value>Next attempt</value>
+  </data>
+  <data name="Outbox.Column.Error" xml:space="preserve">
+    <value>Last error</value>
+  </data>
+  <data name="Outbox.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Outbox.State.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Outbox.State.Retrying" xml:space="preserve">
+    <value>Retry scheduled</value>
+  </data>
+  <data name="Outbox.State.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Outbox.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Outbox.Retry.Label" xml:space="preserve">
+    <value>Retry message {0} of {1}</value>
+  </data>
+  <data name="Outbox.Retried" xml:space="preserve">
+    <value>Message retried: it will be processed within seconds.</value>
+  </data>
+  <data name="Outbox.ShowError" xml:space="preserve">
+    <value>Show the full error</value>
+  </data>
+  <data name="Outbox.Correlation" xml:space="preserve">
+    <value>Correlation:</value>
+  </data>
+  <data name="Outbox.MessageId" xml:space="preserve">
+    <value>Identifier:</value>
+  </data>
+  <data name="Outbox.Empty" xml:space="preserve">
+    <value>No message to show.</value>
+  </data>
+  <data name="Outbox.None" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Outbox.Age.Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Outbox.Age.Hours" xml:space="preserve">
+    <value>{0} h</value>
+  </data>
+  <data name="Outbox.Age.Days" xml:space="preserve">
+    <value>{0} d</value>
+  </data>
+</root>

@@ -74,10 +74,14 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.IdentityDocumentsRead, false },
         { Roles.Preparer, Permissions.IdentityDocumentsRead, false },
 
-        // Additions: audit log and background jobs for the manager only; WhatsApp inbox for agents; channels for the manager.
+        // Additions: audit log, background jobs and messages for the manager only; WhatsApp inbox for agents; channels for the manager.
         { Roles.Agent, Permissions.AuditRead, false },
         { Roles.Accountant, Permissions.AuditRead, false },
         { Roles.Agent, Permissions.JobsDashboard, false },
+        { Roles.Manager, Permissions.OutboxManage, true },
+        { Roles.Agent, Permissions.OutboxManage, false },
+        { Roles.Accountant, Permissions.OutboxManage, false },
+        { Roles.Preparer, Permissions.OutboxManage, false },
         { Roles.Agent, Permissions.WhatsAppInbox, true },
         { Roles.Agent, Permissions.ChannelsManage, false },
         { Roles.Agent, Permissions.CustomersManage, true },

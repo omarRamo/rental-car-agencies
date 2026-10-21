@@ -25,6 +25,12 @@ public interface IUserDirectory
     Task<int> CountActiveUsersInRoleAsync(string role, CancellationToken cancellationToken);
 
     Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken);
+
+    /// <summary>Grants an extra permission to the user (a permission claim of the user, on top of the role presets).</summary>
+    Task<Result> AddExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken);
+
+    /// <summary>Revokes an extra permission of the user.</summary>
+    Task<Result> RemoveExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken);
 }
 
 /// <summary>Sends the invitation e-mail of a new user (link to choose a password), through the e-mail outbox.</summary>
@@ -33,9 +39,21 @@ public interface IUserInvitationSender
     Task SendInvitationAsync(Guid userId, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// The open sessions of the users (web host): after a change of permissions, the sessions of the user reload their
+/// claims at their next request, without signing in again.
+/// </summary>
+public interface IUserSessions
+{
+    void RefreshClaims(Guid userId);
+}
+
 public sealed record NewUser(string Email, string DisplayName, string Role);
 
-/// <summary>A user as listed in the back office.</summary>
+/// <summary>
+/// A user as listed in the back office; <c>ExtraPermissions</c> are the permissions granted to the user on top of the
+/// presets of their roles, ordered.
+/// </summary>
 public sealed record UserSummary(
     Guid Id,
     string Email,
@@ -46,7 +64,18 @@ public sealed record UserSummary(
     DateTimeOffset? LockoutEndUtc,
     bool HasPassword,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? LastSignInAtUtc);
+    DateTimeOffset? LastSignInAtUtc,
+    IReadOnlyList<string> ExtraPermissions);
 
 /// <summary>Request of the "create user" form.</summary>
 public sealed record CreateUserRequest(string Email, string DisplayName, string Role);
+
+/// <summary>The permissions of a user: those of their role presets, their extra ones, and everything they include.</summary>
+public sealed record UserPermissions(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    IReadOnlyList<string> Roles,
+    IReadOnlySet<string> RolePermissions,
+    IReadOnlySet<string> ExtraPermissions,
+    IReadOnlySet<string> EffectivePermissions);

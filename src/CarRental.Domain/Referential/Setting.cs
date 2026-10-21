@@ -74,6 +74,21 @@ public sealed partial class Setting : AggregateRoot
         return Result.Success();
     }
 
+    /// <summary>
+    /// Takes back the value of an agency (the platform value applies again): raises <see cref="SettingRemoved"/>, then the
+    /// caller deletes the row. The platform value always exists: it goes back to its default instead.
+    /// </summary>
+    public Result Remove()
+    {
+        if (AgencyId is null)
+        {
+            return ReferentialErrors.PlatformSettingRequired;
+        }
+
+        Raise(new SettingRemoved(Id, Key, AgencyId, Value));
+        return Result.Success();
+    }
+
     [GeneratedRegex("^[a-z][a-z0-9_]*([.][a-z][a-z0-9_]*)+$", RegexOptions.CultureInvariant)]
     private static partial Regex KeyPattern();
 }

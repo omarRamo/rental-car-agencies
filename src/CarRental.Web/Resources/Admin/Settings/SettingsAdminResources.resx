@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="Settings.Intro" xml:space="preserve">
+    <value>La valeur de la plateforme s'applique à toutes les agences ; une agence peut avoir sa propre valeur, qui la remplace. Chaque modification est tracée dans le journal d'audit.</value>
+  </data>
+  <data name="Settings.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Settings.NoAgency" xml:space="preserve">
+    <value>Aucune agence n'est enregistrée : seules les valeurs de la plateforme sont modifiables.</value>
+  </data>
+  <data name="Settings.Column.Setting" xml:space="preserve">
+    <value>Paramètre</value>
+  </data>
+  <data name="Settings.Column.Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Settings.Column.Platform" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Settings.Column.Agency" xml:space="preserve">
+    <value>Valeur de l'agence</value>
+  </data>
+  <data name="Settings.Key" xml:space="preserve">
+    <value>Clé : {0}</value>
+  </data>
+  <data name="Settings.Inherited" xml:space="preserve">
+    <value>Valeur de la plateforme</value>
+  </data>
+  <data name="Settings.IsDefault" xml:space="preserve">
+    <value>par défaut</value>
+  </data>
+  <data name="Settings.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Settings.Reset" xml:space="preserve">
+    <value>Rétablir</value>
+  </data>
+  <data name="Settings.SetForAgency" xml:space="preserve">
+    <value>Définir</value>
+  </data>
+  <data name="Settings.Remove" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="Settings.Edit.Platform.Label" xml:space="preserve">
+    <value>Modifier la valeur de la plateforme : {0}</value>
+  </data>
+  <data name="Settings.Reset.Platform.Label" xml:space="preserve">
+    <value>Rétablir la valeur par défaut : {0}</value>
+  </data>
+  <data name="Settings.Edit.Agency.Label" xml:space="preserve">
+    <value>Définir la valeur de l'agence : {0}</value>
+  </data>
+  <data name="Settings.Remove.Agency.Label" xml:space="preserve">
+    <value>Retirer la valeur de l'agence : {0}</value>
+  </data>
+  <data name="Settings.Reset.Confirm.Title" xml:space="preserve">
+    <value>Rétablir la valeur par défaut</value>
+  </data>
+  <data name="Settings.Reset.Confirm.Message" xml:space="preserve">
+    <value>« {0} » reprend sa valeur par défaut ({1}) pour toute la plateforme.</value>
+  </data>
+  <data name="Settings.Remove.Confirm.Title" xml:space="preserve">
+    <value>Retirer la valeur de l'agence</value>
+  </data>
+  <data name="Settings.Remove.Confirm.Message" xml:space="preserve">
+    <value>« {0} » reprend la valeur de la plateforme ({1}) pour {2}.</value>
+  </data>
+  <data name="Settings.Saved" xml:space="preserve">
+    <value>Paramètre enregistré.</value>
+  </data>
+  <data name="Settings.ResetDone" xml:space="preserve">
+    <value>Valeur par défaut rétablie.</value>
+  </data>
+  <data name="Settings.Removed" xml:space="preserve">
+    <value>Valeur de l'agence retirée : la valeur de la plateforme s'applique.</value>
+  </data>
+  <data name="Settings.Dialog.Platform" xml:space="preserve">
+    <value>{0} — plateforme</value>
+  </data>
+  <data name="Settings.Dialog.Agency" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Settings.Dialog.Default" xml:space="preserve">
+    <value>Valeur par défaut : {0}</value>
+  </data>
+  <data name="Settings.Dialog.Platform.Current" xml:space="preserve">
+    <value>Valeur de la plateforme : {0}</value>
+  </data>
+  <data name="Settings.Dialog.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Settings.Field.Value" xml:space="preserve">
+    <value>Valeur</value>
+  </data>
+  <data name="Settings.Field.Amount" xml:space="preserve">
+    <value>Montant (TND)</value>
+  </data>
+  <data name="Settings.Field.Duration" xml:space="preserve">
+    <value>Durée</value>
+  </data>
+  <data name="Settings.Field.Unit" xml:space="preserve">
+    <value>Unité</value>
+  </data>
+  <data name="Settings.Field.Enabled" xml:space="preserve">
+    <value>Activé</value>
+  </data>
+  <data name="Settings.Field.Start" xml:space="preserve">
+    <value>Début</value>
+  </data>
+  <data name="Settings.Field.End" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="Settings.Unit.Minutes" xml:space="preserve">
+    <value>minutes</value>
+  </data>
+  <data name="Settings.Unit.Hours" xml:space="preserve">
+    <value>heures</value>
+  </data>
+  <data name="Settings.Unit.Days" xml:space="preserve">
+    <value>jours</value>
+  </data>
+  <data name="Settings.Range" xml:space="preserve">
+    <value>Entre {0} et {1}.</value>
+  </data>
+  <data name="Settings.Minimum" xml:space="preserve">
+    <value>{0} au minimum.</value>
+  </data>
+  <data name="Settings.MaxLength" xml:space="preserve">
+    <value>{0} caractères au plus.</value>
+  </data>
+  <data name="Settings.Value.Yes" xml:space="preserve">
+    <value>Oui</value>
+  </data>
+  <data name="Settings.Value.No" xml:space="preserve">
+    <value>Non</value>
+  </data>
+  <data name="Settings.Value.Empty" xml:space="preserve">
+    <value>(vide)</value>
+  </data>
+  <data name="Settings.Value.Days" xml:space="preserve">
+    <value>{0} j</value>
+  </data>
+  <data name="Settings.Value.Hours" xml:space="preserve">
+    <value>{0} h</value>
+  </data>
+  <data name="Settings.Value.Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Settings.Value.TimeRange" xml:space="preserve">
+    <value>{0} – {1}</value>
+  </data>
+  <data name="Settings.PlatformOnly" xml:space="preserve">
+    <value>Même valeur pour toutes les agences</value>
+  </data>
+</root>

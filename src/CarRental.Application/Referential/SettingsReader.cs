@@ -11,6 +11,11 @@ internal sealed class SettingsReader(IAppDbContext db, ILogger<SettingsReader> l
     public async Task<T> GetAsync<T>(SettingDefinition<T> definition, Guid? agencyId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        if (definition.Scope == SettingScope.Platform)
+        {
+            // One value for the whole platform: a stray agency row never applies.
+            agencyId = null;
+        }
 
         var candidates = await db.Set<Setting>()
             .AsNoTracking()

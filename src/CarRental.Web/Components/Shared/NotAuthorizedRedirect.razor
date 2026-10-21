@@ -1,5 +1,7 @@
-@* Interactive navigation to a page the user may not open: anonymous users go to the login page, signed-in users see
-   an access denied message (HTTP requests are handled earlier by the authorization middleware). *@
+@* A page the user may not open: signed-in users see an access denied message (HTTP requests are handled earlier by the
+   authorization middleware). An interactive circuit that lost its authentication (session revalidation: locked account,
+   changed password, revoked permission) reloads the page over HTTP, where the cookie is validated again: the user keeps
+   working with the current claims, or is sent to the login page or the access denied page. *@
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResources> L
 
@@ -21,7 +23,16 @@
     {
         var state = AuthenticationState is null ? null : await AuthenticationState;
         _authenticated = state?.User.Identity?.IsAuthenticated == true;
-        if (!_authenticated)
+        if (_authenticated)
+        {
+            return;
+        }
+
+        if (RendererInfo.IsInteractive)
+        {
+            Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+        }
+        else
         {
             var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
             Navigation.NavigateTo($"account/login?ReturnUrl={Uri.EscapeDataString("/" + returnUrl)}", forceLoad: true);

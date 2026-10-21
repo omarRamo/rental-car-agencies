@@ -59,6 +59,30 @@ public static class Permissions
     public const string AuditRead = "audit.read";
     public const string JobsDashboard = "jobs.dashboard";
 
+    /// <summary>Background messages (outbox): failed and pending messages, retry (audited).</summary>
+    public const string OutboxManage = "outbox.manage";
+
+    /// <summary>
+    /// What each permission includes: managing (or issuing) in a domain includes reading it, reading identity documents or
+    /// handling data subject rights includes reading customers, managing every cash session includes one's own. Role presets
+    /// already hold these (test); the implications matter for extra permissions granted to a user.
+    /// </summary>
+    private static readonly FrozenDictionary<string, string[]> Implications = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        [RequestsManage] = [RequestsRead],
+        [BookingsManage] = [BookingsRead],
+        [CustomersManage] = [CustomersRead],
+        [IdentityDocumentsRead] = [CustomersRead],
+        [CustomersPrivacy] = [CustomersRead],
+        [FleetManage] = [FleetRead],
+        [FleetMaintenance] = [FleetRead],
+        [PricingManage] = [PricingRead],
+        [PaymentsManage] = [PaymentsRead],
+        [InvoicesIssue] = [InvoicesRead],
+        [InvoicesManage] = [InvoicesIssue, InvoicesRead],
+        [CashManage] = [CashOwn],
+    }.ToFrozenDictionary(StringComparer.Ordinal);
+
     private static readonly FrozenSet<string> Known;
 
     static Permissions()
@@ -97,6 +121,7 @@ public static class Permissions
             new(SettingsManage, PermissionArea.Administration),
             new(AuditRead, PermissionArea.Administration),
             new(JobsDashboard, PermissionArea.Administration),
+            new(OutboxManage, PermissionArea.Administration),
         ];
         All = Catalog.Select(p => p.Name).ToArray();
         Known = All.ToFrozenSet(StringComparer.Ordinal);
@@ -109,6 +134,36 @@ public static class Permissions
     public static IReadOnlyList<string> All { get; }
 
     public static bool IsKnown(string? permission) => permission is not null && Known.Contains(permission);
+
+    /// <summary>The permissions that <paramref name="permission"/> includes directly (e.g. <c>pricing.manage</c> includes <c>pricing.read</c>).</summary>
+    public static IReadOnlyList<string> ImpliedBy(string permission)
+    {
+        ArgumentNullException.ThrowIfNull(permission);
+        return Implications.TryGetValue(permission, out var implied) ? implied : [];
+    }
+
+    /// <summary>
+    /// <paramref name="permissions"/> and every permission they include, transitively: the effective permissions of a user
+    /// (added to the sign-in claims, so that pages and services only check the permission they need).
+    /// </summary>
+    public static IReadOnlySet<string> WithImplied(IEnumerable<string> permissions)
+    {
+        ArgumentNullException.ThrowIfNull(permissions);
+        var effective = new HashSet<string>(permissions, StringComparer.Ordinal);
+        var pending = new Stack<string>(effective);
+        while (pending.TryPop(out var permission))
+        {
+            foreach (var implied in ImpliedBy(permission))
+            {
+                if (effective.Add(implied))
+                {
+                    pending.Push(implied);
+                }
+            }
+        }
+
+        return effective;
+    }
 }
 
 /// <summary>Functional area of a permission (used to group them in the user interface).</summary>

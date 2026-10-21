@@ -69,7 +69,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHealthChecks()
             .AddDbContextCheck<CarRentalDbContext>("sql", tags: [HealthTags.Ready])
             .AddCheck<BlobStorageHealthCheck>("storage", tags: [HealthTags.Ready])
-            .AddCheck<HangfireHealthCheck>("hangfire", tags: [HealthTags.Ready]);
+            .AddCheck<HangfireHealthCheck>("hangfire", tags: [HealthTags.Ready])
+            .AddCheck<OutboxHealthCheck>("outbox", tags: [HealthTags.Ready]);
 
         services.AddSingleton<DatabaseInitializer>();
         return services;
@@ -96,7 +97,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<SeedOptions>, SeedOptionsValidator>();
 
         services.AddOptions<BackgroundJobsOptions>().Bind(configuration.GetSection(BackgroundJobsOptions.SectionName)).ValidateOnStart();
-        services.AddOptions<OutboxOptions>().Bind(configuration.GetSection(OutboxOptions.SectionName)).ValidateOnStart();
+        services.AddOptions<OutboxOptions>()
+            .Bind(configuration.GetSection(OutboxOptions.SectionName))
+            .Validate(
+                o => o.BatchSize > 0 && o.MaxBatchesPerRun > 0 && o.MaxAttempts > 0 && o.PendingAlertAge > TimeSpan.Zero,
+                "Outbox: BatchSize, MaxBatchesPerRun, MaxAttempts and PendingAlertAge must be positive.")
+            .ValidateOnStart();
         services.AddOptions<IdentityBootstrapOptions>().Bind(configuration.GetSection(IdentityBootstrapOptions.SectionName));
     }
 
@@ -132,13 +138,16 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<OutboxMessageTypeRegistry>();
         services.AddSingleton<OutboxProcessor>();
         services.AddScoped<IOutbox, EfOutbox>();
+        services.AddScoped<OutboxAdministrationService>();
         services.AddRecurringJob<OutboxProcessingJob>();
+        services.AddRecurringJob<OutboxPurgeJob>();
     }
 
     private static void AddIdentity(IServiceCollection services)
     {
         services.AddCarRentalIdentityCore();
         services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<SignInRecorder>();
         services.AddDataSeeder<RolePresetSynchronizer>();
         services.AddDataSeeder<InitialManagerSeeder>();
         services.AddDataSeeder<IdentityDemoSeeder>();

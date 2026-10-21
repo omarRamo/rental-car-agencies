@@ -23,8 +23,11 @@ public sealed class OutboxOptions
     /// <summary>Batches per run (a run stops earlier when nothing is due).</summary>
     public int MaxBatchesPerRun { get; set; } = 20;
 
-    /// <summary>After this many failures a message is no longer retried (dead letter, visible in the outbox table).</summary>
+    /// <summary>After this many failures a message is no longer retried (failed: listed on <c>/admin/outbox</c> until retried).</summary>
     public int MaxAttempts { get; set; } = 10;
+
+    /// <summary>The readiness check turns Degraded when the oldest pending message is older than this (30 minutes).</summary>
+    public TimeSpan PendingAlertAge { get; set; } = TimeSpan.FromMinutes(30);
 }
 
 /// <summary>

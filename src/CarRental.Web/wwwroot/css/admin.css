@@ -33,6 +33,63 @@
   margin: 0;
 }
 
+/* AdminTablePager: labelled page-size select, then MudTablePager's information and buttons (wraps on a phone). */
+.admin-table-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem 1rem;
+  padding-inline-start: 1rem;
+}
+
+.admin-table-pager__size {
+  inline-size: 10rem;
+}
+
+.outbox-filter,
+.settings-agency {
+  max-inline-size: 22rem;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-block-start: 0.25rem;
+}
+
+.settings-key,
+.settings-inherited {
+  color: var(--mud-palette-text-secondary);
+}
+
+.settings-unit {
+  max-inline-size: 10rem;
+}
+
+.permissions-area {
+  margin: 0 0 1rem;
+  padding: 0.5rem 1rem 0.75rem;
+  border: 1px solid var(--mud-palette-lines-default);
+  border-radius: var(--mud-default-borderradius);
+}
+
+.permissions-area legend {
+  padding-inline: 0.25rem;
+  font-weight: 600;
+}
+
+.outbox-error {
+  overflow-wrap: anywhere;
+}
+
+/* A MudDatePicker without a value renders an empty, nameless title button in its toolbar (axe: button-name, critical).
+   With nothing to show it is useless: hidden until a date is selected. */
+.mud-button-date:has(> .mud-button-label:empty) {
+  display: none;
+}
+
 .audit-details {
   padding: 0.75rem 1rem !important;
   background: #f4f6f9;

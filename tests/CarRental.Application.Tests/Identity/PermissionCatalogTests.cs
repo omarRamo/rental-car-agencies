@@ -69,6 +69,36 @@ public sealed partial class PermissionCatalogTests
     }
 
     [Fact]
+    public void Managing_a_domain_includes_reading_it_transitively()
+    {
+        Permissions.WithImplied([Permissions.PricingManage]).ShouldBe([Permissions.PricingManage, Permissions.PricingRead], ignoreOrder: true);
+        Permissions.WithImplied([Permissions.InvoicesManage])
+            .ShouldBe([Permissions.InvoicesManage, Permissions.InvoicesIssue, Permissions.InvoicesRead], ignoreOrder: true);
+        Permissions.WithImplied([Permissions.IdentityDocumentsRead]).ShouldContain(Permissions.CustomersRead);
+        Permissions.WithImplied([Permissions.CashManage]).ShouldContain(Permissions.CashOwn);
+        Permissions.WithImplied([Permissions.AuditRead]).ShouldBe([Permissions.AuditRead]);
+        Permissions.WithImplied(["unknown.permission"]).ShouldBe(["unknown.permission"]);
+    }
+
+    [Fact]
+    public void Implications_only_name_other_known_permissions()
+    {
+        foreach (var permission in Permissions.All)
+        {
+            Permissions.ImpliedBy(permission).ShouldAllBe(p => Permissions.IsKnown(p) && p != permission, permission);
+        }
+    }
+
+    [Fact]
+    public void Role_presets_already_hold_what_their_permissions_include()
+    {
+        foreach (var role in Roles.All)
+        {
+            Permissions.WithImplied(RolePresets.PermissionsOf(role)).ShouldBe(RolePresets.PermissionsOf(role), ignoreOrder: true, role);
+        }
+    }
+
+    [Fact]
     public void Policy_for_requires_a_permission()
     {
         Should.Throw<ArgumentException>(() => PermissionPolicy.For(" "));

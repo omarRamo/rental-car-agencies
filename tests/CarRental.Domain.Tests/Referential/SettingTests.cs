@@ -50,6 +50,29 @@ public sealed class SettingTests
     }
 
     [Fact]
+    public void An_agency_value_is_removed_with_an_event_carrying_the_last_value()
+    {
+        var agencyId = Guid.CreateVersion7();
+        var setting = Setting.Create("fleet.preparation_buffer", "03:00:00", agencyId).Value;
+        setting.DequeueDomainEvents();
+
+        setting.Remove().IsSuccess.ShouldBeTrue();
+
+        setting.DomainEvents.ShouldHaveSingleItem()
+            .ShouldBe(new SettingRemoved(setting.Id, "fleet.preparation_buffer", agencyId, "03:00:00"));
+    }
+
+    [Fact]
+    public void A_platform_value_cannot_be_removed()
+    {
+        var setting = Setting.Create("fleet.preparation_buffer", "02:00:00").Value;
+        setting.DequeueDomainEvents();
+
+        setting.Remove().Error.ShouldBe(ReferentialErrors.PlatformSettingRequired);
+        setting.DomainEvents.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void ChangeValue_to_the_same_value_does_nothing()
     {
         var setting = Setting.Create("billing.vat_rate", "0.19").Value;

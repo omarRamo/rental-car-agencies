@@ -31,4 +31,9 @@ public static class AuditActions
     public const string UserLocked = "identity.user_locked";
     public const string UserUnlocked = "identity.user_unlocked";
     public const string UserInvitationSent = "identity.user_invitation_sent";
+    public const string PermissionGranted = "identity.permission_granted";
+    public const string PermissionRevoked = "identity.permission_revoked";
+
+    // Operations (background messages of the outbox).
+    public const string OutboxMessageRetried = "outbox.message_retried";
 }

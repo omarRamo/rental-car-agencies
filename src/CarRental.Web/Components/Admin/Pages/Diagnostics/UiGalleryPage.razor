@@ -1,0 +1,151 @@
+@page "/admin/ui-gallery"
+@attribute [HasPermission(Permissions.SettingsManage)]
+@* Accessibility reference of the back office (not available in production): every palette colour on buttons, chips and
+   alerts, the usual input fields and a paged table, checked by an axe end-to-end test (WCAG 2.2 AA). *@
+@inject IHostEnvironment Environment
+@inject NavigationManager Navigation
+@inject IStringLocalizer<AdminResources> L
+
+@if (_available)
+{
+    <PageTitle>@L["Gallery.Title"]</PageTitle>
+
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Gallery.Title"]</MudText>
+    <MudText Typo="Typo.body1" Class="mb-6">@L["Gallery.Intro"]</MudText>
+
+    <section aria-labelledby="gallery-buttons" class="mb-8">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="gallery-buttons" GutterBottom="true">@L["Gallery.Buttons"]</MudText>
+        @foreach (var variant in Variants)
+        {
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="mb-3">
+                @foreach (var color in Colors)
+                {
+                    <MudButton Variant="variant" Color="color">@Name(color, variant)</MudButton>
+                }
+                <MudButton Variant="variant" Color="Color.Primary" Disabled="true">@L["Gallery.Disabled"]</MudButton>
+            </MudStack>
+        }
+    </section>
+
+    <section aria-labelledby="gallery-chips" class="mb-8">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="gallery-chips" GutterBottom="true">@L["Gallery.Chips"]</MudText>
+        @foreach (var variant in Variants)
+        {
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-3">
+                @foreach (var color in Colors)
+                {
+                    <MudChip T="string" Variant="variant" Color="color" Size="Size.Small">@Name(color, variant)</MudChip>
+                }
+            </MudStack>
+        }
+    </section>
+
+    <section aria-labelledby="gallery-alerts" class="mb-8">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="gallery-alerts" GutterBottom="true">@L["Gallery.Alerts"]</MudText>
+        <MudGrid Spacing="2">
+            @foreach (var variant in Variants)
+            {
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="2">
+                        @foreach (var severity in Severities)
+                        {
+                            <MudAlert Severity="severity" Variant="variant" Dense="true">@L["Gallery.Alert", L[$"Gallery.Severity.{severity}"], L[$"Gallery.Variant.{variant}"]]</MudAlert>
+                        }
+                    </MudStack>
+                </MudItem>
+            }
+        </MudGrid>
+    </section>
+
+    <section aria-labelledby="gallery-fields" class="mb-8">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="gallery-fields" GutterBottom="true">@L["Gallery.Fields"]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField T="string" @bind-Value="_text" Label="@L["Gallery.Field.Text"]" HelperText="@L["Gallery.Field.Help"]" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudNumericField T="decimal" @bind-Value="_number" Label="@L["Gallery.Field.Number"]" Min="0m" Max="100m" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="string" @bind-Value="_choice" Label="@L["Gallery.Field.Select"]">
+                    @foreach (var option in Options)
+                    {
+                        <MudSelectItem T="string" Value="@option">@option</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudDatePicker @bind-Date="_date" Label="@L["Gallery.Field.Date"]" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudTimePicker @bind-Time="_time" Label="@L["Gallery.Field.Time"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSwitch T="bool" @bind-Value="_switch" Label="@L["Gallery.Field.Switch"]" Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+    </section>
+
+    <section aria-labelledby="gallery-table" class="mb-8">
+        <MudText Typo="Typo.h5" HtmlTag="h2" id="gallery-table" GutterBottom="true">@L["Gallery.Table"]</MudText>
+        <MudTable T="GalleryRow" Items="Rows" RowsPerPage="10" Hover="true" Striped="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-labelledby"] = "gallery-table" })">
+            <HeaderContent>
+                <MudTh>@L["Gallery.Column.Number"]</MudTh>
+                <MudTh>@L["Gallery.Column.Label"]</MudTh>
+                <MudTh>@L["Gallery.Column.Status"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Gallery.Column.Number"]">@context.Number</MudTd>
+                <MudTd DataLabel="@L["Gallery.Column.Label"]">@L["Gallery.Row", context.Number]</MudTd>
+                <MudTd DataLabel="@L["Gallery.Column.Status"]">
+                    <MudChip T="string" Size="Size.Small" Color="@context.Color">@Name(context.Color, Variant.Filled)</MudChip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <AdminTablePager PageSizeOptions="PageSizes" />
+            </PagerContent>
+        </MudTable>
+    </section>
+}
+
+@code {
+    private static readonly Color[] Colors =
+    [
+        Color.Default, Color.Primary, Color.Secondary, Color.Tertiary, Color.Info, Color.Success, Color.Warning, Color.Error, Color.Dark,
+    ];
+
+    private static readonly Variant[] Variants = [Variant.Filled, Variant.Outlined, Variant.Text];
+
+    private static readonly Severity[] Severities = [Severity.Normal, Severity.Info, Severity.Success, Severity.Warning, Severity.Error];
+
+    private static readonly string[] Options = ["A", "B", "C"];
+
+    private static readonly int[] PageSizes = [10, 25, 50];
+
+    private static readonly GalleryRow[] Rows =
+        [.. Enumerable.Range(1, 60).Select(n => new GalleryRow(n, Colors[n % Colors.Length]))];
+
+    private bool _available;
+    private string? _text;
+    private decimal _number = 19m;
+    private string? _choice = Options[0];
+    private DateTime? _date;
+    private TimeSpan? _time;
+    private bool _switch = true;
+
+    protected override void OnInitialized()
+    {
+        // A test and design aid: absent from production.
+        _available = !Environment.IsProduction();
+        if (!_available)
+        {
+            Navigation.NotFound();
+        }
+    }
+
+    private string Name(Color color, Variant variant) =>
+        L["Gallery.Sample", L[$"Gallery.Color.{color}"], L[$"Gallery.Variant.{variant}"]];
+
+    private sealed record GalleryRow(int Number, Color Color);
+}

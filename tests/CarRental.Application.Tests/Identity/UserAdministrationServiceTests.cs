@@ -14,6 +14,7 @@ public sealed class UserAdministrationServiceTests
     private readonly RecordingInvitationSender _invitations = new();
     private readonly RecordingAuditTrail _audit = new();
     private readonly InlineUnitOfWork _unitOfWork = new();
+    private readonly RecordingUserSessions _sessions = new();
     private readonly Guid _managerId;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -23,7 +24,7 @@ public sealed class UserAdministrationServiceTests
         _managerId = _directory.Add("gerant@demo.local", Roles.Manager).Id;
     }
 
-    private UserAdministrationService ServiceFor(IUserContext context) => new(_directory, _invitations, _audit, context, _unitOfWork);
+    private UserAdministrationService ServiceFor(IUserContext context) => new(_directory, _invitations, _audit, context, _unitOfWork, _sessions);
 
     private UserAdministrationService AsManager() => ServiceFor(TestUsers.ContextFor(_managerId, "gerant@demo.local", Roles.Manager));
 
@@ -146,6 +147,73 @@ public sealed class UserAdministrationServiceTests
     public async Task Unknown_users_are_reported()
     {
         (await AsManager().LockAsync(Guid.CreateVersion7(), Ct)).Error.ShouldBe(IdentityErrors.UserNotFound);
+    }
+
+    [Fact]
+    public async Task A_manager_grants_and_revokes_extra_permissions_audited_and_refreshed()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent);
+        var service = AsManager();
+
+        (await service.SetExtraPermissionsAsync(agent.Id, [Permissions.PricingManage, Permissions.ReportsRead], Ct)).IsSuccess.ShouldBeTrue();
+        (await service.SetExtraPermissionsAsync(agent.Id, [Permissions.PricingManage], Ct)).IsSuccess.ShouldBeTrue();
+
+        _directory.PermissionChanges.ShouldBe(
+        [
+            (agent.Id, Permissions.PricingManage, true),
+            (agent.Id, Permissions.ReportsRead, true),
+            (agent.Id, Permissions.ReportsRead, false),
+        ]);
+        _audit.Events.Select(e => (e.Action, e.Details)).ShouldBe(
+        [
+            (AuditActions.PermissionGranted, "pricing.manage (agent@demo.local)"),
+            (AuditActions.PermissionGranted, "reports.read (agent@demo.local)"),
+            (AuditActions.PermissionRevoked, "reports.read (agent@demo.local)"),
+        ]);
+        _audit.Events.ShouldAllBe(e => e.EntityType == "User" && e.EntityId == agent.Id.ToString());
+        _sessions.Refreshed.ShouldBe([agent.Id, agent.Id]);
+    }
+
+    [Fact]
+    public async Task Permissions_given_by_the_role_are_not_stored_and_an_unchanged_set_does_nothing()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent, locked: false, Permissions.PricingManage);
+
+        (await AsManager().SetExtraPermissionsAsync(agent.Id, [Permissions.PricingManage, Permissions.BookingsManage], Ct)).IsSuccess.ShouldBeTrue();
+
+        _directory.PermissionChanges.ShouldBeEmpty();
+        _audit.Events.ShouldBeEmpty();
+        _sessions.Refreshed.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_permissions_of_a_user_separate_role_and_extra_ones()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent, locked: false, Permissions.PricingManage);
+
+        var permissions = (await AsManager().GetPermissionsAsync(agent.Id, Ct)).Value;
+
+        permissions.Roles.ShouldBe([Roles.Agent]);
+        permissions.RolePermissions.ShouldBe(RolePresets.PermissionsOf(Roles.Agent), ignoreOrder: true);
+        permissions.ExtraPermissions.ShouldBe([Permissions.PricingManage]);
+        permissions.EffectivePermissions.ShouldContain(Permissions.PricingRead);
+        permissions.EffectivePermissions.ShouldContain(Permissions.BookingsManage);
+        (await AsManager().GetPermissionsAsync(Guid.CreateVersion7(), Ct)).Error.ShouldBe(IdentityErrors.UserNotFound);
+    }
+
+    [Fact]
+    public async Task Extra_permissions_are_checked()
+    {
+        var agent = _directory.Add("agent@demo.local", Roles.Agent);
+
+        (await AsAccountant().SetExtraPermissionsAsync(agent.Id, [Permissions.PricingManage], Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await AsAccountant().GetPermissionsAsync(agent.Id, Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await AsManager().SetExtraPermissionsAsync(agent.Id, ["pricing.everything"], Ct)).Error.ShouldBe(IdentityErrors.PermissionUnknown);
+        (await AsManager().SetExtraPermissionsAsync(_managerId, [Permissions.PricingManage], Ct)).Error.ShouldBe(IdentityErrors.CannotChangeOwnPermissions);
+        (await AsManager().SetExtraPermissionsAsync(Guid.CreateVersion7(), [Permissions.PricingManage], Ct)).Error.ShouldBe(IdentityErrors.UserNotFound);
+
+        _directory.PermissionChanges.ShouldBeEmpty();
+        _sessions.Refreshed.ShouldBeEmpty();
     }
 
     [Fact]

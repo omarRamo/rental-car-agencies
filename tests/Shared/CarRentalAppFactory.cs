@@ -1,3 +1,4 @@
+using CarRental.Application.Referential.Contracts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -67,6 +68,7 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("HostFiltering:AllowedHosts", "*");
         builder.UseSetting("PublicSite:WhatsAppNumber", "21600000000");
         builder.UseSetting("BackgroundJobs:WorkerCount", "2");
+        builder.ConfigureTestServices(services => services.AddSettingDefinitions(TestSettings.All));
 
 
         if (_configureServices is not null)
