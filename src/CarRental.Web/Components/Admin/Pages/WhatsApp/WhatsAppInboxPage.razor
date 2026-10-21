@@ -11,6 +11,7 @@
 @inject IWhatsAppInboxActivity Activity
 @inject IStringLocalizer<WhatsAppResources> L
 @inject IStringLocalizer<SharedResources> Shared
+@inject IStringLocalizer<AgentResources> Agent
 @inject TimeProvider Clock
 
 <PageTitle>@L["Inbox.Title"]</PageTitle>
@@ -18,6 +19,20 @@
 
 <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Inbox.Title"]</MudText>
 <MudText Typo="Typo.body2" Class="mb-3">@L["Inbox.Help"]</MudText>
+@if (_canManageKnowledge || _canReadReports)
+{
+    @* The screens of the WhatsApp assistant (package 4B). *@
+    <nav class="d-flex flex-wrap gap-4 mb-3" aria-label="@Agent["Link.Assistant"]">
+        @if (_canManageKnowledge)
+        {
+            <MudLink Href="/admin/whatsapp/knowledge" Typo="Typo.body2">@Agent["Link.Knowledge"]</MudLink>
+        }
+        @if (_canReadReports)
+        {
+            <MudLink Href="/admin/whatsapp/costs" Typo="Typo.body2">@Agent["Link.Costs"]</MudLink>
+        }
+    </nav>
+}
 
 @if (_overview is { IsEnabled: false })
 {
@@ -172,6 +187,8 @@
     private Guid? _userId;
     private bool _canReadCustomers;
     private bool _canReadBookings;
+    private bool _canManageKnowledge;
+    private bool _canReadReports;
     private bool _busy;
     private bool _refreshAgain;
     private bool _disposed;
@@ -196,6 +213,8 @@
         _userId = user.GetUserId();
         _canReadCustomers = user.HasPermission(Permissions.CustomersRead);
         _canReadBookings = user.HasPermission(Permissions.BookingsRead);
+        _canManageKnowledge = user.HasPermission(Permissions.WhatsAppKnowledge);
+        _canReadReports = user.HasPermission(Permissions.ReportsRead);
         var overview = await Runner.RunAsync<WhatsAppInboxQueries, Result<InboxOverview>>((queries, ct) => queries.GetOverviewAsync(ct));
         _overview = overview.IsSuccess ? overview.Value : null;
         if (ConversationId is { } conversationId)

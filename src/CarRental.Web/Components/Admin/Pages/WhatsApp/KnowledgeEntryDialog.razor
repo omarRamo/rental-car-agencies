@@ -1,0 +1,103 @@
+@* Creates or edits an answer of the knowledge base of the WhatsApp assistant: topic key (fixed once created), title,
+   keywords, answers in French and English (required) and Arabic (optional). The answer is saved as a draft; a change
+   of a validated answer sends it back to draft. *@
+@using CarRental.Application.Messaging.Agent.Knowledge
+@using CarRental.Web.Resources.Admin.WhatsApp
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AgentResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (Entry is { IsValidated: true })
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">@L["Knowledge.Dialog.Warning"]</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="5">
+                <MudTextField T="string" @bind-Value="_topicKey" Label="@L["Knowledge.Field.Topic"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              Disabled="@(Entry is not null)" MaxLength="50" HelperText="@L["Knowledge.Field.Topic.Help"]" InputId="knowledge-topic" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="7">
+                <MudTextField T="string" @bind-Value="_title" Label="@L["Knowledge.Field.Title"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              MaxLength="150" InputId="knowledge-title" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_keywords" Label="@L["Knowledge.Field.Keywords"]" MaxLength="300"
+                              HelperText="@L["Knowledge.Field.Keywords.Help"]" InputId="knowledge-keywords" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_answerFrench" Label="@L["Knowledge.Field.French"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              Lines="4" Sizing="InputSizing.Auto" MaxLength="2000" HelperText="@L["Knowledge.Field.Answers.Help"]" InputId="knowledge-french" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_answerEnglish" Label="@L["Knowledge.Field.English"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              Lines="4" Sizing="InputSizing.Auto" MaxLength="2000" InputId="knowledge-english" lang="en" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_answerArabic" Label="@L["Knowledge.Field.Arabic"]" Lines="4" Sizing="InputSizing.Auto" MaxLength="2000"
+                              InputId="knowledge-arabic" lang="ar" dir="rtl" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Knowledge.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _topicKey;
+    private string? _title;
+    private string? _keywords;
+    private string? _answerFrench;
+    private string? _answerEnglish;
+    private string? _answerArabic;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The answer to edit; null to create one.</summary>
+    [Parameter]
+    public KnowledgeEntryItem? Entry { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Entry is { } entry)
+        {
+            _topicKey = entry.TopicKey;
+            _title = entry.Title;
+            _keywords = entry.Keywords;
+            _answerFrench = entry.AnswerFrench;
+            _answerEnglish = entry.AnswerEnglish;
+            _answerArabic = entry.AnswerArabic;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var form = new KnowledgeEntryForm(_topicKey, _title, _keywords, _answerFrench, _answerEnglish, _answerArabic);
+        Result result = Entry is { } entry
+            ? await Runner.RunAsync<KnowledgeBaseService, Result>((service, ct) => service.UpdateAsync(entry.Id, form, ct))
+            : await Runner.RunAsync<KnowledgeBaseService, Result<Guid>>((service, ct) => service.CreateAsync(form, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

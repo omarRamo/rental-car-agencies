@@ -7,6 +7,7 @@ using CarRental.Domain.Messaging.Agent;
 using CarRental.Web.Components.Public;
 using CarRental.Web.Components.Public.Search;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -102,6 +103,34 @@ public sealed partial class WhatsAppAgentConventionTests
             .ToList();
         offenders.ShouldBeEmpty("logs of the agent never carry a message body, a prompt, a phone number or a name");
     }
+
+    [Fact]
+    public void Every_text_of_the_assistant_screens_exists_in_french_and_english()
+    {
+        var pages = Path.Combine(RepositoryRoot(), "src", "CarRental.Web", "Components", "Admin", "Pages", "WhatsApp");
+        var used = new[] { "WhatsAppKnowledgePage.razor", "KnowledgeEntryDialog.razor", "WhatsAppAgentCostsPage.razor" }
+            .SelectMany(file => LocalizedKey("L").Matches(File.ReadAllText(Path.Combine(pages, file))))
+            .Concat(LocalizedKey("Agent").Matches(File.ReadAllText(Path.Combine(pages, "WhatsAppInboxPage.razor"))))
+            .Select(m => m.Groups["key"].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var french = ResourceCatalog.Entries(typeof(CarRental.Web.Resources.Admin.WhatsApp.AgentResources).FullName!, ResourceCatalog.French);
+        var english = ResourceCatalog.Entries(typeof(CarRental.Web.Resources.Admin.WhatsApp.AgentResources).FullName!, ResourceCatalog.English);
+
+        used.Count.ShouldBeGreaterThan(40);
+        used.Where(key => !french.ContainsKey(key) || !english.ContainsKey(key)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void The_agent_tables_are_in_the_migrations()
+    {
+        using var context = new CarRental.Infrastructure.Persistence.DesignTimeDbContextFactory().CreateDbContext([]);
+
+        context.Database.HasPendingModelChanges().ShouldBeFalse("the model and the migrations differ: add a migration with dotnet ef");
+        context.Database.GetMigrations().Count(m => m.EndsWith("_Phase4AiAgent", StringComparison.Ordinal)).ShouldBe(1);
+    }
+
+    private static Regex LocalizedKey(string localizer) => new($"\\b{localizer}\\[\"(?<key>[A-Za-z0-9_.]+)\"", RegexOptions.CultureInvariant);
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal);
 

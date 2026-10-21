@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Link.Assistant" xml:space="preserve">
+    <value>Assistant WhatsApp</value>
+  </data>
+  <data name="Link.Inbox" xml:space="preserve">
+    <value>Boîte WhatsApp</value>
+  </data>
+  <data name="Link.Knowledge" xml:space="preserve">
+    <value>Base de connaissances de l'assistant</value>
+  </data>
+  <data name="Link.Costs" xml:space="preserve">
+    <value>Coûts de l'assistant</value>
+  </data>
+  <data name="Knowledge.Title" xml:space="preserve">
+    <value>Base de connaissances de l'assistant WhatsApp</value>
+  </data>
+  <data name="Knowledge.Help" xml:space="preserve">
+    <value>Les réponses que l'assistant WhatsApp peut donner aux clients sur l'agence : documents, caution, paiement, annulation, conditions… Une réponse n'est donnée qu'une fois validée par un gérant ; toute modification la renvoie en brouillon et une réponse désactivée n'est plus donnée. Les faits de l'agence (adresse, téléphone, horaires, lieux) viennent du référentiel.</value>
+  </data>
+  <data name="Knowledge.New" xml:space="preserve">
+    <value>Nouvelle réponse</value>
+  </data>
+  <data name="Knowledge.Table" xml:space="preserve">
+    <value>Réponses de la base de connaissances</value>
+  </data>
+  <data name="Knowledge.Column.Topic" xml:space="preserve">
+    <value>Sujet</value>
+  </data>
+  <data name="Knowledge.Column.Title" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="Knowledge.Column.Answer" xml:space="preserve">
+    <value>Réponse en français</value>
+  </data>
+  <data name="Knowledge.Column.State" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Knowledge.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Knowledge.State.Draft" xml:space="preserve">
+    <value>Brouillon : l'assistant ne la donne pas</value>
+  </data>
+  <data name="Knowledge.State.Validated" xml:space="preserve">
+    <value>Validée par {0} le {1}</value>
+  </data>
+  <data name="Knowledge.State.Inactive" xml:space="preserve">
+    <value>Désactivée</value>
+  </data>
+  <data name="Knowledge.Validator.Unknown" xml:space="preserve">
+    <value>un gérant</value>
+  </data>
+  <data name="Knowledge.Action.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Knowledge.Action.Edit.Label" xml:space="preserve">
+    <value>Modifier la réponse « {0} »</value>
+  </data>
+  <data name="Knowledge.Action.Validate" xml:space="preserve">
+    <value>Valider</value>
+  </data>
+  <data name="Knowledge.Action.Validate.Label" xml:space="preserve">
+    <value>Valider la réponse « {0} »</value>
+  </data>
+  <data name="Knowledge.Action.Deactivate" xml:space="preserve">
+    <value>Désactiver</value>
+  </data>
+  <data name="Knowledge.Action.Deactivate.Label" xml:space="preserve">
+    <value>Désactiver la réponse « {0} »</value>
+  </data>
+  <data name="Knowledge.Action.Activate" xml:space="preserve">
+    <value>Réactiver</value>
+  </data>
+  <data name="Knowledge.Action.Activate.Label" xml:space="preserve">
+    <value>Réactiver la réponse « {0} »</value>
+  </data>
+  <data name="Knowledge.Validated" xml:space="preserve">
+    <value>Réponse validée : l'assistant peut la donner.</value>
+  </data>
+  <data name="Knowledge.Deactivated" xml:space="preserve">
+    <value>Réponse désactivée : l'assistant ne la donne plus.</value>
+  </data>
+  <data name="Knowledge.Activated" xml:space="preserve">
+    <value>Réponse réactivée.</value>
+  </data>
+  <data name="Knowledge.Saved" xml:space="preserve">
+    <value>Réponse enregistrée. Elle reste en brouillon tant qu'elle n'est pas validée.</value>
+  </data>
+  <data name="Knowledge.Empty" xml:space="preserve">
+    <value>Aucune réponse pour l'instant.</value>
+  </data>
+  <data name="Knowledge.Dialog.New" xml:space="preserve">
+    <value>Nouvelle réponse</value>
+  </data>
+  <data name="Knowledge.Dialog.Edit" xml:space="preserve">
+    <value>Modifier la réponse « {0} »</value>
+  </data>
+  <data name="Knowledge.Dialog.Warning" xml:space="preserve">
+    <value>Une réponse modifiée repasse en brouillon : validez-la ensuite pour que l'assistant la donne.</value>
+  </data>
+  <data name="Knowledge.Field.Topic" xml:space="preserve">
+    <value>Clé du sujet</value>
+  </data>
+  <data name="Knowledge.Field.Topic.Help" xml:space="preserve">
+    <value>2 à 50 caractères : lettres minuscules, chiffres et « _ », en commençant par une lettre (caution, aller_simple…). Elle ne change plus ensuite.</value>
+  </data>
+  <data name="Knowledge.Field.Title" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="Knowledge.Field.Keywords" xml:space="preserve">
+    <value>Mots-clés</value>
+  </data>
+  <data name="Knowledge.Field.Keywords.Help" xml:space="preserve">
+    <value>Séparés par des virgules : les mots des clients qui désignent ce sujet.</value>
+  </data>
+  <data name="Knowledge.Field.French" xml:space="preserve">
+    <value>Réponse en français</value>
+  </data>
+  <data name="Knowledge.Field.English" xml:space="preserve">
+    <value>Réponse en anglais</value>
+  </data>
+  <data name="Knowledge.Field.Arabic" xml:space="preserve">
+    <value>Réponse en arabe (facultative)</value>
+  </data>
+  <data name="Knowledge.Field.Answers.Help" xml:space="preserve">
+    <value>N'écrivez que ce que l'agence garantit, sans chiffre qui dépend de la catégorie ni promesse de confirmation : un agent valide toujours la demande.</value>
+  </data>
+  <data name="Knowledge.Submit" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Costs.Title" xml:space="preserve">
+    <value>Coûts de l'assistant WhatsApp</value>
+  </data>
+  <data name="Costs.Help" xml:space="preserve">
+    <value>Mois par mois (heure de Tunis) : les tours de l'assistant, ses appels au modèle et aux outils, les jetons et la part du prompt servie par le cache, les transferts à un agent et les réponses arrêtées par un garde-fou. Le coût IA est estimé en USD avec la grille de prix des réglages de la plateforme (à vérifier sur la page des tarifs du fournisseur) ; le coût Meta est une estimation par message envoyé. Le coût de chaque conversation s'affiche dans la boîte WhatsApp.</value>
+  </data>
+  <data name="Costs.Table" xml:space="preserve">
+    <value>Coûts de l'assistant par mois</value>
+  </data>
+  <data name="Costs.Column.Month" xml:space="preserve">
+    <value>Mois</value>
+  </data>
+  <data name="Costs.Column.Turns" xml:space="preserve">
+    <value>Tours</value>
+  </data>
+  <data name="Costs.Column.ModelCalls" xml:space="preserve">
+    <value>Appels au modèle</value>
+  </data>
+  <data name="Costs.Column.ToolCalls" xml:space="preserve">
+    <value>Appels d'outils</value>
+  </data>
+  <data name="Costs.Column.InputTokens" xml:space="preserve">
+    <value>Jetons d'entrée</value>
+  </data>
+  <data name="Costs.Column.OutputTokens" xml:space="preserve">
+    <value>Jetons de sortie</value>
+  </data>
+  <data name="Costs.Column.CacheTokens" xml:space="preserve">
+    <value>Jetons du cache (lus / écrits)</value>
+  </data>
+  <data name="Costs.Column.CacheHit" xml:space="preserve">
+    <value>Part servie par le cache</value>
+  </data>
+  <data name="Costs.Column.AiCost" xml:space="preserve">
+    <value>Coût IA (USD)</value>
+  </data>
+  <data name="Costs.Column.MetaCost" xml:space="preserve">
+    <value>Coût Meta estimé (USD)</value>
+  </data>
+  <data name="Costs.Column.TotalCost" xml:space="preserve">
+    <value>Total (USD)</value>
+  </data>
+  <data name="Costs.Column.HandOvers" xml:space="preserve">
+    <value>Transferts à un agent</value>
+  </data>
+  <data name="Costs.Column.Guardrails" xml:space="preserve">
+    <value>Réponses arrêtées par un garde-fou</value>
+  </data>
+  <data name="Costs.CacheValue" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="Costs.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Costs.Empty" xml:space="preserve">
+    <value>Aucun tour de l'assistant sur ces mois.</value>
+  </data>
+  <data name="Costs.Months" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Costs.Months.Value" xml:space="preserve">
+    <value>{0} derniers mois</value>
+  </data>
+</root>

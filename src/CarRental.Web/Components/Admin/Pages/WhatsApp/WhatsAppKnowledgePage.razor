@@ -1,0 +1,165 @@
+@page "/admin/whatsapp/knowledge"
+@attribute [HasPermission(Permissions.WhatsAppKnowledge)]
+@* The knowledge base of the WhatsApp assistant (ADR-0056): the answers it may give on the agency, drafts until a
+   manager validates them (audited); a change sends an answer back to draft, a deactivation withdraws it. Only the
+   validated and active answers ever reach a customer. *@
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Messaging.Agent.Knowledge
+@using CarRental.Web.Resources.Admin.WhatsApp
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AgentResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Knowledge.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Knowledge.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync" Disabled="_busy">@L["Knowledge.New"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body2" Class="mb-2">@L["Knowledge.Help"]</MudText>
+<MudLink Href="/admin/whatsapp" Typo="Typo.body2" Class="d-inline-block mb-3">@L["Link.Inbox"]</MudLink>
+
+<MudTable @ref="_table" T="KnowledgeEntryItem" ServerData="LoadAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Knowledge.Table"].Value })" data-testid="knowledge">
+    <HeaderContent>
+        <MudTh>@L["Knowledge.Column.Topic"]</MudTh>
+        <MudTh>@L["Knowledge.Column.Title"]</MudTh>
+        <MudTh>@L["Knowledge.Column.Answer"]</MudTh>
+        <MudTh>@L["Knowledge.Column.State"]</MudTh>
+        <MudTh>@L["Knowledge.Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Knowledge.Column.Topic"]"><code>@context.TopicKey</code></MudTd>
+        <MudTd DataLabel="@L["Knowledge.Column.Title"]">@context.Title</MudTd>
+        <MudTd DataLabel="@L["Knowledge.Column.Answer"]">@Preview(context.AnswerFrench)</MudTd>
+        <MudTd DataLabel="@L["Knowledge.Column.State"]">
+            <span class="d-inline-flex align-center gap-1" data-state="@State(context)">
+                @if (!context.IsActive)
+                {
+                    <MudIcon Icon="@Icons.Material.Outlined.Block" Size="Size.Small" aria-hidden="true" />
+                    @L["Knowledge.State.Inactive"]
+                }
+                else if (context.IsValidated)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Success" Size="Size.Small" aria-hidden="true" />
+                    @L["Knowledge.State.Validated", context.ValidatedByName ?? L["Knowledge.Validator.Unknown"].Value, Instant(context.ValidatedAtUtc)]
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Outlined.EditNote" Color="Color.Warning" Size="Size.Small" aria-hidden="true" />
+                    @L["Knowledge.State.Draft"]
+                }
+            </span>
+        </MudTd>
+        <MudTd DataLabel="@L["Knowledge.Column.Actions"]">
+            <div class="d-flex flex-wrap gap-1">
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Disabled="_busy" OnClick="@(() => EditAsync(context))"
+                           aria-label="@L["Knowledge.Action.Edit.Label", context.Title]">@L["Knowledge.Action.Edit"]</MudButton>
+                @if (context.IsActive && !context.IsValidated)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy" OnClick="@(() => ValidateAsync(context))"
+                               aria-label="@L["Knowledge.Action.Validate.Label", context.Title]">@L["Knowledge.Action.Validate"]</MudButton>
+                }
+                @if (context.IsActive)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy" OnClick="@(() => DeactivateAsync(context))"
+                               aria-label="@L["Knowledge.Action.Deactivate.Label", context.Title]">@L["Knowledge.Action.Deactivate"]</MudButton>
+                }
+                else
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy" OnClick="@(() => ActivateAsync(context))"
+                               aria-label="@L["Knowledge.Action.Activate.Label", context.Title]">@L["Knowledge.Action.Activate"]</MudButton>
+                }
+            </div>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">@L["Knowledge.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private const int PreviewLength = 140;
+
+    private static readonly DialogOptions DialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    private MudTable<KnowledgeEntryItem>? _table;
+    private bool _busy;
+
+    private async Task<TableData<KnowledgeEntryItem>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return new TableData<KnowledgeEntryItem> { Items = [], TotalItems = 0 };
+        }
+
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<KnowledgeBaseQueries, Result<PagedResult<KnowledgeEntryItem>>>((queries, ct) => queries.ListAsync(page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<KnowledgeEntryItem> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<KnowledgeEntryItem> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<KnowledgeEntryDialog>(L["Knowledge.Dialog.New"], DialogOptions);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Knowledge.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task EditAsync(KnowledgeEntryItem entry)
+    {
+        var parameters = new DialogParameters<KnowledgeEntryDialog> { { d => d.Entry, entry } };
+        var dialog = await Dialogs.ShowAsync<KnowledgeEntryDialog>(L["Knowledge.Dialog.Edit", entry.Title], parameters, DialogOptions);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Knowledge.Saved"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private Task ValidateAsync(KnowledgeEntryItem entry) =>
+        ActAsync((service, ct) => service.ValidateAsync(entry.Id, ct), L["Knowledge.Validated"]);
+
+    private Task DeactivateAsync(KnowledgeEntryItem entry) =>
+        ActAsync((service, ct) => service.DeactivateAsync(entry.Id, ct), L["Knowledge.Deactivated"]);
+
+    private Task ActivateAsync(KnowledgeEntryItem entry) =>
+        ActAsync((service, ct) => service.ActivateAsync(entry.Id, ct), L["Knowledge.Activated"]);
+
+    private async Task ActAsync(Func<KnowledgeBaseService, CancellationToken, Task<Result>> action, string success)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<KnowledgeBaseService, Result>(action);
+        _busy = false;
+        Snackbar.Add(result.IsSuccess ? success : ErrorMessages.For(Shared, result.Error), result.IsSuccess ? Severity.Success : Severity.Error);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private static string State(KnowledgeEntryItem entry) => !entry.IsActive ? "inactive" : entry.IsValidated ? "validated" : "draft";
+
+    private static string Preview(string text) => text.Length <= PreviewLength ? text : text[..PreviewLength].TrimEnd() + "…";
+
+    private static string Instant(DateTimeOffset? instant) =>
+        instant is { } value ? TunisTime.ToTunis(value).ToString("g", CultureInfo.CurrentCulture) : string.Empty;
+}
