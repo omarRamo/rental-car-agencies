@@ -26,6 +26,9 @@ public sealed partial class FakeWhatsApp(
 {
     private const string ActorName = "system:fake-whatsapp";
 
+    /// <summary>Messages kept by <see cref="Sent"/> (the latest ones).</summary>
+    private const int MaxRecorded = 5_000;
+
     private readonly ConcurrentQueue<FakeWhatsAppMessage> _sent = new();
     private readonly ConcurrentDictionary<string, WhatsAppSendResult> _failures = new(StringComparer.Ordinal);
 
@@ -57,6 +60,10 @@ public sealed partial class FakeWhatsApp(
 
         var metaId = $"wamid.FAKE{Guid.NewGuid():N}";
         _sent.Enqueue(new FakeWhatsAppMessage(request.To, request.Content, metaId, clock.GetUtcNow()));
+        while (_sent.Count > MaxRecorded && _sent.TryDequeue(out _))
+        {
+            // A long development session keeps the latest messages only.
+        }
         LogSent(request.Content.Kind.ToString());
         if (options.Value.FakeSimulatesStatuses)
         {
