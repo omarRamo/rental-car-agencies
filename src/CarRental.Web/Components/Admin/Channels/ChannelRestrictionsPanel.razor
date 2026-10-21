@@ -24,37 +24,42 @@
 
 <RestrictionCalendar Month="_month" Categories="@Channel.Categories" Restrictions="_restrictions" Today="_today" />
 
-<MudTable T="RestrictionView" Items="_restrictions" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" Class="mt-3" Loading="_loading"
-          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Restrictions.Table"].Value })">
-    <HeaderContent>
-        <MudTh>@L["Column.Kind"]</MudTh>
-        <MudTh>@L["Column.Category"]</MudTh>
-        <MudTh>@L["Column.Location"]</MudTh>
-        <MudTh>@L["Column.Period"]</MudTh>
-        <MudTh>@L["Column.Vehicles"]</MudTh>
-        <MudTh>@L["Column.Note"]</MudTh>
-        <MudTh>@L["Column.Actions"]</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="@L["Column.Kind"]">@L[$"QuotaKind.{context.Kind}"]</MudTd>
-        <MudTd DataLabel="@L["Column.Category"]">@context.CategoryCode</MudTd>
-        <MudTd DataLabel="@L["Column.Location"]">@(context.LocationCode ?? L["Restrictions.AllLocations"].Value)</MudTd>
-        <MudTd DataLabel="@L["Column.Period"]">@L["Restrictions.Period", ChannelsFormat.Date(context.StartDate), ChannelsFormat.Date(context.EndDate)]</MudTd>
-        <MudTd DataLabel="@L["Column.Vehicles"]">@(context.Kind == ChannelQuotaKind.Reserve ? context.ReservedVehicles.ToString(CultureInfo.CurrentCulture) : "—")</MudTd>
-        <MudTd DataLabel="@L["Column.Note"]">@context.Note</MudTd>
-        <MudTd DataLabel="@L["Column.Actions"]">
-            <MudStack Row="true" Spacing="1">
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => EditAsync(context, context.Kind)"
-                           aria-label="@L["Restrictions.Edit.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Edit"]</MudButton>
-                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(context)"
-                           aria-label="@L["Restrictions.Remove.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Remove"]</MudButton>
-            </MudStack>
-        </MudTd>
-    </RowTemplate>
-    <NoRecordsContent>
-        <MudText>@L["Restrictions.Empty"]</MudText>
-    </NoRecordsContent>
-</MudTable>
+<div class="channel-scroll mt-3" tabindex="0" role="region" aria-label="@L["Restrictions.Table"]">
+    <MudTable T="RestrictionView" Items="_restrictions" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" Loading="_loading" RowsPerPage="25"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Restrictions.Table"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Kind"]</MudTh>
+            <MudTh>@L["Column.Category"]</MudTh>
+            <MudTh>@L["Column.Location"]</MudTh>
+            <MudTh>@L["Column.Period"]</MudTh>
+            <MudTh>@L["Column.Vehicles"]</MudTh>
+            <MudTh>@L["Column.Note"]</MudTh>
+            <MudTh>@L["Column.Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Kind"]">@L[$"QuotaKind.{context.Kind}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Category"]">@context.CategoryCode</MudTd>
+            <MudTd DataLabel="@L["Column.Location"]">@(context.LocationCode ?? L["Restrictions.AllLocations"].Value)</MudTd>
+            <MudTd DataLabel="@L["Column.Period"]">@L["Restrictions.Period", ChannelsFormat.Date(context.StartDate), ChannelsFormat.Date(context.EndDate)]</MudTd>
+            <MudTd DataLabel="@L["Column.Vehicles"]">@(context.Kind == ChannelQuotaKind.Reserve ? context.ReservedVehicles.ToString(CultureInfo.CurrentCulture) : "—")</MudTd>
+            <MudTd DataLabel="@L["Column.Note"]">@context.Note</MudTd>
+            <MudTd DataLabel="@L["Column.Actions"]">
+                <MudStack Row="true" Spacing="1">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => EditAsync(context, context.Kind)"
+                               aria-label="@L["Restrictions.Edit.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Edit"]</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(context)"
+                               aria-label="@L["Restrictions.Remove.Label", L[$"QuotaKind.{context.Kind}"], context.CategoryCode, ChannelsFormat.Date(context.StartDate)]">@L["Restrictions.Remove"]</MudButton>
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Restrictions.Empty"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
 
 @code {
     private IReadOnlyList<RestrictionView> _restrictions = [];

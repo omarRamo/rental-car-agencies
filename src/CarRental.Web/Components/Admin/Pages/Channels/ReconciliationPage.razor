@@ -69,39 +69,41 @@
         </MudGrid>
     </MudPaper>
 
-    <MudTable T="ReconciliationBookingView" Items="view.Bookings" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
-              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.Bookings"].Value })">
-        <HeaderContent>
-            <MudTh>@L["Column.Booking"]</MudTh>
-            <MudTh>@L["Column.Reference"]</MudTh>
-            <MudTh>@L["Column.PickupAt"]</MudTh>
-            <MudTh>@L["Column.State"]</MudTh>
-            <MudTh>@L["Column.PaymentMode"]</MudTh>
-            <MudTh Class="channel-number">@L["Figure.Gross"]</MudTh>
-            <MudTh Class="channel-number">@L["Figure.Commission"]</MudTh>
-            <MudTh Class="channel-number">@L["Figure.Net"]</MudTh>
-            <MudTh Class="channel-number">@L["Figure.Engine"]</MudTh>
-            <MudTh Class="channel-number">@L["Column.PriceDifference"]</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="@L["Column.Booking"]"><MudLink Href="@($"/admin/bookings/{context.BookingId}")" Underline="Underline.Always">@context.BookingNumber</MudLink></MudTd>
-            <MudTd DataLabel="@L["Column.Reference"]">@context.ChannelReference<MudText Typo="Typo.caption" Class="d-block">@L[$"Source.{context.Source}"]</MudText></MudTd>
-            <MudTd DataLabel="@L["Column.PickupAt"]">@ChannelsFormat.Instant(context.PickupAt)</MudTd>
-            <MudTd DataLabel="@L["Column.State"]">@L[$"BookingState.{context.State}"]</MudTd>
-            <MudTd DataLabel="@L["Column.PaymentMode"]">@L[$"PaymentMode.{context.PaymentMode}"]</MudTd>
-            <MudTd DataLabel="@L["Figure.Gross"]" Class="channel-number">@ChannelsFormat.Amount(context.Gross)</MudTd>
-            <MudTd DataLabel="@L["Figure.Commission"]" Class="channel-number">@ChannelsFormat.Amount(context.Commission)</MudTd>
-            <MudTd DataLabel="@L["Figure.Net"]" Class="channel-number">@ChannelsFormat.Amount(context.Net)</MudTd>
-            <MudTd DataLabel="@L["Figure.Engine"]" Class="channel-number">@ChannelsFormat.Amount(context.EngineTotalInclVat)</MudTd>
-            <MudTd DataLabel="@L["Column.PriceDifference"]" Class="channel-number">@ChannelsFormat.WithSign(context.PriceDifference)</MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText>@L["Reconciliation.Empty"]</MudText>
-        </NoRecordsContent>
-        <PagerContent>
-            <AdminTablePager />
-        </PagerContent>
-    </MudTable>
+    <div class="channel-scroll" tabindex="0" role="region" aria-label="@L["Reconciliation.Bookings"]">
+        <MudTable T="ReconciliationBookingView" Items="view.Bookings" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.Bookings"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Booking"]</MudTh>
+                <MudTh>@L["Column.Reference"]</MudTh>
+                <MudTh>@L["Column.PickupAt"]</MudTh>
+                <MudTh>@L["Column.State"]</MudTh>
+                <MudTh>@L["Column.PaymentMode"]</MudTh>
+                <MudTh Class="channel-number">@L["Figure.Gross"]</MudTh>
+                <MudTh Class="channel-number">@L["Figure.Commission"]</MudTh>
+                <MudTh Class="channel-number">@L["Figure.Net"]</MudTh>
+                <MudTh Class="channel-number">@L["Figure.Engine"]</MudTh>
+                <MudTh Class="channel-number">@L["Column.PriceDifference"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Booking"]"><MudLink Href="@($"/admin/bookings/{context.BookingId}")" Underline="Underline.Always">@context.BookingNumber</MudLink></MudTd>
+                <MudTd DataLabel="@L["Column.Reference"]">@context.ChannelReference<MudText Typo="Typo.caption" Class="d-block">@L[$"Source.{context.Source}"]</MudText></MudTd>
+                <MudTd DataLabel="@L["Column.PickupAt"]">@ChannelsFormat.Instant(context.PickupAt)</MudTd>
+                <MudTd DataLabel="@L["Column.State"]">@L[$"BookingState.{context.State}"]</MudTd>
+                <MudTd DataLabel="@L["Column.PaymentMode"]">@L[$"PaymentMode.{context.PaymentMode}"]</MudTd>
+                <MudTd DataLabel="@L["Figure.Gross"]" Class="channel-number">@ChannelsFormat.Amount(context.Gross)</MudTd>
+                <MudTd DataLabel="@L["Figure.Commission"]" Class="channel-number">@ChannelsFormat.Amount(context.Commission)</MudTd>
+                <MudTd DataLabel="@L["Figure.Net"]" Class="channel-number">@ChannelsFormat.Amount(context.Net)</MudTd>
+                <MudTd DataLabel="@L["Figure.Engine"]" Class="channel-number">@ChannelsFormat.Amount(context.EngineTotalInclVat)</MudTd>
+                <MudTd DataLabel="@L["Column.PriceDifference"]" Class="channel-number">@ChannelsFormat.WithSign(context.PriceDifference)</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["Reconciliation.Empty"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <AdminTablePager />
+            </PagerContent>
+        </MudTable>
+    </div>
 }
 
 @code {

@@ -939,4 +939,7 @@
   <data name="Source.Manual" xml:space="preserve">
     <value>entered by hand</value>
   </data>
+  <data name="Field.BookingPaymentMode" xml:space="preserve">
+    <value>Payment mode</value>
+  </data>
 </root>

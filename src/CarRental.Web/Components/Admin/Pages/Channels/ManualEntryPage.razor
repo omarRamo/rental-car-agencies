@@ -103,7 +103,7 @@ else
                                  Adornment="Adornment.End" AdornmentText="TND" HideSpinButtons="true" Immediate="true" InputId="manual-commission" />
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudSelect T="ChannelPaymentMode" @bind-Value="_paymentMode" Label="@L["Field.PaymentMode"]" ToStringFunc="@(m => L[$"PaymentMode.{m}"])">
+                <MudSelect T="ChannelPaymentMode" @bind-Value="_paymentMode" Label="@L["Field.BookingPaymentMode"]" ToStringFunc="@(m => L[$"PaymentMode.{m}"])">
                     @foreach (var mode in Enum.GetValues<ChannelPaymentMode>())
                     {
                         <MudSelectItem T="ChannelPaymentMode" Value="@mode">@L[$"PaymentMode.{mode}"]</MudSelectItem>

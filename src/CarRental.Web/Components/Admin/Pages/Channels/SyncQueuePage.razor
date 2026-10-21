@@ -17,12 +17,14 @@
 
 @if (_statistics is { } statistics)
 {
-    <dl class="channel-figures mb-4" aria-label="@L["Summary.Label"]">
-        <div><dt>@L["Summary.Failed"]</dt><dd>@statistics.FailedCount</dd></div>
-        <div><dt>@L["Summary.Pending"]</dt><dd>@statistics.PendingCount</dd></div>
-        <div><dt>@L["Summary.Retrying"]</dt><dd>@statistics.RetryingCount</dd></div>
-        <div><dt>@L["Summary.OldestDue"]</dt><dd>@ChannelsFormat.Instant(statistics.OldestDueAtUtc)</dd></div>
-    </dl>
+    <section aria-label="@L["Summary.Label"]" class="mb-4">
+        <dl class="channel-figures" data-testid="sync-statistics">
+            <div><dt>@L["Summary.Failed"]</dt><dd>@statistics.FailedCount</dd></div>
+            <div><dt>@L["Summary.Pending"]</dt><dd>@statistics.PendingCount</dd></div>
+            <div><dt>@L["Summary.Retrying"]</dt><dd>@statistics.RetryingCount</dd></div>
+            <div><dt>@L["Summary.OldestDue"]</dt><dd>@ChannelsFormat.Instant(statistics.OldestDueAtUtc)</dd></div>
+        </dl>
+    </section>
 }
 
 <MudSelect T="SyncQueueFilter" Value="_filter" ValueChanged="FilterChangedAsync" Label="@L["Sync.Filter"]" Class="mb-4" Style="max-inline-size: 22rem;">
@@ -32,58 +34,60 @@
     }
 </MudSelect>
 
-<MudTable @ref="_table" T="SyncItemEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
-          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Sync.Title"].Value })">
-    <HeaderContent>
-        <MudTh>@L["Column.Created"]</MudTh>
-        <MudTh>@L["Column.Channel"]</MudTh>
-        <MudTh>@L["Column.Operation"]</MudTh>
-        <MudTh>@L["Column.Status"]</MudTh>
-        <MudTh>@L["Column.Attempts"]</MudTh>
-        <MudTh>@L["Column.NextAttempt"]</MudTh>
-        <MudTh>@L["Column.Error"]</MudTh>
-        <MudTh>@L["Column.Actions"]</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="@L["Column.Created"]">@ChannelsFormat.Instant(context.CreatedAtUtc)</MudTd>
-        <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
-        <MudTd DataLabel="@L["Column.Operation"]">@L[$"SyncOperation.{context.Operation}"]@(context.CategoryCode is { } code ? " · " + code : string.Empty)<MudText Typo="Typo.caption" Class="d-block">@L["Sync.Reason", context.Reason]</MudText></MudTd>
-        <MudTd DataLabel="@L["Column.Status"]">
-            <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.SyncColor(context.Status)">@L[$"SyncStatus.{context.Status}"]</MudChip>
-        </MudTd>
-        <MudTd DataLabel="@L["Column.Attempts"]">@context.Attempts</MudTd>
-        <MudTd DataLabel="@L["Column.NextAttempt"]">@(context.Status == ChannelSyncStatus.Pending ? ChannelsFormat.Instant(context.NextAttemptAtUtc) : ChannelsFormat.Instant(context.SentAtUtc))</MudTd>
-        <MudTd DataLabel="@L["Column.Error"]"><span class="channel-excerpt">@(context.LastError ?? "—")</span></MudTd>
-        <MudTd DataLabel="@L["Column.Actions"]">
-            <MudStack Row="true" Spacing="1">
-                @if (context.Status != ChannelSyncStatus.Pending || context.Attempts > 0)
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay" OnClick="() => ReplayAsync(context)" Disabled="_busy"
-                               aria-label="@L["Sync.Replay.Label", L[$"SyncOperation.{context.Operation}"], context.ChannelCode, ChannelsFormat.Instant(context.CreatedAtUtc)]">@L["Sync.Replay"]</MudButton>
-                }
-                @if (context.Payload is not null)
-                {
-                    <MudIconButton Icon="@(_expanded.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small"
-                                   OnClick="() => Toggle(context.Id)" aria-label="@L["Sync.ShowPayload"]" aria-expanded="@(_expanded.Contains(context.Id) ? "true" : "false")" />
-                }
-            </MudStack>
-        </MudTd>
-    </RowTemplate>
-    <ChildRowContent>
-        @if (_expanded.Contains(context.Id))
-        {
-            <MudTr>
-                <td colspan="8" class="audit-details"><pre>@context.Payload</pre></td>
-            </MudTr>
-        }
-    </ChildRowContent>
-    <NoRecordsContent>
-        <MudText>@L["Sync.Empty"]</MudText>
-    </NoRecordsContent>
-    <PagerContent>
-        <AdminTablePager />
-    </PagerContent>
-</MudTable>
+<div class="channel-scroll" tabindex="0" role="region" aria-label="@L["Sync.Title"]">
+    <MudTable @ref="_table" T="SyncItemEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Sync.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Created"]</MudTh>
+            <MudTh>@L["Column.Channel"]</MudTh>
+            <MudTh>@L["Column.Operation"]</MudTh>
+            <MudTh>@L["Column.Status"]</MudTh>
+            <MudTh>@L["Column.Attempts"]</MudTh>
+            <MudTh>@L["Column.NextAttempt"]</MudTh>
+            <MudTh>@L["Column.Error"]</MudTh>
+            <MudTh>@L["Column.Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Created"]">@ChannelsFormat.Instant(context.CreatedAtUtc)</MudTd>
+            <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
+            <MudTd DataLabel="@L["Column.Operation"]">@L[$"SyncOperation.{context.Operation}"]@(context.CategoryCode is { } code ? " · " + code : string.Empty)<MudText Typo="Typo.caption" Class="d-block">@L["Sync.Reason", context.Reason]</MudText></MudTd>
+            <MudTd DataLabel="@L["Column.Status"]">
+                <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.SyncColor(context.Status)">@L[$"SyncStatus.{context.Status}"]</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Attempts"]">@context.Attempts</MudTd>
+            <MudTd DataLabel="@L["Column.NextAttempt"]">@(context.Status == ChannelSyncStatus.Pending ? ChannelsFormat.Instant(context.NextAttemptAtUtc) : ChannelsFormat.Instant(context.SentAtUtc))</MudTd>
+            <MudTd DataLabel="@L["Column.Error"]"><span class="channel-excerpt">@(context.LastError ?? "—")</span></MudTd>
+            <MudTd DataLabel="@L["Column.Actions"]">
+                <MudStack Row="true" Spacing="1">
+                    @if (context.Status != ChannelSyncStatus.Pending || context.Attempts > 0)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay" OnClick="() => ReplayAsync(context)" Disabled="_busy"
+                                   aria-label="@L["Sync.Replay.Label", L[$"SyncOperation.{context.Operation}"], context.ChannelCode, ChannelsFormat.Instant(context.CreatedAtUtc)]">@L["Sync.Replay"]</MudButton>
+                    }
+                    @if (context.Payload is not null)
+                    {
+                        <MudIconButton Icon="@(_expanded.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small"
+                                       OnClick="() => Toggle(context.Id)" aria-label="@L["Sync.ShowPayload"]" aria-expanded="@(_expanded.Contains(context.Id) ? "true" : "false")" />
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <ChildRowContent>
+            @if (_expanded.Contains(context.Id))
+            {
+                <MudTr>
+                    <td colspan="8" class="audit-details"><pre>@context.Payload</pre></td>
+                </MudTr>
+            }
+        </ChildRowContent>
+        <NoRecordsContent>
+            <MudText>@L["Sync.Empty"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
 
 @code {
     private readonly HashSet<Guid> _expanded = [];

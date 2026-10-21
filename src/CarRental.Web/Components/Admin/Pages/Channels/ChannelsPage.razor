@@ -58,45 +58,50 @@ else if (_channels.Count == 0)
 }
 else
 {
-    <MudTable T="ChannelListItem" Items="_channels" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
-              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Channels.Title"].Value })">
-        <HeaderContent>
-            <MudTh>@L["Column.Channel"]</MudTh>
-            <MudTh>@L["Column.Agency"]</MudTh>
-            <MudTh>@L["Column.State"]</MudTh>
-            <MudTh>@L["Column.Adapter"]</MudTh>
-            <MudTh>@L["Column.Commission"]</MudTh>
-            <MudTh>@L["Column.Mappings"]</MudTh>
-            <MudTh>@L["Column.Security"]</MudTh>
-            <MudTh>@L["Column.Attention"]</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="@L["Column.Channel"]">
-                <MudLink Href="@($"/admin/channels/{context.Id}")" Underline="Underline.Always" data-channel="@context.Code">@context.Name</MudLink>
-                <MudText Typo="Typo.caption" Class="d-block"><code>@context.Code</code></MudText>
-            </MudTd>
-            <MudTd DataLabel="@L["Column.Agency"]">@context.AgencyName</MudTd>
-            <MudTd DataLabel="@L["Column.State"]">
-                <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StateColor(context.State)" Icon="@ChannelsFormat.StateIcon(context.State)">@L[$"State.{context.State}"]</MudChip>
-            </MudTd>
-            <MudTd DataLabel="@L["Column.Adapter"]">@L[$"Adapter.{context.AdapterKind}"]</MudTd>
-            <MudTd DataLabel="@L["Column.Commission"]">@ChannelsFormat.Percent(context.CommissionRate) · @L[$"PaymentMode.{context.DefaultPaymentMode}"]</MudTd>
-            <MudTd DataLabel="@L["Column.Mappings"]">@L["Mappings.Count", context.MappedCategories, context.MappedLocations]</MudTd>
-            <MudTd DataLabel="@L["Column.Security"]">
-                @(context.HasApiKey ? L["Security.Key"] : L["Security.NoKey"])@(context.HasCertificate ? " · " + L["Security.Certificate"] : string.Empty) · @L["Security.Ranges", context.AllowedRangeCount]
-            </MudTd>
-            <MudTd DataLabel="@L["Column.Attention"]">
-                @if (context.FailedUpdates > 0)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ErrorOutline">@L["Attention.Failed", context.FailedUpdates]</MudChip>
-                }
-                @if (context.PendingReminders > 0)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Checklist">@L["Attention.Reminders", context.PendingReminders]</MudChip>
-                }
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <div class="channel-scroll" tabindex="0" role="region" aria-label="@L["Channels.Title"]">
+        <MudTable T="ChannelListItem" Items="_channels" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+                  TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Channels.Title"].Value })">
+            <HeaderContent>
+                <MudTh>@L["Column.Channel"]</MudTh>
+                <MudTh>@L["Column.Agency"]</MudTh>
+                <MudTh>@L["Column.State"]</MudTh>
+                <MudTh>@L["Column.Adapter"]</MudTh>
+                <MudTh>@L["Column.Commission"]</MudTh>
+                <MudTh>@L["Column.Mappings"]</MudTh>
+                <MudTh>@L["Column.Security"]</MudTh>
+                <MudTh>@L["Column.Attention"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Column.Channel"]">
+                    <MudLink Href="@($"/admin/channels/{context.Id}")" Underline="Underline.Always" data-channel="@context.Code">@context.Name</MudLink>
+                    <MudText Typo="Typo.caption" Class="d-block"><code>@context.Code</code></MudText>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Agency"]">@context.AgencyName</MudTd>
+                <MudTd DataLabel="@L["Column.State"]">
+                    <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StateColor(context.State)" Icon="@ChannelsFormat.StateIcon(context.State)">@L[$"State.{context.State}"]</MudChip>
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Adapter"]">@L[$"Adapter.{context.AdapterKind}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Commission"]">@ChannelsFormat.Percent(context.CommissionRate) · @L[$"PaymentMode.{context.DefaultPaymentMode}"]</MudTd>
+                <MudTd DataLabel="@L["Column.Mappings"]">@L["Mappings.Count", context.MappedCategories, context.MappedLocations]</MudTd>
+                <MudTd DataLabel="@L["Column.Security"]">
+                    @(context.HasApiKey ? L["Security.Key"] : L["Security.NoKey"])@(context.HasCertificate ? " · " + L["Security.Certificate"] : string.Empty) · @L["Security.Ranges", context.AllowedRangeCount]
+                </MudTd>
+                <MudTd DataLabel="@L["Column.Attention"]">
+                    @if (context.FailedUpdates > 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ErrorOutline">@L["Attention.Failed", context.FailedUpdates]</MudChip>
+                    }
+                    @if (context.PendingReminders > 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Checklist">@L["Attention.Reminders", context.PendingReminders]</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <AdminTablePager />
+            </PagerContent>
+        </MudTable>
+    </div>
 }
 
 @code {

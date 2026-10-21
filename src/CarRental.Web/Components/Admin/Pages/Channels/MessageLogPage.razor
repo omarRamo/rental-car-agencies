@@ -62,60 +62,62 @@
     </MudGrid>
 </MudPaper>
 
-<MudTable @ref="_table" T="MessageLogEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
-          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Log.Title"].Value })">
-    <HeaderContent>
-        <MudTh>@L["Column.At"]</MudTh>
-        <MudTh>@L["Column.Channel"]</MudTh>
-        <MudTh>@L["Column.Direction"]</MudTh>
-        <MudTh>@L["Column.Operation"]</MudTh>
-        <MudTh>@L["Column.Status"]</MudTh>
-        <MudTh>@L["Column.Reference"]</MudTh>
-        <MudTh>@L["Column.Duration"]</MudTh>
-        <MudTh>@L["Column.Excerpt"]</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="@L["Column.At"]">@ChannelsFormat.Instant(context.OccurredAtUtc)</MudTd>
-        <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
-        <MudTd DataLabel="@L["Column.Direction"]">@L[$"Direction.{context.Direction}"]</MudTd>
-        <MudTd DataLabel="@L["Column.Operation"]">@L[$"Operation.{context.Operation}"]</MudTd>
-        <MudTd DataLabel="@L["Column.Status"]">
-            <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StatusColor(context.Status)">@L[$"MessageStatus.{context.Status}"]</MudChip>
-            @if (context.HttpStatus is { } http)
-            {
-                <MudText Typo="Typo.caption" Class="d-block">HTTP @http</MudText>
-            }
-        </MudTd>
-        <MudTd DataLabel="@L["Column.Reference"]">
-            @if (context.BookingId is { } bookingId)
-            {
-                <MudLink Href="@($"/admin/bookings/{bookingId}")" Underline="Underline.Always">@(context.ChannelReference ?? L["Log.Booking"].Value)</MudLink>
-            }
-            else
-            {
-                @(context.ChannelReference ?? "—")
-            }
-        </MudTd>
-        <MudTd DataLabel="@L["Column.Duration"]" Class="channel-number">@L["Log.Duration", context.DurationMilliseconds]</MudTd>
-        <MudTd DataLabel="@L["Column.Excerpt"]">
-            <span class="channel-excerpt">@context.Excerpt</span>
-            @if (context.ErrorCode is { } errorCode)
-            {
-                <MudText Typo="Typo.caption" Class="d-block"><code>@errorCode</code> — @ErrorText(errorCode)</MudText>
-            }
-            @if (context.RemoteAddress is { } address)
-            {
-                <MudText Typo="Typo.caption" Class="d-block">@L["Log.From", address]</MudText>
-            }
-        </MudTd>
-    </RowTemplate>
-    <NoRecordsContent>
-        <MudText>@L["Log.Empty"]</MudText>
-    </NoRecordsContent>
-    <PagerContent>
-        <AdminTablePager />
-    </PagerContent>
-</MudTable>
+<div class="channel-scroll" tabindex="0" role="region" aria-label="@L["Log.Title"]">
+    <MudTable @ref="_table" T="MessageLogEntry" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Log.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.At"]</MudTh>
+            <MudTh>@L["Column.Channel"]</MudTh>
+            <MudTh>@L["Column.Direction"]</MudTh>
+            <MudTh>@L["Column.Operation"]</MudTh>
+            <MudTh>@L["Column.Status"]</MudTh>
+            <MudTh>@L["Column.Reference"]</MudTh>
+            <MudTh>@L["Column.Duration"]</MudTh>
+            <MudTh>@L["Column.Excerpt"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.At"]">@ChannelsFormat.Instant(context.OccurredAtUtc)</MudTd>
+            <MudTd DataLabel="@L["Column.Channel"]"><code>@context.ChannelCode</code></MudTd>
+            <MudTd DataLabel="@L["Column.Direction"]">@L[$"Direction.{context.Direction}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Operation"]">@L[$"Operation.{context.Operation}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Status"]">
+                <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StatusColor(context.Status)">@L[$"MessageStatus.{context.Status}"]</MudChip>
+                @if (context.HttpStatus is { } http)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">HTTP @http</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Reference"]">
+                @if (context.BookingId is { } bookingId)
+                {
+                    <MudLink Href="@($"/admin/bookings/{bookingId}")" Underline="Underline.Always">@(context.ChannelReference ?? L["Log.Booking"].Value)</MudLink>
+                }
+                else
+                {
+                    @(context.ChannelReference ?? "—")
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Duration"]" Class="channel-number">@L["Log.Duration", context.DurationMilliseconds]</MudTd>
+            <MudTd DataLabel="@L["Column.Excerpt"]">
+                <span class="channel-excerpt">@context.Excerpt</span>
+                @if (context.ErrorCode is { } errorCode)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block"><code>@errorCode</code> — @ErrorText(errorCode)</MudText>
+                }
+                @if (context.RemoteAddress is { } address)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@L["Log.From", address]</MudText>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Log.Empty"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
 
 @code {
     private MudTable<MessageLogEntry>? _table;
