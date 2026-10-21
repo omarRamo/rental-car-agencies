@@ -84,6 +84,30 @@ public sealed class OutboxTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task Messages_without_handler_are_kept_as_a_record_and_completed_in_one_statement()
+    {
+        var typeName = $"Tests.UnhandledEvent{Guid.NewGuid():N}";
+        await using (var scope = host.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            db.Set<OutboxMessage>().AddRange(
+                Enumerable.Range(0, 3).Select(_ => OutboxMessage.Create(typeName, "{}", DateTimeOffset.UtcNow, "corr-unhandled")));
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using (var scope = host.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessPendingAsync(Ct);
+        }
+
+        await using var check = host.CreateScope();
+        var messages = await check.ServiceProvider.GetRequiredService<CarRentalDbContext>()
+            .Set<OutboxMessage>().AsNoTracking().Where(m => m.Type == typeName).ToListAsync(Ct);
+        messages.Count.ShouldBe(3);
+        messages.ShouldAllBe(m => m.ProcessedAtUtc != null && m.AttemptCount == 0 && m.LastError == null);
+    }
+
+    [Fact]
     public void Retry_delays_grow_exponentially_up_to_six_hours()
     {
         OutboxProcessor.RetryDelay(1).ShouldBe(TimeSpan.FromMinutes(1));

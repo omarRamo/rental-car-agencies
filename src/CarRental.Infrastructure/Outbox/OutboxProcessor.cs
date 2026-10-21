@@ -52,7 +52,7 @@ public sealed partial class OutboxProcessor(
     public async Task<int> ProcessPendingAsync(CancellationToken cancellationToken)
     {
         var settings = options.Value;
-        var handled = 0;
+        var handled = await CompleteMessagesWithoutHandlerAsync(cancellationToken);
         for (var batch = 0; batch < settings.MaxBatchesPerRun; batch++)
         {
             var dueIds = await LoadDueIdsAsync(settings, cancellationToken);
@@ -94,14 +94,33 @@ public sealed partial class OutboxProcessor(
             type => InvokeHandlersMethod.MakeGenericMethod(type)
                 .CreateDelegate<Func<IServiceProvider, object, OutboxMessageContext, CancellationToken, Task>>());
 
+    /// <summary>
+    /// Marks processed, in one statement, the pending messages never attempted whose type has no handler: they stay in the
+    /// table as a record of the event (purged like the others) but have nothing to run, and walking them one by one would delay
+    /// the messages that do have handlers (ADR-0040). A message that already failed stays visible on the outbox screen until a
+    /// manager retries it (the retry resets its attempts).
+    /// </summary>
+    private async Task<int> CompleteMessagesWithoutHandlerAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+        var handledTypes = registry.HandledTypeNames.ToList();
+        var now = timeProvider.GetUtcNow();
+        return await db.Set<OutboxMessage>()
+            .Where(m => m.ProcessedAtUtc == null && m.AttemptCount == 0 && !handledTypes.Contains(m.Type))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.ProcessedAtUtc, now), cancellationToken);
+    }
+
     private async Task<List<Guid>> LoadDueIdsAsync(OutboxOptions settings, CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var now = timeProvider.GetUtcNow();
+        var handledTypes = registry.HandledTypeNames.ToList();
         return await db.Set<OutboxMessage>()
             .AsNoTracking()
             .Where(m => m.ProcessedAtUtc == null
+                        && handledTypes.Contains(m.Type)
                         && m.AttemptCount < settings.MaxAttempts
                         && (m.NextAttemptAtUtc == null || m.NextAttemptAtUtc <= now))
             .OrderBy(m => m.OccurredAtUtc)

@@ -52,4 +52,7 @@ public sealed class OutboxMessageTypeRegistry(IEnumerable<OutboxMessageTypeRegis
         .ToFrozenDictionary(t => t.FullName ?? t.Name, StringComparer.Ordinal);
 
     public Type? Resolve(string typeName) => _types.GetValueOrDefault(typeName);
+
+    /// <summary>Stored names of the types that have handlers (every other stored message has nothing to run).</summary>
+    public IReadOnlyCollection<string> HandledTypeNames => _types.Keys;
 }
