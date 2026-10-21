@@ -1,0 +1,198 @@
+@* Finds a driver by name, phone, CIN, passport or e-mail (Customers contract), or registers a new one inline with the
+   deduplication of ADR-0027: the outcome (created, found by document, phone or e-mail; another name on the document;
+   persons sharing the phone or e-mail) is shown before the person is used. *@
+@using CarRental.Application.Customers.Contracts
+@using System.Globalization
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<div class="person-picker" data-picker="@InputId">
+    @if (Selected is { } selected)
+    {
+        <div class="d-flex flex-wrap align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Person" aria-hidden="true" />
+            <strong data-testid="@($"{InputId}-selected")">@selected.FullName</strong>
+            <span class="booking-muted">@(selected.Phone ?? string.Empty) @(selected.BirthDate is { } birth ? BookingFormat.Date(birth) : string.Empty)</span>
+            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close" OnClick="ClearAsync" aria-label="@L["Person.Change", Label]">@L["Person.ChangeShort"]</MudButton>
+        </div>
+        @if (_registration is { } registration)
+        {
+            <Notice Kind="@(registration.NameDiffers ? NoticeKind.Warning : NoticeKind.Info)" Class="mt-2" Role="status">
+                @L[$"Person.Match.{registration.Match}"]
+                @if (registration.NameDiffers)
+                {
+                    @(" ")@L["Person.Match.NameDiffers"]
+                }
+                @if (registration.SimilarPersonIds.Count > 0)
+                {
+                    @(" ")@L["Person.Match.Similar", registration.SimilarPersonIds.Count]
+                }
+            </Notice>
+        }
+    }
+    else if (_creating)
+    {
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Person.New.Title"]</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_firstName" Label="@L["Person.FirstName"]" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="@($"{InputId}-first-name")" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_lastName" Label="@L["Person.LastName"]" Required="true" RequiredError="@Shared["Validation.Required"]" InputId="@($"{InputId}-last-name")" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_phone" Label="@L["Person.Phone"]" InputType="InputType.Telephone" InputId="@($"{InputId}-phone")" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_email" Label="@L["Person.Email"]" InputType="InputType.Email" InputId="@($"{InputId}-email")" /></MudItem>
+                <MudItem xs="6" sm="3"><MudTextField T="string" @bind-Value="_nationality" Label="@L["Person.Nationality"]" MaxLength="2" HelperText="@L["Person.Nationality.Help"]" InputId="@($"{InputId}-nationality")" /></MudItem>
+                <MudItem xs="6" sm="3"><MudTextField T="string" @bind-Value="_birthDate" Label="@L["Person.BirthDate"]" InputType="InputType.Date" ShrinkLabel="true" InputId="@($"{InputId}-birth-date")" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="IdentityDocumentTypeInfo" @bind-Value="_documentType" Label="@L["Person.DocumentType"]" ToStringFunc="@(t => L[$"DocumentType.{t}"])">
+                        <MudSelectItem T="IdentityDocumentTypeInfo" Value="IdentityDocumentTypeInfo.NationalId">@L["DocumentType.NationalId"]</MudSelectItem>
+                        <MudSelectItem T="IdentityDocumentTypeInfo" Value="IdentityDocumentTypeInfo.Passport">@L["DocumentType.Passport"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_documentNumber" Label="@L["Person.DocumentNumber"]" InputId="@($"{InputId}-document")" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField T="string" @bind-Value="_documentCountry" Label="@L["Person.DocumentCountry"]" MaxLength="2" InputId="@($"{InputId}-document-country")" /></MudItem>
+            </MudGrid>
+            @if (_error is not null)
+            {
+                <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-2">@_error</Notice>
+            }
+            <div class="d-flex gap-2 mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RegisterAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_firstName) || string.IsNullOrWhiteSpace(_lastName))">@L["Person.New.Save"]</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="@(() => _creating = false)">@Shared["Cancel"]</MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap align-end gap-2">
+            <MudTextField T="string" @bind-Value="_term" Label="@Label" HelperText="@L["Person.Search.Help"]" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="300" OnDebounceIntervalElapsed="SearchAsync" Immediate="true"
+                          InputId="@InputId" autocomplete="off" Class="flex-grow-1" />
+            @if (AllowCreate)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="StartCreating" data-testid="@($"{InputId}-new")">@L["Person.New"]</MudButton>
+            }
+        </div>
+        @if (_results is { Count: > 0 } results)
+        {
+            <ul class="ps-0 mt-1" style="list-style:none;margin:0" aria-label="@L["Person.Results", Label]">
+                @foreach (var person in results)
+                {
+                    <li>
+                        <MudButton Variant="Variant.Text" FullWidth="true" Class="justify-start" OnClick="@(() => PickAsync(person))" data-person="@person.Id">
+                            <span style="text-align:start">
+                                <strong>@person.FullName</strong>
+                                <span class="booking-muted">@(person.Phone ?? string.Empty) @(person.BirthDate is { } birth ? BookingFormat.Date(birth) : string.Empty) @(person.Email ?? string.Empty)</span>
+                            </span>
+                        </MudButton>
+                    </li>
+                }
+            </ul>
+        }
+        else if (_results is not null && !string.IsNullOrWhiteSpace(_term))
+        {
+            <MudText Typo="Typo.body2" Class="mt-1" role="status">@L["Person.NoResult"]</MudText>
+        }
+    }
+</div>
+
+@code {
+    private string? _term;
+    private IReadOnlyList<PersonSummaryInfo>? _results;
+    private bool _creating;
+    private bool _busy;
+    private string? _error;
+    private PersonRegistrationResult? _registration;
+    private string? _firstName;
+    private string? _lastName;
+    private string? _phone;
+    private string? _email;
+    private string? _nationality = "TN";
+    private string? _birthDate;
+    private IdentityDocumentTypeInfo _documentType = IdentityDocumentTypeInfo.NationalId;
+    private string? _documentNumber;
+    private string? _documentCountry = "TN";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    /// <summary>Id of the search input (keyboard shortcut target) and prefix of the form inputs.</summary>
+    [Parameter, EditorRequired]
+    public string InputId { get; set; } = default!;
+
+    [Parameter]
+    public bool AllowCreate { get; set; } = true;
+
+    [Parameter]
+    public PersonSummaryInfo? Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<PersonSummaryInfo?> SelectedChanged { get; set; }
+
+    /// <summary>Opens the inline registration form (keyboard shortcut of the quick creation).</summary>
+    public void StartCreating()
+    {
+        _creating = true;
+        _error = null;
+        if (!string.IsNullOrWhiteSpace(_term) && _term.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries) is [var first, .. var others])
+        {
+            _firstName ??= first;
+            _lastName ??= others.Length > 0 ? string.Join(' ', others) : null;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SearchAsync(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2)
+        {
+            _results = null;
+            return;
+        }
+
+        _results = await Runner.RunAsync<ICustomersQueries, IReadOnlyList<PersonSummaryInfo>>((queries, ct) => queries.SearchPersonsAsync(term, 8, ct));
+    }
+
+    private async Task PickAsync(PersonSummaryInfo person)
+    {
+        _registration = null;
+        _results = null;
+        _term = null;
+        await SelectedChanged.InvokeAsync(person);
+    }
+
+    private async Task ClearAsync()
+    {
+        _registration = null;
+        await SelectedChanged.InvokeAsync(null);
+    }
+
+    private async Task RegisterAsync()
+    {
+        _busy = true;
+        _error = null;
+        DateOnly? birthDate = DateOnly.TryParseExact(_birthDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : null;
+        var document = string.IsNullOrWhiteSpace(_documentNumber)
+            ? null
+            : new IdentityDocumentInput(_documentType, _documentNumber.Trim(), (_documentCountry ?? "TN").Trim());
+        var request = new PersonRegistrationRequest(_firstName!.Trim(), _lastName!.Trim(), _nationality?.Trim(), birthDate, _phone, _email, Document: document);
+        var registered = await Runner.RunAsync<ICustomerRegistration, Result<PersonRegistrationResult>>((registration, ct) => registration.FindOrCreatePersonAsync(request, ct));
+        if (registered.IsFailure)
+        {
+            _busy = false;
+            _error = ErrorMessages.For(Shared, registered.Error);
+            return;
+        }
+
+        var person = await Runner.RunAsync<ICustomersQueries, PersonInfo?>((queries, ct) => queries.GetPersonAsync(registered.Value.PersonId, ct));
+        _busy = false;
+        if (person is null)
+        {
+            return;
+        }
+
+        _creating = false;
+        _registration = registered.Value;
+        await SelectedChanged.InvokeAsync(new PersonSummaryInfo(person.Id, person.FirstName, person.LastName, person.Nationality, person.BirthDate, person.Phone, person.Email, person.Documents.Count));
+    }
+}

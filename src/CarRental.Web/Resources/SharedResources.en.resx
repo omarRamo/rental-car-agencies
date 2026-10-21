@@ -135,6 +135,150 @@
   <data name="Error.availability.lock_failed" xml:space="preserve">
     <value>Availability could not be checked. Try again.</value>
   </data>
+  <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
+    <value>The actual pick-up cannot be in the future.</value>
+  </data>
+  <data name="Error.booking.actual_return_invalid" xml:space="preserve">
+    <value>The actual return must follow the actual pick-up and cannot be in the future.</value>
+  </data>
+  <data name="Error.booking.agency_required" xml:space="preserve">
+    <value>An agency is required.</value>
+  </data>
+  <data name="Error.booking.amendment.discount_invalid" xml:space="preserve">
+    <value>The manual discount must be a positive amount in TND, at most the total of the quote.</value>
+  </data>
+  <data name="Error.booking.amendment.extension_only" xml:space="preserve">
+    <value>A rental in progress can only be extended: a later return, everything else unchanged.</value>
+  </data>
+  <data name="Error.booking.amendment.negative_total" xml:space="preserve">
+    <value>The quote total cannot become negative.</value>
+  </data>
+  <data name="Error.booking.amendment.no_change" xml:space="preserve">
+    <value>Nothing was changed.</value>
+  </data>
+  <data name="Error.booking.attribution_invalid" xml:space="preserve">
+    <value>The origin of the request (source, UTM) is too long.</value>
+  </data>
+  <data name="Error.booking.cancellation_fee_invalid" xml:space="preserve">
+    <value>The cancellation fee must be a non-negative amount in TND.</value>
+  </data>
+  <data name="Error.booking.category_required" xml:space="preserve">
+    <value>A vehicle category is required.</value>
+  </data>
+  <data name="Error.booking.channel_invalid" xml:space="preserve">
+    <value>This sales channel cannot be used for this kind of booking.</value>
+  </data>
+  <data name="Error.booking.channel_reference_invalid" xml:space="preserve">
+    <value>The channel reference is too long.</value>
+  </data>
+  <data name="Error.booking.channel_reference_taken" xml:space="preserve">
+    <value>Another rental file already carries this channel reference.</value>
+  </data>
+  <data name="Error.booking.concurrent_update" xml:space="preserve">
+    <value>The rental file was changed in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.booking.customer_check_failed" xml:space="preserve">
+    <value>The internal customer check does not allow this rental file. See the manager.</value>
+  </data>
+  <data name="Error.booking.deadline_not_reached" xml:space="preserve">
+    <value>The deadline (request, option or payment) is not reached yet.</value>
+  </data>
+  <data name="Error.booking.drivers_identical" xml:space="preserve">
+    <value>The second driver must be another person than the main driver.</value>
+  </data>
+  <data name="Error.booking.drivers_not_eligible" xml:space="preserve">
+    <value>A driver does not meet the conditions (age, licence, documents valid until the return).</value>
+  </data>
+  <data name="Error.booking.extras_invalid" xml:space="preserve">
+    <value>An extra has an invalid code or quantity (1 to 10).</value>
+  </data>
+  <data name="Error.booking.forbidden" xml:space="preserve">
+    <value>You are not allowed to perform this action on bookings.</value>
+  </data>
+  <data name="Error.booking.hold_expired" xml:space="preserve">
+    <value>The hold of the request has expired.</value>
+  </data>
+  <data name="Error.booking.information_reason_invalid" xml:space="preserve">
+    <value>Choose a predefined reason for the information request.</value>
+  </data>
+  <data name="Error.booking.invalid_transition" xml:space="preserve">
+    <value>This action is not possible in the current status of the rental file.</value>
+  </data>
+  <data name="Error.booking.location_required" xml:space="preserve">
+    <value>The pick-up and return places are required.</value>
+  </data>
+  <data name="Error.booking.main_driver_required" xml:space="preserve">
+    <value>A main driver is required.</value>
+  </data>
+  <data name="Error.booking.no_show_too_early" xml:space="preserve">
+    <value>A no-show can only be recorded once the delay after the planned pick-up has passed.</value>
+  </data>
+  <data name="Error.booking.not_found" xml:space="preserve">
+    <value>This rental file does not exist.</value>
+  </data>
+  <data name="Error.booking.notes_too_long" xml:space="preserve">
+    <value>The notes are too long.</value>
+  </data>
+  <data name="Error.booking.option_expired" xml:space="preserve">
+    <value>The option has expired.</value>
+  </data>
+  <data name="Error.booking.option_expiry_invalid" xml:space="preserve">
+    <value>The option must expire in the future.</value>
+  </data>
+  <data name="Error.booking.payer_required" xml:space="preserve">
+    <value>A payer is required.</value>
+  </data>
+  <data name="Error.booking.payment_due_invalid" xml:space="preserve">
+    <value>The payment deadline must be in the future.</value>
+  </data>
+  <data name="Error.booking.period_invalid" xml:space="preserve">
+    <value>The return must be after the pick-up.</value>
+  </data>
+  <data name="Error.booking.pickup_in_past" xml:space="preserve">
+    <value>The pick-up cannot be in the past.</value>
+  </data>
+  <data name="Error.booking.promo_code_invalid" xml:space="preserve">
+    <value>The promo code is too long.</value>
+  </data>
+  <data name="Error.booking.quote.code_invalid" xml:space="preserve">
+    <value>A quote code has six letters or digits.</value>
+  </data>
+  <data name="Error.booking.quote.code_unavailable" xml:space="preserve">
+    <value>No free quote code could be generated: try again.</value>
+  </data>
+  <data name="Error.booking.quote.expired" xml:space="preserve">
+    <value>The locked quote has expired: ask for a new price.</value>
+  </data>
+  <data name="Error.booking.quote.invalid" xml:space="preserve">
+    <value>The quote is inconsistent: its lines must add up to its totals.</value>
+  </data>
+  <data name="Error.booking.quote.not_found" xml:space="preserve">
+    <value>This quote does not exist.</value>
+  </data>
+  <data name="Error.booking.quote.price_changed" xml:space="preserve">
+    <value>The price changed since it was shown: check the new price and confirm again.</value>
+  </data>
+  <data name="Error.booking.reason_required" xml:space="preserve">
+    <value>A reason is required for this action.</value>
+  </data>
+  <data name="Error.booking.reason_too_long" xml:space="preserve">
+    <value>The reason is too long.</value>
+  </data>
+  <data name="Error.booking.vehicle.already_assigned" xml:space="preserve">
+    <value>This vehicle is already assigned to the rental file.</value>
+  </data>
+  <data name="Error.booking.vehicle.guaranteed_model" xml:space="preserve">
+    <value>The rental file books this exact vehicle (guaranteed model): amend the booking to change it.</value>
+  </data>
+  <data name="Error.booking.vehicle.not_assigned" xml:space="preserve">
+    <value>No vehicle is assigned to the rental file.</value>
+  </data>
+  <data name="Error.booking.vehicle.required" xml:space="preserve">
+    <value>Assign a vehicle before the departure.</value>
+  </data>
+  <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
+    <value>A documents waiver applies to an assigned vehicle.</value>
+  </data>
   <data name="Error.customers.person.not_found" xml:space="preserve">
     <value>Person not found.</value>
   </data>

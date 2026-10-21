@@ -1,0 +1,298 @@
+@page "/admin/requests"
+@attribute [HasPermission(Permissions.RequestsRead)]
+@implements IDisposable
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Web.Resources.Admin.Customers
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<CustomersAdminResources> C
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Requests.Title"]</PageTitle>
+<BookingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Requests.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">@L["Requests.Help"]</MudText>
+
+@if (_error is not null)
+{
+    <Notice Kind="NoticeKind.Error" Role="alert" Class="mb-3">@_error</Notice>
+}
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="5">
+        <MudPaper Elevation="1" Class="pa-2">
+            @if (_requests is null)
+            {
+                <MudProgressLinear Indeterminate="true" />
+            }
+            else if (_requests.Count == 0)
+            {
+                <MudText Class="pa-2" role="status">@L["Requests.Empty"]</MudText>
+            }
+            else
+            {
+                <ul class="booking-widget-list" aria-label="@L["Requests.List", _requests.Count]">
+                    @foreach (var request in _requests)
+                    {
+                        <li data-request="@request.Number">
+                            <MudButton Variant="@(request.BookingId == _selectedId ? Variant.Outlined : Variant.Text)" FullWidth="true" Class="justify-start"
+                                       OnClick="@(() => SelectAsync(request.BookingId))" aria-pressed="@(request.BookingId == _selectedId ? "true" : "false")">
+                                <span style="text-align:start;display:block;inline-size:100%">
+                                    <span class="d-flex flex-wrap align-center gap-2">
+                                        <strong>@request.Number</strong>
+                                        <BookingStatusChip Status="@BookingFormat.ToStatus(request.Status)" />
+                                        @if (request.IsEscalated)
+                                        {
+                                            <span class="booking-flag"><MudIcon Icon="@Icons.Material.Filled.PriorityHigh" Size="Size.Small" aria-hidden="true" />@L["Request.Escalated"]</span>
+                                        }
+                                    </span>
+                                    <span class="d-block">@(string.IsNullOrEmpty(request.CustomerName) ? "—" : request.CustomerName) · @L[$"Channel.{request.Channel}"]</span>
+                                    <span class="booking-muted d-block">@request.CategoryCode · @BookingFormat.Instant(request.PickupAt) → @BookingFormat.Instant(request.ReturnAt) · @BookingFormat.Amount(request.TotalInclVat)</span>
+                                    <Countdown Until="request.HoldExpiresAt" />
+                                </span>
+                            </MudButton>
+                        </li>
+                    }
+                </ul>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="7">
+        @if (Selected is { } selected)
+        {
+            <MudPaper Elevation="1" Class="pa-4" role="region" aria-label="@L["Requests.Checklist", selected.Number]">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">@L["Requests.Checklist", selected.Number]</MudText>
+                    <MudLink Href="@($"/admin/bookings/{selected.BookingId}")">@L["Requests.OpenFile"]</MudLink>
+                </MudStack>
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    @L["Requests.SubmittedAt", BookingFormat.Instant(selected.SubmittedAt)] · @L["Requests.HoldUntil", BookingFormat.Instant(selected.HoldExpiresAt)]
+                </MudText>
+
+                @if (_checklist is null)
+                {
+                    <MudProgressLinear Indeterminate="true" />
+                }
+                else
+                {
+                    <ul class="booking-checklist" aria-label="@L["Requests.ChecklistItems"]">
+                        @foreach (var item in _checklist.Items)
+                        {
+                            <li data-check="@item.Kind.ToString()" data-state="@item.State.ToString()">
+                                <MudIcon Icon="@StateIcon(item.State)" Size="Size.Small" Class="mt-1" aria-hidden="true" />
+                                <div>
+                                    <strong>@L[$"Check.{item.Kind}"]</strong>
+                                    <span class="booking-muted"> — @L[$"CheckState.{item.State}"]</span>
+                                    @if (item.Kind == ChecklistItemKind.CustomerCheck && item.State == ChecklistState.Attention)
+                                    {
+                                        <span class="d-block">@L["Check.CustomerCheck.Attention"]</span>
+                                    }
+                                    @foreach (var detail in item.Details)
+                                    {
+                                        <span class="d-block">
+                                            @detail.DriverName@(detail.Issue is { } issue ? $" : {CustomerLabels.Issue(C, issue)}" : string.Empty)
+                                        </span>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-3">@L["Section.Drivers"]</MudText>
+                    @foreach (var driver in _checklist.Drivers)
+                    {
+                        <MudText Typo="Typo.body2">
+                            <MudLink Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
+                            · @L[$"Role.{driver.Role}"] · @L[$"Documents.{driver.Documents}"]
+                        </MudText>
+                    }
+
+                    @if (_canManage)
+                    {
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            @if (selected.Status == BookingStatusInfo.PendingValidation)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => ValidateAsync(selected))" Disabled="_busy">@L["Action.Validate"]</MudButton>
+                                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.HelpOutline" OnClick="@(() => RequestInformationAsync(selected))" Disabled="_busy">@L["Action.RequestInformation"]</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MarkEmailRead" OnClick="@(() => ProvideInformationAsync(selected))" Disabled="_busy">@L["Action.ProvideInformation"]</MudButton>
+                            }
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Block" OnClick="@(() => RefuseAsync(selected))" Disabled="_busy">@L["Action.Refuse"]</MudButton>
+                        </div>
+                        @if (!_checklist.AllOk && selected.Status == BookingStatusInfo.PendingValidation)
+                        {
+                            <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Requests.AttentionHelp"]</MudText>
+                        }
+                    }
+                }
+            </MudPaper>
+        }
+        else if (_requests is { Count: > 0 })
+        {
+            <MudText Typo="Typo.body2">@L["Requests.Select"]</MudText>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private IReadOnlyList<PendingRequestInfo>? _requests;
+    private Guid? _selectedId;
+    private RequestChecklist? _checklist;
+    private string? _error;
+    private bool _busy;
+    private bool _canManage;
+    private Guid? _agencyId;
+    private Timer? _timer;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private PendingRequestInfo? Selected => _requests?.FirstOrDefault(r => r.BookingId == _selectedId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = (await AuthenticationState).User.HasPermission(Permissions.RequestsManage);
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        _agencyId = agency.IsSuccess ? agency.Value.Id : null;
+        await LoadAsync();
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshAsync), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private async Task RefreshAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        var agencyId = _agencyId;
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<IReadOnlyList<PendingRequestInfo>>>((queries, ct) => queries.GetRequestQueueAsync(agencyId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            _requests = [];
+            return;
+        }
+
+        _error = null;
+        _requests = result.Value;
+        if (_selectedId is { } selectedId && _requests.All(r => r.BookingId != selectedId))
+        {
+            _selectedId = null;
+            _checklist = null;
+        }
+
+        if (_selectedId is null && _requests.Count > 0)
+        {
+            await SelectAsync(_requests[0].BookingId);
+        }
+    }
+
+    private async Task SelectAsync(Guid bookingId)
+    {
+        _selectedId = bookingId;
+        _checklist = null;
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<RequestChecklist>>((queries, ct) => queries.GetChecklistAsync(bookingId, ct));
+        if (result.IsSuccess && _selectedId == bookingId)
+        {
+            _checklist = result.Value;
+        }
+        else if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private static string StateIcon(ChecklistState state) => state switch
+    {
+        ChecklistState.Ok => Icons.Material.Filled.CheckCircle,
+        ChecklistState.Attention => Icons.Material.Filled.WarningAmber,
+        ChecklistState.Manual => Icons.Material.Outlined.FactCheck,
+        _ => Icons.Material.Outlined.HourglassEmpty,
+    };
+
+    private async Task AfterActionAsync(Result result, string success)
+    {
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            _selectedId = null;
+            _checklist = null;
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task ValidateAsync(PendingRequestInfo request)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Validate.Title"], L["Validate.MessageFor", request.Number], L["Action.Validate"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = request.BookingId;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result<ValidationOutcome>>((service, ct) => service.ValidateAsync(id, ct));
+        await AfterActionAsync(result.IsSuccess ? Result.Success() : Result.Failure(result.Error), result.IsSuccess ? L[$"Validate.{result.Value}"] : string.Empty);
+    }
+
+    private async Task RequestInformationAsync(PendingRequestInfo request)
+    {
+        var input = await Dialogs.AskReasonAsync(L["Information.Title"], L["Information.Message"], L["Action.RequestInformation"], predefinedReasons: true);
+        if (input?.Predefined is not { } reason)
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = request.BookingId;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.RequestInformationAsync(id, reason, input.Text, ct));
+        await AfterActionAsync(result, L["Information.Sent"]);
+    }
+
+    private async Task ProvideInformationAsync(PendingRequestInfo request)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Provide.Title"], L["Provide.Message"], L["Action.ProvideInformation"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = request.BookingId;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.ProvideInformationAsync(id, ct));
+        await AfterActionAsync(result, L["Provide.Done"]);
+    }
+
+    private async Task RefuseAsync(PendingRequestInfo request)
+    {
+        var input = await Dialogs.AskReasonAsync(L["Refuse.Title"], L["Refuse.Reason"], L["Action.Refuse"], L["Refuse.Message"], danger: true);
+        if (input is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = request.BookingId;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.RefuseAsync(id, input.Text, ct));
+        await AfterActionAsync(result, L["Refuse.Done"]);
+    }
+}

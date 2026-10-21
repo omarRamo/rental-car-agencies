@@ -1,0 +1,129 @@
+@* Keyboard-friendly assignment (alternative to the drag and drop of the planning): the vehicles of the category with a
+   pre-check (free, overlap, documents, unavailable); the server decides again under the lock. A manager may waive the
+   documents of a vehicle with a reason; a swap during the rental needs a reason. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        @if (_candidates is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_candidates.Count == 0)
+        {
+            <MudText>@L["Assign.NoVehicle"]</MudText>
+        }
+        else
+        {
+            <MudRadioGroup T="Guid?" @bind-Value="_selected" aria-label="@L["Assign.Vehicles"]">
+                @foreach (var candidate in _candidates)
+                {
+                    <div class="d-flex flex-wrap align-center gap-2 py-1" data-vehicle="@candidate.PlateNumber">
+                        <MudRadio T="Guid?" Value="@candidate.VehicleId" Disabled="@(candidate.State == VehicleCandidateState.Overlap || candidate.State == VehicleCandidateState.Unavailable || candidate.IsCurrent)">
+                            @candidate.PlateNumber — @candidate.Make @candidate.Model
+                        </MudRadio>
+                        <span class="booking-muted">@L[$"Candidate.{candidate.State}"]@(candidate.IsCurrent ? $" · {L["Candidate.Current"]}" : string.Empty)</span>
+                    </div>
+                }
+            </MudRadioGroup>
+            @if (Selected is { State: VehicleCandidateState.NotCompliant })
+            {
+                @if (CanWaiveCompliance)
+                {
+                    <Notice Kind="NoticeKind.Warning" Class="mt-3">@L["Assign.Waiver.Message"]</Notice>
+                    <MudTextField T="string" @bind-Value="_waiverReason" Label="@L["Assign.Waiver.Reason"]" Lines="2" MaxLength="Booking.ReasonMaxLength"
+                                  Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" Class="mt-2" />
+                }
+                else
+                {
+                    <Notice Kind="NoticeKind.Warning" Class="mt-3">@L["Assign.Waiver.ManagerOnly"]</Notice>
+                }
+            }
+            @if (IsSwap)
+            {
+                <MudTextField T="string" @bind-Value="_swapReason" Label="@L["Assign.Swap.Reason"]" Lines="2" MaxLength="Booking.ReasonMaxLength"
+                              Required="true" RequiredError="@Shared["Validation.Required"]" Immediate="true" Class="mt-3" />
+            }
+        }
+        @if (_error is not null)
+        {
+            <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-3">@_error</Notice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="@(!CanSubmit)">@L["Action.Assign"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<VehicleCandidate>? _candidates;
+    private Guid? _selected;
+    private string? _waiverReason;
+    private string? _swapReason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    [Parameter]
+    public bool CanWaiveCompliance { get; set; }
+
+    /// <summary>The rental is in progress: assigning another vehicle is a swap.</summary>
+    [Parameter]
+    public bool IsSwap { get; set; }
+
+    private VehicleCandidate? Selected => _candidates?.FirstOrDefault(c => c.VehicleId == _selected);
+
+    private bool CanSubmit =>
+        !_busy
+        && Selected is { } selected
+        && (selected.State != VehicleCandidateState.NotCompliant || (CanWaiveCompliance && !string.IsNullOrWhiteSpace(_waiverReason)))
+        && (!IsSwap || !string.IsNullOrWhiteSpace(_swapReason));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Runner.RunAsync<VehicleAssignmentService, Result<IReadOnlyList<VehicleCandidate>>>((service, ct) => service.GetCandidatesAsync(BookingId, ct));
+        if (result.IsSuccess)
+        {
+            _candidates = result.Value;
+            _selected = _candidates.FirstOrDefault(c => c.State == VehicleCandidateState.Free && !c.IsCurrent)?.VehicleId;
+        }
+        else
+        {
+            _candidates = [];
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (Selected is not { } selected)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var waiver = selected.State == VehicleCandidateState.NotCompliant ? _waiverReason : null;
+        var swap = IsSwap ? _swapReason : null;
+        var result = await Runner.RunAsync<VehicleAssignmentService, Result>((service, ct) => service.AssignAsync(BookingId, selected.VehicleId, waiver, swap, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(selected.PlateNumber));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

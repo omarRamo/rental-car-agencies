@@ -1,0 +1,312 @@
+@page "/admin/planning"
+@attribute [HasPermission(Permissions.BookingsRead)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Planning.Title"]</PageTitle>
+<BookingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Planning.Title"]</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-2">
+    <MudButtonGroup Variant="Variant.Outlined" aria-label="@L["Planning.View"]">
+        <MudButton OnClick="@(() => SetViewAsync(PlanningView.Week))" aria-pressed="@(_view == PlanningView.Week ? "true" : "false")"
+                   Variant="@(_view == PlanningView.Week ? Variant.Filled : Variant.Outlined)" Color="@(_view == PlanningView.Week ? Color.Primary : Color.Default)">@L["Planning.Week"]</MudButton>
+        <MudButton OnClick="@(() => SetViewAsync(PlanningView.Month))" aria-pressed="@(_view == PlanningView.Month ? "true" : "false")"
+                   Variant="@(_view == PlanningView.Month ? Variant.Filled : Variant.Outlined)" Color="@(_view == PlanningView.Month ? Color.Primary : Color.Default)">@L["Planning.Month"]</MudButton>
+    </MudButtonGroup>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => MoveAsync(-1))" aria-label="@L["Planning.Previous"]" />
+    <MudButton Variant="Variant.Text" OnClick="TodayAsync">@L["Planning.Today"]</MudButton>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => MoveAsync(1))" aria-label="@L["Planning.Next"]" />
+    <MudText Typo="Typo.subtitle1" role="status">@L["Planning.Range", BookingFormat.Date(_from), BookingFormat.Date(_from.AddDays(Days - 1))]</MudText>
+    <MudSpacer />
+    @if (_canManage && _agencyId is not null)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AutoFixHigh" OnClick="ProposeAsync" Disabled="_busy">@L["Planning.Propose"]</MudButton>
+    }
+</MudStack>
+
+<div class="planning-legend" aria-label="@L["Planning.Legend"]" role="group">
+    @foreach (var status in LegendStatuses)
+    {
+        <span><span class="@($"planning-bar planning-bar--{BookingFormat.StatusClass(status)} planning-swatch")" aria-hidden="true"></span>@L[$"Legend.{BookingFormat.StatusClass(status)}"]</span>
+    }
+    <span><span class="planning-bar planning-bar--progress planning-bar--late planning-swatch" aria-hidden="true"></span>@L["Planning.Late"]</span>
+    <span><span class="planning-buffer planning-swatch" aria-hidden="true"></span>@L["Planning.Buffer"]</span>
+    <span><span class="planning-off planning-swatch" aria-hidden="true"></span>@L["Legend.Off"]</span>
+    <span><span class="planning-off planning-off--noncompliant planning-swatch" aria-hidden="true"></span>@L["Legend.NonCompliant"]</span>
+    <span><span class="planning-shortfall planning-swatch" aria-hidden="true"></span>@L["Legend.Shortfall"]</span>
+</div>
+
+@if (_error is not null)
+{
+    <Notice Kind="NoticeKind.Error" Role="alert" Class="mb-3">@_error</Notice>
+}
+
+@if (_planning is { } planning)
+{
+    var shortfalls = planning.Categories.SelectMany(c => c.Shortfalls).ToList();
+    @if (shortfalls.Count > 0)
+    {
+        <Notice Kind="NoticeKind.Warning" Class="mb-3">
+            <strong>@L["Planning.ShortfallTitle", shortfalls.Count]</strong>
+            <ul class="mt-1 mb-0">
+                @foreach (var shortfall in shortfalls)
+                {
+                    <li>@L["Widget.Shortfall", shortfall.CategoryCode, shortfall.Missing, BookingFormat.Instant(shortfall.Period.Start), BookingFormat.Instant(shortfall.Period.End)]</li>
+                }
+            </ul>
+        </Notice>
+    }
+
+    @if (_selected is { } selected)
+    {
+        var status = BookingFormat.ToStatus(selected.Status);
+        <MudPaper Elevation="1" Class="pa-3 mb-3" role="region" aria-live="polite" aria-label="@L["Planning.Selected"]">
+            <div class="d-flex flex-wrap align-center gap-2">
+                <strong data-testid="planning-selected">@selected.Number</strong>
+                <BookingStatusChip Status="status" />
+                <span>@(string.IsNullOrEmpty(selected.CustomerName) ? L["Planning.NoCustomer"] : selected.CustomerName)</span>
+                <span class="booking-muted">@L["Planning.Period", BookingFormat.Instant(selected.ActualPickupAt ?? selected.PickupAt), BookingFormat.Instant(selected.ActualReturnAt ?? selected.ReturnAt)]</span>
+                <span class="booking-muted">@(PlateOf(selected.AssignedVehicleId) is { } plate ? L["Planning.AssignedTo", plate] : L["Vehicle.None"])</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <MudButton Variant="Variant.Text" Href="@($"/admin/bookings/{selected.BookingId}")" StartIcon="@Icons.Material.Filled.OpenInNew">@L["Requests.OpenFile"]</MudButton>
+                @if (_canManage && BookingStateMachine.CanApply(BookingCommand.AssignVehicle, status) && !selected.IsGuaranteedModel)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.DirectionsCar" OnClick="@(() => AssignAsync(selected))" Disabled="_busy">
+                        @(status == BookingStatus.InProgress ? L["Action.Swap"] : L["Planning.AssignVehicle"])
+                    </MudButton>
+                }
+                @if (_canManage && BookingStateMachine.CanApply(BookingCommand.UnassignVehicle, status) && selected.AssignedVehicleId is not null && !selected.IsGuaranteedModel)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.LinkOff" OnClick="@(() => UnassignAsync(selected))" Disabled="_busy">@L["Action.Unassign"]</MudButton>
+                }
+                <MudButton Variant="Variant.Text" OnClick="@(() => _selected = null)">@L["Dialog.Close"]</MudButton>
+            </div>
+        </MudPaper>
+    }
+
+    @if (planning.Categories.Count == 0)
+    {
+        <MudText>@L["Planning.Empty"]</MudText>
+    }
+    else
+    {
+        <PlanningGrid Planning="planning" From="_from" Days="Days" DayWidth="@(_view == PlanningView.Week ? "9rem" : "3.25rem")" Today="@TunisTime.Today(Clock)"
+                      CanManage="_canManage" SelectedBookingId="_selected?.BookingId" OnSelect="Select" OnDrop="DropAsync" />
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Planning.Help"]</MudText>
+    }
+}
+else if (_error is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+
+@code {
+    private static readonly BookingStatus[] LegendStatuses =
+        [BookingStatus.PendingValidation, BookingStatus.OptionHeld, BookingStatus.Confirmed, BookingStatus.InProgress, BookingStatus.Returned];
+
+    private Guid? _agencyId;
+    private PlanningView _view = PlanningView.Week;
+    private DateOnly _from;
+    private PlanningInfo? _planning;
+    private PlanningBookingInfo? _selected;
+    private string? _error;
+    private bool _busy;
+    private bool _canManage;
+    private bool _canWaive;
+
+    private enum PlanningView
+    {
+        Week,
+        Month,
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private int Days => _view == PlanningView.Week ? 7 : _from.AddMonths(1).DayNumber - _from.DayNumber;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        _canManage = user.HasPermission(Permissions.BookingsManage);
+        _canWaive = user.HasPermission(Permissions.BookingsComplianceWaive);
+        _from = StartOf(TunisTime.Today(Clock));
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        if (agency.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, agency.Error);
+            return;
+        }
+
+        _agencyId = agency.Value.Id;
+        await LoadAsync();
+    }
+
+    private DateOnly StartOf(DateOnly date) => _view == PlanningView.Week
+        ? date.AddDays(-(((int)date.DayOfWeek + 6) % 7))
+        : new DateOnly(date.Year, date.Month, 1);
+
+    private async Task LoadAsync()
+    {
+        if (_agencyId is not { } agencyId)
+        {
+            return;
+        }
+
+        var range = Period.Create(TunisTime.StartOfDay(_from), TunisTime.StartOfDay(_from.AddDays(Days))).Value;
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<PlanningInfo>>((queries, ct) => queries.GetPlanningAsync(agencyId, range, ct));
+        if (result.IsSuccess)
+        {
+            _planning = result.Value;
+            _error = null;
+            _selected = _selected is { } selected ? Find(selected.BookingId) : null;
+        }
+        else
+        {
+            _planning = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private PlanningBookingInfo? Find(Guid bookingId) =>
+        _planning?.Categories
+            .SelectMany(c => c.Unassigned.Concat(c.Vehicles.SelectMany(v => v.Bookings)))
+            .FirstOrDefault(b => b.BookingId == bookingId);
+
+    private string? PlateOf(Guid? vehicleId) =>
+        vehicleId is { } id ? _planning?.Categories.SelectMany(c => c.Vehicles).FirstOrDefault(v => v.VehicleId == id)?.PlateNumber : null;
+
+    private async Task SetViewAsync(PlanningView view)
+    {
+        if (_view == view)
+        {
+            return;
+        }
+
+        var anchor = _from <= TunisTime.Today(Clock) && TunisTime.Today(Clock) < _from.AddDays(Days) ? TunisTime.Today(Clock) : _from;
+        _view = view;
+        _from = StartOf(anchor);
+        await LoadAsync();
+    }
+
+    private async Task MoveAsync(int direction)
+    {
+        _from = _view == PlanningView.Week ? _from.AddDays(7 * direction) : _from.AddMonths(direction);
+        await LoadAsync();
+    }
+
+    private async Task TodayAsync()
+    {
+        _from = StartOf(TunisTime.Today(Clock));
+        await LoadAsync();
+    }
+
+    private void Select(PlanningBookingInfo booking) => _selected = _selected?.BookingId == booking.BookingId ? null : booking;
+
+    private async Task AssignAsync(PlanningBookingInfo booking)
+    {
+        var parameters = new DialogParameters<AssignVehicleDialog>
+        {
+            { d => d.BookingId, booking.BookingId },
+            { d => d.CanWaiveCompliance, _canWaive },
+            { d => d.IsSwap, booking.Status == BookingStatusInfo.InProgress },
+        };
+        var dialog = await Dialogs.ShowAsync<AssignVehicleDialog>(L["Assign.Title", booking.Number], parameters, BookingFormat.Dialog());
+        if (await dialog.Result is { Canceled: false, Data: string plate })
+        {
+            Snackbar.Add(L["Assign.Done", plate], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task UnassignAsync(PlanningBookingInfo booking)
+    {
+        _busy = true;
+        var id = booking.BookingId;
+        var result = await Runner.RunAsync<VehicleAssignmentService, Result>((service, ct) => service.UnassignAsync(id, ct));
+        _busy = false;
+        Report(result, L["Unassign.Done"]);
+        await LoadAsync();
+    }
+
+    private async Task DropAsync(PlanningDrop drop)
+    {
+        _busy = true;
+        var bookingId = drop.Booking.BookingId;
+        Result result;
+        string success;
+        if (drop.VehicleId is { } vehicleId)
+        {
+            result = await Runner.RunAsync<VehicleAssignmentService, Result>((service, ct) => service.AssignAsync(bookingId, vehicleId, cancellationToken: ct));
+            success = L["Assign.Done", PlateOf(vehicleId) ?? string.Empty];
+        }
+        else
+        {
+            result = await Runner.RunAsync<VehicleAssignmentService, Result>((service, ct) => service.UnassignAsync(bookingId, ct));
+            success = L["Unassign.Done"];
+        }
+
+        _busy = false;
+        Report(result, success);
+        if (result.IsFailure && result.Error.Code == CarRental.Domain.Bookings.Availability.AvailabilityErrors.VehicleNotCompliant.Code)
+        {
+            Snackbar.Add(L["Planning.UseDialogForWaiver"], Severity.Info);
+        }
+
+        _selected = Find(bookingId) ?? drop.Booking;
+        await LoadAsync();
+    }
+
+    private void Report(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+
+    private async Task ProposeAsync()
+    {
+        if (_agencyId is not { } agencyId)
+        {
+            return;
+        }
+
+        var now = Clock.GetUtcNow();
+        var end = TunisTime.StartOfDay(_from.AddDays(Days));
+        var start = TunisTime.StartOfDay(_from) > now ? TunisTime.StartOfDay(_from) : now;
+        if (end <= start)
+        {
+            Snackbar.Add(L["Proposals.PastRange"], Severity.Info);
+            return;
+        }
+
+        var parameters = new DialogParameters<ProposalsDialog>
+        {
+            { d => d.AgencyId, agencyId },
+            { d => d.Range, Period.Create(start, end).Value },
+            { d => d.CanApply, _canManage },
+        };
+        var dialog = await Dialogs.ShowAsync<ProposalsDialog>(L["Proposals.Title"], parameters, BookingFormat.Dialog(MaxWidth.Large));
+        if (await dialog.Result is { Canceled: false, Data: int applied })
+        {
+            if (applied > 0)
+            {
+                Snackbar.Add(L["Proposals.AppliedCount", applied], Severity.Success);
+            }
+
+            await LoadAsync();
+        }
+    }
+}

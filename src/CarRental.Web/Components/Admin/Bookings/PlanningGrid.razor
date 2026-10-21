@@ -1,0 +1,261 @@
+@* The planning grid (ADR-0033): a custom CSS grid of vehicles × days, grouped by category. Every category has a lane of
+   the files not assigned yet and a header row showing its capacity shortfalls; every vehicle row shows its files (bars
+   with the status as text, icon and pattern), the preparation buffer after each return and its unavailability
+   (maintenance, out of service, documents not valid). Bars are buttons: Enter or a tap selects the file (the page then
+   offers "assign" in a dialog, the keyboard and touch path); with a mouse a planned file can be dragged onto a vehicle
+   row or back onto the lane. The server decides every assignment again under the lock. *@
+@using System.Globalization
+@using CarRental.Application.Bookings.Contracts
+@using CarRental.Application.Fleet.Contracts
+@inject IStringLocalizer<BookingsResources> L
+
+<div class="planning-scroll" tabindex="0" role="region" aria-label="@L["Planning.Grid", BookingFormat.Date(From), BookingFormat.Date(From.AddDays(Days - 1))]"
+     style="@($"--planning-label: 13rem; --planning-days: {Days}; --planning-day: {DayWidth}; --planning-track: calc({Days} * {DayWidth});")">
+    <div class="planning-grid">
+        <div class="planning-head" aria-hidden="true">
+            <div class="planning-label">@L["Planning.Vehicle"]</div>
+            <div class="planning-days">
+                @for (var day = 0; day < Days; day++)
+                {
+                    var date = From.AddDays(day);
+                    <div class="@($"planning-day{(date == Today ? " planning-day--today" : string.Empty)}")">@BookingFormat.DayHeader(date)</div>
+                }
+            </div>
+        </div>
+
+        @foreach (var category in Planning.Categories)
+        {
+            <div class="planning-category" data-category="@category.Category.AcrissCode">
+                <div class="planning-label">
+                    @category.Category.AcrissCode — @category.Category.Name
+                    <span class="booking-muted d-block">@L["Planning.CategoryCount", category.Vehicles.Count]</span>
+                </div>
+                <div class="planning-track planning-track--category" style="min-block-size:2.25rem">
+                    @foreach (var shortfall in category.Shortfalls)
+                    {
+                        <span class="planning-shortfall" style="@Span(shortfall.Period.Start, shortfall.Period.End)">
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" aria-hidden="true" />
+                            <span>@L["Planning.Shortfall", shortfall.Missing, BookingFormat.Instant(shortfall.Period.Start), BookingFormat.Instant(shortfall.Period.End)]</span>
+                        </span>
+                    }
+                </div>
+            </div>
+
+            var unassignedLanes = Lanes(category.Unassigned);
+            <div class="planning-row planning-lane" data-lane="@category.Category.AcrissCode">
+                <div class="planning-label">@L["Planning.Unassigned", category.Unassigned.Count]</div>
+                <div class="@TrackClass(LaneKey(category.Category.Id))" style="@TrackStyle(unassignedLanes)"
+                     data-drop="lane" @ondragover:preventDefault="true" @ondragenter="@(() => Enter(LaneKey(category.Category.Id)))"
+                     @ondrop="@(() => DropAsync(category.Category.Id, null))">
+                    @foreach (var (booking, lane) in unassignedLanes.Placed)
+                    {
+                        @Bar(booking, lane)
+                    }
+                </div>
+            </div>
+
+            @foreach (var vehicle in category.Vehicles)
+            {
+                var lanes = Lanes(vehicle.Bookings);
+                <div class="planning-row" data-vehicle="@vehicle.PlateNumber">
+                    <div class="planning-label">
+                        <strong>@vehicle.PlateNumber</strong>
+                        <span class="booking-muted d-block">@vehicle.Make @vehicle.Model@(vehicle.Status != VehicleStatusInfo.Active ? $" · {L[$"VehicleStatus.{vehicle.Status}"]}" : string.Empty)</span>
+                    </div>
+                    <div class="@TrackClass(vehicle.VehicleId.ToString())" style="@TrackStyle(lanes)"
+                         data-drop="vehicle" @ondragover:preventDefault="true" @ondragenter="@(() => Enter(vehicle.VehicleId.ToString()))"
+                         @ondrop="@(() => DropAsync(category.Category.Id, vehicle.VehicleId))">
+                        @foreach (var off in vehicle.Unavailability)
+                        {
+                            <span class="@($"planning-off{(off.Reason == UnavailabilityReasonInfo.NonCompliant ? " planning-off--noncompliant" : string.Empty)}")"
+                                  style="@Span(off.Period.Start, off.Period.End)" role="img"
+                                  aria-label="@L[$"Planning.Off.{off.Reason}", BookingFormat.Instant(off.Period.Start), BookingFormat.Instant(off.Period.End)]"
+                                  title="@L[$"Planning.Off.{off.Reason}", BookingFormat.Instant(off.Period.Start), BookingFormat.Instant(off.Period.End)]"></span>
+                        }
+                        @foreach (var (booking, lane) in lanes.Placed)
+                        {
+                            @Bar(booking, lane)
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private const double LaneHeight = 2.5;
+
+    private PlanningBookingInfo? _dragged;
+    private string? _dropTarget;
+    private DateTimeOffset _start;
+    private double _minutes;
+
+    [Parameter, EditorRequired]
+    public PlanningInfo Planning { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DateOnly From { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Days { get; set; }
+
+    /// <summary>Width of a day column (CSS length).</summary>
+    [Parameter]
+    public string DayWidth { get; set; } = "8rem";
+
+    [Parameter, EditorRequired]
+    public DateOnly Today { get; set; }
+
+    /// <summary>Whether the user may assign vehicles (drag and drop enabled).</summary>
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public Guid? SelectedBookingId { get; set; }
+
+    [Parameter]
+    public EventCallback<PlanningBookingInfo> OnSelect { get; set; }
+
+    /// <summary>A file dropped onto a vehicle row (vehicle id) or onto the lane of its category (<see langword="null"/>).</summary>
+    [Parameter]
+    public EventCallback<PlanningDrop> OnDrop { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _start = TunisTime.StartOfDay(From);
+        _minutes = (TunisTime.StartOfDay(From.AddDays(Days)) - _start).TotalMinutes;
+    }
+
+    private RenderFragment Bar(PlanningBookingInfo booking, int lane) => __builder =>
+    {
+        var status = BookingFormat.ToStatus(booking.Status);
+        var vehicleBackAt = booking.Occupancy.End - Planning.PreparationBuffer;
+        var barEnd = vehicleBackAt > booking.Occupancy.Start ? vehicleBackAt : booking.Occupancy.End;
+        var draggable = CanManage && Assignable(status);
+        var selected = SelectedBookingId == booking.BookingId;
+        if (Planning.PreparationBuffer > TimeSpan.Zero && booking.Occupancy.End > barEnd)
+        {
+            <span class="planning-buffer" style="@Span(barEnd, booking.Occupancy.End, lane)" aria-hidden="true" title="@L["Planning.Buffer"]"></span>
+        }
+
+        <button type="button"
+                class="@($"planning-bar planning-bar--{BookingFormat.StatusClass(status)}{(booking.IsLate ? " planning-bar--late" : string.Empty)}{(selected ? " planning-bar--selected" : string.Empty)}")"
+                style="@Span(booking.Occupancy.Start, barEnd, lane)"
+                draggable="@(draggable ? "true" : "false")"
+                aria-pressed="@(selected ? "true" : "false")"
+                aria-label="@Describe(booking, status)"
+                title="@Describe(booking, status)"
+                data-booking="@booking.Number"
+                @onclick="@(() => OnSelect.InvokeAsync(booking))"
+                @ondragstart="@(() => _dragged = booking)"
+                @ondragend="@(() => { _dragged = null; _dropTarget = null; })">
+            <MudIcon Icon="@BookingFormat.StatusIcon(status)" Size="Size.Small" aria-hidden="true" />
+            @if (booking.IsLate)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />
+            }
+            @if (booking.IsComplianceWaived)
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.GppMaybe" Size="Size.Small" aria-hidden="true" />
+            }
+            <span>@booking.Number · @booking.CustomerName</span>
+        </button>
+    };
+
+    private string Describe(PlanningBookingInfo booking, BookingStatus status)
+    {
+        var parts = new List<string>
+        {
+            booking.Number,
+            string.IsNullOrEmpty(booking.CustomerName) ? L["Planning.NoCustomer"] : booking.CustomerName,
+            L[$"Status.{status}"],
+            L["Planning.Period", BookingFormat.Instant(booking.ActualPickupAt ?? booking.PickupAt), BookingFormat.Instant(booking.ActualReturnAt ?? booking.ReturnAt)],
+        };
+        if (booking.IsLate)
+        {
+            parts.Add(L["Planning.Late"]);
+        }
+
+        if (booking.IsGuaranteedModel)
+        {
+            parts.Add(L["Planning.Guaranteed"]);
+        }
+
+        if (booking.IsComplianceWaived)
+        {
+            parts.Add(L["Planning.Waived"]);
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static bool Assignable(BookingStatus status) =>
+        BookingStateMachine.CanApply(BookingCommand.AssignVehicle, status) && status != BookingStatus.InProgress;
+
+    private static string LaneKey(Guid categoryId) => $"lane-{categoryId:N}";
+
+    private string TrackClass(string key) => _dropTarget == key && _dragged is not null ? "planning-track planning-track--drop" : "planning-track";
+
+    private static string TrackStyle(LanePlacement placement) =>
+        FormattableString.Invariant($"min-block-size:{Math.Max(placement.Count, 1) * LaneHeight + 0.5:0.##}rem");
+
+    private void Enter(string key)
+    {
+        if (_dragged is not null)
+        {
+            _dropTarget = key;
+        }
+    }
+
+    private async Task DropAsync(Guid categoryId, Guid? vehicleId)
+    {
+        var dragged = _dragged;
+        _dragged = null;
+        _dropTarget = null;
+        if (dragged is null || dragged.CategoryId != categoryId || dragged.AssignedVehicleId == vehicleId)
+        {
+            return;
+        }
+
+        await OnDrop.InvokeAsync(new PlanningDrop(dragged, vehicleId));
+    }
+
+    private double Offset(DateTimeOffset at) => Math.Clamp((at - _start).TotalMinutes / _minutes, 0d, 1d) * 100d;
+
+    private string Span(DateTimeOffset start, DateTimeOffset end)
+    {
+        var left = Offset(start);
+        var width = Math.Max(Offset(end) - left, 0.3d);
+        return FormattableString.Invariant($"inset-inline-start:{left:0.###}%;inline-size:{width:0.###}%");
+    }
+
+    private string Span(DateTimeOffset start, DateTimeOffset end, int lane) =>
+        Span(start, end) + FormattableString.Invariant($";inset-block-start:{lane * LaneHeight + 0.3:0.##}rem;block-size:{LaneHeight - 0.5:0.##}rem");
+
+    /// <summary>Places the files of a row on lanes so that overlapping files (a lane of unassigned files) never hide each other.</summary>
+    private static LanePlacement Lanes(IReadOnlyList<PlanningBookingInfo> bookings)
+    {
+        var ends = new List<DateTimeOffset>();
+        var placed = new List<(PlanningBookingInfo, int)>(bookings.Count);
+        foreach (var booking in bookings.OrderBy(b => b.Occupancy.Start).ThenBy(b => b.Number, StringComparer.Ordinal))
+        {
+            var lane = ends.FindIndex(end => end <= booking.Occupancy.Start);
+            if (lane < 0)
+            {
+                ends.Add(booking.Occupancy.End);
+                lane = ends.Count - 1;
+            }
+            else
+            {
+                ends[lane] = booking.Occupancy.End;
+            }
+
+            placed.Add((booking, lane));
+        }
+
+        return new LanePlacement(placed, ends.Count);
+    }
+
+    private sealed record LanePlacement(IReadOnlyList<(PlanningBookingInfo Booking, int Lane)> Placed, int Count);
+}

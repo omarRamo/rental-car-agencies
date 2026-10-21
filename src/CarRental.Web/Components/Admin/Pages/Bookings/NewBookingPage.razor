@@ -1,0 +1,568 @@
+@page "/admin/bookings/new"
+@attribute [HasPermission(Permissions.BookingsManage)]
+@implements IAsyncDisposable
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Application.Pricing.Contracts
+@using Microsoft.JSInterop
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@inject IJSRuntime JS
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["New.Title"]</PageTitle>
+<BookingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["New.Title"]</MudText>
+<ul class="booking-shortcuts mb-3" aria-label="@L["Shortcuts.Title"]">
+    @foreach (var (key, text) in Shortcuts)
+    {
+        <li><kbd class="booking-kbd">@L["Shortcuts.Modifier"]+@key</kbd> @L[text]</li>
+    }
+</ul>
+
+@if (_context is null)
+{
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+}
+else
+{
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="7">
+            <MudPaper Elevation="1" Class="pa-4 mb-3">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["New.Section.Rental"]</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12">
+                        <MudRadioGroup T="SalesChannel" Value="_channel" ValueChanged="ChannelChangedAsync" aria-label="@L["Field.Channel"]">
+                            @foreach (var channel in Channels)
+                            {
+                                <MudRadio T="SalesChannel" Value="@channel">@L[$"Channel.{channel}"]</MudRadio>
+                            }
+                        </MudRadioGroup>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" Value="_pickup" ValueChanged="PickupChangedAsync" Label="@L["Field.PickupAt"]" InputType="InputType.DateTimeLocal"
+                                      ShrinkLabel="true" InputId="booking-pickup" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" Value="_return" ValueChanged="ReturnChangedAsync" Label="@L["Field.ReturnAt"]" InputType="InputType.DateTimeLocal"
+                                      ShrinkLabel="true" InputId="booking-return" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Value="_pickupLocation" ValueChanged="PickupLocationChangedAsync" Label="@L["Field.PickupLocation"]" ToStringFunc="@LocationName">
+                            @foreach (var location in _context.Locations)
+                            {
+                                <MudSelectItem T="Guid" Value="@location.Id">@location.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Value="_returnLocation" ValueChanged="ReturnLocationChangedAsync" Label="@L["Field.ReturnLocation"]" ToStringFunc="@LocationName">
+                            @foreach (var location in _context.Locations)
+                            {
+                                <MudSelectItem T="Guid" Value="@location.Id">@location.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    @foreach (var extra in _context.Extras.Where(e => e.IsSelectable))
+                    {
+                        <MudItem xs="6" sm="4">
+                            <MudNumericField T="int" Value="@_extras.GetValueOrDefault(extra.Code)" ValueChanged="@(v => ExtraChangedAsync(extra.Code, v))" Min="0" Max="10"
+                                             Label="@ExtraName(extra)" HelperText="@BookingFormat.Amount(extra.Price)" />
+                        </MudItem>
+                    }
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" Value="_promoCode" ValueChanged="PromoChangedAsync" Label="@L["Field.PromoCode"]" MaxLength="Booking.PromoCodeMaxLength"
+                                      DebounceInterval="400" Immediate="true" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudPaper Elevation="1" Class="pa-4 mb-3">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">@L["New.Section.Categories"]</MudText>
+                    @if (_quoting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" aria-label="@L["New.Quoting"]" />
+                    }
+                </MudStack>
+                @if (_periodError is not null)
+                {
+                    <Notice Kind="NoticeKind.Warning" Class="mt-2">@_periodError</Notice>
+                }
+                else if (_rows is { } rows)
+                {
+                    <MudRadioGroup T="Guid?" Value="_categoryId" ValueChanged="CategoryChanged" aria-label="@L["New.Section.Categories"]">
+                        <div class="booking-scroll" tabindex="0" role="region" aria-label="@L["New.Section.Categories"]" id="booking-categories">
+                            <MudSimpleTable Dense="true" Hover="true" Class="booking-categories">
+                                <thead>
+                                    <tr>
+                                        <th scope="col"><span class="visually-hidden">@L["New.Choose"]</span></th>
+                                        <th scope="col">@L["Column.Category"]</th>
+                                        <th scope="col">@L["New.Column.Remaining"]</th>
+                                        <th scope="col" class="booking-number">@L["Quote.Days"]</th>
+                                        <th scope="col" class="booking-number">@L["Column.Total"]</th>
+                                        <th scope="col" class="booking-number">@L["Quote.Deposit"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (var index = 0; index < rows.Count; index++)
+                                    {
+                                        var row = rows[index];
+                                        var selectable = row.IsAvailable && row.TotalInclVat is not null;
+                                        <tr class="@(_categoryId == row.Category.Id ? "booking-category-selected" : null)" data-category="@row.Category.AcrissCode" data-category-index="@(index + 1)">
+                                            <td>
+                                                <MudRadio T="Guid?" Value="@row.Category.Id" Disabled="@(!selectable)" aria-label="@L["New.ChooseCategory", row.Category.AcrissCode, row.Category.Name]" />
+                                            </td>
+                                            <td>
+                                                <strong>@row.Category.AcrissCode</strong> — @row.Category.Name
+                                                <span class="booking-muted d-block">@row.Category.ExampleModel</span>
+                                            </td>
+                                            <td>
+                                                @if (row.IsAvailable)
+                                                {
+                                                    @L["New.Remaining", row.Remaining]
+                                                }
+                                                else
+                                                {
+                                                    <span><MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" aria-hidden="true" /> @L["New.Full"]</span>
+                                                }
+                                            </td>
+                                            <td class="booking-number">@(row.Days?.ToString(CultureInfo.CurrentCulture) ?? "—")</td>
+                                            <td class="booking-number">
+                                                @if (row.TotalInclVat is { } total)
+                                                {
+                                                    <strong>@BookingFormat.Amount(total)</strong>
+                                                }
+                                                else if (row.PriceError is { } priceError)
+                                                {
+                                                    <span class="booking-muted">@ErrorMessages.For(Shared, priceError)</span>
+                                                }
+                                            </td>
+                                            <td class="booking-number">@BookingFormat.Amount(row.Deposit)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </div>
+                    </MudRadioGroup>
+                    @if (SelectedRow is { PromoCodeOutcome: not PromoCodeOutcome.None } promoRow)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2" role="status">@L[$"Promo.{promoRow.PromoCodeOutcome}"]</MudText>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="5">
+            <MudPaper Elevation="1" Class="pa-4 mb-3">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["New.Section.Customer"]</MudText>
+                <PersonPicker Label="@L["Field.MainDriver"]" InputId="booking-driver" Selected="_mainDriver" SelectedChanged="MainDriverChangedAsync" />
+                <MudCheckBox T="bool" Value="_hasSecondDriver" ValueChanged="SecondDriverToggledAsync" Label="@L["New.AddSecondDriver"]" Class="mt-3" />
+                @if (_hasSecondDriver)
+                {
+                    <PersonPicker Label="@L["Field.SecondDriver"]" InputId="booking-second-driver" Selected="_secondDriver" SelectedChanged="SecondDriverChangedAsync" />
+                }
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Field.Payer"]</MudText>
+                <MudRadioGroup T="bool" @bind-Value="_companyPays" aria-label="@L["Field.Payer"]">
+                    <MudRadio T="bool" Value="false">@L["Payer.MainDriver"]</MudRadio>
+                    <MudRadio T="bool" Value="true">@L["Payer.Company"]</MudRadio>
+                </MudRadioGroup>
+                @if (_companyPays)
+                {
+                    <CompanyPicker Selected="_company" SelectedChanged="@(c => _company = c)" />
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["New.Section.Outcome"]</MudText>
+                <MudRadioGroup T="QuickBookingOutcome" @bind-Value="_outcome" aria-label="@L["New.Section.Outcome"]">
+                    <MudRadio T="QuickBookingOutcome" Value="QuickBookingOutcome.Option" id="booking-outcome-option">@L["Outcome.Option"]</MudRadio>
+                    <MudRadio T="QuickBookingOutcome" Value="QuickBookingOutcome.Confirmed" id="booking-outcome-confirmed">@L["Outcome.Confirmed"]</MudRadio>
+                </MudRadioGroup>
+                @if (_outcome == QuickBookingOutcome.Option)
+                {
+                    <MudTextField T="string" @bind-Value="_optionExpiresAt" Label="@L["Field.OptionExpiresAt"]" InputType="InputType.DateTimeLocal" ShrinkLabel="true"
+                                  HelperText="@L["Field.OptionExpiresAt.Help", BookingFormat.Duration(L, _context.OptionDefaultDuration)]" InputId="booking-option-expiry" Class="mt-2" />
+                }
+                <MudTextField T="string" @bind-Value="_channelReference" Label="@L["Field.ChannelReference"]" MaxLength="Booking.ChannelReferenceMaxLength" Class="mt-2"
+                              HelperText="@L["Field.ChannelReference.Help"]" />
+                <MudTextField T="string" @bind-Value="_notes" Label="@L["Field.Notes"]" Lines="2" MaxLength="Booking.NotesMaxLength" Class="mt-2" />
+
+                <MudDivider Class="my-3" />
+                <div role="status" aria-live="polite">
+                    @if (SelectedRow is { TotalInclVat: { } selectedTotal } selected)
+                    {
+                        <MudText Typo="Typo.subtitle1">@L["New.Summary", selected.Category.AcrissCode, BookingFormat.Amount(selectedTotal)]</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@L["New.Summary.None"]</MudText>
+                    }
+                </div>
+                @if (_saveError is not null)
+                {
+                    <Notice Kind="NoticeKind.Error" Role="alert" Class="mt-2">@_saveError</Notice>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-3" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="@(_saving || !CanSave)" id="booking-save">
+                    @(_outcome == QuickBookingOutcome.Option ? L["New.SaveOption"] : L["New.SaveConfirmed"])
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private static readonly SalesChannel[] Channels = [SalesChannel.Phone, SalesChannel.Counter, SalesChannel.WhatsApp, SalesChannel.BookingCom];
+
+    /// <summary>Keys of the shortcuts (NewBookingPage.razor.js) and the resource describing each.</summary>
+    private static readonly (string Key, string Text)[] Shortcuts =
+    [
+        ("P", "Shortcuts.Pickup"),
+        ("1…9", "Shortcuts.Category"),
+        ("C", "Shortcuts.Customer"),
+        ("N", "Shortcuts.NewCustomer"),
+        ("O", "Shortcuts.Option"),
+        ("F", "Shortcuts.Confirmed"),
+        ("S", "Shortcuts.Save"),
+    ];
+
+    private QuickCreateContext? _context;
+    private string? _error;
+    private SalesChannel _channel = SalesChannel.Phone;
+    private string? _pickup;
+    private string? _return;
+    private Guid _pickupLocation;
+    private Guid _returnLocation;
+    private readonly Dictionary<string, int> _extras = new(StringComparer.Ordinal);
+    private string? _promoCode;
+    private IReadOnlyList<CategoryQuoteRow>? _rows;
+    private string? _periodError;
+    private bool _quoting;
+    private int _quoteVersion;
+    private Guid? _categoryId;
+    private PersonSummaryInfo? _mainDriver;
+    private PersonSummaryInfo? _secondDriver;
+    private bool _hasSecondDriver;
+    private bool _companyPays;
+    private CustomerInfo? _company;
+    private QuickBookingOutcome _outcome = QuickBookingOutcome.Option;
+    private string? _optionExpiresAt;
+    private string? _channelReference;
+    private string? _notes;
+    private string? _saveError;
+    private bool _saving;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _shortcuts;
+
+    private CategoryQuoteRow? SelectedRow => _rows?.FirstOrDefault(r => r.Category.Id == _categoryId);
+
+    private bool CanSave =>
+        SelectedRow is { IsAvailable: true, TotalInclVat: not null }
+        && _mainDriver is not null
+        && (!_hasSecondDriver || _secondDriver is not null)
+        && (!_companyPays || _company is not null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        if (agency.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, agency.Error);
+            return;
+        }
+
+        await LoadContextAsync(agency.Value.Id);
+        if (_context is null)
+        {
+            return;
+        }
+
+        var tomorrow = TunisTime.Today(Clock).AddDays(1);
+        _pickup = BookingFormat.ToLocalInput(TunisTime.FromLocal(tomorrow, new TimeOnly(10, 0)));
+        _return = BookingFormat.ToLocalInput(TunisTime.FromLocal(tomorrow.AddDays(3), new TimeOnly(10, 0)));
+        var office = _context.Locations.FirstOrDefault(l => l.Kind == CarRental.Application.Referential.Contracts.LocationKindInfo.AgencyOffice) ?? _context.Locations.FirstOrDefault();
+        _pickupLocation = office?.Id ?? Guid.Empty;
+        _returnLocation = _pickupLocation;
+        ResetOptionExpiry();
+        await QuoteAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Admin/Pages/Bookings/NewBookingPage.razor.js");
+                _shortcuts = await _module.InvokeAsync<IJSObjectReference>("register");
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is gone: nothing to register.
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_shortcuts is not null)
+            {
+                await _shortcuts.InvokeVoidAsync("dispose");
+                await _shortcuts.DisposeAsync();
+            }
+
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone with its listeners.
+        }
+    }
+
+    private async Task LoadContextAsync(Guid agencyId)
+    {
+        var channel = _channel;
+        var context = await Runner.RunAsync<BookingAdministrationQueries, Result<QuickCreateContext>>((queries, ct) => queries.GetQuickCreateContextAsync(agencyId, channel, ct));
+        if (context.IsSuccess)
+        {
+            _context = context.Value;
+            foreach (var code in _extras.Keys.Where(code => !_context.Extras.Any(e => e.IsSelectable && e.Code == code)).ToList())
+            {
+                _extras.Remove(code);
+            }
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, context.Error);
+        }
+    }
+
+    private void ResetOptionExpiry()
+    {
+        if (_context is not null)
+        {
+            _optionExpiresAt = BookingFormat.ToLocalInput(Clock.GetUtcNow() + _context.OptionDefaultDuration);
+        }
+    }
+
+    private string LocationName(Guid id) => _context?.Locations.FirstOrDefault(l => l.Id == id)?.Name ?? string.Empty;
+
+    private static string ExtraName(ExtraOffer extra) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && extra.NameEn is { } english ? english : extra.Name;
+
+    private async Task QuoteAsync()
+    {
+        if (_context is null)
+        {
+            return;
+        }
+
+        var pickup = BookingFormat.FromLocalInput(_pickup);
+        var returnAt = BookingFormat.FromLocalInput(_return);
+        if (pickup is null || returnAt is null || returnAt <= pickup)
+        {
+            _periodError = L["New.PeriodInvalid"];
+            _rows = null;
+            return;
+        }
+
+        _periodError = null;
+        var version = ++_quoteVersion;
+        _quoting = true;
+        var drivers = new[] { _mainDriver?.Id, _hasSecondDriver ? _secondDriver?.Id : null }.OfType<Guid>().ToList();
+        var request = new QuickQuoteRequest(
+            _context.Agency.Id,
+            _channel,
+            _pickupLocation,
+            _returnLocation,
+            pickup.Value,
+            returnAt.Value,
+            [.. _extras.Where(e => e.Value > 0).Select(e => new SelectedExtra(e.Key, e.Value))],
+            string.IsNullOrWhiteSpace(_promoCode) ? null : _promoCode.Trim(),
+            drivers);
+        var rows = await Runner.RunAsync<BookingAdministrationQueries, Result<IReadOnlyList<CategoryQuoteRow>>>((queries, ct) => queries.QuoteCategoriesAsync(request, ct));
+        if (version != _quoteVersion)
+        {
+            return;
+        }
+
+        _quoting = false;
+        if (rows.IsSuccess)
+        {
+            _rows = rows.Value;
+            if (SelectedRow is not { IsAvailable: true, TotalInclVat: not null })
+            {
+                _categoryId = null;
+            }
+        }
+        else
+        {
+            _rows = null;
+            _periodError = ErrorMessages.For(Shared, rows.Error);
+        }
+    }
+
+    private async Task ChannelChangedAsync(SalesChannel channel)
+    {
+        _channel = channel;
+        _outcome = channel == SalesChannel.Phone || channel == SalesChannel.WhatsApp ? QuickBookingOutcome.Option : QuickBookingOutcome.Confirmed;
+        if (_context is not null)
+        {
+            await LoadContextAsync(_context.Agency.Id);
+        }
+
+        await QuoteAsync();
+    }
+
+    private Task PickupChangedAsync(string? value)
+    {
+        _pickup = value;
+        return QuoteAsync();
+    }
+
+    private Task ReturnChangedAsync(string? value)
+    {
+        _return = value;
+        return QuoteAsync();
+    }
+
+    private Task PickupLocationChangedAsync(Guid value)
+    {
+        if (_returnLocation == _pickupLocation)
+        {
+            _returnLocation = value;
+        }
+
+        _pickupLocation = value;
+        return QuoteAsync();
+    }
+
+    private Task ReturnLocationChangedAsync(Guid value)
+    {
+        _returnLocation = value;
+        return QuoteAsync();
+    }
+
+    private Task ExtraChangedAsync(string code, int quantity)
+    {
+        _extras[code] = Math.Max(0, quantity);
+        return QuoteAsync();
+    }
+
+    private Task PromoChangedAsync(string? value)
+    {
+        _promoCode = value;
+        return QuoteAsync();
+    }
+
+    private void CategoryChanged(Guid? categoryId) => _categoryId = categoryId;
+
+    private async Task MainDriverChangedAsync(PersonSummaryInfo? person)
+    {
+        _mainDriver = person;
+        await QuoteAsync();
+    }
+
+    private async Task SecondDriverToggledAsync(bool value)
+    {
+        _hasSecondDriver = value;
+        if (!value)
+        {
+            _secondDriver = null;
+        }
+
+        await QuoteAsync();
+    }
+
+    private async Task SecondDriverChangedAsync(PersonSummaryInfo? person)
+    {
+        _secondDriver = person;
+        await QuoteAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _saveError = null;
+        if (_context is null || SelectedRow is not { TotalInclVat: { } expected } row || _mainDriver is null)
+        {
+            return;
+        }
+
+        var pickup = BookingFormat.FromLocalInput(_pickup);
+        var returnAt = BookingFormat.FromLocalInput(_return);
+        if (pickup is null || returnAt is null)
+        {
+            _saveError = L["New.PeriodInvalid"];
+            return;
+        }
+
+        DateTimeOffset? optionExpiresAt = null;
+        if (_outcome == QuickBookingOutcome.Option)
+        {
+            optionExpiresAt = BookingFormat.FromLocalInput(_optionExpiresAt);
+            if (optionExpiresAt is null)
+            {
+                _saveError = L["New.OptionInvalid"];
+                return;
+            }
+        }
+
+        var request = new QuickBookingRequest(
+            _context.Agency.Id,
+            _channel,
+            row.Category.Id,
+            _pickupLocation,
+            _returnLocation,
+            pickup.Value,
+            returnAt.Value,
+            _mainDriver.Id,
+            _outcome,
+            [.. _extras.Where(e => e.Value > 0).Select(e => new SelectedExtra(e.Key, e.Value))],
+            string.IsNullOrWhiteSpace(_promoCode) ? null : _promoCode.Trim(),
+            _hasSecondDriver ? _secondDriver?.Id : null,
+            _companyPays ? _company?.Id : null,
+            optionExpiresAt,
+            ChannelReference: string.IsNullOrWhiteSpace(_channelReference) ? null : _channelReference.Trim(),
+            Notes: string.IsNullOrWhiteSpace(_notes) ? null : _notes.Trim(),
+            ExpectedTotalInclVat: expected);
+
+        _saving = true;
+        var created = await Runner.RunAsync<QuickBookingService, Result<QuickBookingResult>>((service, ct) => service.CreateAsync(request, ct));
+        _saving = false;
+        if (created.IsSuccess)
+        {
+            var result = created.Value;
+            Snackbar.Add(
+                result.Status == BookingStatus.OptionHeld
+                    ? L["New.Created.Option", result.Number, BookingFormat.Instant(result.OptionExpiresAt)]
+                    : L["New.Created.Confirmed", result.Number],
+                Severity.Success);
+            Navigation.NavigateTo($"/admin/bookings/{result.BookingId}");
+            return;
+        }
+
+        var code = created.Error.Code;
+        _saveError = ErrorMessages.For(Shared, created.Error);
+        if (code == BookingErrors.QuotePriceChanged.Code || code.StartsWith("availability.", StringComparison.Ordinal))
+        {
+            // The price or the remaining vehicles changed meanwhile: show the live table again.
+            await QuoteAsync();
+        }
+    }
+}

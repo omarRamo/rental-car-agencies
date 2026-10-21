@@ -1,0 +1,67 @@
+@* A frozen quote (or an amendment preview): lines with quantity, unit price TTC, HT, VAT, TTC; totals; deposit outside
+   the total; promotions and the reason of a manual discount. *@
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<QuoteResources> Q
+
+<div class="booking-scroll" tabindex="0" role="region" aria-label="@Caption">
+    <MudSimpleTable Dense="true" Hover="true" Class="booking-lines">
+        <caption class="visually-hidden">@Caption</caption>
+        <thead>
+            <tr>
+                <th scope="col">@L["Quote.Column.Label"]</th>
+                <th scope="col" class="booking-number">@L["Quote.Column.Quantity"]</th>
+                <th scope="col" class="booking-number">@L["Quote.Column.UnitPrice"]</th>
+                <th scope="col" class="booking-number">@L["Quote.Column.ExclVat"]</th>
+                <th scope="col" class="booking-number">@L["Quote.Column.Vat"]</th>
+                <th scope="col" class="booking-number">@L["Quote.Column.InclVat"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in Quote.Lines)
+            {
+                <tr data-line-kind="@line.Kind.ToString()">
+                    <th scope="row" style="font-weight:400;text-align:start">@BookingFormat.LineLabel(Q, L, line)</th>
+                    <td class="booking-number">@line.Quantity</td>
+                    <td class="booking-number">@BookingFormat.Amount(line.UnitPrice)</td>
+                    <td class="booking-number">@BookingFormat.Amount(line.ExclVat)</td>
+                    <td class="booking-number">@BookingFormat.Amount(line.Vat)</td>
+                    <td class="booking-number">@BookingFormat.Amount(line.InclVat)</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th scope="row" colspan="3" style="text-align:start">@L["Quote.Total"]</th>
+                <td class="booking-number">@BookingFormat.Amount(Quote.TotalExclVat)</td>
+                <td class="booking-number">@BookingFormat.Amount(Quote.TotalVat)</td>
+                <td class="booking-number" data-testid="booking-quote-total">@BookingFormat.Amount(Quote.TotalInclVat)</td>
+            </tr>
+        </tfoot>
+    </MudSimpleTable>
+</div>
+<dl class="booking-facts mt-3">
+    <dt>@L["Quote.Days"]</dt>
+    <dd>@Quote.Days</dd>
+    <dt>@L["Quote.Deposit"]</dt>
+    <dd>@BookingFormat.Amount(Quote.Deposit) <span class="booking-muted">@(Quote.IncludesFranchiseWaiver ? L["Quote.Deposit.Reduced"] : L["Quote.Deposit.NotIncluded"])</span></dd>
+    <dt>@L["Quote.Plan"]</dt>
+    <dd>@(Quote.RatePlanVersion is { } version ? L["Quote.PlanVersion", version] : L["Quote.PlanUnknown"])</dd>
+    @if (Quote.Promotions.Count > 0)
+    {
+        <dt>@L["Quote.Promotions"]</dt>
+        <dd>@string.Join(", ", Quote.Promotions.Select(p => $"{p.Name} ({BookingFormat.Amount(p.Amount)})"))</dd>
+    }
+    @if (!string.IsNullOrEmpty(Quote.ManualDiscountReason))
+    {
+        <dt>@L["Quote.DiscountReason"]</dt>
+        <dd>@Quote.ManualDiscountReason</dd>
+    }
+</dl>
+
+@code {
+    [Parameter, EditorRequired]
+    public QuoteView Quote { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = default!;
+}

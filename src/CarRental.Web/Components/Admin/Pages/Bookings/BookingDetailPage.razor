@@ -1,0 +1,574 @@
+@page "/admin/bookings/{Id:guid}"
+@attribute [HasPermission(Permissions.BookingsRead)]
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Web.Resources.Admin.Customers
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+@inject IStringLocalizer<BookingsResources> L
+@inject IStringLocalizer<CustomersAdminResources> C
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<BookingStyles />
+
+<MudBreadcrumbs Items="@Breadcrumbs" Class="px-0 pt-0" />
+
+@if (_file is null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@Title</MudText>
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+}
+else
+{
+    var file = _file;
+    var actions = file.Actions;
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
+        <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
+        <BookingStatusChip Status="file.Status" />
+        @if (file.IsLate)
+        {
+            <span class="booking-flag"><MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />@L["Booking.Late"]</span>
+        }
+        @if (file.EscalatedAtUtc is not null && file.Status is BookingStatus.PendingValidation)
+        {
+            <span class="booking-flag"><MudIcon Icon="@Icons.Material.Filled.PriorityHigh" Size="Size.Small" aria-hidden="true" />@L["Request.Escalated"]</span>
+        }
+    </MudStack>
+    <MudText Typo="Typo.body2" Class="mb-3">
+        @L[$"Channel.{file.Channel}"]
+        @if (!string.IsNullOrEmpty(file.ChannelReference))
+        {
+            @(" · ")@L["Booking.ChannelReference", file.ChannelReference]
+        }
+        · @L["Booking.CreatedAt", BookingFormat.Instant(file.CreatedAtUtc)]
+    </MudText>
+
+    @if (Deadline(file) is { } deadline)
+    {
+        <Notice Kind="NoticeKind.Info" Class="mb-3">
+            @L[$"Deadline.{file.Status}", BookingFormat.Instant(deadline)] <Countdown Until="deadline" />
+        </Notice>
+    }
+    @if (!string.IsNullOrEmpty(file.StatusReason))
+    {
+        <Notice Kind="NoticeKind.Info" Class="mb-3">@L["Booking.StatusReason", BookingFormat.Reason(L, file.StatusReason)]</Notice>
+    }
+
+    @if (actions.Any)
+    {
+        <MudPaper Elevation="1" Class="pa-3 mb-4" role="group" aria-label="@L["Booking.Actions"]">
+            <div class="d-flex flex-wrap gap-2">
+                @if (actions.CanValidate)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="ValidateAsync" Disabled="_busy">@L["Action.Validate"]</MudButton>
+                }
+                @if (actions.CanConfirmOption)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="ConfirmOptionAsync" Disabled="_busy">@L["Action.ConfirmOption"]</MudButton>
+                }
+                @if (actions.CanMarkPaid)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments" OnClick="MarkPaidAsync" Disabled="_busy">@L["Action.MarkPaid"]</MudButton>
+                }
+                @if (actions.CanRequestInformation)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.HelpOutline" OnClick="RequestInformationAsync" Disabled="_busy">@L["Action.RequestInformation"]</MudButton>
+                }
+                @if (actions.CanProvideInformation)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MarkEmailRead" OnClick="ProvideInformationAsync" Disabled="_busy">@L["Action.ProvideInformation"]</MudButton>
+                }
+                @if (actions.CanAmend)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" OnClick="AmendAsync" Disabled="_busy">
+                        @(file.Status == BookingStatus.InProgress ? L["Action.Extend"] : L["Action.Amend"])
+                    </MudButton>
+                }
+                @if (actions.CanAssign)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.DirectionsCar" OnClick="AssignAsync" Disabled="_busy">
+                        @(file.Status == BookingStatus.InProgress ? L["Action.Swap"] : file.AssignedVehicle is null ? L["Action.Assign"] : L["Action.Reassign"])
+                    </MudButton>
+                }
+                @if (actions.CanUnassign)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.LinkOff" OnClick="UnassignAsync" Disabled="_busy">@L["Action.Unassign"]</MudButton>
+                }
+                @if (actions.CanMarkNoShow)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonOff" OnClick="MarkNoShowAsync"
+                               Disabled="@(_busy || actions.NoShowAllowedFrom > Clock.GetUtcNow())">@L["Action.NoShow"]</MudButton>
+                }
+                @if (actions.CanRefuse)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Block" OnClick="RefuseAsync" Disabled="_busy">@L["Action.Refuse"]</MudButton>
+                }
+                @if (actions.CanCancel)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel" OnClick="CancelAsync" Disabled="_busy">@L["Action.CancelBooking"]</MudButton>
+                }
+            </div>
+            @if (actions.CanMarkNoShow && actions.NoShowAllowedFrom is { } noShowFrom && noShowFrom > Clock.GetUtcNow())
+            {
+                <MudText Typo="Typo.caption" Class="d-block mt-2">@L["NoShow.AllowedFrom", BookingFormat.Instant(noShowFrom)]</MudText>
+            }
+        </MudPaper>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="height:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Section.Rental"]</MudText>
+                <dl class="booking-facts">
+                    <dt>@L["Field.Category"]</dt>
+                    <dd>@(file.Category is { } category ? $"{category.AcrissCode} — {category.Name}" : "—")</dd>
+                    <dt>@L["Field.Pickup"]</dt>
+                    <dd>
+                        @BookingFormat.Instant(file.PickupAt) · @(file.PickupLocation?.Name ?? "—")
+                        @if (file.ActualPickupAt is { } actualPickup)
+                        {
+                            <span class="booking-muted d-block">@L["Field.Actual", BookingFormat.Instant(actualPickup)]</span>
+                        }
+                    </dd>
+                    <dt>@L["Field.Return"]</dt>
+                    <dd>
+                        @BookingFormat.Instant(file.ReturnAt) · @(file.ReturnLocation?.Name ?? "—")
+                        @if (file.ActualReturnAt is { } actualReturn)
+                        {
+                            <span class="booking-muted d-block">@L["Field.Actual", BookingFormat.Instant(actualReturn)]</span>
+                        }
+                    </dd>
+                    <dt>@L["Field.Extras"]</dt>
+                    <dd>@(file.Extras.Count == 0 ? "—" : string.Join(", ", file.Extras.Select(ExtraText)))</dd>
+                    <dt>@L["Field.PromoCode"]</dt>
+                    <dd>@(file.PromoCode ?? "—")</dd>
+                    <dt>@L["Field.Total"]</dt>
+                    <dd><strong data-testid="booking-total">@BookingFormat.Amount(file.TotalInclVat)</strong> <span class="booking-muted">@L["Field.Deposit", BookingFormat.Amount(file.Deposit)]</span></dd>
+                    @if (file.CancellationFee is { } fee)
+                    {
+                        <dt>@L["Field.CancellationFee"]</dt>
+                        <dd>@BookingFormat.Amount(fee)</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(file.Notes))
+                    {
+                        <dt>@L["Field.Notes"]</dt>
+                        <dd style="white-space:pre-line">@file.Notes</dd>
+                    }
+                    @if (file.Attribution is { } attribution)
+                    {
+                        <dt>@L["Field.Source"]</dt>
+                        <dd>@string.Join(" · ", new[] { attribution.Source, attribution.UtmSource, attribution.UtmMedium, attribution.UtmCampaign, attribution.UtmTerm, attribution.UtmContent }.Where(v => !string.IsNullOrEmpty(v)))</dd>
+                    }
+                </dl>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="1" Class="pa-4" Style="height:100%">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Section.Vehicle"]</MudText>
+                @if (file.AssignedVehicle is { } vehicle)
+                {
+                    <MudText data-testid="booking-vehicle"><strong>@vehicle.PlateNumber</strong> — @vehicle.Make @vehicle.Model (@vehicle.Year)</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" data-testid="booking-vehicle">@L["Vehicle.None"]</MudText>
+                }
+                @if (file.GuaranteedVehicleId is not null)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-1">@L["Vehicle.Guaranteed"]</MudText>
+                }
+                @if (file.ComplianceWaiver is { } waiver)
+                {
+                    <Notice Kind="NoticeKind.Warning" Class="mt-2">@L["Vehicle.Waiver", waiver.ByName, BookingFormat.Instant(waiver.AtUtc), waiver.Reason]</Notice>
+                }
+
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-4" GutterBottom="true">@L["Section.Payer"]</MudText>
+                @if (file.Payer is { } payer)
+                {
+                    <MudText>
+                        @payer.DisplayName
+                        <span class="booking-muted">@L[$"Payer.Kind.{payer.Kind}"]@(payer.TaxIdentifier is { } tax ? $" · {tax}" : string.Empty)</span>
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">—</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Section.Drivers"]</MudText>
+                @if (file.Drivers.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">@L["Drivers.None"]</MudText>
+                }
+                else
+                {
+                    <MudGrid Spacing="2">
+                        @foreach (var driver in file.Drivers)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Outlined="true" Class="pa-3" data-driver="@driver.Role.ToString()">
+                                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">
+                                        @if (driver.IsAnonymized)
+                                        {
+                                            @L["Driver.Anonymized"]
+                                        }
+                                        else
+                                        {
+                                            <MudLink Href="@($"/admin/customers/persons/{driver.PersonId}")">@driver.FullName</MudLink>
+                                        }
+                                        <span class="booking-muted"> · @L[$"Role.{driver.Role}"]</span>
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">@(driver.Phone ?? "—") · @(driver.Email ?? "—")</MudText>
+                                    <MudText Typo="Typo.body2" Class="mt-1">@L[$"Documents.{driver.Documents}"]</MudText>
+                                    @if (driver.Eligibility is { } eligibility)
+                                    {
+                                        @if (eligibility.IsEligible)
+                                        {
+                                            <MudText Typo="Typo.body2"><MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" aria-hidden="true" /> @L["Driver.Eligible"]</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2"><MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" aria-hidden="true" /> @L["Driver.NotEligible"]</MudText>
+                                            <ul class="mt-1">
+                                                @foreach (var issue in eligibility.Issues)
+                                                {
+                                                    <li>@CustomerLabels.Issue(C, issue)</li>
+                                                }
+                                            </ul>
+                                        }
+                                    }
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="7">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Section.Quote", file.CurrentQuoteVersion]</MudText>
+                @if (file.CurrentQuote is { } quote)
+                {
+                    <QuoteDetails Quote="quote" Caption="@L["Section.Quote", file.CurrentQuoteVersion]" />
+                }
+                @if (file.QuoteVersions.Count > 1)
+                {
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Quote.History"]</MudText>
+                    <div class="booking-scroll" tabindex="0" role="region" aria-label="@L["Quote.History"]">
+                        <MudSimpleTable Dense="true">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["Quote.Column.Version"]</th>
+                                    <th scope="col">@L["Quote.Column.Origin"]</th>
+                                    <th scope="col" class="booking-number">@L["Quote.Column.InclVat"]</th>
+                                    <th scope="col">@L["Quote.Column.CreatedAt"]</th>
+                                    <th scope="col"><span class="visually-hidden">@L["Quote.Column.Actions"]</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var version in file.QuoteVersions)
+                                {
+                                    <tr data-quote-version="@version.Version">
+                                        <td>@version.Version @(version.IsCurrent ? $"({L["Quote.Current"]})" : string.Empty)</td>
+                                        <td>
+                                            @L[$"Origin.{version.Origin}"]
+                                            @if (!string.IsNullOrEmpty(version.ManualDiscountReason))
+                                            {
+                                                <span class="booking-muted d-block">@version.ManualDiscountReason</span>
+                                            }
+                                        </td>
+                                        <td class="booking-number">@BookingFormat.Amount(version.TotalInclVat)</td>
+                                        <td>@BookingFormat.Instant(version.CreatedAtUtc) · @(version.CreatedBy ?? L["Timeline.System"])</td>
+                                        <td>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ShowVersionAsync(version.Version))"
+                                                       aria-label="@L["Quote.ViewVersion", version.Version]">@L["Quote.View"]</MudButton>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="5">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Timeline.Title"]</MudText>
+                <BookingTimeline Entries="file.Timeline" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private BookingFile? _file;
+    private string? _error;
+    private bool _busy;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string Title => _file is { } file ? L["Booking.Title", file.Number] : L["Booking.TitleLoading"];
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new(L["Bookings.Title"], "/admin/bookings"),
+        new(_file?.Number ?? "…", null, disabled: true),
+    ];
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        var id = Id;
+        var result = await Runner.RunAsync<BookingAdministrationQueries, Result<BookingFile>>((queries, ct) => queries.GetFileAsync(id, ct));
+        if (result.IsSuccess)
+        {
+            _file = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _file = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private static DateTimeOffset? Deadline(BookingFile file) => file.Status switch
+    {
+        BookingStatus.PendingValidation or BookingStatus.InformationRequested => file.HoldExpiresAt,
+        BookingStatus.OptionHeld => file.OptionExpiresAt,
+        BookingStatus.AwaitingPayment => file.PaymentDueAt,
+        _ => null,
+    };
+
+    private string ExtraText(ExtraChoiceView extra)
+    {
+        var name = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && extra.NameEn is { } english ? english : extra.Name ?? extra.Code;
+        return extra.Quantity > 1 ? $"{name} × {extra.Quantity}" : name;
+    }
+
+    private async Task RunAsync(Func<Task<Result>> action, string success)
+    {
+        _busy = true;
+        var result = await action();
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ValidateAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Validate.Title"], L["Validate.Message"], L["Action.Validate"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = Id;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result<ValidationOutcome>>((service, ct) => service.ValidateAsync(id, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L[$"Validate.{result.Value}"], result.Value == ValidationOutcome.RefusedAfterCustomerCheck ? Severity.Warning : Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task RequestInformationAsync()
+    {
+        var input = await Dialogs.AskReasonAsync(L["Information.Title"], L["Information.Message"], L["Action.RequestInformation"], predefinedReasons: true);
+        if (input?.Predefined is not { } reason)
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.RequestInformationAsync(id, reason, input.Text, ct)), L["Information.Sent"]);
+    }
+
+    private async Task ProvideInformationAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Provide.Title"], L["Provide.Message"], L["Action.ProvideInformation"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.ProvideInformationAsync(id, ct)), L["Provide.Done"]);
+    }
+
+    private async Task RefuseAsync()
+    {
+        var input = await Dialogs.AskReasonAsync(L["Refuse.Title"], L["Refuse.Reason"], L["Action.Refuse"], L["Refuse.Message"], danger: true);
+        if (input is null)
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.RefuseAsync(id, input.Text, ct)), L["Refuse.Done"]);
+    }
+
+    private async Task ConfirmOptionAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["ConfirmOption.Title"], L["ConfirmOption.Message"], L["Action.ConfirmOption"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.ConfirmOptionAsync(id, ct)), L["ConfirmOption.Done"]);
+    }
+
+    private async Task MarkPaidAsync()
+    {
+        var input = await Dialogs.AskReasonAsync(L["MarkPaid.Title"], L["MarkPaid.Reference"], L["Action.MarkPaid"], L["MarkPaid.Message"], required: false, maxLength: 100);
+        if (input is null)
+        {
+            return;
+        }
+
+        var id = Id;
+        var reference = string.IsNullOrWhiteSpace(input.Text) ? null : input.Text;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.MarkPaidAsync(id, reference, ct)), L["MarkPaid.Done"]);
+    }
+
+    private async Task MarkNoShowAsync()
+    {
+        var input = await Dialogs.AskReasonAsync(L["NoShow.Title"], L["NoShow.Reason"], L["Action.NoShow"], L["NoShow.Message"], danger: true);
+        if (input is null)
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<BookingWorkflowService, Result>((service, ct) => service.MarkNoShowAsync(id, input.Text, ct)), L["NoShow.Done"]);
+    }
+
+    private async Task CancelAsync()
+    {
+        if (_file is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<CancelBookingDialog>
+        {
+            { d => d.Preview, _file.Cancellation },
+            { d => d.CanWaiveFee, _file.Actions.CanWaiveCancellationFee },
+        };
+        var dialog = await Dialogs.ShowAsync<CancelBookingDialog>(L["Cancel.Title", _file.Number], parameters, BookingFormat.Dialog());
+        if (await dialog.Result is not { Canceled: false, Data: CancellationInput input })
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = Id;
+        var result = await Runner.RunAsync<BookingWorkflowService, Result<Money>>((service, ct) => service.CancelAsync(id, input.Reason, input.WaiveFee, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(result.Value.IsZero ? L["Cancel.Done"] : L["Cancel.DoneWithFee", BookingFormat.Amount(result.Value)], Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task AmendAsync()
+    {
+        if (_file is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<AmendBookingDialog>
+        {
+            { d => d.File, _file },
+            { d => d.CanDiscount, _file.Actions.CanDiscount },
+        };
+        var title = _file.Status == BookingStatus.InProgress ? L["Amend.Title.Extension", _file.Number] : L["Amend.Title", _file.Number];
+        var dialog = await Dialogs.ShowAsync<AmendBookingDialog>(title, parameters, BookingFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false, Data: AmendmentResult amended })
+        {
+            Snackbar.Add(L["Amend.Done", amended.QuoteVersion, BookingFormat.Amount(amended.TotalInclVat)], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task AssignAsync()
+    {
+        if (_file is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<AssignVehicleDialog>
+        {
+            { d => d.BookingId, _file.Id },
+            { d => d.CanWaiveCompliance, _file.Actions.CanWaiveCompliance },
+            { d => d.IsSwap, _file.Status == BookingStatus.InProgress },
+        };
+        var dialog = await Dialogs.ShowAsync<AssignVehicleDialog>(L["Assign.Title", _file.Number], parameters, BookingFormat.Dialog());
+        if (await dialog.Result is { Canceled: false, Data: string plate })
+        {
+            Snackbar.Add(L["Assign.Done", plate], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task UnassignAsync()
+    {
+        if (!await Dialogs.ConfirmAsync(L["Unassign.Title"], L["Unassign.Message"], L["Action.Unassign"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        await RunAsync(() => Runner.RunAsync<VehicleAssignmentService, Result>((service, ct) => service.UnassignAsync(id, ct)), L["Unassign.Done"]);
+    }
+
+    private async Task ShowVersionAsync(int version)
+    {
+        var parameters = new DialogParameters<QuoteVersionDialog>
+        {
+            { d => d.BookingId, Id },
+            { d => d.Version, version },
+        };
+        await Dialogs.ShowAsync<QuoteVersionDialog>(L["QuoteVersion.Title", version], parameters, BookingFormat.Dialog(MaxWidth.Medium));
+    }
+}
