@@ -3772,6 +3772,227 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.AgentConversationState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastQuoteLink")
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
+
+                    b.Property<DateTimeOffset?>("OptionsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SearchCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StatusLookups")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TurnsWithoutProgress")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("_amounts")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("KnownAmounts");
+
+                    b.Property<string>("_options")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Options");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AgentConversationStates", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.AgentTurnRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AiCostUsd")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long>("CacheReadTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CacheWriteTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("InputTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MetaCostUsd")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("ModelCalls")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<long>("OutputTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ToolCalls")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.ToTable("AgentTurnRecords", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.BotTurnRetry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("LastFailedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BotTurnRetries", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.KnowledgeEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AnswerArabic")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("AnswerEnglish")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("AnswerFrench")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsValidated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Keywords")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("TopicKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
+                    b.Property<DateTimeOffset?>("ValidatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ValidatedByName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("ValidatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TopicKey")
+                        .IsUnique();
+
+                    b.ToTable("KnowledgeEntries", "messaging");
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("KnowledgeEntriesHistory", "messaging");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
+                });
+
             modelBuilder.Entity("CarRental.Domain.Messaging.BookingNotification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4102,6 +4323,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasFilter("[MetaMessageId] IS NOT NULL");
 
                     b.HasIndex("ConversationId", "CreatedAtUtc");
+
+                    b.HasIndex(new[] { "ConversationId", "CreatedAtUtc" }, "IX_Messages_PendingBotTurns")
+                        .HasFilter("[BotTurn] = 1 AND [Direction] = 1");
 
                     b.ToTable("Messages", "messaging");
 
@@ -6218,6 +6442,24 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasOne("CarRental.Domain.Fleet.Vehicle", null)
                         .WithMany("Photos")
                         .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.AgentConversationState", b =>
+                {
+                    b.HasOne("CarRental.Domain.Messaging.Conversation", null)
+                        .WithOne()
+                        .HasForeignKey("CarRental.Domain.Messaging.Agent.AgentConversationState", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.BotTurnRetry", b =>
+                {
+                    b.HasOne("CarRental.Domain.Messaging.Conversation", null)
+                        .WithOne()
+                        .HasForeignKey("CarRental.Domain.Messaging.Agent.BotTurnRetry", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -118,6 +118,8 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
 | `PublicSite__AgencyName`, `PublicSite__WhatsAppNumber` | paramètres `publicSiteAgencyName` et `publicSiteWhatsAppNumber` (bouton WhatsApp masqué si vide) |
 | `WhatsApp__Mode`, `WhatsApp__PhoneNumberId`, `WhatsApp__BusinessAccountId` | `Graph` une fois le numéro WhatsApp Business validé (sinon le canal reste désactivé) ; identifiants lus dans le gestionnaire WhatsApp de Meta ; webhook à déclarer chez Meta sur `https://<domaine>/webhooks/whatsapp` avec le jeton `WhatsApp--VerifyToken` |
+| `Ai__Mode`, `Ai__Model`, `Ai__PilotNumbers` | `Anthropic` (ou `Foundry` avec `Ai__Foundry__Resource`) une fois la clé de l'agence dans le Key Vault (`Ai--ApiKey`) ; sans réglage, le bot reste désactivé hors développement ; numéros pilotes séparés par `;` pour une ouverture progressive |
+| `BotTurns__MaxParallelism` (facultatif) | 4 par défaut (une connexion SQL par tour en cours) |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` : l'application lit `X-Forwarded-Proto` et `X-Forwarded-For` posés par le frontal App Service |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` : le paquet publié est déployé tel quel |
 
@@ -315,6 +317,9 @@ az keyvault secret set --vault-name "<keyVaultName>" --name "ClicToPay--Password
 az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AccessToken" --file ./whatsapp-access-token.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AppSecret" --file ./whatsapp-app-secret.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--VerifyToken" --file ./whatsapp-verify-token.txt
+az keyvault secret set --vault-name "<keyVaultName>" --name "Ai--ApiKey" --file ./claude-api-key.txt
+# Facultatif (Foundry) : sans clé, l'identité managée de la Web App doit avoir accès aux modèles de la ressource
+az keyvault secret set --vault-name "<keyVaultName>" --name "Ai--Foundry--ApiKey" --file ./foundry-api-key.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "Turnstile--SecretKey" --file ./turnstile-secret.txt
 ```
 

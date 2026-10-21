@@ -1,0 +1,33 @@
+{
+  "id": "fr-07-caution",
+  "title": "Question sur la caution : la réponse validée et les montants de la catégorie, rien d'inventé",
+  "language": "fr",
+  "covers": ["infos_agence", "base de connaissances validée", "montants des outils"],
+  "world": {
+    "knowledge": [
+      {
+        "topic": "caution",
+        "title": "Caution",
+        "keywords": "caution, dépôt, garantie, franchise",
+        "french": "Une caution est prise par empreinte bancaire à la remise du véhicule et restituée au retour, après vérification. Son montant dépend de la catégorie ; elle est réduite avec le rachat de franchise.",
+        "english": "A deposit is held on your card when you pick up the car and released when you return it, after inspection. Its amount depends on the category; it is reduced with the franchise waiver.",
+        "arabic": "يتم أخذ ضمان ببطاقة بنكية عند استلام السيارة ويُرجع عند إرجاعها بعد المعاينة. يختلف مبلغه حسب الفئة وينخفض مع إعفاء التحمل."
+      }
+    ]
+  },
+  "turns": [
+    {
+      "customer": "Bonjour, quel est le montant de la caution pour une citadine ?",
+      "script": [
+        { "call": "infos_agence", "arguments": { "sujet": "caution citadine" } },
+        { "reply": "La caution est prise par empreinte bancaire à la remise du véhicule et restituée au retour, après vérification. Pour une citadine, elle est de {{infos_agence:cautions_par_categorie[0].caution}} ({{infos_agence:cautions_par_categorie[0].caution_avec_rachat_de_franchise}} avec le rachat de franchise)." }
+      ],
+      "expect": {
+        "tools": ["infos_agence"],
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "replyContains": ["600.000 TND", "300.000 TND"], "outcome": "Replied" }
+    }
+  ]
+}

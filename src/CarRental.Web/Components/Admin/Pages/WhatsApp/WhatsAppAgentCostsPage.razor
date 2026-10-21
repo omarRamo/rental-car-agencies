@@ -1,0 +1,193 @@
+@page "/admin/whatsapp/costs"
+@attribute [HasPermission(Permissions.ReportsRead)]
+@* What the WhatsApp assistant costs, month by month (Tunis calendar, ADR-0055): turns, model and tool calls, tokens and
+   the share of the prompt read from the cache, AI cost from the price grid of the platform settings and estimated Meta
+   cost in USD, hand-overs and replies stopped by a guardrail. The cost of one conversation is in the inbox. *@
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Messaging.Agent.Costs
+@using CarRental.Web.Resources.Admin.WhatsApp
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AgentResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Costs.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Costs.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">@L["Costs.Help"]</MudText>
+<MudLink Href="/admin/whatsapp" Typo="Typo.body2" Class="d-inline-block mb-3">@L["Link.Inbox"]</MudLink>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <MudSelect T="int" Value="_months" ValueChanged="MonthsChangedAsync" Label="@L["Costs.Months"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+               ToStringFunc="@(months => L["Costs.Months.Value", months].Value)" Style="max-width: 16rem">
+        @foreach (var months in MonthChoices)
+        {
+            <MudSelectItem T="int" Value="months">@L["Costs.Months.Value", months]</MudSelectItem>
+        }
+    </MudSelect>
+</div>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+}
+
+@if (_summaries is { } summaries)
+{
+    <MudPaper Elevation="1" Class="pa-2" data-testid="agent-costs">
+        <MudSimpleTable Dense="true" Elevation="0" Style="overflow-x: auto">
+            <caption class="visually-hidden">@L["Costs.Table"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["Costs.Column.Month"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.Turns"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.ModelCalls"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.ToolCalls"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.InputTokens"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.OutputTokens"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.CacheTokens"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.CacheHit"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.AiCost"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.MetaCost"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.TotalCost"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.HandOvers"]</th>
+                    <th scope="col" class="text-right">@L["Costs.Column.Guardrails"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var month in summaries)
+                {
+                    <tr data-month="@($"{month.Year:D4}-{month.Month:D2}")">
+                        <th scope="row">@MonthName(month.Year, month.Month)</th>
+                        @Cells(month)
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row">@L["Costs.Total"]</th>
+                    @Cells(Total(summaries))
+                </tr>
+            </tfoot>
+        </MudSimpleTable>
+        @if (summaries.All(m => m.Turns == 0))
+        {
+            <MudText Typo="Typo.body2" Class="pa-2">@L["Costs.Empty"]</MudText>
+        }
+    </MudPaper>
+}
+else if (_error is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@L["Costs.Table"]" />
+}
+
+<MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-1">@L["Costs.Bookings.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">@L["Costs.Bookings.Help"]</MudText>
+<MudTable T="AgentBookingCost" ServerData="LoadBookingsAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Costs.Bookings.Title"].Value })" data-testid="agent-costs-bookings">
+    <HeaderContent>
+        <MudTh>@L["Costs.Bookings.Column.Booking"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Bookings.Column.Conversations"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.Turns"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.AiCost"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.MetaCost"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.TotalCost"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Costs.Bookings.Column.Booking"]">
+            <MudLink Href="@($"/admin/bookings/{context.BookingId}")">@(context.BookingNumber ?? L["Costs.Bookings.Unknown"].Value)</MudLink>
+        </MudTd>
+        <MudTd DataLabel="@L["Costs.Bookings.Column.Conversations"]" Class="text-right">@Count(context.Conversations)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.Turns"]" Class="text-right">@Count(context.BotTurns)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.AiCost"]" Class="text-right">@Usd(context.AiCostUsd)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.MetaCost"]" Class="text-right">@Usd(context.MetaCostUsd)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.TotalCost"]" Class="text-right"><strong>@Usd(context.TotalCostUsd)</strong></MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">@L["Costs.Bookings.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private static readonly int[] MonthChoices = [3, 6, 12, 24];
+
+    private IReadOnlyList<AgentMonthSummary>? _summaries;
+    private string? _error;
+    private int _months = AgentCostQueries.DefaultMonths;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RendererInfo.IsInteractive)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task MonthsChangedAsync(int months)
+    {
+        _months = months;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await Runner.RunAsync<AgentCostQueries, Result<IReadOnlyList<AgentMonthSummary>>>((queries, ct) => queries.MonthlyAsync(_months, ct));
+        _summaries = result.IsSuccess ? result.Value : null;
+        _error = result.IsSuccess ? null : ErrorMessages.For(Shared, result.Error);
+    }
+
+    private async Task<TableData<AgentBookingCost>> LoadBookingsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return new TableData<AgentBookingCost> { Items = [], TotalItems = 0 };
+        }
+
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<AgentCostQueries, Result<PagedResult<AgentBookingCost>>>((queries, ct) => queries.ByBookingAsync(page, ct), cancellationToken);
+        return result.IsSuccess
+            ? new TableData<AgentBookingCost> { Items = result.Value.Items, TotalItems = result.Value.TotalCount }
+            : new TableData<AgentBookingCost> { Items = [], TotalItems = 0 };
+    }
+
+    private RenderFragment Cells(AgentMonthSummary month) => __builder =>
+    {
+        <td class="text-right">@Count(month.Turns)</td>
+        <td class="text-right">@Count(month.ModelCalls)</td>
+        <td class="text-right">@Count(month.ToolCalls)</td>
+        <td class="text-right">@Count(month.InputTokens)</td>
+        <td class="text-right">@Count(month.OutputTokens)</td>
+        <td class="text-right">@L["Costs.CacheValue", Count(month.CacheReadTokens), Count(month.CacheWriteTokens)]</td>
+        <td class="text-right">@month.CacheHitRatio.ToString("P1", CultureInfo.CurrentCulture)</td>
+        <td class="text-right">@Usd(month.AiCostUsd)</td>
+        <td class="text-right">@Usd(month.MetaCostUsd)</td>
+        <td class="text-right"><strong>@Usd(month.TotalCostUsd)</strong></td>
+        <td class="text-right">@Count(month.HandOvers)</td>
+        <td class="text-right">@Count(month.Guardrails)</td>
+    };
+
+    private static AgentMonthSummary Total(IReadOnlyList<AgentMonthSummary> months) =>
+        new(
+            0,
+            0,
+            months.Sum(m => m.Turns),
+            months.Sum(m => m.ModelCalls),
+            months.Sum(m => m.ToolCalls),
+            months.Sum(m => m.InputTokens),
+            months.Sum(m => m.OutputTokens),
+            months.Sum(m => m.CacheReadTokens),
+            months.Sum(m => m.CacheWriteTokens),
+            months.Sum(m => m.AiCostUsd),
+            months.Sum(m => m.MetaCostUsd),
+            months.Sum(m => m.HandOvers),
+            months.Sum(m => m.Guardrails));
+
+    private static string MonthName(int year, int month) =>
+        new DateOnly(year, month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+
+    private static string Count(long value) => value.ToString("N0", CultureInfo.CurrentCulture);
+
+    private static string Usd(decimal value) => value.ToString("N4", CultureInfo.CurrentCulture);
+}

@@ -28,10 +28,19 @@
     <PackageReference Include="Azure.Communication.Email" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" />
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Anthropic.Foundry" />
+  </ItemGroup>
+
+  <!-- System prompt of the WhatsApp agent (PROMPT.md, annexe B, verbatim) and its technical addendum. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Messaging\Prompts\*.md" LogicalName="CarRental.Infrastructure.Messaging.Prompts.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="CarRental.Integration.Tests" />
+    <!-- The adapters of the WhatsApp agent (Claude client, scripted model) are tested offline there (ADR-0055). -->
+    <InternalsVisibleTo Include="CarRental.Application.Tests" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,19 @@
+{
+  "id": "en-05-refusal",
+  "title": "The model refuses to answer: no fallback model, a polite hand-over in English",
+  "language": "en",
+  "covers": ["refus du modèle", "transfert", "anglais"],
+  "turns": [
+    {
+      "customer": "Hi, what is the cheapest car you have next weekend?",
+      "script": [
+        { "refusal": true }
+      ],
+      "expect": {
+        "noTools": ["creer_lien_devis"],
+        "replyLanguage": ["en"]
+      },
+      "expectScripted": { "handOver": true, "replyIs": "handOver", "outcome": "Refused" }
+    }
+  ]
+}

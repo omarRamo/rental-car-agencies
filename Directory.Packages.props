@@ -55,6 +55,17 @@
     <PackageVersion Include="QRCoder" Version="1.8.1" />
   </ItemGroup>
 
+  <!--
+    WhatsApp AI agent (ADR-0055): the official Anthropic C# SDK (MIT) with its Microsoft Foundry client (MIT), and the
+    Microsoft.Extensions.AI abstraction (IChatClient, MIT) at the version the SDK is built against. Exact versions:
+    the agent relies on the IChatClient adapter of this SDK release (cache control, usage, refusal, effort).
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Anthropic" Version="12.60.0" />
+    <PackageVersion Include="Anthropic.Foundry" Version="0.8.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.5.1" />
+  </ItemGroup>
+
   <!-- Excel exports of the reports (ClosedXML: MIT; its dependencies DocumentFormat.OpenXml, ExcelNumberFormat, RBush: MIT). -->
   <ItemGroup>
     <PackageVersion Include="ClosedXML" Version="0.105.1" />

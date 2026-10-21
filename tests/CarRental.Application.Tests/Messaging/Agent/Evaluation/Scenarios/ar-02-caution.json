@@ -1,0 +1,33 @@
+{
+  "id": "ar-02-caution",
+  "title": "سؤال عن الضمان بالعربية : الجواب المصادق عليه بالعربية ومبلغ الفئة",
+  "language": "ar",
+  "covers": ["infos_agence", "arabe", "réponse validée en arabe", "montants des outils"],
+  "world": {
+    "knowledge": [
+      {
+        "topic": "caution",
+        "title": "Caution",
+        "keywords": "caution, dépôt, garantie",
+        "french": "Une caution est prise par empreinte bancaire à la remise du véhicule et restituée au retour. Son montant dépend de la catégorie.",
+        "english": "A deposit is held on your card at pick-up and released at return. Its amount depends on the category.",
+        "arabic": "يتم أخذ ضمان ببطاقة بنكية عند استلام السيارة ويُرجع عند إرجاعها. يختلف مبلغه حسب الفئة."
+      }
+    ]
+  },
+  "turns": [
+    {
+      "customer": "كم مبلغ الضمان للسيارة الصغيرة؟",
+      "script": [
+        { "call": "infos_agence", "arguments": { "sujet": "الضمان" } },
+        { "reply": "يتم أخذ ضمان ببطاقة بنكية عند استلام السيارة ويُرجع عند إرجاعها. للسيارة الصغيرة (Citadine) مبلغه {{infos_agence:cautions_par_categorie[0].caution}}." }
+      ],
+      "expect": {
+        "tools": ["infos_agence"],
+        "handOver": false,
+        "replyLanguage": ["ar"]
+      },
+      "expectScripted": { "replyContains": ["600.000 TND"], "outcome": "Replied" }
+    }
+  ]
+}

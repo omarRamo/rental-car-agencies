@@ -1,0 +1,21 @@
+{
+  "id": "darija-02-negociation",
+  "title": "Négociation du prix en darija : aucune remise inventée, transfert à un agent",
+  "language": "darija",
+  "covers": ["transfert", "négociation de prix", "pas de remise inventée", "darija"],
+  "turns": [
+    {
+      "customer": "9adech akher prix? A3tini remise 20% w nekri tawa.",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "negociation_prix", "resume": "Le client demande une remise de 20 % sur le prix." } },
+        { "reply": "Mafamech mochkla, taw nkallem wa7ed mel agence bech yjewbek 3al remise." }
+      ],
+      "expect": {
+        "tools": ["transferer_a_un_agent"],
+        "handOver": true,
+        "replyLanguage": ["darija", "fr", "ar"]
+      },
+      "expectScripted": { "handOverReasonContains": "Négociation de prix", "outcome": "TransferredByModel" }
+    }
+  ]
+}

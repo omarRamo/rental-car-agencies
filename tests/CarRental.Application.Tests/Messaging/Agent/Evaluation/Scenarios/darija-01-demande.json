@@ -1,0 +1,35 @@
+{
+  "id": "darija-01-demande",
+  "title": "Talab kamel bel darija : el options w el lien mta3 el devis",
+  "language": "darija",
+  "covers": ["recherche", "darija en lettres latines", "boutons", "lien de devis verrouillé"],
+  "turns": [
+    {
+      "customer": "Asslema, n7eb karhba mel aéroport Tunis Carthage nhar 1 juillet 2027 l 10h, w nraja3ha nhar 5 juillet 2027 l 10h. 4 personnes.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        { "reply": "Ahla bik! Hethom el karhbet el mawjoudin mel 1 l 5 juillet:\n1. {{rechercher_disponibilites:options[0].categorie}} : {{rechercher_disponibilites:options[0].total_ttc}}\n2. {{rechercher_disponibilites:options[1].categorie}} : {{rechercher_disponibilites:options[1].total_ttc}}\n3. {{rechercher_disponibilites:options[2].categorie}} : {{rechercher_disponibilites:options[2].total_ttc}}\nAma wa7da t7eb?" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        "handOver": false,
+        "replyLanguage": ["darija", "fr", "ar"]
+      },
+      "expectScripted": { "buttons": true, "outcome": "Replied" }
+    },
+    {
+      "tap": { "id": "option:A1", "title": "1. Citadine" },
+      "script": [
+        { "call": "creer_lien_devis", "arguments": { "option_id": "A1" } },
+        { "reply": "Behi! Hedha el lien mte3ek bech tkammel el demande (el prix garanti 24 heures, {{creer_lien_devis:total_ttc}}): {{creer_lien_devis:lien}}" }
+      ],
+      "expect": {
+        "tools": ["creer_lien_devis"],
+        "link": true,
+        "handOver": false
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

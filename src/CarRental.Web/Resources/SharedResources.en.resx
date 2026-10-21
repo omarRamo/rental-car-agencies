@@ -1635,4 +1635,25 @@
   <data name="Error.booking.access.no_contact_email" xml:space="preserve">
     <value>The main driver has no e-mail address: add it on the driver's page first.</value>
   </data>
+  <data name="Error.messaging.knowledge.not_found" xml:space="preserve">
+    <value>This answer of the knowledge base does not exist.</value>
+  </data>
+  <data name="Error.messaging.knowledge.topic_invalid" xml:space="preserve">
+    <value>A topic is written in lower-case letters, digits and underscores (2 to 50 characters) and starts with a letter: for example documents or one_way.</value>
+  </data>
+  <data name="Error.messaging.knowledge.topic_taken" xml:space="preserve">
+    <value>Another answer already has this topic.</value>
+  </data>
+  <data name="Error.messaging.knowledge.content_invalid" xml:space="preserve">
+    <value>An answer has a title (150 characters at most) and a text in French and in English (2,000 characters at most each).</value>
+  </data>
+  <data name="Error.messaging.knowledge.confirmation_promise" xml:space="preserve">
+    <value>This answer promises the confirmation of a booking: the bot never does (an agent validates the request). Rephrase it before validating it.</value>
+  </data>
+  <data name="Error.messaging.knowledge.forbidden" xml:space="preserve">
+    <value>You may not manage the knowledge base of the WhatsApp bot.</value>
+  </data>
+  <data name="Error.messaging.knowledge.concurrent_update" xml:space="preserve">
+    <value>The answer changed meanwhile: reload it and try again.</value>
+  </data>
 </root>

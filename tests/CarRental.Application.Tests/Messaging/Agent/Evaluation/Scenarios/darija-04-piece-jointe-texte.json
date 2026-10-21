@@ -1,0 +1,21 @@
+{
+  "id": "darija-04-piece-jointe-texte",
+  "title": "Taswira mta3 el permis m3a message : el pièce jointe ma tet7allech, el client yemchi lel lien sécurisé",
+  "language": "darija",
+  "covers": ["pièce jointe jamais traitée", "lien sécurisé", "darija"],
+  "turns": [
+    {
+      "customer": "Hedhi taswira mta3 el permis mte3i, behi?",
+      "attachments": ["image"],
+      "script": [
+        { "reply": "Choukran! Ama ma nnajemch nchouf el taswira hna: el permis w el CIN tzidhom 3al lien sécurisé mta3 el site ki tkammel el demande mte3ek." }
+      ],
+      "expect": {
+        "noTools": ["creer_lien_devis"],
+        "handOver": false,
+        "replyLanguage": ["darija", "fr", "ar"]
+      },
+      "expectScripted": { "modelCalls": 1, "outcome": "Replied" }
+    }
+  ]
+}

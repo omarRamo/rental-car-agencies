@@ -82,6 +82,22 @@ internal sealed partial class ConversationTurns(IAppDbContext db, TimeProvider c
     }
 
     /// <summary>
+    /// The turn of the latest pending customer message of the conversation (it answers the whole burst), or
+    /// <see langword="null"/> when nothing waits for the bot (see <see cref="PrepareAsync"/>): the entry point of the bot
+    /// turn executor, which works from the pending messages themselves (ADR-0054).
+    /// </summary>
+    public async Task<ConversationTurn?> PrepareLatestAsync(Guid conversationId, CancellationToken cancellationToken)
+    {
+        var latest = await db.Set<Message>()
+            .Where(m => m.ConversationId == conversationId && m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending)
+            .OrderByDescending(m => m.CreatedAtUtc)
+            .ThenByDescending(m => m.Id)
+            .Select(m => m.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        return latest == Guid.Empty ? null : await PrepareAsync(conversationId, latest, cancellationToken);
+    }
+
+    /// <summary>
     /// Applies the reply of <paramref name="turn"/> on the current state: in bot mode, the usage, the need, the single
     /// message (queued for sending) and the hand-over; after a takeover (even one already handed back: the takeover
     /// silenced the messages of the turn), nothing but the usage and the silenced marks. The messages of the turn are

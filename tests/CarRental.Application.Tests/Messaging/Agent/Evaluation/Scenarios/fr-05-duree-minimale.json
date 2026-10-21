@@ -1,0 +1,24 @@
+{
+  "id": "fr-05-duree-minimale",
+  "title": "Durée minimale de location sur ces dates : le bot propose d'allonger le séjour",
+  "language": "fr",
+  "covers": ["durée minimale", "pas de prix inventé"],
+  "world": { "minimumDays": 7 },
+  "turns": [
+    {
+      "customer": "Je voudrais une citadine à l'aéroport de Tunis du 1er juillet 2027 à 10h au 4 juillet 2027 à 10h.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-01T10:00", "retour": "2027-07-04T10:00" } },
+        { "reply": "Pour ces dates, l'agence loue au minimum 7 jours. Voulez-vous prolonger jusqu'au 8 juillet ? Je vous propose alors les voitures disponibles." }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "noTools": ["creer_lien_devis"],
+        "handOver": false,
+        "link": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

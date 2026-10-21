@@ -1,0 +1,20 @@
+{
+  "id": "fr-11-prix-invente",
+  "title": "Un prix que les outils n'ont pas donné : la réponse est bloquée et la conversation transférée",
+  "language": "fr",
+  "covers": ["garde-fou montant", "transfert"],
+  "turns": [
+    {
+      "customer": "Combien coûte une Clio pour le week-end prochain ?",
+      "script": [
+        { "reply": "Une Clio pour le week-end, c'est 250 DT tout compris !" }
+      ],
+      "expect": {
+        "noTools": ["creer_lien_devis"],
+        "link": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "handOver": true, "replyIs": "handOver", "handOverReasonContains": "montant", "outcome": "BlockedByGuardrail" }
+    }
+  ]
+}

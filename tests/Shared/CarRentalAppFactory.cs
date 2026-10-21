@@ -57,6 +57,12 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
     /// </summary>
     public CarRental.Infrastructure.Messaging.FakeWhatsApp WhatsApp => Services.GetRequiredService<CarRental.Infrastructure.Messaging.FakeWhatsApp>();
 
+    /// <summary>
+    /// The fake model of the WhatsApp agent (<c>Ai:Mode=Fake</c>): the bot answers only the numbers a test scripts on it
+    /// (<see cref="ScriptedAgentAudience"/>), through the bot turn executor of the host.
+    /// </summary>
+    public CarRental.Infrastructure.Messaging.Agent.ScriptedChatClient Agent => Services.GetRequiredService<CarRental.Infrastructure.Messaging.Agent.ScriptedChatClient>();
+
     public string SqlConnectionString => _containers.SqlConnectionString(_database);
 
     /// <summary>Starts the application on Kestrel (free port) and returns its base address.</summary>
@@ -109,6 +115,15 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("WhatsApp:Mode", "Fake");
         builder.ConfigureTestServices(services =>
             services.Replace(ServiceDescriptor.Singleton<CarRental.Web.Endpoints.PublicSite.Turnstile.ITurnstileVerifier>(TurnstileVerifier)));
+
+        // The WhatsApp agent on its scripted model, for the numbers a test scripts only; short bot turn delays.
+        builder.UseSetting("Ai:Mode", "Fake");
+        builder.UseSetting("BotTurns:MaxParallelism", "8");
+        builder.UseSetting("BotTurns:QuietPeriod", "00:00:00.300");
+        builder.UseSetting("BotTurns:SweepInterval", "00:00:02");
+        builder.UseSetting("BotTurns:RetryDelays", "00:00:01;00:00:02");
+        builder.ConfigureTestServices(services =>
+            services.Replace(ServiceDescriptor.Singleton<CarRental.Application.Messaging.Agent.Turns.IBotAudience, ScriptedAgentAudience>()));
 
         // Simulated Clic to Pay gateway (FakeClicToPay, pages under /dev/clictopay) with its status codes beyond 0-2.
         builder.UseSetting("ClicToPay:Enabled", "true");

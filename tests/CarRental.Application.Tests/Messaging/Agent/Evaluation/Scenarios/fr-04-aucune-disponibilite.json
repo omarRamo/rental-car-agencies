@@ -1,0 +1,25 @@
+{
+  "id": "fr-04-aucune-disponibilite",
+  "title": "Rien de disponible : les dates proches sont proposées, aucune option inventée",
+  "language": "fr",
+  "covers": ["aucune disponibilité", "dates proches", "pas d'option inventée"],
+  "world": { "availableOnlyFrom": "2027-07-16T10:00" },
+  "turns": [
+    {
+      "customer": "Bonjour, une voiture à l'aéroport d'Enfidha du 15 juillet 2027 à 10h au 18 juillet 2027 à 10h, c'est possible ?",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "NBE", "depart": "2027-07-15T10:00", "retour": "2027-07-18T10:00" } },
+        { "reply": "Désolé, aucune voiture n'est disponible du 15 au 18 juillet à Enfidha. En revanche, il y a des voitures si vous décalez d'un jour (du 16 au 19 juillet) ou de deux jours (du 17 au 20 juillet). Voulez-vous que je regarde l'une de ces dates ?" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "noTools": ["creer_lien_devis"],
+        "handOver": false,
+        "link": false,
+        "buttons": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

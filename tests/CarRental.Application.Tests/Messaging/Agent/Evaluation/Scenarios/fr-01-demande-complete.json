@@ -1,0 +1,45 @@
+{
+  "id": "fr-01-demande-complete",
+  "title": "Demande complète : trois options avec boutons, puis le lien de devis de l'option choisie",
+  "language": "fr",
+  "covers": ["recherche", "filtres", "boutons", "besoin structuré", "lien de devis verrouillé"],
+  "turns": [
+    {
+      "customer": "Bonjour, je voudrais une voiture à l'aéroport de Tunis-Carthage du 1er au 5 juillet 2027, prise à 10h et retour à 10h, pour 4 personnes, boîte manuelle.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4, "boite": "manuelle" } },
+        { "reply": "Voici nos options du 1er au 5 juillet à Tunis-Carthage :\n1. *{{rechercher_disponibilites:options[0].categorie}}* ({{rechercher_disponibilites:options[0].modele}}) : {{rechercher_disponibilites:options[0].total_ttc}} pour 4 jours, tout compris.\n2. *{{rechercher_disponibilites:options[1].categorie}}* : {{rechercher_disponibilites:options[1].total_ttc}}\n3. *{{rechercher_disponibilites:options[2].categorie}}* : {{rechercher_disponibilites:options[2].total_ttc}}\nLaquelle vous convient ?" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "noTools": ["creer_lien_devis"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-01T10:00", "retour": "2027-07-05T10:00", "passagers": 4 } },
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": {
+        "toolArguments": { "rechercher_disponibilites": { "lieu_depart": "TUN", "boite": "manuelle" } },
+        "buttons": true,
+        "replyContains": ["369.520 TND", "449.520 TND", "609.520 TND"],
+        "outcome": "Replied"
+      }
+    },
+    {
+      "tap": { "id": "option:A1", "title": "1. Citadine" },
+      "script": [
+        { "call": "creer_lien_devis", "arguments": { "option_id": "A1" } },
+        { "reply": "Parfait ! Voici votre lien sécurisé pour finaliser la demande (prix garanti 24 heures, {{creer_lien_devis:total_ttc}}) : {{creer_lien_devis:lien}}\nUn agent valide ensuite votre demande, en général sous 2 heures ouvrées ; la confirmation arrive par e-mail et WhatsApp." }
+      ],
+      "expect": {
+        "tools": ["creer_lien_devis"],
+        "link": true,
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": {
+        "replyContains": ["/fr/reserver?lieu=TUN&depart=2027-07-01T10%3A00&retour=2027-07-05T10%3A00&cat=MCMR&devis="],
+        "outcome": "Replied"
+      }
+    }
+  ]
+}

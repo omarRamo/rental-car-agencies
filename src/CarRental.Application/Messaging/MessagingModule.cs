@@ -2,6 +2,7 @@ using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Outbox;
+using CarRental.Application.Messaging.Agent;
 using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Messaging.Inbox;
 using CarRental.Application.Messaging.Notifications;
@@ -28,9 +29,11 @@ public static class MessagingModule
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Contracts for the other modules, and the extension point of the auto-responder (package 4B replaces it here).
+        // Contracts for the other modules, and the extension point of the auto-responder: the WhatsApp agent (package 4B)
+        // replaces the default one, and runs the bot turns outside the outbox (ADR-0054, ADR-0055).
         services.AddScoped<IMessagingQueries, MessagingQueries>();
         services.TryAddScoped<IConversationResponder, NoReplyResponder>();
+        services.AddWhatsAppAgent();
 
         // Pipeline: webhook deliveries → events → bot turns → sending, each step in a scope of its own.
         services.AddSingleton<MessagingScopes>();

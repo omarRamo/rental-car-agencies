@@ -47,6 +47,9 @@ public static class Permissions
     public const string PricingRead = "pricing.read";
     public const string PricingManage = "pricing.manage";
     public const string WhatsAppInbox = "whatsapp.inbox";
+
+    /// <summary>Knowledge base of the WhatsApp agent: write, validate and deactivate the answers the bot gives (manager by default).</summary>
+    public const string WhatsAppKnowledge = "whatsapp.knowledge";
     public const string ChannelsManage = "channels.manage";
 
     // Finance
@@ -122,6 +125,7 @@ public static class Permissions
             new(PricingRead, PermissionArea.Commercial),
             new(PricingManage, PermissionArea.Commercial),
             new(WhatsAppInbox, PermissionArea.Commercial),
+            new(WhatsAppKnowledge, PermissionArea.Commercial),
             new(ChannelsManage, PermissionArea.Commercial),
             new(PaymentsRead, PermissionArea.Finance),
             new(PaymentsManage, PermissionArea.Finance),

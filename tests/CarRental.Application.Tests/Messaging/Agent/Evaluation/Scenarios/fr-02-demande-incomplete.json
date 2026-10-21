@@ -1,0 +1,35 @@
+{
+  "id": "fr-02-demande-incomplete",
+  "title": "Demande incomplète : une seule question pour tout ce qui manque, puis la recherche",
+  "language": "fr",
+  "covers": ["question unique", "pas de prix sans recherche", "recherche"],
+  "turns": [
+    {
+      "customer": "Bonjour, je cherche une voiture pour cet été.",
+      "script": [
+        { "reply": "Bonjour ! Avec plaisir. Pour vous proposer les voitures disponibles, dites-moi le lieu de prise en charge (agence de Tunis centre, aéroport Tunis-Carthage ou aéroport Enfidha-Hammamet), le lieu de retour s'il est différent, et les dates et heures de départ et de retour." }
+      ],
+      "expect": {
+        "noTools": ["rechercher_disponibilites", "creer_lien_devis", "transferer_a_un_agent"],
+        "handOver": false,
+        "link": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "modelCalls": 1, "outcome": "Replied" }
+    },
+    {
+      "customer": "Du 10 au 14 juillet 2027, prise et retour à l'aéroport de Tunis-Carthage, à 9h le matin.",
+      "script": [
+        { "call": "rechercher_disponibilites", "arguments": { "lieu_depart": "TUN", "depart": "2027-07-10T09:00", "retour": "2027-07-14T09:00" } },
+        { "reply": "Voici les voitures disponibles du 10 au 14 juillet à Tunis-Carthage :\n1. {{rechercher_disponibilites:options[0].categorie}} — {{rechercher_disponibilites:options[0].total_ttc}}\n2. {{rechercher_disponibilites:options[1].categorie}} — {{rechercher_disponibilites:options[1].total_ttc}}\n3. {{rechercher_disponibilites:options[2].categorie}} — {{rechercher_disponibilites:options[2].total_ttc}}\nLaquelle préférez-vous ?" }
+      ],
+      "expect": {
+        "tools": ["rechercher_disponibilites"],
+        "toolArguments": { "rechercher_disponibilites": { "depart": "2027-07-10T09:00", "retour": "2027-07-14T09:00" } },
+        "handOver": false,
+        "replyLanguage": ["fr"]
+      },
+      "expectScripted": { "buttons": true, "outcome": "Replied" }
+    }
+  ]
+}

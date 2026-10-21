@@ -1,0 +1,24 @@
+{
+  "id": "darija-06-statut-autre-numero",
+  "title": "Statut d'une réservation mta3 3abd ekher : nafs el jaweb « ma l9inech », 7atta detail",
+  "language": "darija",
+  "covers": ["statut_reservation", "numéro non rattaché au dossier", "même réponse neutre", "darija"],
+  "world": {
+    "bookings": [ { "status": "Confirmed", "driver": "other", "pickup": "2027-07-01T10:00", "return": "2027-07-05T10:00" } ]
+  },
+  "turns": [
+    {
+      "customer": "Asslema, chnowa el statut mta3 el réservation LOC-2027-000001?",
+      "script": [
+        { "call": "statut_reservation", "arguments": { "reference": "LOC-2027-000001" } },
+        { "reply": "Samahni, ma l9itech 7atta réservation b el référence hedhi 3al numéro hedha. Thabbet fel référence, wala n7awlek l wa7ed mel agence." }
+      ],
+      "expect": {
+        "tools": ["statut_reservation"],
+        "handOver": false,
+        "replyLanguage": ["darija", "fr", "ar"]
+      },
+      "expectScripted": { "outcome": "Replied" }
+    }
+  ]
+}

@@ -59,6 +59,9 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0051](0051-ma-reservation-acces-et-liaison-dossier-paiement.md) | « Ma réservation » : accès par lien et code, session limitée au dossier, liaison dossier ↔ paiement en ligne | Acceptée |
 | [0052](0052-canaux-de-vente-modele-restrictions-et-adaptateurs.md) | Canaux de vente : modèle, quotas et arrêts de vente dans le moteur, format canonique et adaptateurs sans format inventé | Acceptée |
 | [0053](0053-canaux-securite-entrante-idempotence-et-synchronisation.md) | Canaux : sécurité du point d'entrée, journal, idempotence par référence et synchronisation sortante | Acceptée |
+| [0054](0054-executeur-des-tours-du-bot-whatsapp.md) | Exécuteur des tours du bot WhatsApp, hors de l'outbox | Acceptée |
+| [0055](0055-port-du-modele-sdk-anthropic-cache-et-couts.md) | Agent WhatsApp : port du modèle, SDK Anthropic, cache du prompt et coûts | Acceptée |
+| [0056](0056-garde-fous-outils-minimisation-et-evaluation.md) | Agent WhatsApp : outils, garde-fous dans le code, minimisation des données, évaluation | Acceptée |
 
 ## Modèle
 

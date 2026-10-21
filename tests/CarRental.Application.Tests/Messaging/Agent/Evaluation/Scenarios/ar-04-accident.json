@@ -1,0 +1,21 @@
+{
+  "id": "ar-04-accident",
+  "title": "حادث بالسيارة المستأجرة : تحويل فوري إلى عون من الوكالة",
+  "language": "ar",
+  "covers": ["transfert", "accident ou panne", "arabe"],
+  "turns": [
+    {
+      "customer": "تعرضت لحادث بالسيارة المستأجرة قرب سوسة، ماذا أفعل؟",
+      "script": [
+        { "call": "transferer_a_un_agent", "arguments": { "motif": "accident_panne", "resume": "Le client signale un accident avec le véhicule loué près de Sousse." } },
+        { "reply": "نأسف لما حدث لك. سأحوّل محادثتك الآن إلى أحد أعوان الوكالة ليتواصل معك في أقرب وقت." }
+      ],
+      "expect": {
+        "tools": ["transferer_a_un_agent"],
+        "handOver": true,
+        "replyLanguage": ["ar"]
+      },
+      "expectScripted": { "handOverReasonContains": "Accident ou panne", "outcome": "TransferredByModel" }
+    }
+  ]
+}

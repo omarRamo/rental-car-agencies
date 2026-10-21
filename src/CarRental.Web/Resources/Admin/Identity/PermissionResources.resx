@@ -135,4 +135,7 @@
   <data name="Permission.handovers.payment.defer" xml:space="preserve">
     <value>Départ avec solde reporté ou sans caution (motif)</value>
   </data>
+  <data name="Permission.whatsapp.knowledge" xml:space="preserve">
+    <value>Gérer la base de connaissances du bot WhatsApp (réponses validées)</value>
+  </data>
 </root>

@@ -135,4 +135,7 @@
   <data name="Permission.handovers.payment.defer" xml:space="preserve">
     <value>Departure with the balance deferred or without a deposit (reason)</value>
   </data>
+  <data name="Permission.whatsapp.knowledge" xml:space="preserve">
+    <value>Manage the knowledge base of the WhatsApp bot (validated answers)</value>
+  </data>
 </root>
