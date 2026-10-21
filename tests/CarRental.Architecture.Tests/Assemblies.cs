@@ -21,6 +21,7 @@ internal static partial class Assemblies
     public static readonly string[] ExpectedModules =
     [
         "Fleet", "Pricing", "Bookings", "Customers", "Payments", "Billing", "Cash", "Channels", "Messaging", "Reporting", "Identity", "Referential",
+        "Accounting",
     ];
 
     /// <summary>Modules found in an assembly: second segment of the namespaces under <paramref name="root"/>, except Common.</summary>

@@ -1854,4 +1854,181 @@
   <data name="Error.billing.concurrent_update" xml:space="preserve">
     <value>The record was changed meanwhile: reload the page and try again.</value>
   </data>
+  <data name="Error.cash.expense.forbidden" xml:space="preserve">
+    <value>You are not allowed to manage the expenses.</value>
+  </data>
+  <data name="Error.cash.expense.not_found" xml:space="preserve">
+    <value>This expense does not exist.</value>
+  </data>
+  <data name="Error.cash.expense.agency_not_found" xml:space="preserve">
+    <value>The agency does not exist or is no longer active.</value>
+  </data>
+  <data name="Error.cash.expense.date_invalid" xml:space="preserve">
+    <value>The date of the expense is a past day or today (Tunis time), from the year 2000.</value>
+  </data>
+  <data name="Error.cash.expense.category_invalid" xml:space="preserve">
+    <value>Unknown category of expense.</value>
+  </data>
+  <data name="Error.cash.expense.supplier_invalid" xml:space="preserve">
+    <value>Name the supplier (2 to 120 characters).</value>
+  </data>
+  <data name="Error.cash.expense.text_too_long" xml:space="preserve">
+    <value>Text too long: tax identifier 30, reference 60, description 500 characters at most.</value>
+  </data>
+  <data name="Error.cash.expense.amount_invalid" xml:space="preserve">
+    <value>Amounts in dinars, to the millime: the amount VAT included is positive (1 000 000 at most), the VAT zero or positive and at most that amount.</value>
+  </data>
+  <data name="Error.cash.expense.vat_rate_invalid" xml:space="preserve">
+    <value>The VAT rate is between 0 and 100 %.</value>
+  </data>
+  <data name="Error.cash.expense.amounts_inconsistent" xml:space="preserve">
+    <value>The amount excluding VAT plus the VAT must equal the amount VAT included.</value>
+  </data>
+  <data name="Error.cash.expense.payment_method_invalid" xml:space="preserve">
+    <value>Unknown means of payment.</value>
+  </data>
+  <data name="Error.cash.expense.cheque_number_required" xml:space="preserve">
+    <value>An expense paid by cheque needs the number of the cheque.</value>
+  </data>
+  <data name="Error.cash.expense.vehicle_not_allowed" xml:space="preserve">
+    <value>Only an expense of the fleet (fuel, maintenance, repairs, insurance, road tax, leasing, other) is linked to a vehicle.</value>
+  </data>
+  <data name="Error.cash.expense.vehicle_not_found" xml:space="preserve">
+    <value>This vehicle is not a vehicle of the agency.</value>
+  </data>
+  <data name="Error.cash.expense.link_invalid" xml:space="preserve">
+    <value>An expense is linked to a maintenance or a claim of its vehicle, not both.</value>
+  </data>
+  <data name="Error.cash.expense.maintenance_not_found" xml:space="preserve">
+    <value>This maintenance is not a maintenance of the vehicle.</value>
+  </data>
+  <data name="Error.cash.expense.claim_not_found" xml:space="preserve">
+    <value>This claim is not a claim of the vehicle.</value>
+  </data>
+  <data name="Error.cash.expense.cash_session_required" xml:space="preserve">
+    <value>A cash expense is taken from your open cash session: open your cash session first.</value>
+  </data>
+  <data name="Error.cash.expense.cash_locked" xml:space="preserve">
+    <value>An expense paid in cash is in a cash session: its date, amounts and means of payment no longer change (delete it and record it again).</value>
+  </data>
+  <data name="Error.cash.expense.payment_method_change_not_allowed" xml:space="preserve">
+    <value>An expense paid by bank does not become a cash expense: record a new one.</value>
+  </data>
+  <data name="Error.cash.expense.deleted" xml:space="preserve">
+    <value>This expense was deleted.</value>
+  </data>
+  <data name="Error.cash.expense.deletion_reason_required" xml:space="preserve">
+    <value>Deleting an expense needs a reason of 5 to 500 characters.</value>
+  </data>
+  <data name="Error.cash.expense.receipt_invalid" xml:space="preserve">
+    <value>The receipt must be a JPEG, PNG, WebP image or a PDF of 10 MB at most.</value>
+  </data>
+  <data name="Error.cash.expense.receipt_not_found" xml:space="preserve">
+    <value>This expense has no receipt.</value>
+  </data>
+  <data name="Error.cash.expense.stale" xml:space="preserve">
+    <value>The expense was changed in the meantime: reload it and try again.</value>
+  </data>
+  <data name="Error.cash.expense.concurrent_update" xml:space="preserve">
+    <value>Another expense was recorded at the same instant: try again.</value>
+  </data>
+  <data name="Error.accounting.forbidden" xml:space="preserve">
+    <value>You are not allowed to perform this accounting operation.</value>
+  </data>
+  <data name="Error.accounting.agency_not_found" xml:space="preserve">
+    <value>The agency does not exist or is no longer active.</value>
+  </data>
+  <data name="Error.accounting.concurrent_update" xml:space="preserve">
+    <value>The accounting data was changed in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.accounting.lock_timeout" xml:space="preserve">
+    <value>The month is being closed or written by someone else: try again in a moment.</value>
+  </data>
+  <data name="Error.accounting.account.number_invalid" xml:space="preserve">
+    <value>An account number has 2 to 10 digits, the first one from 1 to 9.</value>
+  </data>
+  <data name="Error.accounting.account.label_invalid" xml:space="preserve">
+    <value>An account has a label of 120 characters at most.</value>
+  </data>
+  <data name="Error.accounting.account.number_taken" xml:space="preserve">
+    <value>An account already has this number.</value>
+  </data>
+  <data name="Error.accounting.account.not_found" xml:space="preserve">
+    <value>This account does not exist in the chart.</value>
+  </data>
+  <data name="Error.accounting.account.in_use" xml:space="preserve">
+    <value>This account is used by the mapping: map the operation to another account first.</value>
+  </data>
+  <data name="Error.accounting.mapping.key_unknown" xml:space="preserve">
+    <value>Unknown operation type.</value>
+  </data>
+  <data name="Error.accounting.mapping.account_invalid" xml:space="preserve">
+    <value>An operation is mapped to an active account of the chart.</value>
+  </data>
+  <data name="Error.accounting.mapping.missing" xml:space="preserve">
+    <value>An operation of the month has no account (or its account is inactive): complete the mapping.</value>
+  </data>
+  <data name="Error.accounting.entry.unbalanced" xml:space="preserve">
+    <value>The debits of an entry must equal its credits.</value>
+  </data>
+  <data name="Error.accounting.entry.empty" xml:space="preserve">
+    <value>An entry needs at least one debit and one credit.</value>
+  </data>
+  <data name="Error.accounting.entry.invalid" xml:space="preserve">
+    <value>An entry needs a date, a piece, a label and lines with an account and an amount in dinars.</value>
+  </data>
+  <data name="Error.accounting.period.closed" xml:space="preserve">
+    <value>This month is closed: nothing more can be dated in it (a manager can reopen it with a reason).</value>
+  </data>
+  <data name="Error.accounting.period.month_invalid" xml:space="preserve">
+    <value>Unknown month.</value>
+  </data>
+  <data name="Error.accounting.period.not_ended" xml:space="preserve">
+    <value>A month is closed once it is over.</value>
+  </data>
+  <data name="Error.accounting.period.already_closed" xml:space="preserve">
+    <value>This month is already closed.</value>
+  </data>
+  <data name="Error.accounting.period.not_closed" xml:space="preserve">
+    <value>This month is not closed.</value>
+  </data>
+  <data name="Error.accounting.period.closing_blocked" xml:space="preserve">
+    <value>The month cannot be closed: settle the blocking points first.</value>
+  </data>
+  <data name="Error.accounting.period.closing_not_confirmed" xml:space="preserve">
+    <value>The points to confirm changed since they were shown: check them and confirm again.</value>
+  </data>
+  <data name="Error.accounting.period.journals_unbalanced" xml:space="preserve">
+    <value>The journals of the month do not balance: the month is not closed.</value>
+  </data>
+  <data name="Error.accounting.period.reopen_reason_required" xml:space="preserve">
+    <value>Reopening a month needs a reason of 10 to 500 characters.</value>
+  </data>
+  <data name="Error.accounting.period.entry_outside_month" xml:space="preserve">
+    <value>A frozen entry is dated in its month.</value>
+  </data>
+  <data name="Error.accounting.justification.reason_invalid" xml:space="preserve">
+    <value>A justification needs a reason of 5 to 500 characters.</value>
+  </data>
+  <data name="Error.accounting.justification.difference_not_found" xml:space="preserve">
+    <value>This difference no longer exists in the reconciliation of the month: reload the page.</value>
+  </data>
+  <data name="Error.accounting.statement.invalid" xml:space="preserve">
+    <value>The statement cannot be read: check its columns (documented generic format) and its lines.</value>
+  </data>
+  <data name="Error.accounting.statement.empty" xml:space="preserve">
+    <value>The statement has no line.</value>
+  </data>
+  <data name="Error.accounting.statement.too_large" xml:space="preserve">
+    <value>A statement has 5 000 lines and 2 MB at most.</value>
+  </data>
+  <data name="Error.accounting.statement.line_invalid" xml:space="preserve">
+    <value>A statement line needs a date, an order number, a transaction and a positive amount in dinars (fee and settlement day optional).</value>
+  </data>
+  <data name="Error.accounting.statement.not_found" xml:space="preserve">
+    <value>This statement does not exist.</value>
+  </data>
+  <data name="Error.accounting.export.format_unknown" xml:space="preserve">
+    <value>Unknown export format.</value>
+  </data>
 </root>

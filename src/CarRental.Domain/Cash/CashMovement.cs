@@ -28,6 +28,7 @@ public sealed class CashMovement : Entity
         BookingId = planned.BookingId;
         PaymentId = planned.PaymentId;
         DepositId = planned.DepositId;
+        ExpenseId = planned.ExpenseId;
         RelatedSessionId = planned.RelatedSessionId;
         RecordedAtUtc = at;
         RecordedByUserId = by.UserId;
@@ -61,7 +62,10 @@ public sealed class CashMovement : Entity
     /// <summary>The cash deposit received, returned, retained or transferred.</summary>
     public Guid? DepositId { get; private set; }
 
-    /// <summary>Transfer: the other session of the transfer; adjustment: the corrected session.</summary>
+    /// <summary>The expense paid from the drawer, or whose outflow is put back.</summary>
+    public Guid? ExpenseId { get; private set; }
+
+    /// <summary>Transfer: the other session of the transfer; adjustment: the corrected session; reversed expense: the session that paid it.</summary>
     public Guid? RelatedSessionId { get; private set; }
 
     public DateTimeOffset RecordedAtUtc { get; private set; }
@@ -84,6 +88,8 @@ internal sealed record PlannedCashMovement(CashMovementKind Kind, Money Amount, 
     public Guid? PaymentId { get; init; }
 
     public Guid? DepositId { get; init; }
+
+    public Guid? ExpenseId { get; init; }
 
     public Guid? RelatedSessionId { get; init; }
 

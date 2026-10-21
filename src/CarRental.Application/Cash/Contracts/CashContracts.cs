@@ -38,6 +38,8 @@ public enum CashMovementKindInfo
     ManualIn = 8,
     ManualOut = 9,
     Adjustment = 10,
+    ExpensePaid = 11,
+    ExpenseReversed = 12,
 }
 
 /// <summary>Opens the drawer of the acting user in an agency with its opening float (fonds de caisse, TND).</summary>
@@ -70,7 +72,9 @@ public sealed record CashMovementTotals(
     Money ManualIn,
     Money ManualOut,
     Money RevenueAdjustments,
-    Money DepositAdjustments);
+    Money DepositAdjustments,
+    Money ExpensesPaid = default,
+    Money ExpensesReversed = default);
 
 /// <summary>A movement of a session with the expected cash of each pocket right after it (running balances).</summary>
 public sealed record CashMovementInfo(
@@ -88,7 +92,8 @@ public sealed record CashMovementInfo(
     Guid? DepositId,
     Guid? RelatedSessionId,
     DateTimeOffset RecordedAtUtc,
-    string? RecordedByName);
+    string? RecordedByName,
+    Guid? ExpenseId = null);
 
 /// <summary>A cash session with its movements in order.</summary>
 public sealed record CashSessionDetails(
@@ -177,7 +182,8 @@ public sealed record CashSessionTotalsInfo(
     Money? CountedRevenueCash,
     Money? CountedDepositCash,
     Money? RevenueVariance,
-    Money? DepositVariance);
+    Money? DepositVariance,
+    string? VarianceJustification = null);
 
 /// <summary>A cash payment received or a cash refund paid in the session <c>SessionId</c>.</summary>
 public sealed record CashPaymentEntry(Guid SessionId, Guid PaymentId, Guid BookingId, Money Amount);

@@ -1,0 +1,367 @@
+@* Records or changes an expense: date, category, supplier, amounts (HT / VAT / TTC from a rate or as on the supplier's
+   invoice, rounded like the pricing engine), means of payment (cash: the open cash session of the user), the vehicle and
+   the maintenance or claim it pays, and the receipt (photo or PDF). *@
+@inject IOperationRunner Runner
+@inject TimeProvider Time
+@inject IStringLocalizer<ExpensesResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="@L["Field.Date"]" @bind-Date="_date" Editable="true" MaxDate="@TodayDate" Required="true" Disabled="@CashLocked"
+                               RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.Date.Help"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="ExpenseCategoryInfo" Value="_category" ValueChanged="CategoryChanged" Label="@L["Field.Category"]"
+                           ToStringFunc="@(c => L[$"Category.{c}"])">
+                    @foreach (var category in Enum.GetValues<ExpenseCategoryInfo>())
+                    {
+                        <MudSelectItem T="ExpenseCategoryInfo" Value="@category">@L[$"Category.{category}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_supplier" Label="@L["Field.Supplier"]" MaxLength="ExpenseLimits.SupplierMaxLength" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" Immediate="true" InputId="expense-supplier" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L["Field.Reference"]" MaxLength="ExpenseLimits.ReferenceMaxLength"
+                              HelperText="@L["Field.Reference.Help"]" InputId="expense-reference" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_taxId" Label="@L["Field.SupplierTaxId"]" MaxLength="ExpenseLimits.TaxIdMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_description" Label="@L["Field.Description"]" MaxLength="ExpenseLimits.DescriptionMaxLength" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_mode" Label="@L["Field.AmountMode"]" Disabled="@CashLocked"
+                           ToStringFunc="@(m => L[$"AmountMode.{(ExpenseAmountMode)m}"])">
+                    @foreach (var mode in Enum.GetValues<ExpenseAmountMode>())
+                    {
+                        <MudSelectItem T="int" Value="@((int)mode)">@L[$"AmountMode.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (_mode == (int)ExpenseAmountMode.InclVatAndRate)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_inclVat" Label="@L["Field.InclVat"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND"
+                                     HideSpinButtons="true" Immediate="true" Disabled="@CashLocked" InputId="expense-incl-vat" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_exclVat" Label="@L["Field.ExclVat"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND"
+                                     HideSpinButtons="true" Immediate="true" Disabled="@CashLocked" InputId="expense-excl-vat" />
+                </MudItem>
+            }
+            @if (_mode == (int)ExpenseAmountMode.AsInvoiced)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_vat" Label="@L["Field.Vat"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND"
+                                     HideSpinButtons="true" Immediate="true" Disabled="@CashLocked" InputId="expense-vat" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_ratePercent" Label="@L["Field.VatRate"]" Min="0m" Max="100m" Format="0.##" Adornment="Adornment.End"
+                                     AdornmentText="%" HideSpinButtons="true" Immediate="true" Disabled="@CashLocked" HelperText="@L["Field.VatRate.Help"]" InputId="expense-rate" />
+                </MudItem>
+            }
+            <MudItem xs="12">
+                @if (Preview is { } amounts)
+                {
+                    <dl class="accounting-facts" data-testid="expense-amounts">
+                        <div><dt>@L["Column.ExclVat"]</dt><dd>@AccountingFormat.Amount(amounts.ExclVat)</dd></div>
+                        <div><dt>@L["Column.Vat"]</dt><dd>@AccountingFormat.Amount(amounts.Vat) (@AccountingFormat.Percent(amounts.VatRate))</dd></div>
+                        <div><dt>@L["Column.InclVat"]</dt><dd>@AccountingFormat.Amount(amounts.InclVat)</dd></div>
+                    </dl>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="accounting-muted">@L["Amounts.Incomplete"]</MudText>
+                }
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="ExpensePaymentMethodInfo" @bind-Value="_method" Label="@L["Field.PaymentMethod"]" Disabled="@(Expense is not null && Expense.IsPaidInCash)"
+                           ToStringFunc="@(m => L[$"Method.{m}"])">
+                    @foreach (var method in Methods)
+                    {
+                        <MudSelectItem T="ExpensePaymentMethodInfo" Value="@method">@L[$"Method.{method}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (_method != ExpensePaymentMethodInfo.Cash)
+                {
+                    <MudTextField T="string" @bind-Value="_paymentReference" Label="@L["Field.PaymentReference"]" MaxLength="ExpenseLimits.PaymentReferenceMaxLength"
+                                  Required="@(_method == ExpensePaymentMethodInfo.Cheque)" RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.PaymentReference.Help"]" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mt-4">@L["Method.Cash.Help"]</MudText>
+                }
+            </MudItem>
+
+            @if (AccountingFormat.MayLinkVehicle(_category))
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" Value="_vehicleId" ValueChanged="VehicleChangedAsync" Label="@L["Field.Vehicle"]" Clearable="true"
+                               ToStringFunc="@(id => Vehicles.FirstOrDefault(v => v.Id == id)?.Label ?? string.Empty)">
+                        @foreach (var vehicle in Vehicles)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)vehicle.Id)">@vehicle.Label</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (_vehicleId is not null)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" Value="_link" ValueChanged="LinkChanged" Label="@L["Field.Link"]" Clearable="true" ToStringFunc="LinkLabel">
+                            @foreach (var maintenance in _links.Maintenances)
+                            {
+                                <MudSelectItem T="string" Value="@($"m:{maintenance.Id}")">@LinkLabel($"m:{maintenance.Id}")</MudSelectItem>
+                            }
+                            @foreach (var claim in _links.Claims)
+                            {
+                                <MudSelectItem T="string" Value="@($"c:{claim.Id}")">@LinkLabel($"c:{claim.Id}")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Class="d-block">@L[$"CostRule.{CostRule}.Help"]</MudText>
+                </MudItem>
+            }
+
+            @if (Expense is null)
+            {
+                <MudItem xs="12">
+                    <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp,.pdf" FilesChanged="ReceiptChanged">
+                        <CustomContent Context="upload">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AttachFile"
+                                       OnClick="@upload.OpenFilePickerAsync" data-testid="expense-receipt-pick">@L["Receipt.Pick"]</MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+                    <MudText Typo="Typo.caption" Class="d-block mt-1">@(_receipt is null ? L["Receipt.Help"] : L["Receipt.Picked", _receipt.Name])</MudText>
+                </MudItem>
+            }
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || Preview is null || string.IsNullOrWhiteSpace(_supplier) || _date is null)"
+                   data-testid="expense-save">@(Expense is null ? L["Expense.Record"] : L["Expense.Save"])</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly ExpensePaymentMethodInfo[] Methods =
+        [ExpensePaymentMethodInfo.Cash, ExpensePaymentMethodInfo.Card, ExpensePaymentMethodInfo.BankTransfer, ExpensePaymentMethodInfo.Cheque];
+
+    private DateTime? _date;
+    private ExpenseCategoryInfo _category = ExpenseCategoryInfo.Fuel;
+    private string? _supplier;
+    private string? _reference;
+    private string? _taxId;
+    private string? _description;
+    private int _mode = (int)ExpenseAmountMode.InclVatAndRate;
+    private decimal? _inclVat;
+    private decimal? _exclVat;
+    private decimal? _vat;
+    private decimal? _ratePercent = 19m;
+    private ExpensePaymentMethodInfo _method = ExpensePaymentMethodInfo.BankTransfer;
+    private string? _paymentReference;
+    private Guid? _vehicleId;
+    private string? _link;
+    private ExpenseLinkOptions _links = new([], []);
+    private IBrowserFile? _receipt;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    /// <summary>The expense to change; none to record a new one.</summary>
+    [Parameter]
+    public ExpenseView? Expense { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<ExpenseVehicleOption> Vehicles { get; set; } = [];
+
+    private DateTime TodayDate => TunisTime.Today(Time).ToDateTime(TimeOnly.MinValue);
+
+    /// <summary>An expense paid in cash keeps its date, amounts and means of payment.</summary>
+    private bool CashLocked => Expense is { IsPaidInCash: true };
+
+    private ExpenseAmounts? Preview => AccountingFormat.Preview(_mode, _inclVat, _exclVat, _vat, _ratePercent);
+
+    private ExpenseVehicleCostRuleInfo CostRule =>
+        (ExpenseVehicleCostRuleInfo)(int)ExpenseVehicleCosts.RuleOf((ExpenseCategory)(int)_category, _vehicleId, MaintenanceId, ClaimId);
+
+    private Guid? MaintenanceId => _link is { } link && link.StartsWith("m:", StringComparison.Ordinal) ? Guid.Parse(link[2..]) : null;
+
+    private Guid? ClaimId => _link is { } link && link.StartsWith("c:", StringComparison.Ordinal) ? Guid.Parse(link[2..]) : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = TodayDate;
+        if (Expense is not { } expense)
+        {
+            return;
+        }
+
+        _date = expense.Date.ToDateTime(TimeOnly.MinValue);
+        _category = expense.Category;
+        _supplier = expense.Supplier;
+        _reference = expense.Reference;
+        _taxId = expense.SupplierTaxId;
+        _description = expense.Description;
+        _mode = (int)ExpenseAmountMode.AsInvoiced;
+        _exclVat = expense.ExclVat.Amount;
+        _vat = expense.Vat.Amount;
+        _ratePercent = expense.VatRate is { } rate ? rate * 100m : null;
+        _method = expense.PaymentMethod;
+        _paymentReference = expense.PaymentReference;
+        _vehicleId = expense.VehicleId;
+        _link = expense.MaintenanceEventId is { } maintenance ? $"m:{maintenance}" : expense.ClaimId is { } claim ? $"c:{claim}" : null;
+        await LoadLinksAsync();
+    }
+
+    private void CategoryChanged(ExpenseCategoryInfo category)
+    {
+        _category = category;
+        if (!AccountingFormat.MayLinkVehicle(category))
+        {
+            _vehicleId = null;
+            _link = null;
+            _links = new([], []);
+        }
+    }
+
+    private async Task VehicleChangedAsync(Guid? vehicleId)
+    {
+        _vehicleId = vehicleId;
+        _link = null;
+        await LoadLinksAsync();
+    }
+
+    private void LinkChanged(string? link) => _link = link;
+
+    private async Task LoadLinksAsync()
+    {
+        if (_vehicleId is not { } vehicleId)
+        {
+            _links = new([], []);
+            return;
+        }
+
+        var agencyId = AgencyId;
+        var links = await Runner.RunAsync<ExpenseService, Result<ExpenseLinkOptions>>((service, ct) => service.GetLinksAsync(agencyId, vehicleId, ct));
+        _links = links.IsSuccess ? links.Value : new([], []);
+    }
+
+    private string LinkLabel(string? link)
+    {
+        if (link is null)
+        {
+            return string.Empty;
+        }
+
+        if (link.StartsWith("m:", StringComparison.Ordinal) && _links.Maintenances.FirstOrDefault(m => $"m:{m.Id}" == link) is { } maintenance)
+        {
+            return L["Link.Maintenance", L[$"MaintenanceType.{maintenance.Type}"], PaymentsFormat.Instant(maintenance.StartsAtUtc), maintenance.Provider ?? "—"];
+        }
+
+        if (link.StartsWith("c:", StringComparison.Ordinal) && _links.Claims.FirstOrDefault(c => $"c:{c.Id}" == link) is { } claim)
+        {
+            return L["Link.Claim", PaymentsFormat.Instant(claim.AccidentAtUtc), claim.Insurer ?? "—", claim.InsurerClaimNumber ?? "—"];
+        }
+
+        return link;
+    }
+
+    private void ReceiptChanged(IBrowserFile? file) => _receipt = file;
+
+    private ExpenseForm Form() => new(
+        AgencyId,
+        DateOnly.FromDateTime(_date ?? TodayDate),
+        _category,
+        _supplier,
+        (ExpenseAmountMode)_mode,
+        _mode == (int)ExpenseAmountMode.InclVatAndRate ? _inclVat : null,
+        _mode == (int)ExpenseAmountMode.InclVatAndRate ? null : _exclVat,
+        _mode == (int)ExpenseAmountMode.AsInvoiced ? _vat : null,
+        _mode == (int)ExpenseAmountMode.AsInvoiced || _ratePercent is null ? null : _ratePercent / 100m,
+        _method,
+        _method == ExpensePaymentMethodInfo.Cash ? null : _paymentReference,
+        _taxId,
+        _reference,
+        _description,
+        AccountingFormat.MayLinkVehicle(_category) ? _vehicleId : null,
+        AccountingFormat.MayLinkVehicle(_category) ? MaintenanceId : null,
+        AccountingFormat.MayLinkVehicle(_category) ? ClaimId : null);
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var form = Form();
+        try
+        {
+            if (Expense is { } expense)
+            {
+                var (id, revision) = (expense.Id, expense.Revision);
+                var changed = await Runner.RunAsync<ExpenseService, Result>((service, ct) => service.ChangeAsync(id, revision, form, ct));
+                if (changed.IsFailure)
+                {
+                    _error = ErrorMessages.For(Shared, changed.Error);
+                    return;
+                }
+
+                Dialog.Close(DialogResult.Ok(id));
+                return;
+            }
+
+            var recorded = await Runner.RunAsync<ExpenseService, Result<Guid>>((service, ct) => service.RecordAsync(form, ct));
+            if (recorded.IsFailure)
+            {
+                _error = ErrorMessages.For(Shared, recorded.Error);
+                return;
+            }
+
+            if (_receipt is { } receipt)
+            {
+                var uploaded = await ExpenseReceipts.UploadAsync(Runner, recorded.Value, receipt);
+                if (uploaded.IsFailure)
+                {
+                    // The expense is recorded: the receipt can be added again from the list.
+                    Dialog.Close(DialogResult.Ok(new ExpenseSaved(recorded.Value, ErrorMessages.For(Shared, uploaded.Error))));
+                    return;
+                }
+            }
+
+            Dialog.Close(DialogResult.Ok(new ExpenseSaved(recorded.Value, null)));
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

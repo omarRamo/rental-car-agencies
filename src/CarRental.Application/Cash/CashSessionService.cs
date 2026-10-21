@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Persistence;
@@ -21,7 +22,8 @@ internal sealed class CashSessionService(
     IUserContext userContext,
     IReferentialQueries referential,
     IIdentityQueries identity,
-    TimeProvider timeProvider) : ICashSessions
+    TimeProvider timeProvider,
+    IAccountingPeriods periods) : ICashSessions
 {
     private bool CanOwn => userContext.HasPermission(Permissions.CashOwn);
 
@@ -61,6 +63,14 @@ internal sealed class CashSessionService(
                 {
                     var now = timeProvider.GetUtcNow();
                     var businessDate = CashSessionRules.BusinessDateOf(now);
+
+                    // Monthly closing (ADR-0065): no cash session opened in a closed month.
+                    var open = await periods.EnsureOpenAsync(request.AgencyId, businessDate, ct);
+                    if (open.IsFailure)
+                    {
+                        return open.Error;
+                    }
+
                     var existing = await db.ExistingSessionsAsync(cashierId, request.AgencyId, businessDate, ct);
                     var allowed = CashSessionRules.EnsureCanOpen(existing, request.AgencyId, businessDate);
                     if (allowed.IsFailure)
@@ -230,7 +240,8 @@ internal sealed class CashSessionService(
                 var outcome = session.Lock(actor, now);
                 return outcome.IsSuccess ? Result.Success(true) : Result.Failure<bool>(outcome.Error);
             },
-            cancellationToken);
+            cancellationToken,
+            datesFinancialFact: false);
         return locked.IsSuccess ? Result.Success() : locked.Error;
     }
 
@@ -353,11 +364,16 @@ internal sealed class CashSessionService(
 
     private bool MayAccess(CashSession session) => CanManage || (CanOwn && session.CashierId == userContext.UserId);
 
-    /// <summary>Loads the session inside a (replayable) unit of work, checks the access of the acting user and applies the change.</summary>
+    /// <summary>
+    /// Loads the session inside a (replayable) unit of work, checks the access of the acting user and applies the change. A
+    /// change that dates a financial fact (a movement, the counted closing, posted on the business day of the session) is
+    /// refused in a closed month (ADR-0065).
+    /// </summary>
     private Task<Result<T>> ChangeSessionAsync<T>(
         Guid sessionId,
         Func<CashSession, AuditActor, DateTimeOffset, Result<T>> change,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        bool datesFinancialFact = true) =>
         unitOfWork.ExecuteGuardedAsync<T>(
             async ct =>
             {
@@ -367,7 +383,21 @@ internal sealed class CashSessionService(
                     return CashErrors.SessionNotFound;
                 }
 
-                return MayAccess(session) ? change(session, userContext.ToAuditActor(), timeProvider.GetUtcNow()) : CashErrors.SessionNotOwned;
+                if (!MayAccess(session))
+                {
+                    return CashErrors.SessionNotOwned;
+                }
+
+                if (datesFinancialFact)
+                {
+                    var open = await periods.EnsureOpenAsync(session.AgencyId, session.BusinessDate, ct);
+                    if (open.IsFailure)
+                    {
+                        return open.Error;
+                    }
+                }
+
+                return change(session, userContext.ToAuditActor(), timeProvider.GetUtcNow());
             },
             cancellationToken);
 

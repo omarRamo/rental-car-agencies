@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Expenses.Title" xml:space="preserve">
+    <value>Dépenses</value>
+  </data>
+  <data name="Expenses.Intro" xml:space="preserve">
+    <value>Les dépenses de l'agence : montants HT, TVA et TTC, justificatif et, pour la flotte, le véhicule et l'entretien ou le sinistre qu'elles paient. Une dépense en espèces sort de votre caisse ouverte. Modifiables jusqu'à la clôture du mois ; une suppression garde sa trace. Dates en heure de Tunis.</value>
+  </data>
+  <data name="Expenses.Table" xml:space="preserve">
+    <value>Dépenses</value>
+  </data>
+  <data name="Expenses.None" xml:space="preserve">
+    <value>Aucune dépense pour ces critères.</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Filter.Method" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Fournisseur, référence ou numéro</value>
+  </data>
+  <data name="Filter.IncludeDeleted" xml:space="preserve">
+    <value>Afficher les dépenses supprimées</value>
+  </data>
+  <data name="Filter.Apply" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Réinitialiser</value>
+  </data>
+  <data name="Expense.New" xml:space="preserve">
+    <value>Nouvelle dépense</value>
+  </data>
+  <data name="Totals.Count" xml:space="preserve">
+    <value>Dépenses</value>
+  </data>
+  <data name="Column.Number" xml:space="preserve">
+    <value>Numéro</value>
+  </data>
+  <data name="Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Column.Supplier" xml:space="preserve">
+    <value>Fournisseur</value>
+  </data>
+  <data name="Column.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Column.ExclVat" xml:space="preserve">
+    <value>HT</value>
+  </data>
+  <data name="Column.Vat" xml:space="preserve">
+    <value>TVA</value>
+  </data>
+  <data name="Column.InclVat" xml:space="preserve">
+    <value>TTC</value>
+  </data>
+  <data name="Column.Method" xml:space="preserve">
+    <value>Paiement</value>
+  </data>
+  <data name="Column.Receipt" xml:space="preserve">
+    <value>Justificatif</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Receipt.Open" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Receipt.Open.Label" xml:space="preserve">
+    <value>Ouvrir le justificatif de la dépense {0}</value>
+  </data>
+  <data name="Status.Deleted" xml:space="preserve">
+    <value>Supprimée</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Mois clos</value>
+  </data>
+  <data name="Status.Open" xml:space="preserve">
+    <value>Modifiable</value>
+  </data>
+  <data name="Deleted.By" xml:space="preserve">
+    <value>Le {0} par {1} : {2}</value>
+  </data>
+  <data name="Receipt.Add.Label" xml:space="preserve">
+    <value>Ajouter ou remplacer le justificatif de la dépense {0}</value>
+  </data>
+  <data name="Expense.Edit.Label" xml:space="preserve">
+    <value>Modifier la dépense {0}</value>
+  </data>
+  <data name="Expense.Delete.Label" xml:space="preserve">
+    <value>Supprimer la dépense {0}</value>
+  </data>
+  <data name="Expense.Recorded" xml:space="preserve">
+    <value>Dépense enregistrée.</value>
+  </data>
+  <data name="Expense.Saved" xml:space="preserve">
+    <value>Dépense modifiée.</value>
+  </data>
+  <data name="Expense.Deleted" xml:space="preserve">
+    <value>Dépense supprimée.</value>
+  </data>
+  <data name="Expense.Edit" xml:space="preserve">
+    <value>Modifier la dépense {0}</value>
+  </data>
+  <data name="Expense.Record" xml:space="preserve">
+    <value>Enregistrer la dépense</value>
+  </data>
+  <data name="Expense.Save" xml:space="preserve">
+    <value>Enregistrer les modifications</value>
+  </data>
+  <data name="Receipt.Dialog.Title" xml:space="preserve">
+    <value>Justificatif de la dépense {0}</value>
+  </data>
+  <data name="Receipt.Dialog.Help" xml:space="preserve">
+    <value>Photo ou PDF de la facture ou du ticket de la dépense {0} (JPEG, PNG, WebP ou PDF, 10 Mo au plus). Un justificatif remplacé reste conservé.</value>
+  </data>
+  <data name="Receipt.Uploaded" xml:space="preserve">
+    <value>Justificatif enregistré.</value>
+  </data>
+  <data name="Receipt.Pick" xml:space="preserve">
+    <value>Choisir le justificatif</value>
+  </data>
+  <data name="Receipt.Help" xml:space="preserve">
+    <value>Photo ou PDF, 10 Mo au plus (facultatif).</value>
+  </data>
+  <data name="Receipt.Picked" xml:space="preserve">
+    <value>Fichier choisi : {0}</value>
+  </data>
+  <data name="Receipt.Upload" xml:space="preserve">
+    <value>Envoyer le justificatif</value>
+  </data>
+  <data name="Delete.Title" xml:space="preserve">
+    <value>Supprimer la dépense {0}</value>
+  </data>
+  <data name="Delete.Message" xml:space="preserve">
+    <value>La dépense {0} de {1} ({2}) sera marquée supprimée : elle reste visible avec le motif, l'auteur et la date.</value>
+  </data>
+  <data name="Delete.Cash" xml:space="preserve">
+    <value>Payée en espèces : son montant revient dans votre caisse ouverte.</value>
+  </data>
+  <data name="Delete.Submit" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Field.DeletionReason" xml:space="preserve">
+    <value>Motif de la suppression</value>
+  </data>
+  <data name="Field.Date" xml:space="preserve">
+    <value>Date de la pièce</value>
+  </data>
+  <data name="Field.Date.Help" xml:space="preserve">
+    <value>Date de la facture ou du ticket du fournisseur (heure de Tunis).</value>
+  </data>
+  <data name="Field.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Field.Supplier" xml:space="preserve">
+    <value>Fournisseur</value>
+  </data>
+  <data name="Field.Reference" xml:space="preserve">
+    <value>Référence de la pièce</value>
+  </data>
+  <data name="Field.Reference.Help" xml:space="preserve">
+    <value>Numéro de la facture ou du ticket du fournisseur.</value>
+  </data>
+  <data name="Field.SupplierTaxId" xml:space="preserve">
+    <value>Matricule fiscal du fournisseur</value>
+  </data>
+  <data name="Field.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Field.AmountMode" xml:space="preserve">
+    <value>Saisie des montants</value>
+  </data>
+  <data name="AmountMode.InclVatAndRate" xml:space="preserve">
+    <value>Montant TTC et taux de TVA</value>
+  </data>
+  <data name="AmountMode.ExclVatAndRate" xml:space="preserve">
+    <value>Montant HT et taux de TVA</value>
+  </data>
+  <data name="AmountMode.AsInvoiced" xml:space="preserve">
+    <value>HT et TVA de la facture</value>
+  </data>
+  <data name="Field.InclVat" xml:space="preserve">
+    <value>Montant TTC</value>
+  </data>
+  <data name="Field.ExclVat" xml:space="preserve">
+    <value>Montant HT</value>
+  </data>
+  <data name="Field.Vat" xml:space="preserve">
+    <value>Montant de la TVA</value>
+  </data>
+  <data name="Field.VatRate" xml:space="preserve">
+    <value>Taux de TVA</value>
+  </data>
+  <data name="Field.VatRate.Help" xml:space="preserve">
+    <value>19, 13, 7 ou 0 % ; arrondi au millime comme le moteur de prix.</value>
+  </data>
+  <data name="Amounts.Incomplete" xml:space="preserve">
+    <value>Saisissez les montants pour voir le HT, la TVA et le TTC.</value>
+  </data>
+  <data name="Field.PaymentMethod" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="Field.PaymentReference" xml:space="preserve">
+    <value>Référence du paiement</value>
+  </data>
+  <data name="Field.PaymentReference.Help" xml:space="preserve">
+    <value>Numéro du chèque (obligatoire) ou référence du virement.</value>
+  </data>
+  <data name="Method.Cash.Help" xml:space="preserve">
+    <value>La dépense sort de votre caisse ouverte, qui doit couvrir le montant.</value>
+  </data>
+  <data name="Field.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Field.Link" xml:space="preserve">
+    <value>Entretien ou sinistre payé</value>
+  </data>
+  <data name="Link.Maintenance" xml:space="preserve">
+    <value>Entretien {0} du {1} — {2}</value>
+  </data>
+  <data name="Link.Claim" xml:space="preserve">
+    <value>Sinistre du {0} — {1} n° {2}</value>
+  </data>
+  <data name="Category.Fuel" xml:space="preserve">
+    <value>Carburant</value>
+  </data>
+  <data name="Category.Maintenance" xml:space="preserve">
+    <value>Entretien</value>
+  </data>
+  <data name="Category.Repairs" xml:space="preserve">
+    <value>Réparations</value>
+  </data>
+  <data name="Category.Insurance" xml:space="preserve">
+    <value>Assurance</value>
+  </data>
+  <data name="Category.RoadTax" xml:space="preserve">
+    <value>Vignette</value>
+  </data>
+  <data name="Category.Leasing" xml:space="preserve">
+    <value>Loyer de leasing</value>
+  </data>
+  <data name="Category.CommissionBookingCom" xml:space="preserve">
+    <value>Commission Booking.com</value>
+  </data>
+  <data name="Category.CommissionClicToPay" xml:space="preserve">
+    <value>Commission Clic to Pay</value>
+  </data>
+  <data name="Category.PremisesRent" xml:space="preserve">
+    <value>Loyer des locaux</value>
+  </data>
+  <data name="Category.Utilities" xml:space="preserve">
+    <value>Charges (eau, électricité, téléphone)</value>
+  </data>
+  <data name="Category.Other" xml:space="preserve">
+    <value>Autre</value>
+  </data>
+  <data name="Method.Cash" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="Method.Card" xml:space="preserve">
+    <value>Carte bancaire</value>
+  </data>
+  <data name="Method.BankTransfer" xml:space="preserve">
+    <value>Virement</value>
+  </data>
+  <data name="Method.Cheque" xml:space="preserve">
+    <value>Chèque</value>
+  </data>
+  <data name="CostRule.Counted.Help" xml:space="preserve">
+    <value>Comptée HT dans les coûts directs du véhicule (rentabilité des rapports).</value>
+  </data>
+  <data name="CostRule.NoVehicle.Help" xml:space="preserve">
+    <value>Sans véhicule : ce n'est pas un coût direct d'un véhicule.</value>
+  </data>
+  <data name="CostRule.CountedByMaintenance.Help" xml:space="preserve">
+    <value>Liée à un entretien : son coût compte une fois, par l'entretien (saisissez son coût réel à sa clôture).</value>
+  </data>
+  <data name="CostRule.CountedByClaim.Help" xml:space="preserve">
+    <value>Liée à un sinistre : son coût compte une fois, par les coûts du sinistre.</value>
+  </data>
+  <data name="CostRule.CountedByVehicleDocument.Help" xml:space="preserve">
+    <value>L'assurance et la vignette comptent par le prix du document du véhicule (flotte), jamais deux fois.</value>
+  </data>
+  <data name="CostRule.CountedByDepreciation.Help" xml:space="preserve">
+    <value>Le leasing compte dans l'amortissement du véhicule (flotte), jamais deux fois.</value>
+  </data>
+  <data name="MaintenanceType.OilChange" xml:space="preserve">
+    <value>vidange</value>
+  </data>
+  <data name="MaintenanceType.Tyres" xml:space="preserve">
+    <value>pneus</value>
+  </data>
+  <data name="MaintenanceType.Brakes" xml:space="preserve">
+    <value>freins</value>
+  </data>
+  <data name="MaintenanceType.Repair" xml:space="preserve">
+    <value>réparation</value>
+  </data>
+  <data name="MaintenanceType.Other" xml:space="preserve">
+    <value>autre</value>
+  </data>
+</root>

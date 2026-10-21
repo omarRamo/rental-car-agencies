@@ -12,6 +12,7 @@ using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Tests.Accounting.Fakes;
 using CarRental.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -127,7 +128,10 @@ internal sealed class BillingHarness
 
     internal InvoiceComposer Composer => new(Texts);
 
-    public InvoicingService Invoicing => new(Store, Bookings, Handovers, Payments, new BuyerResolver(Customers), Composer);
+    /// <summary>The monthly closing hook: every month open until a test closes it.</summary>
+    public FakeAccountingPeriods Periods { get; } = new();
+
+    public InvoicingService Invoicing => new(Store, Bookings, Handovers, Payments, new BuyerResolver(Customers), Composer, Periods);
 
     public BillingDocumentPipeline Pipeline =>
         new(Db, UnitOfWork, Storage, Renderer, Texts, EmailFactory, Emails, new EInvoiceProviders([new PaperTransitionalEInvoiceProvider(), Ttn]), Referential, Clock);

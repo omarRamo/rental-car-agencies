@@ -1,0 +1,301 @@
+@page "/admin/expenses"
+@attribute [HasPermission(Permissions.ExpensesManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+@inject IStringLocalizer<ExpensesResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Expenses.Title"]</PageTitle>
+<AccountingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Expenses.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Expenses.Intro"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        @if (_agencies.Count > 1)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_from" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker Label="@L["Filter.To"]" @bind-Date="_to" Clearable="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="ExpenseCategoryInfo?" @bind-Value="_category" Label="@L["Filter.Category"]" Clearable="true"
+                       ToStringFunc="@(c => c is { } category ? L[$"Category.{category}"] : string.Empty)">
+                @foreach (var category in Enum.GetValues<ExpenseCategoryInfo>())
+                {
+                    <MudSelectItem T="ExpenseCategoryInfo?" Value="@((ExpenseCategoryInfo?)category)">@L[$"Category.{category}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="ExpensePaymentMethodInfo?" @bind-Value="_method" Label="@L["Filter.Method"]" Clearable="true"
+                       ToStringFunc="@(m => m is { } method ? L[$"Method.{method}"] : string.Empty)">
+                @foreach (var method in Enum.GetValues<ExpensePaymentMethodInfo>())
+                {
+                    <MudSelectItem T="ExpensePaymentMethodInfo?" Value="@((ExpensePaymentMethodInfo?)method)">@L[$"Method.{method}"]</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField T="string" @bind-Value="_search" Label="@L["Filter.Search"]" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4" Class="d-flex align-center">
+            <MudCheckBox T="bool" @bind-Value="_includeDeleted" Label="@L["Filter.IncludeDeleted"]" Color="Color.Primary" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchAsync">@L["Filter.Apply"]</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="ResetAsync">@L["Filter.Reset"]</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync"
+                       Disabled="@(_agencyId == Guid.Empty || !RendererInfo.IsInteractive)" data-testid="expense-new">@L["Expense.New"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_totals is { } totals)
+{
+    <dl class="accounting-facts mb-3" data-testid="expense-totals">
+        <div><dt>@L["Totals.Count"]</dt><dd>@totals.Count</dd></div>
+        <div><dt>@L["Column.ExclVat"]</dt><dd>@AccountingFormat.Amount(totals.TotalExclVat)</dd></div>
+        <div><dt>@L["Column.Vat"]</dt><dd>@AccountingFormat.Amount(totals.TotalVat)</dd></div>
+        <div><dt>@L["Column.InclVat"]</dt><dd>@AccountingFormat.Amount(totals.TotalInclVat)</dd></div>
+    </dl>
+}
+
+<div class="accounting-scroll" tabindex="0" role="region" aria-label="@L["Expenses.Table"]">
+    <MudTable @ref="_table" T="ExpenseView" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Dense="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              RowClassFunc="@((expense, _) => expense.IsDeleted ? "accounting-deleted" : string.Empty)"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Expenses.Table"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Number"]</MudTh>
+            <MudTh>@L["Column.Date"]</MudTh>
+            <MudTh>@L["Column.Category"]</MudTh>
+            <MudTh>@L["Column.Supplier"]</MudTh>
+            <MudTh>@L["Column.Vehicle"]</MudTh>
+            <MudTh Class="accounting-number">@L["Column.ExclVat"]</MudTh>
+            <MudTh Class="accounting-number">@L["Column.Vat"]</MudTh>
+            <MudTh Class="accounting-number">@L["Column.InclVat"]</MudTh>
+            <MudTh>@L["Column.Method"]</MudTh>
+            <MudTh>@L["Column.Receipt"]</MudTh>
+            <MudTh>@L["Column.Status"]</MudTh>
+            <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Number"]">@context.Number</MudTd>
+            <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Date(context.Date)</MudTd>
+            <MudTd DataLabel="@L["Column.Category"]">@L[$"Category.{context.Category}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Supplier"]">
+                @context.Supplier
+                @if (context.Reference is { } reference)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@reference</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Vehicle"]">@VehicleLabel(context.VehicleId)</MudTd>
+            <MudTd DataLabel="@L["Column.ExclVat"]" Class="accounting-number">@AccountingFormat.Amount(context.ExclVat)</MudTd>
+            <MudTd DataLabel="@L["Column.Vat"]" Class="accounting-number">@AccountingFormat.Amount(context.Vat)</MudTd>
+            <MudTd DataLabel="@L["Column.InclVat"]" Class="accounting-number">@AccountingFormat.Amount(context.InclVat)</MudTd>
+            <MudTd DataLabel="@L["Column.Method"]">@L[$"Method.{context.PaymentMethod}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Receipt"]" Class="accounting-keep">
+                @if (context.HasReceipt)
+                {
+                    <MudLink Href="@ExpenseReceipts.Url(context.Id)" Target="_blank" Underline="Underline.Always"
+                             aria-label="@L["Receipt.Open.Label", context.Number]">@L["Receipt.Open"]</MudLink>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Status"]" Class="accounting-keep">
+                @if (context.IsDeleted)
+                {
+                    <FinanceBadge Tone="FinanceTone.Danger">@L["Status.Deleted"]</FinanceBadge>
+                    <MudText Typo="Typo.caption" Class="d-block">@L["Deleted.By", PaymentsFormat.Instant(context.DeletedAtUtc), context.DeletedByName ?? "—", context.DeletionReason ?? string.Empty]</MudText>
+                }
+                else if (context.IsInClosedMonth)
+                {
+                    <FinanceBadge Tone="FinanceTone.Neutral">@L["Status.Closed"]</FinanceBadge>
+                }
+                else
+                {
+                    <FinanceBadge Tone="FinanceTone.Success">@L["Status.Open"]</FinanceBadge>
+                }
+            </MudTd>
+            <MudTd Class="accounting-keep">
+                @if (!context.IsDeleted)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" OnClick="@(() => ReceiptAsync(context))"
+                                   aria-label="@L["Receipt.Add.Label", context.Number]" data-testid="@($"expense-receipt-{context.Number}")" />
+                }
+                @if (context.IsEditable)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))"
+                                   aria-label="@L["Expense.Edit.Label", context.Number]" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))"
+                                   aria-label="@L["Expense.Delete.Label", context.Number]" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Expenses.None"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
+
+@code {
+    private MudTable<ExpenseView>? _table;
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private IReadOnlyList<ExpenseVehicleOption> _vehicles = [];
+    private ExpenseList? _totals;
+    private Guid _agencyId;
+    private DateTime? _from;
+    private DateTime? _to;
+    private ExpenseCategoryInfo? _category;
+    private ExpensePaymentMethodInfo? _method;
+    private string? _search;
+    private bool _includeDeleted;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var agencies = await Runner.RunAsync<ExpenseService, Result<IReadOnlyList<AgencyInfo>>>((service, ct) => service.GetAgenciesAsync(ct));
+        _agencies = agencies.IsSuccess ? agencies.Value : [];
+        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadVehiclesAsync();
+        _loaded = true;
+    }
+
+    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private string VehicleLabel(Guid? id) => id is { } vehicleId ? _vehicles.FirstOrDefault(v => v.Id == vehicleId)?.PlateNumber ?? "—" : "—";
+
+    private static DateOnly? DateOf(DateTime? value) => value is { } date ? DateOnly.FromDateTime(date) : null;
+
+    private async Task LoadVehiclesAsync()
+    {
+        if (_agencyId == Guid.Empty)
+        {
+            _vehicles = [];
+            return;
+        }
+
+        var agencyId = _agencyId;
+        var vehicles = await Runner.RunAsync<ExpenseService, Result<IReadOnlyList<ExpenseVehicleOption>>>((service, ct) => service.GetVehiclesAsync(agencyId, ct));
+        _vehicles = vehicles.IsSuccess ? vehicles.Value : [];
+    }
+
+    private async Task AgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        await LoadVehiclesAsync();
+        await SearchAsync();
+    }
+
+    private async Task<TableData<ExpenseView>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (_agencyId == Guid.Empty)
+        {
+            return new TableData<ExpenseView> { Items = [], TotalItems = 0 };
+        }
+
+        var filter = new ExpenseFilter(_agencyId, DateOf(_from), DateOf(_to), _category, _method, Search: _search, IncludeDeleted: _includeDeleted);
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<ExpenseService, Result<ExpenseList>>((service, ct) => service.ListAsync(filter, page, ct), cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<ExpenseView> { Items = [], TotalItems = 0 };
+        }
+
+        _totals = result.Value;
+        return new TableData<ExpenseView> { Items = result.Value.Page.Items, TotalItems = result.Value.Page.TotalCount };
+    }
+
+    private Task SearchAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task ResetAsync()
+    {
+        (_from, _to, _category, _method, _search, _includeDeleted) = (null, null, null, null, null, false);
+        return SearchAsync();
+    }
+
+    private async Task NewAsync()
+    {
+        var parameters = new DialogParameters<ExpenseDialog>
+        {
+            { d => d.AgencyId, _agencyId },
+            { d => d.Vehicles, _vehicles },
+        };
+        var dialog = await Dialogs.ShowAsync<ExpenseDialog>(L["Expense.New"], parameters, PaymentsFormat.Dialog(MaxWidth.Medium));
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: ExpenseSaved saved })
+        {
+            Snackbar.Add(L["Expense.Recorded"], Severity.Success);
+            if (saved.ReceiptError is { } error)
+            {
+                Snackbar.Add(error, Severity.Warning);
+            }
+
+            await SearchAsync();
+        }
+    }
+
+    private async Task EditAsync(ExpenseView expense)
+    {
+        var parameters = new DialogParameters<ExpenseDialog>
+        {
+            { d => d.AgencyId, expense.AgencyId },
+            { d => d.Expense, expense },
+            { d => d.Vehicles, _vehicles },
+        };
+        var dialog = await Dialogs.ShowAsync<ExpenseDialog>(L["Expense.Edit", expense.Number], parameters, PaymentsFormat.Dialog(MaxWidth.Medium));
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Expense.Saved"], Severity.Success);
+            await SearchAsync();
+        }
+    }
+
+    private async Task ReceiptAsync(ExpenseView expense)
+    {
+        var parameters = new DialogParameters<ExpenseReceiptDialog>
+        {
+            { d => d.ExpenseId, expense.Id },
+            { d => d.Number, expense.Number },
+        };
+        var dialog = await Dialogs.ShowAsync<ExpenseReceiptDialog>(L["Receipt.Dialog.Title", expense.Number], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Receipt.Uploaded"], Severity.Success);
+            await SearchAsync();
+        }
+    }
+
+    private async Task DeleteAsync(ExpenseView expense)
+    {
+        var parameters = new DialogParameters<ExpenseDeleteDialog> { { d => d.Expense, expense } };
+        var dialog = await Dialogs.ShowAsync<ExpenseDeleteDialog>(L["Delete.Title", expense.Number], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Expense.Deleted"], Severity.Success);
+            await SearchAsync();
+        }
+    }
+}

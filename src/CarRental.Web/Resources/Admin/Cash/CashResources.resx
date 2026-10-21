@@ -372,4 +372,10 @@
   <data name="Pager.Info" xml:space="preserve">
     <value>{first_item}–{last_item} sur {all_items}</value>
   </data>
+  <data name="Kind.ExpensePaid" xml:space="preserve">
+    <value>Dépense payée</value>
+  </data>
+  <data name="Kind.ExpenseReversed" xml:space="preserve">
+    <value>Dépense annulée (remise en caisse)</value>
+  </data>
 </root>

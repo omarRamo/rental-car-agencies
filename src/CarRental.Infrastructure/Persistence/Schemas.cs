@@ -20,6 +20,7 @@ public static class Schemas
     public const string Channels = "channels";
     public const string Messaging = "messaging";
     public const string Reporting = "reporting";
+    public const string Accounting = "accounting";
 
     /// <summary>Owned by Hangfire, which creates and upgrades it at startup.</summary>
     public const string Hangfire = "hangfire";

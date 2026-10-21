@@ -21,6 +21,7 @@ public static class FleetModule
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IFleetQueries, FleetQueries>();
         services.AddScoped<IFleetReportingQueries, FleetReportingQueries>();
+        services.AddScoped<IFleetCostRecords, FleetCostRecords>();
         services.AddScoped<IFleetMileage, FleetMileage>();
         services.AddScoped<FleetWriter>();
         services.AddScoped<FleetAdminQueries>();

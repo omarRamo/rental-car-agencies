@@ -38,7 +38,8 @@ internal sealed class CashQueries(IAppDbContext db) : ICashQueries
                 s.CountedRevenueCash,
                 s.CountedDepositCash,
                 s.RevenueVariance,
-                s.DepositVariance))
+                s.DepositVariance,
+                s.VarianceJustification))
             .ToList();
     }
 }

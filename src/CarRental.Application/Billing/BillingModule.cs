@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Billing.Administration;
 using CarRental.Application.Billing.Claims;
 using CarRental.Application.Billing.Contracts;
@@ -52,7 +53,8 @@ public static class BillingModule
             sp.GetRequiredService<IHandoverQueries>(),
             sp.GetRequiredService<IPaymentsQueries>(),
             sp.GetRequiredService<BuyerResolver>(),
-            sp.GetRequiredService<InvoiceComposer>()));
+            sp.GetRequiredService<InvoiceComposer>(),
+            sp.GetRequiredService<IAccountingPeriods>()));
         services.AddScoped(sp => new BillingDocumentPipeline(
             sp.GetRequiredService<IAppDbContext>(),
             sp.GetRequiredService<IUnitOfWork>(),
@@ -88,6 +90,7 @@ public static class BillingModule
 
         // Contracts for the other modules; the Reporting ports (registered before the Reporting module: they win).
         services.AddScoped<IBillingQueries, BillingQueries>();
+        services.AddScoped<IBillingAccountingQueries, BillingAccountingQueries>();
         services.AddScoped<IInvoicedAmountsSource, InvoicedAmountsSource>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IVehicleCostsSource, ClaimsVehicleCostsSource>());
 

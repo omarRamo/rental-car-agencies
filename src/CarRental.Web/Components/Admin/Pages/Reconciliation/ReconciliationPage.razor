@@ -1,0 +1,426 @@
+@page "/admin/reconciliation"
+@attribute [HasPermission(Permissions.ReconciliationManage)]
+@using CarRental.Application.Accounting.Contracts
+@using CarRental.Application.Accounting.Reconciliation
+@using CarRental.Application.Cash.Contracts
+@using CarRental.Application.Payments.Contracts
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Accounting
+@using CarRental.Web.Components.Admin.Accounting
+@using CarRental.Web.Components.Admin.Bookings
+@using CarRental.Web.Components.Admin.Payments
+@using CarRental.Web.Resources.Admin.Accounting
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+@inject TimeProvider Clock
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Reconciliation.Title"]</PageTitle>
+<AccountingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Reconciliation.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Reconciliation.Intro"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        @if (_agencies.Count > 1)
+        {
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" Value="_monthValue" ValueChanged="MonthChangedAsync" Label="@L["Field.Month"]" InputType="InputType.Month" ShrinkLabel="true"
+                          InputId="reconciliation-month" />
+        </MudItem>
+        @if (_isClosed)
+        {
+            <MudItem xs="12">
+                <FinanceNotice Tone="FinanceTone.Info" Role="status">@L["Reconciliation.MonthClosed"]</FinanceNotice>
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="@L["Reconciliation.Tab.Cash"]">
+        @if (_cash is { } cash)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@L["Reconciliation.Cash.Intro"]</MudText>
+            <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Reconciliation.Cash.Sessions"]">
+                <MudTable T="CashSessionReconciliationView" Items="cash.Sessions" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+                          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.Cash.Sessions"].Value })">
+                    <HeaderContent>
+                        <MudTh>@L["Column.BusinessDate"]</MudTh>
+                        <MudTh>@L["Column.Cashier"]</MudTh>
+                        <MudTh>@L["Column.Status"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.ReceivedRecorded"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.ReceivedInDrawer"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.RefundsRecorded"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.RefundsInDrawer"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.Expenses"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.RevenueVariance"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.DepositVariance"]</MudTh>
+                        <MudTh>@L["Column.CashierJustification"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@L["Column.BusinessDate"]"><MudLink Href="@($"/admin/cash/sessions/{context.SessionId}")" Underline="Underline.Always">@PaymentsFormat.Date(context.BusinessDate)</MudLink></MudTd>
+                        <MudTd DataLabel="@L["Column.Cashier"]">@context.CashierName</MudTd>
+                        <MudTd DataLabel="@L["Column.Status"]"><FinanceBadge Tone="PaymentsFormat.ToneOf(context.Status)">@L[$"SessionStatus.{context.Status}"]</FinanceBadge></MudTd>
+                        <MudTd DataLabel="@L["Column.ReceivedRecorded"]" Class="accounting-number">@AccountingFormat.Amount(context.ReceivedRecorded)</MudTd>
+                        <MudTd DataLabel="@L["Column.ReceivedInDrawer"]" Class="accounting-number">@AccountingFormat.Amount(context.ReceivedInDrawer)</MudTd>
+                        <MudTd DataLabel="@L["Column.RefundsRecorded"]" Class="accounting-number">@AccountingFormat.Amount(context.RefundsRecorded)</MudTd>
+                        <MudTd DataLabel="@L["Column.RefundsInDrawer"]" Class="accounting-number">@AccountingFormat.Amount(context.RefundsInDrawer)</MudTd>
+                        <MudTd DataLabel="@L["Column.Expenses"]" Class="accounting-number">@AccountingFormat.Amount(context.ExpensesInDrawer)</MudTd>
+                        <MudTd DataLabel="@L["Column.RevenueVariance"]" Class="accounting-number">@PaymentsFormat.WithSign(context.RevenueVariance)</MudTd>
+                        <MudTd DataLabel="@L["Column.DepositVariance"]" Class="accounting-number">@PaymentsFormat.WithSign(context.DepositVariance)</MudTd>
+                        <MudTd DataLabel="@L["Column.CashierJustification"]">@(context.CashierJustification ?? "—")</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText>@L["Reconciliation.Cash.None"]</MudText></NoRecordsContent>
+                    <PagerContent><AdminTablePager /></PagerContent>
+                </MudTable>
+            </div>
+            <DifferencesTable Differences="cash.Differences" AgencyId="_agencyId" Month="_month" HeadingId="cash-differences" CanJustify="!_isClosed" OnJustified="LoadAsync" />
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Reconciliation.Tab.ClicToPay"]">
+        @if (_online is { } online)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@L["Reconciliation.ClicToPay.Intro"]</MudText>
+            <MudPaper Class="pa-4 mb-4" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Statement.Title"]</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@L["Statement.Format.Help"]</MudText>
+                @if (!_isClosed)
+                {
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <MudFileUpload T="IBrowserFile" Accept=".csv,.txt" FilesChanged="ImportAsync">
+                            <CustomContent Context="upload">
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" OnClick="@upload.OpenFilePickerAsync"
+                                           Disabled="_busy" data-testid="statement-import">@L["Statement.Import"]</MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ManualLineAsync" Disabled="_busy">@L["Statement.Manual"]</MudButton>
+                    </div>
+                }
+                @if (_importErrors is not null)
+                {
+                    <FinanceNotice Tone="FinanceTone.Danger" Class="mb-3" Role="alert">@_importErrors</FinanceNotice>
+                }
+                @if (_statements.Count > 0)
+                {
+                    <div class="accounting-scroll" tabindex="0" role="region" aria-label="@L["Statement.List"]">
+                        <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Statement.List"]">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["Column.ImportedAt"]</th>
+                                    <th scope="col">@L["Column.Origin"]</th>
+                                    <th scope="col">@L["Column.File"]</th>
+                                    <th scope="col">@L["Column.Lines"]</th>
+                                    <th scope="col">@L["Column.Period"]</th>
+                                    <th scope="col"><span class="visually-hidden">@L["Column.Actions"]</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var statement in _statements)
+                                {
+                                    <tr>
+                                        <td>@PaymentsFormat.Instant(statement.ImportedAtUtc) — @(statement.ImportedByName ?? "—")</td>
+                                        <td>@L[$"Origin.{statement.Origin}"]</td>
+                                        <td>@(statement.FileName ?? "—")</td>
+                                        <td>@statement.LineCount</td>
+                                        <td>@PaymentsFormat.Date(statement.FirstDate) — @PaymentsFormat.Date(statement.LastDate)</td>
+                                        <td>
+                                            @if (!statement.TouchesClosedMonth)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteStatementAsync(statement))"
+                                                               aria-label="@L["Statement.Delete.Label", PaymentsFormat.Instant(statement.ImportedAtUtc)]" />
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </div>
+                }
+            </MudPaper>
+
+            <dl class="accounting-facts mb-3" data-testid="clictopay-figures">
+                <div><dt>@L["Figure.Payments"]</dt><dd>@online.Payments.Count</dd></div>
+                <div><dt>@L["Figure.Matched"]</dt><dd>@online.MatchedCount</dd></div>
+                <div><dt>@L["Figure.Missing"]</dt><dd>@online.MissingCount</dd></div>
+                <div><dt>@L["Figure.Extra"]</dt><dd>@online.ExtraCount</dd></div>
+            </dl>
+            @if (!online.HasStatement)
+            {
+                <FinanceNotice Tone="FinanceTone.Info" Class="mb-3" Role="status">@L["Reconciliation.ClicToPay.NoStatement"]</FinanceNotice>
+            }
+
+            <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Reconciliation.ClicToPay.Payments"]">
+                <MudTable T="OnlinePaymentReconciliationView" Items="online.Payments" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+                          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.ClicToPay.Payments"].Value })">
+                    <HeaderContent>
+                        <MudTh>@L["Column.SettledOn"]</MudTh>
+                        <MudTh>@L["Column.Booking"]</MudTh>
+                        <MudTh>@L["Column.Order"]</MudTh>
+                        <MudTh>@L["Column.Direction"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.Amount"]</MudTh>
+                        <MudTh>@L["Column.GatewayStatus"]</MudTh>
+                        <MudTh>@L["Column.Match"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.StatementAmount"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@L["Column.SettledOn"]">@(context.SettledOn is { } on ? PaymentsFormat.Date(on) : "—")</MudTd>
+                        <MudTd DataLabel="@L["Column.Booking"]">@(context.BookingNumber ?? "—")</MudTd>
+                        <MudTd DataLabel="@L["Column.Order"]"><MudLink Href="@($"/admin/payments/online/{context.PaymentId}")" Underline="Underline.Always">@PaymentsFormat.ShortOrder(context.OrderNumber)</MudLink></MudTd>
+                        <MudTd DataLabel="@L["Column.Direction"]">@L[$"Direction.{context.Direction}"]</MudTd>
+                        <MudTd DataLabel="@L["Column.Amount"]" Class="accounting-number">@AccountingFormat.Amount(context.Amount)</MudTd>
+                        <MudTd DataLabel="@L["Column.GatewayStatus"]">
+                            @(context.GatewayStatusCode?.ToString(CultureInfo.InvariantCulture) ?? "—")
+                            @if (context.Attention is { } attention)
+                            {
+                                <FinanceBadge Tone="PaymentsFormat.ToneOf(attention)">@L[$"Attention.{attention}"]</FinanceBadge>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="@L["Column.Match"]"><FinanceBadge Tone="ToneOf(context.Match)">@L[$"Match.{context.Match}"]</FinanceBadge></MudTd>
+                        <MudTd DataLabel="@L["Column.StatementAmount"]" Class="accounting-number">@(context.StatementAmount is { } amount ? AccountingFormat.Amount(amount) : "—")</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText>@L["Reconciliation.ClicToPay.None"]</MudText></NoRecordsContent>
+                    <PagerContent><AdminTablePager /></PagerContent>
+                </MudTable>
+            </div>
+
+            @if (online.Lines.Count > 0)
+            {
+                <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Reconciliation.ClicToPay.Lines"]">
+                    <MudTable T="StatementLineView" Items="online.Lines" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="25"
+                              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Reconciliation.ClicToPay.Lines"].Value })">
+                        <HeaderContent>
+                            <MudTh>@L["Column.TransactionDate"]</MudTh>
+                            <MudTh>@L["Column.Reference"]</MudTh>
+                            <MudTh>@L["Column.LineKind"]</MudTh>
+                            <MudTh Class="accounting-number">@L["Column.Amount"]</MudTh>
+                            <MudTh Class="accounting-number">@L["Column.Fee"]</MudTh>
+                            <MudTh>@L["Column.SettledOn"]</MudTh>
+                            <MudTh>@L["Column.Match"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@L["Column.TransactionDate"]">@PaymentsFormat.Date(context.TransactionDate)</MudTd>
+                            <MudTd DataLabel="@L["Column.Reference"]">@context.Reference</MudTd>
+                            <MudTd DataLabel="@L["Column.LineKind"]">@L[$"LineKind.{context.Kind}"]</MudTd>
+                            <MudTd DataLabel="@L["Column.Amount"]" Class="accounting-number">@AccountingFormat.Amount(context.Amount)</MudTd>
+                            <MudTd DataLabel="@L["Column.Fee"]" Class="accounting-number">@(context.Fee is { } fee ? AccountingFormat.Amount(fee) : "—")</MudTd>
+                            <MudTd DataLabel="@L["Column.SettledOn"]">@(context.SettledOn is { } on ? PaymentsFormat.Date(on) : "—")</MudTd>
+                            <MudTd DataLabel="@L["Column.Match"]">
+                                <FinanceBadge Tone="@(context.IsMatched ? FinanceTone.Success : FinanceTone.Danger)">@(context.IsMatched ? L["Match.Matched"] : L["Match.Extra"])</FinanceBadge>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent><AdminTablePager /></PagerContent>
+                    </MudTable>
+                </div>
+            }
+
+            <DifferencesTable Differences="online.Differences" AgencyId="_agencyId" Month="_month" HeadingId="clictopay-differences" CanJustify="!_isClosed" OnJustified="LoadAsync" />
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Reconciliation.Tab.Channels"]">
+        @if (_channels is { } channels)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@L["Reconciliation.Channels.Intro"]</MudText>
+            <MudLink Href="/admin/channels/reconciliation" Underline="Underline.Always" Class="d-inline-block mb-3">@L["Reconciliation.Channels.Open"]</MudLink>
+            <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Reconciliation.Channels.Settlements"]">
+                <MudSimpleTable Dense="true" Elevation="1" aria-label="@L["Reconciliation.Channels.Settlements"]">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Channel"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Bookings"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Gross"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Commission"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Expected"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Payout"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Difference"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (channels.Settlements.Count == 0)
+                        {
+                            <tr><td colspan="7">@L["Reconciliation.Channels.None"]</td></tr>
+                        }
+                        @foreach (var settlement in channels.Settlements)
+                        {
+                            <tr>
+                                <td>@settlement.ChannelName</td>
+                                <td class="accounting-number">@settlement.Bookings</td>
+                                <td class="accounting-number">@AccountingFormat.Amount(settlement.Gross)</td>
+                                <td class="accounting-number">@AccountingFormat.Amount(settlement.Commission)</td>
+                                <td class="accounting-number">@AccountingFormat.Amount(settlement.ExpectedSettlement)</td>
+                                <td class="accounting-number">@(settlement.Payout is { } payout ? AccountingFormat.Amount(payout) : "—")</td>
+                                <td class="accounting-number">@PaymentsFormat.WithSign(settlement.Difference)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+            <DifferencesTable Differences="channels.Differences" AgencyId="_agencyId" Month="_month" HeadingId="channel-differences" CanJustify="!_isClosed" OnJustified="LoadAsync" />
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private Guid _agencyId;
+    private AccountingMonth _month;
+    private string? _monthValue;
+    private bool _isClosed;
+    private CashReconciliationView? _cash;
+    private ClicToPayReconciliationView? _online;
+    private ChannelsReconciliationView? _channels;
+    private IReadOnlyList<StatementView> _statements = [];
+    private string? _importErrors;
+    private bool _busy;
+    private bool _loaded;
+    private int _tab;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
+        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+
+        // The month just over by default: the one to reconcile before closing it.
+        _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();
+        _monthValue = AccountingFormat.MonthValue(_month);
+        await LoadAsync();
+        _loaded = true;
+    }
+
+    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private static FinanceTone ToneOf(StatementMatch match) => match switch
+    {
+        StatementMatch.Matched => FinanceTone.Success,
+        StatementMatch.NoStatement => FinanceTone.Neutral,
+        _ => FinanceTone.Danger,
+    };
+
+    private async Task AgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        await LoadAsync();
+    }
+
+    private async Task MonthChangedAsync(string? value)
+    {
+        _monthValue = value;
+        var month = AccountingMonth.Parse(value);
+        if (month.IsSuccess)
+        {
+            _month = month.Value;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_agencyId == Guid.Empty)
+        {
+            return;
+        }
+
+        var (agencyId, month) = (_agencyId, _month);
+        var closed = await Runner.RunAsync<IAccountingPeriods, IReadOnlyList<DateOnly>>((periods, ct) => periods.GetClosedMonthsAsync(agencyId, ct));
+        _isClosed = closed.Contains(month.FirstDay);
+        var cash = await Runner.RunAsync<ReconciliationService, Result<CashReconciliationView>>((service, ct) => service.GetCashAsync(agencyId, month, ct));
+        var online = await Runner.RunAsync<ReconciliationService, Result<ClicToPayReconciliationView>>((service, ct) => service.GetClicToPayAsync(agencyId, month, ct));
+        var channels = await Runner.RunAsync<ReconciliationService, Result<ChannelsReconciliationView>>((service, ct) => service.GetChannelsAsync(agencyId, month, ct));
+        var statements = await Runner.RunAsync<ReconciliationService, Result<IReadOnlyList<StatementView>>>((service, ct) => service.ListStatementsAsync(agencyId, ct));
+        if (cash.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, cash.Error), Severity.Error);
+            return;
+        }
+
+        _cash = cash.Value;
+        _online = online.IsSuccess ? online.Value : null;
+        _channels = channels.IsSuccess ? channels.Value : null;
+        _statements = statements.IsSuccess ? statements.Value : [];
+    }
+
+    private async Task ImportAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _importErrors = null;
+        try
+        {
+            var (agencyId, name) = (_agencyId, file.Name);
+            Result<StatementImportOutcome> imported;
+            await using (var content = file.OpenReadStream(2 * 1024 * 1024))
+            {
+                imported = await Runner.RunAsync<ReconciliationService, Result<StatementImportOutcome>>(
+                    (service, ct) => service.ImportStatementAsync(agencyId, GenericCsvStatementImporter.FormatName, name, content, ct));
+            }
+
+            if (imported.IsFailure)
+            {
+                _importErrors = ErrorMessages.For(Shared, imported.Error);
+                return;
+            }
+
+            if (!imported.Value.IsImported)
+            {
+                _importErrors = imported.Value.HeaderInvalid
+                    ? L["Statement.HeaderInvalid"]
+                    : L["Statement.LinesInvalid", string.Join(", ", imported.Value.InvalidLines.Take(20))];
+                return;
+            }
+
+            Snackbar.Add(L["Statement.Imported", imported.Value.LineCount], Severity.Success);
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ManualLineAsync()
+    {
+        var parameters = new DialogParameters<StatementLineDialog>
+        {
+            { d => d.AgencyId, _agencyId },
+            { d => d.DefaultDate, _month.FirstDay },
+        };
+        var dialog = await Dialogs.ShowAsync<StatementLineDialog>(L["Statement.Manual"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Statement.Manual.Done"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteStatementAsync(StatementView statement)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Statement.Delete"], L["Statement.Delete.Message", statement.LineCount], L["Statement.Delete"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = statement.Id;
+        var deleted = await Runner.RunAsync<ReconciliationService, Result>((service, ct) => service.DeleteStatementAsync(id, ct));
+        Snackbar.Add(deleted.IsSuccess ? L["Statement.Deleted"] : ErrorMessages.For(Shared, deleted.Error), deleted.IsSuccess ? Severity.Success : Severity.Error);
+        await LoadAsync();
+    }
+}

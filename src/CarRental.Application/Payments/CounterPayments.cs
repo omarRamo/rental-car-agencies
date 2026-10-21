@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -21,7 +22,8 @@ internal sealed class CounterPayments(
     IUserContext userContext,
     ICashDrawer cashDrawer,
     IReferentialQueries referential,
-    TimeProvider timeProvider) : ICounterPayments
+    TimeProvider timeProvider,
+    IAccountingPeriods periods) : ICounterPayments
 {
     private bool CanManage => userContext.HasPermission(Permissions.PaymentsManage);
 
@@ -50,6 +52,13 @@ internal sealed class CounterPayments(
         return await unitOfWork.ExecuteGuardedAsync<Guid>(
             async ct =>
             {
+                // Monthly closing (ADR-0065): no payment dated in a closed month.
+                var open = await periods.EnsureOpenAsync(request.AgencyId, TunisTime.Today(timeProvider), ct);
+                if (open.IsFailure)
+                {
+                    return open.Error;
+                }
+
                 Guid? sessionId = null;
                 if (method == PaymentMethod.Cash)
                 {
@@ -117,6 +126,13 @@ internal sealed class CounterPayments(
                     return PaymentsErrors.PaymentNotFound;
                 }
 
+                // Monthly closing (ADR-0065): no refund dated in a closed month.
+                var open = await periods.EnsureOpenAsync(original.AgencyId, TunisTime.Today(timeProvider), ct);
+                if (open.IsFailure)
+                {
+                    return open.Error;
+                }
+
                 Guid? sessionId = null;
                 if (method == PaymentMethod.Cash)
                 {
@@ -154,8 +170,28 @@ internal sealed class CounterPayments(
             cancellationToken);
     }
 
-    public Task<Result> ConfirmPendingAsync(Guid paymentId, string? externalReference = null, CancellationToken cancellationToken = default) =>
-        ChangeAsync(paymentId, (payment, actor, now) => payment.Confirm(externalReference, actor, now), cancellationToken);
+    public async Task<Result> ConfirmPendingAsync(Guid paymentId, string? externalReference = null, CancellationToken cancellationToken = default)
+    {
+        if (!CanManage)
+        {
+            return PaymentsErrors.Forbidden;
+        }
+
+        return await unitOfWork.ExecuteGuardedAsync(
+            async ct =>
+            {
+                var payment = await db.FindPaymentAsync(paymentId, ct);
+                if (payment is null)
+                {
+                    return PaymentsErrors.PaymentNotFound;
+                }
+
+                // Monthly closing (ADR-0065): the money confirmed now is not dated in a closed month.
+                var open = await periods.EnsureOpenAsync(payment.AgencyId, TunisTime.Today(timeProvider), ct);
+                return open.IsFailure ? open : payment.Confirm(externalReference, userContext.ToAuditActor(), timeProvider.GetUtcNow());
+            },
+            cancellationToken);
+    }
 
     public Task<Result> CancelPendingAsync(Guid paymentId, string reason, CancellationToken cancellationToken = default) =>
         ChangeAsync(paymentId, (payment, actor, now) => payment.Cancel(reason, actor, now), cancellationToken);

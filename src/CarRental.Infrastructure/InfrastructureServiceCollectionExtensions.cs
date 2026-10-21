@@ -12,6 +12,7 @@ using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Seeding;
 using CarRental.Application.Identity.Users;
+using CarRental.Infrastructure.Accounting;
 using CarRental.Infrastructure.BackgroundJobs;
 using CarRental.Infrastructure.Billing;
 using CarRental.Infrastructure.Channels;
@@ -74,6 +75,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddChannelsInfrastructure(configuration, environment);
         services.AddWhatsAppAgent(configuration);
         services.AddBillingInfrastructure(configuration, environment);
+        services.AddAccountingInfrastructure();
 
         var dataProtection = configuration.GetSection(DataProtectionSettings.SectionName).Get<DataProtectionSettings>() ?? new DataProtectionSettings();
         services.AddCarRentalDataProtection(dataProtection, () => credential);

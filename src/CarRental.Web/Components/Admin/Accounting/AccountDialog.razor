@@ -1,0 +1,67 @@
+@* Adds an account to the chart, or renames one (its number never changes). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_number" Label="@L["Field.AccountNumber"]" MaxLength="LedgerAccount.NumberMaxLength" Disabled="@(Account is not null)"
+                      Required="true" RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.AccountNumber.Help"]" Immediate="true" InputId="account-number" />
+        <MudTextField T="string" @bind-Value="_label" Label="@L["Field.AccountLabel"]" MaxLength="LedgerAccount.LabelMaxLength" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" Immediate="true" Class="mt-2" InputId="account-label" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_number) || string.IsNullOrWhiteSpace(_label))">@L["Account.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _number;
+    private string? _label;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The account to rename; none to add one.</summary>
+    [Parameter]
+    public AccountView? Account { get; set; }
+
+    protected override void OnInitialized() => (_number, _label) = (Account?.Number, Account?.Label);
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (number, label) = (_number ?? string.Empty, _label ?? string.Empty);
+        Result outcome;
+        if (Account is { } account)
+        {
+            var id = account.Id;
+            outcome = await Runner.RunAsync<ChartOfAccountsService, Result>((service, ct) => service.RenameAccountAsync(id, label, ct));
+        }
+        else
+        {
+            var created = await Runner.RunAsync<ChartOfAccountsService, Result<Guid>>((service, ct) => service.CreateAccountAsync(number, label, ct));
+            outcome = created.IsSuccess ? Result.Success() : created.Error;
+        }
+
+        _busy = false;
+        if (outcome.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, outcome.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

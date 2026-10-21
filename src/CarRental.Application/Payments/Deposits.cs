@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -20,7 +21,8 @@ internal sealed class Deposits(
     IUserContext userContext,
     ICashDrawer cashDrawer,
     IReferentialQueries referential,
-    TimeProvider timeProvider) : IDeposits
+    TimeProvider timeProvider,
+    IAccountingPeriods periods) : IDeposits
 {
     private bool CanManage => userContext.HasPermission(Permissions.PaymentsManage);
 
@@ -49,6 +51,13 @@ internal sealed class Deposits(
         return await unitOfWork.ExecuteGuardedAsync<Guid>(
             async ct =>
             {
+                // Monthly closing (ADR-0065): no deposit taken in a closed month.
+                var open = await periods.EnsureOpenAsync(request.AgencyId, TunisTime.Today(timeProvider), ct);
+                if (open.IsFailure)
+                {
+                    return open.Error;
+                }
+
                 Guid? sessionId = null;
                 if (mode == DepositMode.Cash)
                 {
@@ -151,6 +160,13 @@ internal sealed class Deposits(
                 if (!deposit.IsHeld)
                 {
                     return PaymentsErrors.DepositAlreadySettled;
+                }
+
+                // Monthly closing (ADR-0065): no deposit released or retained in a closed month.
+                var open = await periods.EnsureOpenAsync(deposit.AgencyId, TunisTime.Today(timeProvider), ct);
+                if (open.IsFailure)
+                {
+                    return open;
                 }
 
                 Guid? sessionId = null;

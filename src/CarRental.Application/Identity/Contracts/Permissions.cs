@@ -72,6 +72,9 @@ public static class Permissions
     public const string ExpensesManage = "expenses.manage";
     public const string ReconciliationManage = "reconciliation.manage";
     public const string AccountingManage = "accounting.manage";
+
+    /// <summary>Reopen a closed accounting month, with a reason (manager only, audited, ADR-0065).</summary>
+    public const string AccountingReopen = "accounting.reopen";
     public const string ReportsRead = "reports.read";
 
     // Administration
@@ -104,6 +107,7 @@ public static class Permissions
         [InvoicesIssue] = [InvoicesRead],
         [InvoicesManage] = [InvoicesIssue, InvoicesRead],
         [CashManage] = [CashOwn],
+        [AccountingReopen] = [AccountingManage],
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private static readonly FrozenSet<string> Known;
@@ -146,6 +150,7 @@ public static class Permissions
             new(ExpensesManage, PermissionArea.Finance),
             new(ReconciliationManage, PermissionArea.Finance),
             new(AccountingManage, PermissionArea.Finance),
+            new(AccountingReopen, PermissionArea.Finance),
             new(ReportsRead, PermissionArea.Finance),
             new(UsersManage, PermissionArea.Administration),
             new(SettingsManage, PermissionArea.Administration),

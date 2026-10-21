@@ -230,6 +230,28 @@ public sealed class CashSession : AggregateRoot
         return RecordOne(planned with { Reason = text.Value }, by, at);
     }
 
+    /// <summary>An expense paid from the drawer (revenue −): refused when the revenue cash does not cover it.</summary>
+    public Result<CashMovement> RecordExpensePaid(Guid expenseId, Money amount, string? reason, AuditActor by, DateTimeOffset at) =>
+        RecordOne(
+            new PlannedCashMovement(CashMovementKind.ExpensePaid, amount, -amount, Money.Zero) { ExpenseId = expenseId, Reason = ExpenseReason(reason) },
+            by,
+            at);
+
+    /// <summary>
+    /// The outflow of a deleted cash expense put back into the revenue cash (revenue +): the expense was recorded by mistake.
+    /// <paramref name="paidInSessionId"/> names the session that paid it when it is another one.
+    /// </summary>
+    public Result<CashMovement> RecordExpenseReversed(Guid expenseId, Money amount, string? reason, Guid? paidInSessionId, AuditActor by, DateTimeOffset at) =>
+        RecordOne(
+            new PlannedCashMovement(CashMovementKind.ExpenseReversed, amount, amount, Money.Zero)
+            {
+                ExpenseId = expenseId,
+                Reason = ExpenseReason(reason),
+                RelatedSessionId = paidInSessionId == Id ? null : paidInSessionId,
+            },
+            by,
+            at);
+
     /// <summary>
     /// Corrects an error found in an earlier session (usually locked) by a signed amount on one pocket, with a mandatory
     /// reason; <paramref name="correctedSessionId"/> names the corrected session when known.
@@ -403,10 +425,21 @@ public sealed class CashSession : AggregateRoot
         return appended;
     }
 
-    /// <summary>A payment is recorded once per kind; a deposit is received once, settled once and handed over once.</summary>
+    /// <summary>A label of the movement of an expense (its number and supplier), cut to the length of a reason.</summary>
+    private static string? ExpenseReason(string? reason)
+    {
+        var text = CashText.Clean(reason);
+        return text is { Length: > CashMovement.ReasonMaxLength } ? text[..CashMovement.ReasonMaxLength] : text;
+    }
+
+    /// <summary>
+    /// A payment is recorded once per kind; a deposit is received once, settled once and handed over once; an expense is paid
+    /// once and put back once.
+    /// </summary>
     private bool IsDuplicate(PlannedCashMovement planned) =>
         (planned.PaymentId is { } paymentId && _movements.Any(m => m.PaymentId == paymentId && m.Kind == planned.Kind))
-        || (planned.DepositId is { } depositId && _movements.Any(m => m.DepositId == depositId && SameSettlementGroup(m.Kind, planned.Kind)));
+        || (planned.DepositId is { } depositId && _movements.Any(m => m.DepositId == depositId && SameSettlementGroup(m.Kind, planned.Kind)))
+        || (planned.ExpenseId is { } expenseId && _movements.Any(m => m.ExpenseId == expenseId && m.Kind == planned.Kind));
 }
 
 /// <summary>How a cash deposit is settled from a drawer.</summary>

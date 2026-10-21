@@ -58,6 +58,12 @@ public enum CashMovementKind
 
     /// <summary>Correction of an error of an earlier (locked) session, signed, on one pocket, with a reason.</summary>
     Adjustment = 10,
+
+    /// <summary>An expense paid from the drawer (package 3B): revenue −.</summary>
+    ExpensePaid = 11,
+
+    /// <summary>The outflow of a deleted cash expense put back (it was recorded by mistake): revenue +.</summary>
+    ExpenseReversed = 12,
 }
 
 /// <summary>Direction of a manual movement.</summary>

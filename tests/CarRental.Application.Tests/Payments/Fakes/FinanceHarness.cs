@@ -6,6 +6,7 @@ using CarRental.Application.Payments;
 using CarRental.Application.Payments.Administration;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Tests.Accounting.Fakes;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Cash;
 using CarRental.Domain.Common;
@@ -57,13 +58,16 @@ internal sealed class FinanceHarness
         return context;
     }
 
-    public ICashSessions Sessions(IUserContext user) => new CashSessionService(Db, UnitOfWork, user, Referential, Identity, Time);
+    /// <summary>The monthly closing hook: every month open until a test closes it.</summary>
+    public FakeAccountingPeriods Periods { get; } = new();
 
-    public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time);
+    public ICashSessions Sessions(IUserContext user) => new CashSessionService(Db, UnitOfWork, user, Referential, Identity, Time, Periods);
 
-    public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Time);
+    public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time, Periods);
 
-    public IDeposits Deposits(IUserContext user) => new Deposits(Db, UnitOfWork, user, Drawer(user), Referential, Time);
+    public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Time, Periods);
+
+    public IDeposits Deposits(IUserContext user) => new Deposits(Db, UnitOfWork, user, Drawer(user), Referential, Time, Periods);
 
     public IPaymentsQueries PaymentsQueries() => new PaymentsQueries(Db);
 
