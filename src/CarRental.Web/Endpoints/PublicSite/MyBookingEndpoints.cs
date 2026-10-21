@@ -230,7 +230,8 @@ public static partial class MyBookingEndpoints
     internal static Task<IResult> PayAsync(string culture, HttpContext context, PublicBookingCookies cookies) =>
         ActAsync(culture, context, cookies, async (service, session, lang) =>
         {
-            var back = QueryHelpers.AddQueryString(BookingRoutes.MyBookingFile(lang), "paiement", PublicBookingPaths.PaymentIdPlaceholder);
+            // Not encoded: the Payments module replaces the placeholder as written.
+            var back = $"{BookingRoutes.MyBookingFile(lang)}?paiement={PublicBookingPaths.PaymentIdPlaceholder}";
             var started = await service.StartBalancePaymentAsync(session.BookingId, lang, back, back, context.RequestAborted);
             return started.IsSuccess ? BookingRoutes.PaymentRedirect(lang, started.Value.PaymentId) : Failed(lang, started.Error);
         });

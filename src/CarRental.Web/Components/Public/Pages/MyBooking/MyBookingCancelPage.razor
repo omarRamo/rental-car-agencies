@@ -33,9 +33,9 @@
         <dl class="facts">
             <div>
                 <dt>@L["Cancel.Fee"]</dt>
-                <dd data-testid="cancellation-fee">@(cancellation.IsFree ? L["Cancel.Fee.None"] : L["Cancel.Fee.Amount", PublicFormat.Price(cancellation.Fee), cancellation.FeePercent.ToString("0.##", CultureInfo.CurrentCulture)])</dd>
+                <dd data-testid="cancellation-fee">@(cancellation.IsFree ? L["Cancel.Fee.None"] : L["Cancel.Fee.Amount", PublicFormat.Price(cancellation.Fee), (cancellation.FeePercent * 100m).ToString("0.##", CultureInfo.CurrentCulture)])</dd>
             </div>
-            @if (cancellation.FreeUntil is { } freeUntil)
+            @if (_file.Status == BookingStatusInfo.Confirmed && cancellation.IsFree && cancellation.FreeUntil is { } freeUntil)
             {
                 <div>
                     <dt>@L["Cancel.FreeUntil"]</dt>

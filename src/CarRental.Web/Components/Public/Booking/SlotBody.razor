@@ -11,7 +11,7 @@
 </label>
 <input class="photo-slot__input" type="file" id="@InputId" name="@(Named ? "file" : null)" accept="image/jpeg,image/png,application/pdf"
        aria-describedby="@StatusId" data-upload-input />
-<progress class="photo-slot__progress" max="100" value="0" hidden data-upload-progress>0 %</progress>
+<progress class="photo-slot__progress" max="100" value="0" hidden aria-label="@Label" data-upload-progress>0 %</progress>
 <p class="photo-slot__status" id="@StatusId" role="status" data-upload-status>@(Received ? L["Photo.Status.Received"] : L["Photo.Status.None"])</p>
 <img class="photo-slot__preview" alt="" hidden data-upload-preview />
 <button type="button" class="button button--secondary photo-slot__retry" hidden data-upload-retry>@L["Photo.Retry"]<span class="visually-hidden"> — @Label</span></button>
