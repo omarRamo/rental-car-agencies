@@ -18,4 +18,22 @@ internal static class PaymentText
     /// <summary>A positive amount in TND up to <paramref name="maximum"/> (the struct is already rounded to the millime).</summary>
     public static bool IsValidAmount(Money amount, decimal maximum) =>
         amount.Currency == Currency.Tnd && amount.IsPositive && amount.Amount <= maximum;
+
+    /// <summary>
+    /// A local path of the site (where the browser is sent back after the payment page): rooted, not protocol-relative
+    /// (<c>//host</c>, <c>/\host</c>), without backslash, white space or control character — never an open redirect.
+    /// </summary>
+    public static bool IsLocalPath(string? path, int maximumLength) =>
+        path is { Length: > 0 } value
+        && value.Length <= maximumLength
+        && value[0] == '/'
+        && (value.Length == 1 || (value[1] != '/' && value[1] != '\\'))
+        && !value.Any(c => c == '\\' || char.IsWhiteSpace(c) || char.IsControl(c));
+
+    /// <summary>A text cut to <paramref name="maximumLength"/> characters (diagnostic details).</summary>
+    public static string? Truncate(string? value, int maximumLength)
+    {
+        var cleaned = Clean(value);
+        return cleaned is { Length: > 0 } text && text.Length > maximumLength ? text[..maximumLength] : cleaned;
+    }
 }

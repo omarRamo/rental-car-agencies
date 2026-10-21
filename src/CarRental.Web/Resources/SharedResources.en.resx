@@ -771,4 +771,82 @@
   <data name="Error.cash.adjustment.corrected_session_invalid" xml:space="preserve">
     <value>The corrected session must be another closed or locked cash session.</value>
   </data>
+  <data name="Error.payments.refund.not_online" xml:space="preserve">
+    <value>Only a captured Clic to Pay payment can be refunded through the payment gateway.</value>
+  </data>
+  <data name="Error.payments.refund.not_pending" xml:space="preserve">
+    <value>This online refund is no longer in progress (already confirmed, refused or rejected).</value>
+  </data>
+  <data name="Error.payments.refund.not_awaiting_approval" xml:space="preserve">
+    <value>This online refund does not wait for an approval.</value>
+  </data>
+  <data name="Error.payments.refund.approval_required" xml:space="preserve">
+    <value>This refund must be approved by a manager before it is sent to the payment gateway.</value>
+  </data>
+  <data name="Error.payments.refund.approval_forbidden" xml:space="preserve">
+    <value>Only a manager allowed to approve online refunds can approve or reject this refund.</value>
+  </data>
+  <data name="Error.payments.refund.mismatch" xml:space="preserve">
+    <value>This refund does not belong to this payment.</value>
+  </data>
+  <data name="Error.payments.online.not_found" xml:space="preserve">
+    <value>No online payment matches this order.</value>
+  </data>
+  <data name="Error.payments.online.flow_invalid" xml:space="preserve">
+    <value>An online payment is a pre-authorization or a one-step payment.</value>
+  </data>
+  <data name="Error.payments.online.path_invalid" xml:space="preserve">
+    <value>The return and failure addresses must be local paths of the site (starting with a single "/", 500 characters at most).</value>
+  </data>
+  <data name="Error.payments.online.expiry_invalid" xml:space="preserve">
+    <value>The validity of an online payment ends after its start, within 30 days.</value>
+  </data>
+  <data name="Error.payments.online.description_too_long" xml:space="preserve">
+    <value>The description sent to the payment gateway has 99 characters at most.</value>
+  </data>
+  <data name="Error.payments.online.form_url_invalid" xml:space="preserve">
+    <value>The payment gateway returned no usable payment page address.</value>
+  </data>
+  <data name="Error.payments.online.gateway_order_mismatch" xml:space="preserve">
+    <value>This payment is already attached to another order of the payment gateway.</value>
+  </data>
+  <data name="Error.payments.online.capture_not_applicable" xml:space="preserve">
+    <value>Only a pre-authorization is captured; a one-step payment is captured as soon as the customer pays.</value>
+  </data>
+  <data name="Error.payments.online.not_pre_authorized" xml:space="preserve">
+    <value>The payment gateway has not confirmed the pre-authorization of this payment.</value>
+  </data>
+  <data name="Error.payments.online.capture_exceeds_authorization" xml:space="preserve">
+    <value>The captured amount is positive and at most the pre-authorized amount.</value>
+  </data>
+  <data name="Error.payments.online.operation_in_progress" xml:space="preserve">
+    <value>Another operation with the payment gateway is in progress on this payment; check its status again in a moment.</value>
+  </data>
+  <data name="Error.payments.online.not_expired" xml:space="preserve">
+    <value>This online payment is still valid: it cannot be closed as expired.</value>
+  </data>
+  <data name="Error.payments.online.already_captured" xml:space="preserve">
+    <value>This payment is already captured: it can no longer be reversed, only refunded.</value>
+  </data>
+  <data name="Error.payments.online.capture_unconfirmed" xml:space="preserve">
+    <value>The payment gateway does not confirm the capture yet; the status is checked again automatically.</value>
+  </data>
+  <data name="Error.payments.online.reversal_unconfirmed" xml:space="preserve">
+    <value>The payment gateway does not confirm the reversal yet; the status is checked again automatically.</value>
+  </data>
+  <data name="Error.payments.gateway.disabled" xml:space="preserve">
+    <value>Online payment is not enabled on this platform.</value>
+  </data>
+  <data name="Error.payments.gateway.unavailable" xml:space="preserve">
+    <value>The payment gateway did not answer. Try again in a moment: the status of the payment is checked automatically.</value>
+  </data>
+  <data name="Error.payments.gateway.rejected" xml:space="preserve">
+    <value>The payment gateway refused the operation (error code in the call history).</value>
+  </data>
+  <data name="Error.payments.gateway.invalid_response" xml:space="preserve">
+    <value>The answer of the payment gateway could not be understood.</value>
+  </data>
+  <data name="Error.payments.gateway.amount_not_representable" xml:space="preserve">
+    <value>This amount cannot be expressed in the unit configured for the payment gateway.</value>
+  </data>
 </root>
