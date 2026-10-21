@@ -1041,4 +1041,76 @@
   <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
     <value>A documents waiver applies to an assigned vehicle.</value>
   </data>
+  <data name="Error.messaging.conversation.not_found" xml:space="preserve">
+    <value>Conversation not found.</value>
+  </data>
+  <data name="Error.messaging.conversation.number_invalid" xml:space="preserve">
+    <value>The WhatsApp number must be an international number of 8 to 15 digits.</value>
+  </data>
+  <data name="Error.messaging.conversation.concurrent_update" xml:space="preserve">
+    <value>The conversation changed meanwhile: reload it and try again.</value>
+  </data>
+  <data name="Error.messaging.conversation.window_closed" xml:space="preserve">
+    <value>The 24-hour window since the customer's last message is closed: send an approved template.</value>
+  </data>
+  <data name="Error.messaging.conversation.bot_silenced" xml:space="preserve">
+    <value>An agent handles this conversation: the bot does not answer.</value>
+  </data>
+  <data name="Error.messaging.conversation.not_taken_over" xml:space="preserve">
+    <value>Take the conversation over before answering the customer.</value>
+  </data>
+  <data name="Error.messaging.conversation.handover_reason_invalid" xml:space="preserve">
+    <value>The reason of the hand-over is required (500 characters at most).</value>
+  </data>
+  <data name="Error.messaging.message.text_invalid" xml:space="preserve">
+    <value>The message is empty or longer than 4,096 characters.</value>
+  </data>
+  <data name="Error.messaging.message.buttons_invalid" xml:space="preserve">
+    <value>Reply buttons: a text of at most 1,024 characters and 1 to 3 buttons with unique ids and titles (20 characters at most).</value>
+  </data>
+  <data name="Error.messaging.message.list_invalid" xml:space="preserve">
+    <value>List: a text, a button of at most 20 characters and 1 to 10 rows with unique ids, in titled sections when there are several.</value>
+  </data>
+  <data name="Error.messaging.message.header_footer_invalid" xml:space="preserve">
+    <value>The header and the footer of an interactive message have at most 60 characters.</value>
+  </data>
+  <data name="Error.messaging.message.template_invalid" xml:space="preserve">
+    <value>Invalid template: its approved name (lower case, digits, underscores) and a language such as fr or en_US are required.</value>
+  </data>
+  <data name="Error.messaging.message.template_parameter_invalid" xml:space="preserve">
+    <value>Each template parameter is required and has at most 300 characters (10 parameters at most).</value>
+  </data>
+  <data name="Error.messaging.message.content_not_allowed" xml:space="preserve">
+    <value>This kind of message is not allowed here.</value>
+  </data>
+  <data name="Error.messaging.message.not_found" xml:space="preserve">
+    <value>Message not found.</value>
+  </data>
+  <data name="Error.messaging.need.invalid" xml:space="preserve">
+    <value>Invalid need: places of at most 100 characters, a return after the pick-up, 1 to 50 passengers, 0 to 50 bags, a positive budget in TND.</value>
+  </data>
+  <data name="Error.messaging.forbidden" xml:space="preserve">
+    <value>You do not have access to the WhatsApp inbox.</value>
+  </data>
+  <data name="Error.messaging.link.person_not_found" xml:space="preserve">
+    <value>This person does not exist or was anonymized.</value>
+  </data>
+  <data name="Error.messaging.link.booking_not_found" xml:space="preserve">
+    <value>No rental file has this number.</value>
+  </data>
+  <data name="Error.messaging.template.not_configured" xml:space="preserve">
+    <value>No approved template is configured for this message (settings "messaging.templates").</value>
+  </data>
+  <data name="Error.messaging.disabled" xml:space="preserve">
+    <value>WhatsApp is not configured on this platform: no message can be sent.</value>
+  </data>
+  <data name="Error.messaging.send.rejected" xml:space="preserve">
+    <value>Meta refused the message.</value>
+  </data>
+  <data name="Error.messaging.send.unavailable" xml:space="preserve">
+    <value>The WhatsApp service could not be reached after several attempts.</value>
+  </data>
+  <data name="Error.messaging.send.outcome_unknown" xml:space="preserve">
+    <value>Meta did not answer in time: the message may have been sent, check with the customer before sending it again.</value>
+  </data>
 </root>
