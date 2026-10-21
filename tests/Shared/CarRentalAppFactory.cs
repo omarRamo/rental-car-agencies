@@ -84,6 +84,12 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
             builder.UseSetting($"RateLimiting:{policy}:PermitLimit", RateLimitPermits.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        // Channels: same lifted (or low) limit for the inbound endpoint, a short debounce so that the pump sends updates
+        // at once, and the App Service certificate header so that the tests can present a client certificate.
+        builder.UseSetting("Channels:RateLimiting:PermitLimit", RateLimitPermits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        builder.UseSetting("Channels:Sync:Debounce", "00:00:00.100");
+        builder.UseSetting("Channels:Inbound:TrustArrClientCertHeader", "true");
+
         builder.UseSetting("Turnstile:OfflineTestWidget", "true");
         builder.ConfigureTestServices(services =>
             services.Replace(ServiceDescriptor.Singleton<CarRental.Web.Endpoints.PublicSite.Turnstile.ITurnstileVerifier>(TurnstileVerifier)));
