@@ -1,0 +1,149 @@
+@* The damages of a draft inspection: the schematic (tap a view to mark a damage there) and the list of the damages
+   with their actions — the keyboard path: "add a damage", change, remove. Pre-existing damages (copied from the last
+   inspection of the vehicle, or from the departure at a return) can be removed when repaired since. *@
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<DamageSchematic Damages="Inspection.Damages" Editable="!ReadOnly" OnTapped="AddAtAsync" TestId="@($"schematic-{Inspection.Kind}")" />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mt-4 mb-2">
+    <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Damages.List", Inspection.Damages.Count]</MudText>
+    @if (!ReadOnly)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircleOutline" Class="handover-touch" OnClick="AddAsync" Disabled="_busy">
+            @L["Damage.AddDamage"]
+        </MudButton>
+    }
+</MudStack>
+@if (Inspection.Damages.Count == 0)
+{
+    <MudText Typo="Typo.body2">@L["Damages.None"]</MudText>
+}
+else
+{
+    <ul class="handover-list" aria-label="@L["Damages.ListLabel"]">
+        @foreach (var damage in Inspection.Damages)
+        {
+            <li data-damage="@damage.Number" data-new="@(damage.IsPreExisting ? "false" : "true")">
+                <span class="@($"handover-state {(damage.IsPreExisting ? string.Empty : "handover-state--blocked")}")">
+                    @(damage.IsPreExisting ? L["Damage.PreExistingBadge"] : L["Damage.NewBadge"])
+                </span>
+                <strong>@L["Damage.Number", damage.Number]</strong>
+                <span>@L[$"DamageType.{damage.Type}"] · @L[$"DamageSeverity.{damage.Severity}"] · @L[$"DamageView.{damage.View}"] (@ZoneName(damage))</span>
+                @if (!string.IsNullOrEmpty(damage.Note))
+                {
+                    <span class="handover-muted">@damage.Note</span>
+                }
+                @if (!ReadOnly)
+                {
+                    <span class="d-flex gap-1 ms-auto">
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Class="handover-touch" OnClick="@(() => EditAsync(damage))"
+                                   aria-label="@L["Damage.EditLabel", damage.Number]">@L["Damage.Edit"]</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Class="handover-touch" OnClick="@(() => RemoveAsync(damage))"
+                                   aria-label="@L["Damage.RemoveLabel", damage.Number]">@L["Damage.Remove"]</MudButton>
+                    </span>
+                }
+            </li>
+        }
+    </ul>
+}
+
+<span class="visually-hidden" role="status">@_announcement</span>
+
+@code {
+    private bool _busy;
+    private string? _announcement;
+
+    [Parameter, EditorRequired]
+    public InspectionView Inspection { get; set; } = default!;
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private bool AtReturn => Inspection.Kind == InspectionKind.Return;
+
+    private string ZoneName(DamageMarkView damage)
+    {
+        var (column, row) = CarSchematic.ZoneOf(damage.X, damage.Y);
+        return L["Damage.ZoneName", L[$"Damage.Row.{row}"], L[$"Damage.Column.{column}"]];
+    }
+
+    private Task AddAsync() => OpenAsync(null, null);
+
+    private Task AddAtAsync(SchematicTap tap) => OpenAsync(null, tap);
+
+    private Task EditAsync(DamageMarkView damage) => OpenAsync(damage, null);
+
+    private async Task OpenAsync(DamageMarkView? existing, SchematicTap? tap)
+    {
+        var parameters = new DialogParameters<DamageDialog>
+        {
+            { d => d.Existing, existing },
+            { d => d.Tap, tap },
+            { d => d.AtReturn, AtReturn },
+        };
+        var title = existing is null ? L["Damage.AddTitle"] : L["Damage.EditTitle", existing.Number];
+        var dialog = await Dialogs.ShowAsync<DamageDialog>(title, parameters, HandoverText.Dialog());
+        if (await dialog.Result is not { Canceled: false, Data: DamageDialogResult result })
+        {
+            return;
+        }
+
+        var inspectionId = Inspection.Id;
+        _busy = true;
+        Result outcome;
+        if (existing is null)
+        {
+            outcome = await Runner.RunAsync<HandoverInspectionService, Result<Guid>>((service, ct) => service.AddDamageAsync(inspectionId, result.Input, ct));
+        }
+        else if (result.Remove)
+        {
+            outcome = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.RemoveDamageAsync(inspectionId, existing.Id, ct));
+        }
+        else
+        {
+            outcome = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.UpdateDamageAsync(inspectionId, existing.Id, result.Input, ct));
+        }
+
+        _busy = false;
+        await ReportAsync(outcome, existing is null ? L["Damage.Added"] : L["Damage.Saved"]);
+    }
+
+    private async Task RemoveAsync(DamageMarkView damage)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Damage.RemoveTitle", damage.Number],
+            L["Damage.RemoveMessage"],
+            yesText: L["Damage.Remove"],
+            cancelText: Shared["Cancel"],
+            options: HandoverText.Dialog());
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var inspectionId = Inspection.Id;
+        _busy = true;
+        var outcome = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.RemoveDamageAsync(inspectionId, damage.Id, ct));
+        _busy = false;
+        await ReportAsync(outcome, L["Damage.Removed"]);
+    }
+
+    private async Task ReportAsync(Result outcome, string success)
+    {
+        if (outcome.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, outcome.Error), Severity.Error);
+            return;
+        }
+
+        _announcement = success;
+        await OnChanged.InvokeAsync();
+    }
+}

@@ -63,6 +63,14 @@
   </ItemGroup>
 
   <!--
+    Documents. QuestPDF under its Community licence (set once at startup): free while the annual gross revenue of the
+    agency stays under the threshold of the licence (points-ouverts.md, "QuestPDF"); a paid licence is needed above it.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="QuestPDF" Version="2026.9.1" />
+  </ItemGroup>
+
+  <!--
     Security pins for vulnerable transitive dependencies (NuGet audit fails the build otherwise).
     Remove a pin once every direct dependency requires a patched version.
   -->
@@ -91,6 +99,8 @@
     <PackageVersion Include="Testcontainers.Azurite" Version="4.16.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.14.0" />
+    <!-- Reads the text of the generated PDF documents (tests only, Apache-2.0). -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
 
 </Project>

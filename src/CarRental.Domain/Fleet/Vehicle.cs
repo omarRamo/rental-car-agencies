@@ -274,7 +274,12 @@ public sealed class Vehicle : AggregateRoot
         return Result.Success();
     }
 
-    public Result RecordMileage(int mileage, ChangeStamp stamp)
+    /// <summary>
+    /// Records an odometer reading: the mileage never decreases (use <see cref="CorrectMileage"/>), an equal reading
+    /// changes nothing. <paramref name="reason"/> tells where the reading comes from in the history (e.g. the number of
+    /// the rental file of a hand-over).
+    /// </summary>
+    public Result RecordMileage(int mileage, ChangeStamp stamp, string? reason = null)
     {
         ArgumentNullException.ThrowIfNull(stamp);
         var guard = EnsureNotSold();
@@ -293,9 +298,15 @@ public sealed class Vehicle : AggregateRoot
             return FleetErrors.MileageDecrease;
         }
 
+        var normalizedReason = NormalizeReason(reason);
+        if (normalizedReason.IsFailure)
+        {
+            return normalizedReason.Error;
+        }
+
         if (mileage > Mileage)
         {
-            SetMileage(mileage, VehicleHistoryKind.MileageRecorded, reason: null, stamp);
+            SetMileage(mileage, VehicleHistoryKind.MileageRecorded, normalizedReason.Value, stamp);
         }
 
         return Result.Success();

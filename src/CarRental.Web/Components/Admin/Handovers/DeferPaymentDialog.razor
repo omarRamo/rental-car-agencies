@@ -1,0 +1,53 @@
+@* A manager lets the vehicle leave with the amount due unpaid (deferred) and/or without a deposit (waived), with a
+   reason (permission handovers.payment.defer, ADR-0041); traced on the departure inspection and printed on the contract. *@
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <Notice Kind="NoticeKind.Warning" Class="mb-3">@L["Defer.Message"]</Notice>
+        @if (AmountDue.IsPositive)
+        {
+            <MudCheckBox T="bool" @bind-Value="_deferBalance" Color="Color.Primary" Label="@L["Defer.Balance", BookingFormat.Amount(AmountDue)]" />
+        }
+        @if (DepositMissing)
+        {
+            <MudCheckBox T="bool" @bind-Value="_waiveDeposit" Color="Color.Primary" Label="@L["Defer.Deposit", BookingFormat.Amount(Deposit)]" />
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Defer.Reason"]" Lines="2" MaxLength="Inspection.ReasonMaxLength" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" Immediate="true" Class="mt-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="Submit"
+                   Disabled="@((!_deferBalance && !_waiveDeposit) || (_reason?.Trim().Length ?? 0) < Inspection.ReasonMinLength)">@L["Defer.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _deferBalance;
+    private bool _waiveDeposit;
+    private string? _reason;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter]
+    public Money AmountDue { get; set; }
+
+    [Parameter]
+    public bool DepositMissing { get; set; }
+
+    [Parameter]
+    public Money Deposit { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _deferBalance = AmountDue.IsPositive;
+        _waiveDeposit = DepositMissing;
+    }
+
+    private void Submit() => Dialog.Close(DialogResult.Ok(new DeferralInput(_deferBalance && AmountDue.IsPositive, _waiveDeposit && DepositMissing, _reason ?? string.Empty)));
+
+    private void Cancel() => Dialog.Cancel();
+}

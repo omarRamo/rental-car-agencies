@@ -1,0 +1,118 @@
+@* The damage schematic of the vehicle: one drawing per view with the numbered marks (a new damage in red, a
+   pre-existing one in white), a tap on a view opening the damage dialog at that place (js/admin/damage-schematic.js).
+   Each drawing is an image with an accessible name; the list of the damages beside it (with its "add" button) is the
+   keyboard and screen reader path to the same dialog. *@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IStringLocalizer<HandoversResources> L
+
+<div class="handover-schematics" @ref="_container" data-testid="@TestId" data-tappable="@(_tapping is null ? "false" : "true")">
+    @foreach (var view in CarSchematic.Views)
+    {
+        var (width, height) = CarSchematic.SizeOf(view);
+        var (body, details) = CarSchematic.ShapesOf(view);
+        var marks = Damages.Where(d => d.View == view).ToList();
+        <figure class="@($"handover-schematic{(Editable ? string.Empty : " handover-schematic--readonly")}")">
+            <figcaption>@L[$"DamageView.{view}"]</figcaption>
+            <svg data-view="@view" viewBox="@($"0 0 {width} {height}")" role="img" focusable="false"
+                 aria-label="@L["Schematic.ViewLabel", L[$"DamageView.{view}"], marks.Count]">
+                <g transform="@(view == DamageView.Right ? $"matrix(-1 0 0 1 {width} 0)" : null)">
+                    <path class="handover-schematic__body" d="@body" />
+                    @foreach (var detail in details)
+                    {
+                        <path class="handover-schematic__detail" d="@detail" />
+                    }
+                </g>
+                @foreach (var mark in marks)
+                {
+                    var x = (mark.X / 100m * width).ToString("0.##", CultureInfo.InvariantCulture);
+                    var y = (mark.Y / 100m * height).ToString("0.##", CultureInfo.InvariantCulture);
+                    <g class="@($"handover-mark{(mark.IsPreExisting ? string.Empty : " handover-mark--new")}")" data-damage="@mark.Number">
+                        <circle cx="@x" cy="@y" r="5" />
+                        <text x="@x" y="@y">@mark.Number</text>
+                    </g>
+                }
+            </svg>
+        </figure>
+    }
+</div>
+
+@code {
+    private ElementReference _container;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _tapping;
+    private DotNetObjectReference<DamageSchematic>? _self;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DamageMarkView> Damages { get; set; } = [];
+
+    /// <summary>A tap on a view raises <see cref="OnTapped"/>.</summary>
+    [Parameter]
+    public bool Editable { get; set; }
+
+    [Parameter]
+    public EventCallback<SchematicTap> OnTapped { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Editable)
+        {
+            return;
+        }
+
+        try
+        {
+            _self = DotNetObjectReference.Create(this);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/damage-schematic.js");
+            _tapping = await _module.InvokeAsync<IJSObjectReference>("attach", _container, _self);
+
+            // data-tappable says the taps are live (the dialog opens on a tap from now on).
+            StateHasChanged();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone: nothing to attach.
+        }
+        catch (JSException)
+        {
+            // Taps are not available; the list of the damages and its "add" button still are.
+        }
+    }
+
+    /// <summary>Called by the browser module with the view and the position, in percent, of a tap.</summary>
+    [JSInvokable]
+    public Task OnSchematicTapped(string view, decimal x, decimal y) =>
+        Enum.TryParse<DamageView>(view, ignoreCase: false, out var tapped) && Enum.IsDefined(tapped)
+            ? OnTapped.InvokeAsync(new SchematicTap(tapped, Math.Clamp(x, 0m, 100m), Math.Clamp(y, 0m, 100m)))
+            : Task.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_tapping is not null)
+            {
+                await _tapping.InvokeVoidAsync("dispose");
+                await _tapping.DisposeAsync();
+            }
+
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone with its listeners.
+        }
+        catch (JSException)
+        {
+            // The schematic is gone with its listeners.
+        }
+
+        _self?.Dispose();
+    }
+}

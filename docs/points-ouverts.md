@@ -46,6 +46,7 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Coûts Azure | Prix réels en France Central (la source du prix Azure SQL date de 2016) ; offre gratuite Azure SQL toujours proposée pour la recette | Calculatrice Azure | 0 |
 | Purge des pièces d'identité | Procédure de destruction (art. 45 : PV d'huissier, expert INPDP) | Avocat | 2 |
 | Contrat et conditions générales | Franchise, caution, carburant, retard, sortie du territoire, amendes | Avocat | 1 |
+| Départ et retour | Texte définitif des conditions générales (`CG-LOC-2026-1`) ; valeur probante de la signature dessinée sur tablette ; durée de conservation des états des lieux, photos et contrats ; remboursement d'un retour anticipé ; TVA des réparations et des retenues sur caution ; règles de prépaiement et de caution des dossiers Booking.com | Avocat / expert-comptable / agence | 1 |
 | Matricule fiscal | Format exact du matricule fiscal des sociétés (validé de façon souple pour l'instant) | Expert-comptable | 1 |
 | Pièce d'un conducteur tunisien | Un Tunisien doit présenter une CIN délivrée en Tunisie ; un passeport ne la remplace pas (lecture stricte de la spec, règle d'éligibilité actuelle) | Agence | 1 |
 | Permis international | Le pays de délivrance du permis international n'est pas comparé à celui du permis national | Agence | 1 |

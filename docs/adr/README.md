@@ -46,6 +46,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0038](0038-passerelle-clic-to-pay-isolee-et-simulee.md) | Passerelle Clic to Pay : port isolé, client REST défensif, journal des appels et passerelle simulée | Acceptée |
 | [0039](0039-paiement-en-ligne-confirmation-idempotence-rattrapage.md) | Paiement en ligne : confirmation serveur à serveur, idempotence par commande, rattrapage et remboursements validés | Acceptée |
 | [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
+| [0041](0041-depart-retour-etat-des-lieux-et-contrat.md) | Départ et retour : état des lieux, signatures et contrat PDF | Acceptée |
+| [0042](0042-frais-de-retour-franchise-et-retard.md) | Frais de retour : proposition, plafond de franchise et tarification du retard | Acceptée |
 | [0043](0043-outbox-pompe-en-processus.md) | Outbox : déclenchement immédiat par une pompe en processus | Acceptée |
 | [0044](0044-caches-parametres-et-plans-publies.md) | Caches des paramètres et des plans publiés, vidés après chaque validation | Acceptée |
 | [0045](0045-instantane-quotidien-des-vehicules.md) | Instantané quotidien des véhicules et répartition du chiffre d'affaires | Acceptée |

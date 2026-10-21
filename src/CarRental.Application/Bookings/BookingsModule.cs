@@ -1,6 +1,7 @@
 using CarRental.Application.Bookings.Administration;
 using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Bookings.Handover;
 using CarRental.Application.Bookings.Jobs;
 using CarRental.Application.Bookings.Parties;
 using CarRental.Application.Bookings.Queries;
@@ -87,6 +88,9 @@ public static class BookingsModule
             sp.GetRequiredService<PartyDirectory>(),
             sp.GetRequiredService<DriverChecks>(),
             sp.GetRequiredService<TimeProvider>()));
+
+        // Departure and return (package 1F-b, ADR-0041 and ADR-0042).
+        services.AddBookingHandovers();
 
         services.AddSettingDefinitions(BookingSettings.All);
         services.AddRecurringJob<BookingExpiryJob>();

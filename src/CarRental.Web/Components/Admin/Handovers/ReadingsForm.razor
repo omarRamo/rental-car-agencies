@@ -1,0 +1,176 @@
+@* The readings of an inspection: mileage (never below the reference), fuel level in eighths (large radio buttons, one
+   per eighth), the accessories and, at a return, the cleaning; the notes. Saved together. *@
+@using Rules = CarRental.Domain.Bookings.Handover.Inspection
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="5">
+        <MudNumericField T="int?" @bind-Value="_mileage" Label="@L["Readings.Mileage"]" Min="0" Max="Rules.MaxMileage" HideSpinButtons="true" Immediate="true"
+                         HelperText="@(Reference is { } reference ? L["Readings.MileageHelp", reference.ToString("N0", CultureInfo.CurrentCulture)].Value : null)"
+                         Adornment="Adornment.End" AdornmentText="km" Required="true" RequiredError="@Shared["Validation.Required"]"
+                         Disabled="ReadOnly" />
+        @if (Departure?.Mileage is { } departureMileage && _mileage is { } now && now >= departureMileage)
+        {
+            <MudText Typo="Typo.body2" Class="mt-1">@L["Readings.Driven", (now - departureMileage).ToString("N0", CultureInfo.CurrentCulture)]</MudText>
+        }
+    </MudItem>
+    <MudItem xs="12" md="7">
+        <fieldset class="handover-fuel" aria-describedby="@_fuelHelpId">
+            <legend>@L["Readings.Fuel"]</legend>
+            @for (var eighths = 0; eighths <= Rules.FullTank; eighths++)
+            {
+                var value = eighths;
+                <label>
+                    <input type="radio" name="@_fuelName" value="@value" checked="@(_fuel == value)" disabled="@ReadOnly" @onchange="@(() => _fuel = value)"
+                           data-testid="@($"fuel-{value}")" />
+                    <span>@(value == Rules.FullTank ? L["Readings.Full"] : HandoverText.Fuel(value))</span>
+                </label>
+            }
+        </fieldset>
+        <MudText Typo="Typo.caption" id="@_fuelHelpId" Class="d-block mt-1">
+            @(Departure?.FuelEighths is { } departureFuel ? L["Readings.FuelAtDeparture", HandoverText.Fuel(departureFuel)] : L["Readings.FuelHelp"])
+        </MudText>
+    </MudItem>
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Readings.Accessories"]</MudText>
+        <div class="d-flex flex-wrap gap-4">
+            <MudCheckBox T="bool" @bind-Value="_spareWheel" Color="Color.Primary" Label="@L["AccessoryItem.SpareWheel"]" Disabled="ReadOnly" />
+            <MudCheckBox T="bool" @bind-Value="_jack" Color="Color.Primary" Label="@L["AccessoryItem.Jack"]" Disabled="ReadOnly" />
+            <MudCheckBox T="bool" @bind-Value="_warningTriangle" Color="Color.Primary" Label="@L["AccessoryItem.WarningTriangle"]" Disabled="ReadOnly" />
+            <MudCheckBox T="bool" @bind-Value="_safetyVest" Color="Color.Primary" Label="@L["AccessoryItem.SafetyVest"]" Disabled="ReadOnly" />
+            <MudCheckBox T="bool" @bind-Value="_gps" Color="Color.Primary" Label="@L["AccessoryItem.Gps"]" Disabled="ReadOnly" />
+            <MudCheckBox T="bool" @bind-Value="_vehiclePapers" Color="Color.Primary" Label="@L["AccessoryItem.VehiclePapers"]" Disabled="ReadOnly" />
+        </div>
+        <MudGrid Spacing="2" Class="mt-1">
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_keys" Label="@L["AccessoryItem.Keys"]" Min="0" Max="AccessoryChecklist.MaxKeys" Disabled="ReadOnly" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_childSeats" Label="@L["AccessoryItem.ChildSeats"]" Min="0" Max="AccessoryChecklist.MaxChildSeats" Disabled="ReadOnly" />
+            </MudItem>
+        </MudGrid>
+        @if (MissingAccessories.Count > 0)
+        {
+            <Notice Kind="NoticeKind.Warning" Class="mt-2">
+                @L["Readings.MissingAccessories", string.Join(", ", MissingAccessories.Select(item => L[$"AccessoryItem.{item}"].Value))]
+            </Notice>
+        }
+    </MudItem>
+    @if (Inspection.Kind == InspectionKind.Return)
+    {
+        <MudItem xs="12">
+            <MudSwitch T="bool" @bind-Value="_cleaning" Color="Color.Primary" Label="@L["Readings.Cleaning"]" Disabled="ReadOnly" />
+        </MudItem>
+    }
+    <MudItem xs="12">
+        <MudTextField T="string" @bind-Value="_notes" Label="@L["Readings.Notes"]" Lines="2" MaxLength="Rules.NotesMaxLength" Disabled="ReadOnly" />
+    </MudItem>
+</MudGrid>
+<span class="visually-hidden" role="status">@_announcement</span>
+@if (!ReadOnly)
+{
+    <div class="handover-actions">
+        <span></span>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="@(_busy || _mileage is null || _fuel is null)"
+                   data-testid="readings-save">@SaveText</MudButton>
+    </div>
+}
+
+@code {
+    private readonly string _fuelName = $"fuel-{Guid.NewGuid():N}";
+    private readonly string _fuelHelpId = $"fuel-help-{Guid.NewGuid():N}";
+    private int? _mileage;
+    private int? _fuel;
+    private bool _spareWheel = true;
+    private bool _jack = true;
+    private bool _warningTriangle = true;
+    private bool _safetyVest = true;
+    private int _keys = 2;
+    private int _childSeats;
+    private bool _gps;
+    private bool _vehiclePapers = true;
+    private bool _cleaning;
+    private string? _notes;
+    private bool _busy;
+    private Guid? _loaded;
+    private string? _announcement;
+
+    [Parameter, EditorRequired]
+    public InspectionView Inspection { get; set; } = default!;
+
+    /// <summary>The completed departure (return screen): its readings are shown beside.</summary>
+    [Parameter]
+    public InspectionView? Departure { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<AccessoryItem> MissingAccessories { get; set; } = [];
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter, EditorRequired]
+    public string SaveText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
+
+    private int? Reference => Inspection.ReferenceMileage;
+
+    protected override void OnParametersSet()
+    {
+        if (_loaded == Inspection.Id)
+        {
+            return;
+        }
+
+        _loaded = Inspection.Id;
+        _mileage = Inspection.Mileage;
+        _fuel = Inspection.FuelEighths;
+        _notes = Inspection.Notes;
+        _cleaning = Inspection.NeedsCleaning;
+        var accessories = Inspection.Accessories ?? Departure?.Accessories;
+        if (accessories is not null)
+        {
+            (_spareWheel, _jack, _warningTriangle, _safetyVest, _keys, _childSeats, _gps, _vehiclePapers) =
+                (accessories.SpareWheel, accessories.Jack, accessories.WarningTriangle, accessories.SafetyVest, accessories.Keys, accessories.ChildSeats, accessories.Gps, accessories.VehiclePapers);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_mileage is not { } mileage || _fuel is not { } fuel)
+        {
+            return;
+        }
+
+        _busy = true;
+        var inspectionId = Inspection.Id;
+        var input = new ReadingsInput(mileage, fuel, _spareWheel, _jack, _warningTriangle, _safetyVest, _keys, _childSeats, _gps, _vehiclePapers);
+        var notes = _notes;
+        var cleaning = _cleaning;
+        var atReturn = Inspection.Kind == InspectionKind.Return;
+        var result = await Runner.RunAsync<HandoverInspectionService, Result>(async (service, ct) =>
+        {
+            var recorded = await service.RecordReadingsAsync(inspectionId, input, ct);
+            if (recorded.IsFailure)
+            {
+                return recorded;
+            }
+
+            var noted = await service.SetNotesAsync(inspectionId, notes, ct);
+            return noted.IsFailure || !atReturn ? noted : await service.SetCleaningNeededAsync(inspectionId, cleaning, ct);
+        });
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        _announcement = L["Readings.Saved"];
+        await OnSaved.InvokeAsync();
+    }
+}

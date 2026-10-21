@@ -1,0 +1,95 @@
+@* Hand-overs of the day on the dashboard (handovers.manage): departures and returns still to do, late returns, and
+   the next ones with a direct link to their departure or return screen. *@
+@inject IOperationRunner Runner
+@inject TimeProvider Clock
+@inject IStringLocalizer<HandoversResources> L
+
+<AuthorizeView Policy="@PermissionPolicy.For(Permissions.HandoversManage)">
+    <Authorized>
+        <HandoverStyles />
+        <section aria-labelledby="handovers-widget-title" class="mt-6">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="handovers-widget-title">@L["Widget.Title"]</MudText>
+                    <MudLink Underline="Underline.Always" Href="/admin/handovers">@L["Widget.Open"]</MudLink>
+                </MudStack>
+                @if (_day is null)
+                {
+                    @if (_failed)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@L["Widget.Error"]</MudText>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Indeterminate="true" aria-label="@L["Widget.Loading"]" Class="mt-3" />
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body1" Class="mt-2" data-testid="handovers-widget-counts">
+                        @L["Widget.Counts", _day.Departures.Count(d => !d.IsDone), _day.Returns.Count(r => !r.IsDone), _day.LateReturns.Count]
+                    </MudText>
+                    @if (Next.Count > 0)
+                    {
+                        <ul class="handover-list mt-1">
+                            @foreach (var (item, departure) in Next)
+                            {
+                                <li>
+                                    <strong>@BookingFormat.Time(item.At)</strong>
+                                    <span>@(departure ? L["Widget.Departure"] : L["Widget.Return"])</span>
+                                    <MudLink Underline="Underline.Always" Href="@($"/admin/handovers/{item.BookingId}/{(departure ? "departure" : "return")}")">@item.Number</MudLink>
+                                    <span>@item.CustomerName</span>
+                                    @if (departure)
+                                    {
+                                        <span class="@($"handover-state {(item.Readiness.IsReady ? "handover-state--ok" : "handover-state--todo")}")">
+                                            @(item.Readiness.IsReady ? L["Ready.Yes"] : L["Ready.No"])
+                                        </span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                }
+            </MudPaper>
+        </section>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private HandoverDay? _day;
+    private bool _failed;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private IReadOnlyList<(HandoverDayItem Item, bool Departure)> Next =>
+        _day is null
+            ? []
+            : [.. _day.Departures.Where(d => !d.IsDone).Select(d => (d, true))
+                .Concat(_day.Returns.Where(r => !r.IsDone).Select(r => (r, false)))
+                .OrderBy(x => x.Item1.At)
+                .Take(5)];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Loaded once interactive: the prerendered pass would compute it twice.
+        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.HandoversManage))
+        {
+            return;
+        }
+
+        var today = TunisTime.Today(Clock);
+        var result = await Runner.RunAsync<HandoverQueries, Result<HandoverDay>>(async (queries, ct) =>
+        {
+            var agencies = await queries.GetAgenciesAsync(ct);
+            if (agencies.IsFailure)
+            {
+                return agencies.Error;
+            }
+
+            return agencies.Value.Count == 0 ? BookingErrors.AgencyRequired : await queries.GetDayAsync(agencies.Value[0].Id, today, ct);
+        });
+        _day = result.IsSuccess ? result.Value : null;
+        _failed = result.IsFailure;
+    }
+}

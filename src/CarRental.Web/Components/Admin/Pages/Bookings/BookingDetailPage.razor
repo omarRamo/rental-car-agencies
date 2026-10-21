@@ -2,12 +2,15 @@
 @attribute [HasPermission(Permissions.BookingsRead)]
 @using CarRental.Application.Customers.Contracts
 @using CarRental.Web.Resources.Admin.Customers
+@using CarRental.Web.Components.Admin.Handovers
+@using CarRental.Web.Resources.Admin.Handovers
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject TimeProvider Clock
 @inject IStringLocalizer<BookingsResources> L
 @inject IStringLocalizer<CustomersAdminResources> C
+@inject IStringLocalizer<HandoversResources> H
 @inject IStringLocalizer<SharedResources> Shared
 
 <PageTitle>@Title</PageTitle>
@@ -69,6 +72,21 @@ else
     {
         <MudPaper Elevation="1" Class="pa-3 mb-4" role="group" aria-label="@L["Booking.Actions"]">
             <div class="d-flex flex-wrap gap-2">
+                @if (actions.CanStartRental)
+                {
+                    <MudButton Href="@($"/admin/handovers/{file.Id}/departure")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Key"
+                               data-testid="booking-departure">@H["Booking.Departure"]</MudButton>
+                }
+                @if (actions.CanCompleteReturn)
+                {
+                    <MudButton Href="@($"/admin/handovers/{file.Id}/return")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AssignmentReturn"
+                               data-testid="booking-return">@H["Booking.Return"]</MudButton>
+                }
+                @if (actions.CanClose)
+                {
+                    <MudButton Href="@($"/admin/handovers/{file.Id}/return?step=close")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock"
+                               data-testid="booking-close">@H["Booking.Close"]</MudButton>
+                }
                 @if (actions.CanValidate)
                 {
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="ValidateAsync" Disabled="_busy">@L["Action.Validate"]</MudButton>
@@ -260,6 +278,14 @@ else
                 }
             </MudPaper>
         </MudItem>
+
+        @if (file.Status is BookingStatus.Confirmed or BookingStatus.InProgress or BookingStatus.Returned or BookingStatus.Closed)
+        {
+            <MudItem xs="12">
+                <HandoverStyles />
+                <HandoverSummaryPanel BookingId="file.Id" Status="file.Status" />
+            </MudItem>
+        }
 
         <MudItem xs="12" lg="7">
             <MudPaper Elevation="1" Class="pa-4">

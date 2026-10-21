@@ -132,4 +132,7 @@
   <data name="Permission.payments.refunds.approve" xml:space="preserve">
     <value>Approve online refunds above the threshold</value>
   </data>
+  <data name="Permission.handovers.payment.defer" xml:space="preserve">
+    <value>Departure with the balance deferred or without a deposit (reason)</value>
+  </data>
 </root>

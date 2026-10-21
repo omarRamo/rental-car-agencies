@@ -1,0 +1,46 @@
+@* Progress of a hand-over wizard: one step per screen, each step a button that opens it, the current one marked with
+   aria-current="step", a done step marked by a check and a hidden text (never by colour alone). *@
+@inject IStringLocalizer<HandoversResources> L
+
+<nav class="handover-steps" aria-label="@Label">
+    @if (Steps.Count > 0)
+    {
+        <MudText Typo="Typo.body2" Class="handover-progress" data-testid="handover-progress">@L["Steps.Progress", CurrentIndex + 1, Steps.Count, Steps[CurrentIndex].Title]</MudText>
+    }
+    <ol>
+        @for (var index = 0; index < Steps.Count; index++)
+        {
+            var step = Steps[index];
+            var number = index + 1;
+            <li>
+                <button type="button" class="@($"handover-step{(step.Done ? " handover-step--done" : string.Empty)}{(step.Enabled ? string.Empty : " handover-step--blocked")}")"
+                        aria-current="@(step.Key == Current ? "step" : null)" disabled="@(!step.Enabled)" data-step="@step.Key"
+                        @onclick="@(() => OnSelect.InvokeAsync(step.Key))">
+                    <span class="handover-step__number" aria-hidden="true">@(step.Done ? "✓" : number.ToString(CultureInfo.CurrentCulture))</span>
+                    <span>@step.Title</span>
+                    @if (step.Done)
+                    {
+                        <span class="visually-hidden">@L["Steps.Done"]</span>
+                    }
+                </button>
+            </li>
+        }
+    </ol>
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<HandoverStep> Steps { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = string.Empty;
+
+    /// <summary>Accessible name of the navigation (e.g. "Étapes du départ").</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnSelect { get; set; }
+
+    private int CurrentIndex => Math.Max(0, Steps.ToList().FindIndex(s => s.Key == Current));
+}

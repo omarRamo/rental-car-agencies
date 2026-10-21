@@ -1,0 +1,216 @@
+@* A signature drawn with a finger, a stylus or a mouse (js/admin/signature-pad.js), with the name of the signer; once
+   recorded it is shown and can be signed again. Pointer only: the page offers the accessible alternative (the contract
+   signed on paper, with the reason). *@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<section class="handover-signature" aria-labelledby="@_titleId" data-testid="@($"signature-{Role}")" data-signed="@(Signature is null ? "false" : "true")"
+         data-pad="@(_pad is null ? "off" : "on")">
+    <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="@_titleId">@Title</MudText>
+    @if (Signature is { } signed && !_redraw)
+    {
+        <img src="@HandoverMedia.SignatureUrl(signed.Id)" alt="@L["Signature.Alt", signed.SignerName]" />
+        <MudText Typo="Typo.body2">@L["Signature.Signed", signed.SignerName, BookingFormat.Instant(signed.SignedAtUtc)]</MudText>
+        @if (!ReadOnly)
+        {
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Edit" Class="handover-touch align-self-start" OnClick="Redraw">@L["Signature.Again"]</MudButton>
+        }
+    }
+    else if (!ReadOnly)
+    {
+        <MudTextField T="string" @bind-Value="_name" Label="@L["Signature.Name"]" MaxLength="InspectionSignature.SignerNameMaxLength" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" />
+        <canvas @ref="_canvas" role="img" aria-label="@L["Signature.Canvas", Title]" data-testid="@($"signature-canvas-{Role}")"></canvas>
+        <div class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Clear" Class="handover-touch" OnClick="ClearAsync" Disabled="@(!_drawn || _busy)">
+                @L["Signature.Clear"]
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Draw" Class="handover-touch" OnClick="SaveAsync"
+                       Disabled="@(!_drawn || _busy || string.IsNullOrWhiteSpace(_name))">@L["Signature.Save"]</MudButton>
+        </div>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2">@L["Signature.None"]</MudText>
+    }
+    <span class="visually-hidden" role="status">@_announcement</span>
+</section>
+
+@code {
+    private readonly string _titleId = $"signature-{Guid.NewGuid():N}";
+    private ElementReference _canvas;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _pad;
+    private DotNetObjectReference<SignaturePad>? _self;
+    private bool _attaching;
+    private bool _drawn;
+    private bool _busy;
+    private bool _redraw;
+    private string? _name;
+    private string? _announcement;
+
+    [Parameter, EditorRequired]
+    public Guid InspectionId { get; set; }
+
+    [Parameter, EditorRequired]
+    public SignatureRole Role { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>The name of the signer proposed (the main driver, the agent).</summary>
+    [Parameter]
+    public string? SignerName { get; set; }
+
+    [Parameter]
+    public SignatureView? Signature { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public EventCallback OnSigned { get; set; }
+
+    protected override void OnInitialized() => _name = SignerName;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Renders can follow each other while the browser answers: one attach at a time, a detach takes the pad first.
+        var drawing = !ReadOnly && (Signature is null || _redraw);
+        if (drawing && _pad is null && !_attaching)
+        {
+            _attaching = true;
+            try
+            {
+                _self ??= DotNetObjectReference.Create(this);
+                _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/signature-pad.js");
+                _pad = await _module.InvokeAsync<IJSObjectReference>("attach", _canvas, _self);
+                StateHasChanged();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is gone: nothing to draw on.
+            }
+            finally
+            {
+                _attaching = false;
+            }
+        }
+        else if (!drawing && _pad is not null)
+        {
+            await DetachAsync();
+        }
+    }
+
+    /// <summary>Called by the browser module when the drawing starts or is cleared.</summary>
+    [JSInvokable]
+    public Task OnSignatureChanged(bool signed)
+    {
+        _drawn = signed;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void Redraw()
+    {
+        _redraw = true;
+        _drawn = false;
+    }
+
+    private async Task ClearAsync()
+    {
+        if (_pad is not null)
+        {
+            await _pad.InvokeVoidAsync("clear");
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_pad is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await using var png = await _pad.InvokeAsync<IJSStreamReference>("toPng");
+            await using var stream = await png.OpenReadStreamAsync(HandoverMedia.MaxSmallImageLength);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+            var inspectionId = InspectionId;
+            var role = Role;
+            var name = _name;
+            var result = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.SignAsync(inspectionId, role, name, buffer, ct));
+            if (result.IsFailure)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+                return;
+            }
+
+            _redraw = false;
+            _drawn = false;
+            _announcement = L["Signature.Done", Title];
+            await OnSigned.InvokeAsync();
+        }
+        catch (JSException)
+        {
+            Snackbar.Add(L["Signature.Failed"], Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DetachAsync()
+    {
+        var pad = _pad;
+        _pad = null;
+        if (pad is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await pad.InvokeVoidAsync("dispose");
+            await pad.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone with its listeners.
+        }
+        catch (JSException)
+        {
+            // The canvas is gone with its listeners.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DetachAsync();
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone.
+        }
+        catch (JSException)
+        {
+            // Already released.
+        }
+
+        _self?.Dispose();
+    }
+}

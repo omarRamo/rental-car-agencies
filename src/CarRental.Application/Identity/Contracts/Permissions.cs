@@ -30,6 +30,9 @@ public static class Permissions
     /// <summary>Let a vehicle whose mandatory documents expire before the return carry a rental file (traced, manager).</summary>
     public const string BookingsComplianceWaive = "bookings.compliance.waive";
     public const string HandoversManage = "handovers.manage";
+
+    /// <summary>Let a vehicle leave with the amount due deferred or without a deposit, with a reason (manager, ADR-0041).</summary>
+    public const string HandoversPaymentDefer = "handovers.payment.defer";
     public const string CustomersRead = "customers.read";
     public const string CustomersManage = "customers.manage";
     public const string IdentityDocumentsRead = "customers.documents.read";
@@ -80,6 +83,7 @@ public static class Permissions
     {
         [RequestsManage] = [RequestsRead],
         [BookingsManage] = [BookingsRead],
+        [HandoversPaymentDefer] = [HandoversManage],
         [CustomersManage] = [CustomersRead],
         [IdentityDocumentsRead] = [CustomersRead],
         [CustomersPrivacy] = [CustomersRead],
@@ -107,6 +111,7 @@ public static class Permissions
             new(BookingsDiscount, PermissionArea.Operations),
             new(BookingsComplianceWaive, PermissionArea.Operations),
             new(HandoversManage, PermissionArea.Operations),
+            new(HandoversPaymentDefer, PermissionArea.Operations),
             new(CustomersRead, PermissionArea.Operations),
             new(CustomersManage, PermissionArea.Operations),
             new(IdentityDocumentsRead, PermissionArea.Operations),
