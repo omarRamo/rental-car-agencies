@@ -889,13 +889,31 @@
     <value>Identifiant de visite ou de dossier vide dans la mesure du parcours.</value>
   </data>
   <data name="Error.reporting.funnel_event.source_invalid" xml:space="preserve">
-    <value>Source de trafic invalide (32 caractÃ¨res au plus : lettres minuscules, chiffres, Â« . Â», Â« _ Â» ou Â« - Â»).</value>
+    <value>Source de trafic invalide (32 caractères au plus : lettres minuscules, chiffres, « . », « _ » ou « - »).</value>
   </data>
   <data name="Error.reporting.funnel_event.step_invalid" xml:space="preserve">
-    <value>Ã‰tape du parcours de rÃ©servation inconnue.</value>
+    <value>Étape du parcours de réservation inconnue.</value>
   </data>
   <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
-    <value>ParamÃ¨tre UTM invalide (100 caractÃ¨res au plus, sans caractÃ¨re de contrÃ´le).</value>
+    <value>Paramètre UTM invalide (100 caractères au plus, sans caractère de contrôle).</value>
+  </data>
+  <data name="Error.reporting.period.invalid" xml:space="preserve">
+    <value>La fin de la période précède son début.</value>
+  </data>
+  <data name="Error.reporting.period.too_long" xml:space="preserve">
+    <value>Une période couvre au plus 366 jours.</value>
+  </data>
+  <data name="Error.reporting.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas accès aux indicateurs.</value>
+  </data>
+  <data name="Error.reporting.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas.</value>
+  </data>
+  <data name="Error.reporting.snapshot.future_day" xml:space="preserve">
+    <value>Les instantanés ne se calculent que pour les jours écoulés, jusqu'à hier (heure de Tunis).</value>
+  </data>
+  <data name="Error.reporting.snapshot.concurrent_recompute" xml:space="preserve">
+    <value>Ces jours étaient déjà en cours de calcul : réessayez dans un instant.</value>
   </data>
   <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
     <value>Le départ effectif ne peut pas être dans le futur.</value>

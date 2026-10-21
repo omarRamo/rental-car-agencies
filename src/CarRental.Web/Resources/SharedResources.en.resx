@@ -897,6 +897,24 @@
   <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
     <value>Invalid UTM tag (100 characters at most, no control character).</value>
   </data>
+  <data name="Error.reporting.period.invalid" xml:space="preserve">
+    <value>The end of the period is before its start.</value>
+  </data>
+  <data name="Error.reporting.period.too_long" xml:space="preserve">
+    <value>A period covers 366 days at most.</value>
+  </data>
+  <data name="Error.reporting.forbidden" xml:space="preserve">
+    <value>You do not have access to the reports.</value>
+  </data>
+  <data name="Error.reporting.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.reporting.snapshot.future_day" xml:space="preserve">
+    <value>Snapshots are only computed for past days, up to yesterday (Tunis time).</value>
+  </data>
+  <data name="Error.reporting.snapshot.concurrent_recompute" xml:space="preserve">
+    <value>These days were already being computed: try again in a moment.</value>
+  </data>
   <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
     <value>The actual pick-up cannot be in the future.</value>
   </data>
