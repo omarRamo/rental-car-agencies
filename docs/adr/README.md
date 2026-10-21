@@ -45,6 +45,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0037](0037-vitrine-anti-abus-et-mesure-entonnoir.md) | Vitrine : limitation de débit, Turnstile en échec fermé, mesure anonyme de l'entonnoir | Acceptée |
 | [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
 | [0043](0043-outbox-pompe-en-processus.md) | Outbox : déclenchement immédiat par une pompe en processus | Acceptée |
+| [0044](0044-caches-parametres-et-plans-publies.md) | Caches des paramètres et des plans publiés, vidés après chaque validation | Acceptée |
 
 ## Modèle
 
