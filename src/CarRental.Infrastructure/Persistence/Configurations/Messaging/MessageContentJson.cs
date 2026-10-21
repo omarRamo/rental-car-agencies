@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -11,8 +10,9 @@ namespace CarRental.Infrastructure.Persistence.Configurations.Messaging;
 
 /// <summary>
 /// Storage format of a <see cref="MessageContent"/>: a small JSON object with a <c>kind</c> discriminator (the
-/// platform's own format, not Meta's), read back through the factories of the domain. Contents never change once
-/// created, so the comparer compares the JSON texts.
+/// platform's own format, not Meta's), read back through the <c>Restore</c> and <c>Received</c> factories of the domain,
+/// never validated again (a blank inbound text, or a content valid under older rules, stays readable). Contents never
+/// change once created, so the comparer compares the JSON texts.
 /// </summary>
 internal static class MessageContentJson
 {
@@ -122,28 +122,34 @@ internal static class MessageContentJson
         var kind = Text(root, "kind");
         return kind switch
         {
-            "text" => Valid(TextContent.Create(Text(root, "body"))),
-            "buttons" => Valid(ButtonsContent.Create(
+            "text" => TextContent.Restore(Text(root, "body")),
+            "buttons" => ButtonsContent.Restore(
                 Text(root, "body"),
-                [.. Array(root, "buttons").Select(b => Valid(ReplyButton.Create(Text(b, "id"), Text(b, "title"))))],
+                Array(root, "buttons").Select(b => ReplyButton.Restore(Text(b, "id"), Text(b, "title"))),
                 Text(root, "header"),
-                Text(root, "footer"))),
-            "list" => Valid(ListContent.Create(
+                Text(root, "footer")),
+            "list" => ListContent.Restore(
                 Text(root, "body"),
                 Text(root, "button"),
-                [
-                    .. Array(root, "sections").Select(s => Valid(ListSection.Create(
-                        Text(s, "title"),
-                        [.. Array(s, "rows").Select(r => Valid(ListRow.Create(Text(r, "id"), Text(r, "title"), Text(r, "description"))))]))),
-                ],
+                Array(root, "sections").Select(s => ListSection.Restore(
+                    Text(s, "title"),
+                    Array(s, "rows").Select(r => ListRow.Restore(Text(r, "id"), Text(r, "title"), Text(r, "description"))))),
                 Text(root, "header"),
-                Text(root, "footer"))),
-            "template" => Valid(TemplateContent.Create(Text(root, "name"), Text(root, "language"), [.. Array(root, "parameters").Select(p => p.GetString())])),
+                Text(root, "footer")),
+            "template" => TemplateContent.Restore(
+                Text(root, "name"),
+                Text(root, "language"),
+                Array(root, "parameters").Select(p => p.ValueKind == JsonValueKind.String ? p.GetString() : p.GetRawText())),
             "button_reply" => ReplyContent.ButtonChoice(Text(root, "id"), Text(root, "title")),
             "list_reply" => ReplyContent.ListChoice(Text(root, "id"), Text(root, "title"), Text(root, "description")),
-            "media" => MediaContent.Received(Enum.Parse<MediaKind>(Text(root, "media") ?? nameof(MediaKind.Document)), Text(root, "id")),
+            "media" => MediaContent.Received(
+                Enum.TryParse<MediaKind>(Text(root, "media"), ignoreCase: false, out var media) && Enum.IsDefined(media) ? media : MediaKind.Document,
+                Text(root, "id")),
             "unsupported" => UnsupportedContent.Received(Text(root, "type")),
-            _ => throw new InvalidOperationException($"Unknown stored message content kind '{kind}'."),
+
+            // Written by a later version of the platform: shown as a message the platform does not handle, never lost
+            // (a content is never written back, the comparer sees no change).
+            _ => UnsupportedContent.Received(kind),
         };
     }
 
@@ -159,8 +165,4 @@ internal static class MessageContentJson
 
     private static JsonElement[] Array(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Array ? [.. value.EnumerateArray()] : [];
-
-    /// <summary>A stored content was valid when written: failing to read it back is a bug or a corruption.</summary>
-    private static T Valid<T>(Result<T> result) =>
-        result.IsSuccess ? result.Value : throw new InvalidOperationException($"Stored message content is invalid ({result.Error.Code}).");
 }

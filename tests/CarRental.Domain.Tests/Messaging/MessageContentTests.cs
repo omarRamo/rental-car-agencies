@@ -144,6 +144,32 @@ public sealed class MessageContentTests
     }
 
     [Fact]
+    public void A_blank_inbound_text_is_kept_blank()
+    {
+        // Messages made of no-break or ideographic spaces only ("blank message" tricks).
+        var blank = TextContent.Received(" 　 ");
+
+        blank.Body.ShouldBeEmpty();
+        TextContent.Restore(blank.Body).ShouldBe(blank);
+    }
+
+    [Fact]
+    public void Stored_contents_are_restored_as_written_without_being_validated_again()
+    {
+        var buttons = ButtonsContent.Restore("", [ReplyButton.Restore("a", new string('t', 40)), ReplyButton.Restore("a", null)], null, "footer");
+        var list = ListContent.Restore("Choisissez", null, [ListSection.Restore(null, [ListRow.Restore("r1", "Tunis", null)]), ListSection.Restore(null, [])], null, null);
+        var template = TemplateContent.Restore("Old Name", "fr-FR", ["Amel", null]);
+
+        TextContent.Restore(null).Body.ShouldBeEmpty();
+        buttons.Buttons.Select(b => (b.Id, b.Title)).ShouldBe([("a", new string('t', 40)), ("a", "")]);
+        buttons.Footer.ShouldBe("footer");
+        list.ButtonText.ShouldBeEmpty();
+        list.Sections.Count.ShouldBe(2);
+        template.Name.ShouldBe("Old Name");
+        template.Parameters.ShouldBe(["Amel", ""]);
+    }
+
+    [Fact]
     public void A_content_never_prints_its_text()
     {
         TextContent.Create("Mon numéro de CIN est 08123456").Value.ToString().ShouldBe("Text");

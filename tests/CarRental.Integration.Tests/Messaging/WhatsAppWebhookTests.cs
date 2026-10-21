@@ -68,6 +68,23 @@ public sealed class WhatsAppWebhookTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task A_blank_text_is_kept_and_its_conversation_stays_readable()
+    {
+        var waId = NewWaId();
+        using var client = host.CreateClient();
+
+        (await PostAsync(client, Text(waId, " 　 "), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var conversation = await WaitForAsync(() => ConversationAsync(host, waId, Ct), c => c is not null, "the conversation", Ct);
+        var message = (await MessagesAsync(host, conversation!.Id, Ct)).ShouldHaveSingleItem();
+        message.Content.ShouldBeOfType<TextContent>().Body.ShouldBeEmpty();
+        await using var scope = host.CreateScope(Agent());
+        var details = await scope.ServiceProvider.GetRequiredService<CarRental.Application.Messaging.Inbox.WhatsAppInboxQueries>().GetAsync(conversation.Id, Ct);
+        details.IsSuccess.ShouldBeTrue();
+        details.Value.Messages.ShouldHaveSingleItem().Kind.ShouldBe(CarRental.Application.Messaging.Contracts.MessageKindInfo.Text);
+    }
+
+    [Fact]
     public async Task An_unsigned_or_wrongly_signed_delivery_is_refused_before_anything_is_stored()
     {
         var waId = NewWaId();

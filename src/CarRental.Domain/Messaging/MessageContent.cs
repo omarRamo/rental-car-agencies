@@ -12,7 +12,9 @@ namespace CarRental.Domain.Messaging;
 /// </summary>
 /// <remarks>
 /// <see cref="ToString"/> prints the kind only, so that a content never reaches a log by accident.
-/// [NotMapped] (BCL annotation): a value stored in one column of its message (JSON), never an entity of its own.
+/// [NotMapped] (BCL annotation): a value stored in one column of its message (JSON), never an entity of its own. A
+/// stored content is rebuilt through the <c>Restore</c> factories, never validated again: it was valid by the rules of
+/// its time (or received as is), and a message must stay readable when the rules change.
 /// </remarks>
 [NotMapped]
 public abstract record MessageContent
@@ -55,8 +57,11 @@ public sealed record TextContent : MessageContent
         return cleaned is null || cleaned.Length > MaxLength ? MessagingErrors.TextInvalid : new TextContent(cleaned);
     }
 
-    /// <summary>An inbound text, as received.</summary>
+    /// <summary>An inbound text, as received (possibly blank: a message of spaces only).</summary>
     public static TextContent Received(string? body) => new(MessageTexts.Truncate(MessageTexts.Clean(body) ?? string.Empty, MaxLength));
+
+    /// <summary>A text read back from storage, as it was written (never validated again).</summary>
+    public static TextContent Restore(string? body) => new(body ?? string.Empty);
 }
 
 /// <summary>A reply button of an interactive message: the id comes back in the customer's reply, the title is shown.</summary>
@@ -83,6 +88,9 @@ public sealed record ReplyButton
             ? MessagingErrors.ButtonsInvalid
             : new ReplyButton(cleanId, cleanTitle);
     }
+
+    /// <summary>A button read back from storage, as it was written (never validated again).</summary>
+    public static ReplyButton Restore(string? id, string? title) => new(id ?? string.Empty, title ?? string.Empty);
 }
 
 /// <summary>An interactive message with 1 to 3 reply buttons (one tap answers: fewer round trips, SPEC §11).</summary>
@@ -130,6 +138,13 @@ public sealed record ButtonsContent : MessageContent
             ? texts.Error
             : new ButtonsContent(cleanBody, [.. buttons], texts.Value.Header, texts.Value.Footer);
     }
+
+    /// <summary>An interactive message read back from storage, as it was written (never validated again).</summary>
+    public static ButtonsContent Restore(string? body, IEnumerable<ReplyButton> buttons, string? header, string? footer)
+    {
+        ArgumentNullException.ThrowIfNull(buttons);
+        return new ButtonsContent(body ?? string.Empty, [.. buttons], header, footer);
+    }
 }
 
 /// <summary>A row of an interactive list.</summary>
@@ -163,6 +178,9 @@ public sealed record ListRow
             ? MessagingErrors.ListInvalid
             : new ListRow(cleanId, cleanTitle, cleanDescription);
     }
+
+    /// <summary>A row read back from storage, as it was written (never validated again).</summary>
+    public static ListRow Restore(string? id, string? title, string? description) => new(id ?? string.Empty, title ?? string.Empty, description);
 }
 
 /// <summary>A section of an interactive list; its title is required when the list has several sections.</summary>
@@ -187,6 +205,13 @@ public sealed record ListSection
         return rows.Count == 0 || rows.Any(r => r is null) || cleanTitle?.Length > TitleMaxLength
             ? MessagingErrors.ListInvalid
             : new ListSection(cleanTitle, [.. rows]);
+    }
+
+    /// <summary>A section read back from storage, as it was written (never validated again).</summary>
+    public static ListSection Restore(string? title, IEnumerable<ListRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        return new ListSection(title, [.. rows]);
     }
 }
 
@@ -247,6 +272,13 @@ public sealed record ListContent : MessageContent
         return texts.IsFailure
             ? texts.Error
             : new ListContent(cleanBody, cleanButton, [.. sections], texts.Value.Header, texts.Value.Footer);
+    }
+
+    /// <summary>A list read back from storage, as it was written (never validated again).</summary>
+    public static ListContent Restore(string? body, string? buttonText, IEnumerable<ListSection> sections, string? header, string? footer)
+    {
+        ArgumentNullException.ThrowIfNull(sections);
+        return new ListContent(body ?? string.Empty, buttonText ?? string.Empty, [.. sections], header, footer);
     }
 }
 
@@ -315,6 +347,13 @@ public sealed partial record TemplateContent : MessageContent
         }
 
         return new TemplateContent(cleanName, cleanLanguage, values);
+    }
+
+    /// <summary>A template message read back from storage, as it was written (never validated again).</summary>
+    public static TemplateContent Restore(string? name, string? language, IEnumerable<string?> parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return new TemplateContent(name ?? string.Empty, language ?? string.Empty, [.. parameters.Select(p => p ?? string.Empty)]);
     }
 
     [GeneratedRegex("^[a-z0-9_]+$", RegexOptions.CultureInvariant)]
