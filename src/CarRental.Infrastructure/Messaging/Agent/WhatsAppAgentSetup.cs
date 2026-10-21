@@ -20,7 +20,8 @@ namespace CarRental.Infrastructure.Messaging.Agent;
 /// <summary>
 /// The adapters of the WhatsApp agent: the model (<c>Ai:Mode</c>: Claude API, Microsoft Foundry, the scripted fake or
 /// none) behind <see cref="IAgentModel"/>, the embedded system prompt, the pilot audience, the links of the public site,
-/// and the bot turn executor (background pump, SQL Server lock per conversation, wake-ups after commits).
+/// the bot turn executor (background pump, SQL Server lock per conversation, wake-ups after commits) and its readiness
+/// entry <c>whatsapp</c>.
 /// </summary>
 public static class WhatsAppAgentSetup
 {
@@ -62,6 +63,8 @@ public static class WhatsAppAgentSetup
             services.AddHostedService<BotTurnPump>();
         }
 
+        // Outside the outbox, a stuck bot is seen by its own entry (published and alerted like every entry, ADR-0060).
+        services.AddHealthChecks().AddCheck<WhatsAppHealthCheck>("whatsapp", tags: [HealthTags.Ready]);
         return services;
     }
 
