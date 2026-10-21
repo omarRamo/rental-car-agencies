@@ -1,4 +1,6 @@
+using CarRental.Application.Bookings.Notifications;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Web.Components.Emails;
 using CarRental.Web.Components.Public;
 using CarRental.Web.Components.Public.Search;
 using CarRental.Web.Components.Public.Site;
@@ -7,7 +9,7 @@ using CarRental.Web.Hosting;
 
 namespace CarRental.Web.Endpoints.PublicSite;
 
-/// <summary>Composition of the public site (package 2A): one call for the services, one for the endpoints.</summary>
+/// <summary>Composition of the public site (packages 2A and 2C): one call for the services, one for the endpoints.</summary>
 public static class PublicSiteSetup
 {
     public static IServiceCollection AddPublicSite(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
@@ -22,19 +24,28 @@ public static class PublicSiteSetup
         services.AddScoped<PublicSearchService>();
         services.AddScoped<FeaturedOffers>();
         services.AddScoped<FunnelTracker>();
+        services.AddSingleton<PublicBookingCookies>();
+        services.AddScoped<ICustomerEmailComposer, CustomerEmailComposer>();
+        services.AddOptions<PublicApiOptions>().Bind(configuration.GetSection(PublicApiOptions.SectionName));
         services.AddPublicRateLimiting(configuration);
         services.AddTurnstile(configuration, environment);
         services.AddCacheablePublicPages();
         return services;
     }
 
-    /// <summary>sitemap.xml, robots.txt, the public read API and the "Choose" action of the results.</summary>
+    /// <summary>
+    /// sitemap.xml, robots.txt, the public read and quote APIs, the "Choose" action of the results, the forms of the booking
+    /// funnel and of "Ma réservation".
+    /// </summary>
     public static IEndpointRouteBuilder MapPublicSite(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapSeoEndpoints();
         endpoints.MapPublicAvailabilityApi();
+        endpoints.MapPublicQuoteApi();
         endpoints.MapBookingSelection();
+        endpoints.MapBookingFunnel();
+        endpoints.MapMyBooking();
         return endpoints;
     }
 

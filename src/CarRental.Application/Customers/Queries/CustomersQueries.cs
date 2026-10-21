@@ -147,6 +147,57 @@ internal sealed class CustomersQueries(IAppDbContext db, IUserContext userContex
         CancellationToken cancellationToken = default) =>
         eligibility.CheckAsync(personId, pickupAt, returnAt, agencyId, cancellationToken);
 
+    public Task<SubmittedDriverCheck> CheckSubmittedDriverAsync(
+        SubmittedDriverDetails driver,
+        DateTimeOffset pickupAt,
+        DateTimeOffset returnAt,
+        Guid? agencyId = null,
+        CancellationToken cancellationToken = default) =>
+        eligibility.CheckSubmittedAsync(driver, pickupAt, returnAt, agencyId, cancellationToken);
+
+    public async Task<BookingContactInfo?> GetBookingContactAsync(Guid personId, Guid bookingId, CancellationToken cancellationToken = default)
+    {
+        var typed = await db.Set<DriverSubmission>()
+            .AsNoTracking()
+            .Where(s => s.PersonId == personId && s.BookingId == bookingId && s.FirstName != null && s.LastName != null)
+            .OrderBy(s => s.SubmittedAtUtc)
+            .Select(s => new { s.FirstName, s.LastName, s.Email, s.Phone })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (typed is not null)
+        {
+            return new BookingContactInfo(typed.FirstName!, typed.LastName!, typed.Email, typed.Phone);
+        }
+
+        var person = await db.Set<Person>()
+            .AsNoTracking()
+            .Where(p => p.Id == personId && p.AnonymizedAtUtc == null)
+            .Select(p => new { p.FirstName, p.LastName, p.Email, p.Phone })
+            .FirstOrDefaultAsync(cancellationToken);
+        return person is null ? null : new BookingContactInfo(person.FirstName, person.LastName, person.Email, person.Phone);
+    }
+
+    public async Task<IReadOnlyList<DriverSubmissionInfo>> GetDriverSubmissionsAsync(
+        Guid personId,
+        Guid? bookingId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var submissions = await db.Set<DriverSubmission>()
+            .AsNoTracking()
+            .Where(s => s.PersonId == personId && (bookingId == null || s.BookingId == bookingId))
+            .OrderBy(s => s.SubmittedAtUtc)
+            .ToListAsync(cancellationToken);
+        return
+        [
+            .. submissions.Select(s => new DriverSubmissionInfo(
+                s.Id,
+                s.PersonId,
+                s.BookingId,
+                (DriverSubmissionStateInfo)(int)s.State,
+                s.SubmittedAtUtc,
+                [.. s.Documents.Select(d => new SubmittedDocumentInfo(d.Id, d.Type.ToInfo(), d.HasDetails, d.HasFrontImage, d.HasBackImage))])),
+        ];
+    }
+
     private static CustomerInfo ToCompanyInfo(Customer company) => new(
         company.Id,
         CustomerKindInfo.Company,

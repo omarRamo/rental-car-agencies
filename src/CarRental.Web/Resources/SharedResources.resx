@@ -1545,4 +1545,94 @@
   <data name="Error.handover.contract.language_invalid" xml:space="preserve">
     <value>Le contrat est rédigé en français ou en anglais.</value>
   </data>
+  <data name="Error.customers.staged_image.not_found" xml:space="preserve">
+    <value>Une photo envoyée n'est plus disponible (déjà utilisée ou expirée) : envoyez-la de nouveau.</value>
+  </data>
+  <data name="Error.customers.submission.not_found" xml:space="preserve">
+    <value>Ce dépôt en ligne n'existe pas.</value>
+  </data>
+  <data name="Error.customers.submission.empty" xml:space="preserve">
+    <value>Un dépôt contient les informations du conducteur ou au moins une photo de pièce.</value>
+  </data>
+  <data name="Error.customers.submission.consent_required" xml:space="preserve">
+    <value>Le consentement au traitement des pièces d'identité est nécessaire pour les envoyer.</value>
+  </data>
+  <data name="Error.customers.submission.not_pending" xml:space="preserve">
+    <value>Ce dépôt a déjà été traité.</value>
+  </data>
+  <data name="Error.customers.submission.document_missing" xml:space="preserve">
+    <value>Des photos ont été envoyées pour une pièce absente de la fiche : saisissez d'abord la pièce, puis acceptez le dépôt.</value>
+  </data>
+  <data name="Error.booking.validation.capture_unconfirmed" xml:space="preserve">
+    <value>La banque n'a pas encore confirmé la capture : la demande reste en attente ; validez de nouveau dans quelques minutes.</value>
+  </data>
+  <data name="Error.booking.validation.capture_rejected" xml:space="preserve">
+    <value>La banque a refusé la capture de la pré-autorisation : validez avec un lien de paiement.</value>
+  </data>
+  <data name="Error.booking.validation.payment_unavailable" xml:space="preserve">
+    <value>Le paiement ne peut pas être capturé maintenant (passerelle indisponible ou opération en cours) : réessayez.</value>
+  </data>
+  <data name="Error.booking.drivers.submission_pending" xml:space="preserve">
+    <value>Des pièces déposées en ligne attendent d'être vérifiées : acceptez-les ou écartez-les d'abord sur la fiche du conducteur.</value>
+  </data>
+  <data name="Error.booking.funnel.session_not_found" xml:space="preserve">
+    <value>Ce lien de réservation est inconnu ou a expiré : relancez votre recherche.</value>
+  </data>
+  <data name="Error.booking.funnel.session_expired" xml:space="preserve">
+    <value>Votre sélection a expiré (le prix était garanti 24 heures) : relancez la recherche.</value>
+  </data>
+  <data name="Error.booking.funnel.already_submitted" xml:space="preserve">
+    <value>Cette demande a déjà été envoyée.</value>
+  </data>
+  <data name="Error.booking.funnel.category_unavailable" xml:space="preserve">
+    <value>Cette catégorie n'est plus disponible pour ces dates : choisissez-en une autre.</value>
+  </data>
+  <data name="Error.booking.funnel.drivers_required" xml:space="preserve">
+    <value>Renseignez d'abord les conducteurs (étape 2).</value>
+  </data>
+  <data name="Error.booking.funnel.document_consent_required" xml:space="preserve">
+    <value>Votre consentement au traitement de vos pièces d'identité est nécessaire pour envoyer la demande.</value>
+  </data>
+  <data name="Error.booking.funnel.terms_required" xml:space="preserve">
+    <value>Acceptez les conditions générales de location pour envoyer la demande.</value>
+  </data>
+  <data name="Error.booking.funnel.verification_failed" xml:space="preserve">
+    <value>La vérification anti-robot a échoué : réessayez.</value>
+  </data>
+  <data name="Error.booking.funnel.upload_slot_invalid" xml:space="preserve">
+    <value>Emplacement de photo inconnu.</value>
+  </data>
+  <data name="Error.booking.funnel.upload_limit" xml:space="preserve">
+    <value>Trop de photos ont été envoyées pour cette réservation : contactez l'agence.</value>
+  </data>
+  <data name="Error.booking.funnel.drivers_not_eligible" xml:space="preserve">
+    <value>Un conducteur ne remplit pas les conditions de location.</value>
+  </data>
+  <data name="Error.booking.access.invalid" xml:space="preserve">
+    <value>Ce lien ou ce code n'est pas (ou plus) valable : demandez-en un nouveau.</value>
+  </data>
+  <data name="Error.booking.access.locked" xml:space="preserve">
+    <value>Trop de codes erronés : demandez un nouveau lien.</value>
+  </data>
+  <data name="Error.booking.access.session_required" xml:space="preserve">
+    <value>Ouvrez votre réservation avec le lien ou le code reçu par e-mail.</value>
+  </data>
+  <data name="Error.booking.access.cancellation_not_allowed" xml:space="preserve">
+    <value>Cette réservation ne peut plus être annulée en ligne : contactez l'agence.</value>
+  </data>
+  <data name="Error.booking.access.nothing_to_pay" xml:space="preserve">
+    <value>Il ne reste rien à payer en ligne pour cette réservation.</value>
+  </data>
+  <data name="Error.booking.access.payment_unavailable" xml:space="preserve">
+    <value>Le paiement en ligne n'est pas disponible pour le moment : contactez l'agence.</value>
+  </data>
+  <data name="Error.booking.access.documents_not_expected" xml:space="preserve">
+    <value>Il n'est plus possible d'envoyer des pièces pour cette réservation : contactez l'agence.</value>
+  </data>
+  <data name="Error.booking.access.document_not_found" xml:space="preserve">
+    <value>Ce document n'est pas disponible.</value>
+  </data>
+  <data name="Error.booking.access.no_contact_email" xml:space="preserve">
+    <value>Le conducteur principal n'a pas d'adresse e-mail : ajoutez-la d'abord sur sa fiche.</value>
+  </data>
 </root>

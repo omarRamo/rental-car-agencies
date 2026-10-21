@@ -61,13 +61,16 @@ public interface IBookingPaymentStatus
 /// <summary>
 /// A web or WhatsApp request to create: from <see cref="LockedQuoteCode"/> or from <see cref="Price"/> (exactly one),
 /// with its attribution (deep link <c>src</c> and UTM parameters) and an optional note of the customer.
+/// <see cref="BookingId"/> lets the public funnel choose the id beforehand: the drivers' submissions are registered
+/// for it before the request exists (ADR-0050).
 /// </summary>
 public sealed record BookingRequestDraft(
     SalesChannel Channel,
     string? LockedQuoteCode = null,
     PriceRequest? Price = null,
     RequestAttributionInfo? Attribution = null,
-    string? Notes = null);
+    string? Notes = null,
+    Guid? BookingId = null);
 
 /// <summary>Where a request came from: the <c>src</c> parameter of the deep link and the UTM parameters.</summary>
 public sealed record RequestAttributionInfo(

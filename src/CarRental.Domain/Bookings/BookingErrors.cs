@@ -163,4 +163,21 @@ public static class BookingErrors
     public static readonly Error QuotePriceChanged = Error.Conflict(
         "booking.quote.price_changed",
         "The price changed since it was shown: check the new price and confirm again.");
+
+    // Validation of a web request and its payment (phase 2, ADR-0051)
+    public static readonly Error CaptureUnconfirmed = Error.Conflict(
+        "booking.validation.capture_unconfirmed",
+        "The bank has not confirmed the capture yet: the request stays pending; validate again in a few minutes.");
+
+    public static readonly Error CaptureRejected = Error.Conflict(
+        "booking.validation.capture_rejected",
+        "The bank refused the capture of the pre-authorization: validate with a payment link instead.");
+
+    public static readonly Error PaymentUnavailable = Error.Failure(
+        "booking.validation.payment_unavailable",
+        "The payment could not be captured now (gateway unavailable or an operation in progress): try again.");
+
+    public static readonly Error SubmissionPending = Error.Conflict(
+        "booking.drivers.submission_pending",
+        "Documents sent online wait for a review: accept or reject them on the driver's page first.");
 }

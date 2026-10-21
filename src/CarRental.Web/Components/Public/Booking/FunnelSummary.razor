@@ -1,0 +1,109 @@
+@* The recapitulation of a funnel session, from its locked quote only (priced by the pricing engine, never by the page):
+   vehicle, places and dates, every line of the price TTC, the total first, then the price per day, the indicative euro
+   equivalent, the deposit (reduced with the franchise waiver) and until when the price is guaranteed. *@
+@using CarRental.Application.Bookings.Administration
+@using CarRental.Web.Components.Admin.Pricing
+@using CarRental.Web.Resources.Admin.Pricing
+@inject IStringLocalizer<BookingResources> L
+@inject IStringLocalizer<QuoteResources> QuoteTexts
+
+<section class="funnel-summary" aria-labelledby="summary-heading">
+    <h2 id="summary-heading" class="funnel-summary__title">@L["Summary.Title"]</h2>
+    @if (_category is not null)
+    {
+        <p class="funnel-summary__vehicle">
+            <strong>@_category.Name</strong> <span class="offer__code">@_category.AcrissCode</span><br />
+            <span class="funnel-summary__model">@L["Summary.OrSimilar", _category.ExampleModel]</span>
+        </p>
+    }
+    <dl class="funnel-summary__trip">
+        <div>
+            <dt>@L["Summary.Pickup"]</dt>
+            <dd>@_pickup — @Instant(View.PickupAt)</dd>
+        </div>
+        <div>
+            <dt>@L["Summary.Return"]</dt>
+            <dd>@_return — @Instant(View.ReturnAt)</dd>
+        </div>
+        <div>
+            <dt>@L["Summary.Duration"]</dt>
+            <dd>@(View.Quote.Days == 1 ? L["Summary.Days.One"] : L["Summary.Days.Other", View.Quote.Days])</dd>
+        </div>
+    </dl>
+
+    <table class="price-table">
+        <caption class="visually-hidden">@L["Summary.PriceDetail"]</caption>
+        <thead class="visually-hidden">
+            <tr>
+                <th scope="col">@L["Summary.Line"]</th>
+                <th scope="col">@L["Summary.Amount"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in View.Quote.Lines)
+            {
+                <tr>
+                    <th scope="row">
+                        @Label(line)
+                        @if (line.Quantity > 1)
+                        {
+                            <span class="price-table__detail">@L["Summary.LineDetail", line.Quantity, PublicFormat.Price(line.UnitPrice)]</span>
+                        }
+                    </th>
+                    <td>@PublicFormat.Price(line.InclVat)</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="price-table__total">
+                <th scope="row">@L["Summary.Total"]</th>
+                <td data-testid="funnel-total">@PublicFormat.Price(View.Quote.TotalInclVat)</td>
+            </tr>
+        </tfoot>
+    </table>
+    <p class="funnel-summary__included">@L["Summary.Included"]</p>
+    <p class="funnel-summary__daily">@L["Summary.PerDay", PublicFormat.Price(View.PerDay)]</p>
+    @if (PublicFormat.EuroEquivalent(View.Quote.TotalInclVat, EurRate) is { } euros)
+    {
+        <p class="funnel-summary__eur">@L["Summary.Euro", PublicFormat.Euros(euros)]</p>
+    }
+    @if (View.Quote.IncludesFranchiseWaiver && View.StandardDeposit > View.Quote.Deposit)
+    {
+        <p class="funnel-summary__deposit">@L["Summary.DepositReduced", PublicFormat.Price(View.Quote.Deposit), PublicFormat.Price(View.StandardDeposit)]</p>
+    }
+    else
+    {
+        <p class="funnel-summary__deposit">@L["Summary.Deposit", PublicFormat.Price(View.Quote.Deposit)]</p>
+    }
+    <p class="funnel-summary__guarantee">@L["Summary.PriceGuaranteed", Instant(View.ExpiresAtUtc)]</p>
+    <p class="funnel-summary__code">@L["Summary.QuoteCode", View.QuoteCode]</p>
+</section>
+
+@code {
+    private VehicleCategoryInfo? _category;
+    private string _pickup = string.Empty;
+    private string _return = string.Empty;
+
+    [Parameter, EditorRequired]
+    public FunnelView View { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PublicAgency Agency { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Culture { get; set; } = string.Empty;
+
+    private decimal EurRate => Agency.EurExchangeRate;
+
+    protected override void OnParametersSet()
+    {
+        _category = Agency.Categories.FirstOrDefault(c => c.Id == View.CategoryId);
+        _pickup = Agency.Locations.FirstOrDefault(l => l.Id == View.PickupLocationId)?.Name ?? string.Empty;
+        _return = Agency.Locations.FirstOrDefault(l => l.Id == View.ReturnLocationId)?.Name ?? _pickup;
+    }
+
+    private string Instant(DateTimeOffset instant) => L["Summary.DateTime", PublicFormat.TunisLocal(instant)];
+
+    /// <summary>The label of a quote line in the language of the page (an extra by its English name in English).</summary>
+    private string Label(QuoteLineView line) => PricingDisplay.QuoteLabel(QuoteTexts, line.LabelKey, line.LabelArguments);
+}

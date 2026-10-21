@@ -256,7 +256,7 @@
     <value>Same names on the document, the licence and the request</value>
   </data>
   <data name="Check.Payment" xml:space="preserve">
-    <value>Payment pre-authorisation</value>
+    <value>Online payment (Clic to Pay)</value>
   </data>
   <data name="Check.Validity" xml:space="preserve">
     <value>Documents valid until the return, international permit when needed</value>
@@ -271,7 +271,7 @@
     <value>checked</value>
   </data>
   <data name="CheckState.Pending" xml:space="preserve">
-    <value>phase 2 (Clic to Pay)</value>
+    <value>waiting</value>
   </data>
   <data name="Column.Category" xml:space="preserve">
     <value>Category</value>
@@ -1442,5 +1442,74 @@
   </data>
   <data name="Reason.booking.reason.channel" xml:space="preserve">
     <value>Modified or cancelled by the sales channel.</value>
+  </data>
+  <data name="Reason.booking.reason.customer_cancelled" xml:space="preserve">
+    <value>Cancelled by the customer from "My booking".</value>
+  </data>
+  <data name="Check.Payment.None" xml:space="preserve">
+    <value>No online payment: the validation will send a payment link to the customer.</value>
+  </data>
+  <data name="Check.Payment.NoneLinkMode" xml:space="preserve">
+    <value>Fallback mode: the customer will pay through a link after the validation.</value>
+  </data>
+  <data name="Check.Payment.AwaitingCustomer" xml:space="preserve">
+    <value>Payment in progress on the customer's side: nothing confirmed by the bank yet.</value>
+  </data>
+  <data name="Check.Payment.PreAuthorized" xml:space="preserve">
+    <value>Pre-authorization of {0} obtained: it will be captured at the validation.</value>
+  </data>
+  <data name="Check.Payment.Failed" xml:space="preserve">
+    <value>Payment refused or abandoned: the validation will send a payment link.</value>
+  </data>
+  <data name="Check.Payment.Expired" xml:space="preserve">
+    <value>Payment not made in time: the validation will send a payment link.</value>
+  </data>
+  <data name="Check.Payment.Captured" xml:space="preserve">
+    <value>Payment of {0} captured.</value>
+  </data>
+  <data name="Check.Payment.Released" xml:space="preserve">
+    <value>Pre-authorization released: the validation will send a payment link.</value>
+  </data>
+  <data name="Check.Payment.Refunded" xml:space="preserve">
+    <value>Payment refunded.</value>
+  </data>
+  <data name="Check.Payment.PaidLate" xml:space="preserve">
+    <value>A payment arrived after its attempt had expired: check it in the online payments.</value>
+  </data>
+  <data name="Check.Documents.SubmissionPending" xml:space="preserve">
+    <value>{0}: documents sent online to review (known customer, the record was not changed).</value>
+  </data>
+  <data name="Check.Documents.Review" xml:space="preserve">
+    <value>Review the documents sent</value>
+  </data>
+  <data name="Action.ValidateWithLink" xml:space="preserve">
+    <value>Validate with a payment link</value>
+  </data>
+  <data name="Validate.WithLink.Title" xml:space="preserve">
+    <value>Validate with a payment link</value>
+  </data>
+  <data name="Validate.WithLink.Message" xml:space="preserve">
+    <value>Request {0} will be validated awaiting payment: a payment link valid until the deadline is sent to the customer.</value>
+  </data>
+  <data name="Action.SendCompleteFileLink" xml:space="preserve">
+    <value>Send the "Complete my file" link</value>
+  </data>
+  <data name="CompleteFileLink.Title" xml:space="preserve">
+    <value>Send the "Complete my file" link</value>
+  </data>
+  <data name="CompleteFileLink.Message" xml:space="preserve">
+    <value>The main driver receives by e-mail a single-use link that opens the documents of this file directly.</value>
+  </data>
+  <data name="CompleteFileLink.Language" xml:space="preserve">
+    <value>Language of the e-mail</value>
+  </data>
+  <data name="CompleteFileLink.Sent" xml:space="preserve">
+    <value>Link sent to the main driver.</value>
+  </data>
+  <data name="Language.fr" xml:space="preserve">
+    <value>French</value>
+  </data>
+  <data name="Language.en" xml:space="preserve">
+    <value>English</value>
   </data>
 </root>

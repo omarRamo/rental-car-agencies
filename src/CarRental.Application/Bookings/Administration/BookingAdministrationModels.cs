@@ -4,6 +4,7 @@ using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
+using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Bookings.Quotes;
 using CarRental.Domain.Common;
 using QuoteLineKind = CarRental.Domain.Bookings.Quotes.QuoteLineKind;
@@ -229,11 +230,23 @@ public enum ChecklistItemKind
     Payment = 7,
 }
 
-/// <summary>An item of the checklist and the details shown with it (eligibility issues, driver names).</summary>
-public sealed record ChecklistItem(ChecklistItemKind Kind, ChecklistState State, IReadOnlyList<ChecklistDetail> Details);
+/// <summary>
+/// An item of the checklist and the details shown with it (eligibility issues, driver names); the payment item carries
+/// the state of the online payment of the request.
+/// </summary>
+public sealed record ChecklistItem(ChecklistItemKind Kind, ChecklistState State, IReadOnlyList<ChecklistDetail> Details, ChecklistPayment? Payment = null);
 
-/// <summary>A detail of a checklist item: the driver it concerns and an eligibility issue, when any.</summary>
-public sealed record ChecklistDetail(string DriverName, EligibilityIssueInfo? Issue);
+/// <summary>
+/// A detail of a checklist item: the driver it concerns and an eligibility issue, when any;
+/// <see cref="SubmissionPending"/> when documents sent online for the request wait for a review (driver's page).
+/// </summary>
+public sealed record ChecklistDetail(string DriverName, EligibilityIssueInfo? Issue, bool SubmissionPending = false, Guid? PersonId = null);
+
+/// <summary>
+/// The payment item of the checklist: where the online payment of the request stands (kept from the Payments module),
+/// the amount held or taken, a payment made after its expiry, and the payment mode of the validation.
+/// </summary>
+public sealed record ChecklistPayment(RequestPaymentState State, Money? Amount, bool PaidLate, BookingValidationPaymentMode Mode);
 
 /// <summary>The pre-filled validation checklist of a web request.</summary>
 public sealed record RequestChecklist(Guid BookingId, IReadOnlyList<ChecklistItem> Items, IReadOnlyList<DriverView> Drivers)

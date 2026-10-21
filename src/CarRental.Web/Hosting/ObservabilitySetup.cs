@@ -36,7 +36,18 @@ internal static class ObservabilitySetup
         });
 
         builder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>
-            options.Filter = context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase));
+        {
+            options.Filter = context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+
+            // The addresses of the booking funnel and of "Ma réservation" hold access tokens: never in the telemetry.
+            options.EnrichWithHttpRequest = (activity, request) =>
+            {
+                if (SecretPaths.Redact(request.Path.Value) is { } redacted)
+                {
+                    activity.SetTag("url.path", redacted);
+                }
+            };
+        });
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
         {
@@ -61,5 +72,38 @@ internal static class ObservabilitySetup
         }
 
         return builder;
+    }
+}
+
+/// <summary>
+/// Paths of the public site that hold an access token (a segment of 43 base64url characters: funnel sessions, links of
+/// "Ma réservation", ADR-0049 and ADR-0051), written <c>{token}</c> in the telemetry.
+/// </summary>
+public static class SecretPaths
+{
+    public const string Placeholder = "{token}";
+
+    private const int TokenLength = 43;
+
+    /// <summary>The path with its token segments replaced, or <see langword="null"/> when it holds none.</summary>
+    public static string? Redact(string? path)
+    {
+        if (string.IsNullOrEmpty(path) || path.Length < TokenLength)
+        {
+            return null;
+        }
+
+        var segments = path.Split('/');
+        var changed = false;
+        for (var index = 0; index < segments.Length; index++)
+        {
+            if (segments[index].Length == TokenLength && segments[index].All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
+            {
+                segments[index] = Placeholder;
+                changed = true;
+            }
+        }
+
+        return changed ? string.Join('/', segments) : null;
     }
 }

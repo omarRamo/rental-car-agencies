@@ -1,0 +1,27 @@
+@* What changed since the last display of a funnel page (the price was recalculated, a young driver supplement applies)
+   and the error of its last form, announced to assistive technologies and focused first. *@
+@inject IStringLocalizer<BookingResources> L
+@inject IServiceProvider Services
+
+@if (Error is not null)
+{
+    <div class="alert alert--error" role="alert" tabindex="-1" autofocus data-testid="funnel-error">
+        <p>@BookingFunnelEndpoints.ErrorText(Services, Error)</p>
+    </div>
+}
+@if (Notice is not null && !L[$"Notice.{Notice}"].ResourceNotFound)
+{
+    <div class="notice notice--info" role="status" data-testid="funnel-notice">
+        <p>@L[$"Notice.{Notice}"]</p>
+    </div>
+}
+
+@code {
+    /// <summary>The notice of the session (<c>price_updated</c>, <c>young_driver</c>), shown once.</summary>
+    [Parameter]
+    public string? Notice { get; set; }
+
+    /// <summary>The error code of the last form of the page.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+}

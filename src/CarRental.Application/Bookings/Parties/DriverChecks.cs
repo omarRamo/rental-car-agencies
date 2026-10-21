@@ -25,6 +25,21 @@ internal sealed class DriverChecks(ICustomersQueries customers)
         return false;
     }
 
+    /// <summary>True when documents sent online for this booking wait for an agent (a person already known: ADR-0050).</summary>
+    public async Task<bool> AnySubmissionPendingAsync(IEnumerable<Guid> driverIds, Guid bookingId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(driverIds);
+        foreach (var driverId in driverIds.Distinct())
+        {
+            if ((await customers.GetDriverSubmissionsAsync(driverId, bookingId, cancellationToken)).Any(s => s.IsPending))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>The eligibility of each driver for the rental, with the settings of the agency.</summary>
     public async Task<Result<IReadOnlyList<DriverEligibilityInfo>>> EligibilityAsync(
         IEnumerable<Guid> driverIds,

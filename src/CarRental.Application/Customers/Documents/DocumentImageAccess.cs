@@ -98,13 +98,21 @@ public sealed class DocumentImageAccess(
             return CustomersErrors.AccessPurposeInvalid;
         }
 
+        // A document of a person, or of a public submission waiting for an agent (ADR-0050): same viewer, same log.
         var document = await db.Set<Person>()
             .AsNoTracking()
             .Where(p => p.AnonymizedAtUtc == null)
             .SelectMany(p => p.Documents)
             .Where(d => d.Id == documentId)
             .Select(d => new { d.Type, d.FrontImage, d.BackImage })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await db.Set<DriverSubmission>()
+                .AsNoTracking()
+                .Where(s => s.State == DriverSubmissionState.Pending)
+                .SelectMany(s => s.Documents)
+                .Where(d => d.Id == documentId)
+                .Select(d => new { d.Type, d.FrontImage, d.BackImage })
+                .FirstOrDefaultAsync(cancellationToken);
         if (document is null)
         {
             return CustomersErrors.DocumentNotFound;

@@ -2,9 +2,12 @@ using CarRental.Application.Bookings;
 using CarRental.Application.Bookings.Administration;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Jobs;
+using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Bookings.Seeding;
 using CarRental.Application.Common.BackgroundJobs;
+using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Referential.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -51,7 +54,7 @@ public sealed class BookingsModuleTests
         {
             typeof(IBookingsQueries), typeof(IBookingRequests), typeof(IBookingPaymentStatus), typeof(QuickBookingService),
             typeof(BookingWorkflowService), typeof(BookingAmendmentService), typeof(VehicleAssignmentService), typeof(RentalLifecycleService),
-            typeof(BookingAdministrationQueries),
+            typeof(BookingAdministrationQueries), typeof(FunnelService), typeof(MyBookingService), typeof(CustomerLinkService),
         })
         {
             services.ShouldContain(d => d.ServiceType == type, type.Name);
@@ -59,7 +62,10 @@ public sealed class BookingsModuleTests
 
         services.Where(d => d.ServiceType == typeof(RecurringJobDescriptor))
             .Select(d => ((RecurringJobDescriptor)d.ImplementationInstance!).JobId)
-            .ShouldBe(["bookings.expire", "bookings.escalate"], ignoreOrder: true);
+            .ShouldBe(["bookings.expire", "bookings.escalate", "bookings.purge_public_access"], ignoreOrder: true);
+        services.Count(d => d.ServiceType == typeof(IOutboxHandler<BookingStatusChanged>)).ShouldBe(3, "release, payment link, notifications");
+        services.ShouldContain(d => d.ServiceType == typeof(IOutboxHandler<OnlinePaymentStatusChanged>));
+        services.ShouldContain(d => d.ServiceType == typeof(IOutboxHandler<BookingCustomerNotification>));
         services.ShouldContain(d => d.ServiceType == typeof(BookingExpiryJob));
         services.ShouldContain(d => d.ServiceType == typeof(IDataSeeder) && d.ImplementationType == typeof(BookingsDemoSeeder));
     }

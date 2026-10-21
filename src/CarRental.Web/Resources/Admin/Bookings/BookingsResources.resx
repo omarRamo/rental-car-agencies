@@ -256,7 +256,7 @@
     <value>Mêmes noms sur la pièce, le permis et la demande</value>
   </data>
   <data name="Check.Payment" xml:space="preserve">
-    <value>Pré-autorisation du paiement</value>
+    <value>Paiement en ligne (Clic to Pay)</value>
   </data>
   <data name="Check.Validity" xml:space="preserve">
     <value>Documents valables jusqu'au retour, permis international si nécessaire</value>
@@ -271,7 +271,7 @@
     <value>vérifié</value>
   </data>
   <data name="CheckState.Pending" xml:space="preserve">
-    <value>phase 2 (Clic to Pay)</value>
+    <value>en attente</value>
   </data>
   <data name="Column.Category" xml:space="preserve">
     <value>Catégorie</value>
@@ -1442,5 +1442,74 @@
   </data>
   <data name="Reason.booking.reason.channel" xml:space="preserve">
     <value>Modifiée ou annulée par le canal de vente.</value>
+  </data>
+  <data name="Reason.booking.reason.customer_cancelled" xml:space="preserve">
+    <value>Annulée par le client depuis « Ma réservation ».</value>
+  </data>
+  <data name="Check.Payment.None" xml:space="preserve">
+    <value>Aucun paiement en ligne : la validation enverra un lien de paiement au client.</value>
+  </data>
+  <data name="Check.Payment.NoneLinkMode" xml:space="preserve">
+    <value>Mode de repli : le client paiera par lien après la validation.</value>
+  </data>
+  <data name="Check.Payment.AwaitingCustomer" xml:space="preserve">
+    <value>Paiement en cours chez le client : rien n'est encore confirmé par la banque.</value>
+  </data>
+  <data name="Check.Payment.PreAuthorized" xml:space="preserve">
+    <value>Pré-autorisation de {0} obtenue : elle sera capturée à la validation.</value>
+  </data>
+  <data name="Check.Payment.Failed" xml:space="preserve">
+    <value>Paiement refusé ou abandonné : la validation enverra un lien de paiement.</value>
+  </data>
+  <data name="Check.Payment.Expired" xml:space="preserve">
+    <value>Paiement non effectué dans le délai : la validation enverra un lien de paiement.</value>
+  </data>
+  <data name="Check.Payment.Captured" xml:space="preserve">
+    <value>Paiement de {0} encaissé.</value>
+  </data>
+  <data name="Check.Payment.Released" xml:space="preserve">
+    <value>Pré-autorisation annulée : la validation enverra un lien de paiement.</value>
+  </data>
+  <data name="Check.Payment.Refunded" xml:space="preserve">
+    <value>Paiement remboursé.</value>
+  </data>
+  <data name="Check.Payment.PaidLate" xml:space="preserve">
+    <value>Un paiement est arrivé après l'expiration de sa tentative : vérifiez-le dans les paiements en ligne.</value>
+  </data>
+  <data name="Check.Documents.SubmissionPending" xml:space="preserve">
+    <value>{0} : pièces déposées en ligne à vérifier (client déjà connu, sa fiche n'a pas été modifiée).</value>
+  </data>
+  <data name="Check.Documents.Review" xml:space="preserve">
+    <value>Vérifier les pièces déposées</value>
+  </data>
+  <data name="Action.ValidateWithLink" xml:space="preserve">
+    <value>Valider avec un lien de paiement</value>
+  </data>
+  <data name="Validate.WithLink.Title" xml:space="preserve">
+    <value>Valider avec un lien de paiement</value>
+  </data>
+  <data name="Validate.WithLink.Message" xml:space="preserve">
+    <value>La demande {0} sera validée en attente de paiement : un lien de paiement valable jusqu'à l'échéance est envoyé au client.</value>
+  </data>
+  <data name="Action.SendCompleteFileLink" xml:space="preserve">
+    <value>Envoyer le lien « Compléter mon dossier »</value>
+  </data>
+  <data name="CompleteFileLink.Title" xml:space="preserve">
+    <value>Envoyer le lien « Compléter mon dossier »</value>
+  </data>
+  <data name="CompleteFileLink.Message" xml:space="preserve">
+    <value>Le conducteur principal reçoit par e-mail un lien à usage unique qui ouvre directement l'envoi des pièces de ce dossier.</value>
+  </data>
+  <data name="CompleteFileLink.Language" xml:space="preserve">
+    <value>Langue de l'e-mail</value>
+  </data>
+  <data name="CompleteFileLink.Sent" xml:space="preserve">
+    <value>Lien envoyé au conducteur principal.</value>
+  </data>
+  <data name="Language.fr" xml:space="preserve">
+    <value>Français</value>
+  </data>
+  <data name="Language.en" xml:space="preserve">
+    <value>Anglais</value>
   </data>
 </root>

@@ -324,4 +324,40 @@
   <data name="Setting.bookings.cleaning_fee.Help" xml:space="preserve">
     <value>Price, VAT included, proposed when the vehicle comes back dirty (reported by the agent at the return).</value>
   </data>
+  <data name="Setting.bookings.online_guarantee_ratio.Label" xml:space="preserve">
+    <value>Share guaranteed at the request</value>
+  </data>
+  <data name="Setting.bookings.online_guarantee_ratio.Help" xml:space="preserve">
+    <value>Share of the total incl. VAT pre-authorized on the customer's card when a web request is sent, between 0.01 and 1 (1 = the whole total). Guarantee policy by season and channel to be confirmed with the agency.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_link_validity.Label" xml:space="preserve">
+    <value>Validity of the "My booking" link</value>
+  </data>
+  <data name="Setting.bookings.my_booking_link_validity.Help" xml:space="preserve">
+    <value>How long the link and the 6-digit code sent on request can be used (once).</value>
+  </data>
+  <data name="Setting.bookings.complete_file_link_validity.Label" xml:space="preserve">
+    <value>Validity of the "Complete my file" link</value>
+  </data>
+  <data name="Setting.bookings.complete_file_link_validity.Help" xml:space="preserve">
+    <value>How long the link sent after an information request (or by an agent) can be used (once).</value>
+  </data>
+  <data name="Setting.bookings.my_booking_session_idle.Label" xml:space="preserve">
+    <value>Idle "My booking" session</value>
+  </data>
+  <data name="Setting.bookings.my_booking_session_idle.Help" xml:space="preserve">
+    <value>A session ends after this time without activity, and 24 hours after it opened in any case.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_code_attempts.Label" xml:space="preserve">
+    <value>Code attempts allowed</value>
+  </data>
+  <data name="Setting.bookings.my_booking_code_attempts.Help" xml:space="preserve">
+    <value>Number of wrong codes after which the access link and code can no longer be used.</value>
+  </data>
+  <data name="Setting.bookings.my_booking_requests_per_hour.Label" xml:space="preserve">
+    <value>Access e-mails per hour and per booking</value>
+  </data>
+  <data name="Setting.bookings.my_booking_requests_per_hour.Help" xml:space="preserve">
+    <value>Beyond that, access requests for the same booking get the same answer but no e-mail is sent (protection against e-mail bombing).</value>
+  </data>
 </root>

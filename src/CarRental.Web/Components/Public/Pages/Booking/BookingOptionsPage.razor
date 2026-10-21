@@ -1,0 +1,138 @@
+@page "/{culture:length(2)}/reserver/{Token}/options"
+@page "/{culture:length(2)}/book/{Token}/options"
+@* Step 1 of the booking funnel (ADR-0049): the selectable extras of the rate plan (franchise waiver, child seat, GPS…)
+   and the recapitulation, recalculated by the server from the locked quote. A change re-prices the rental and locks the
+   new quote for 24 hours (POST, then this page again: post/redirect/get); "Continue" saves the extras and goes to the
+   drivers. The additional driver follows the second driver of step 2. Records the options step once per session. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject FunnelTracker Tracker
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Options.Title"]" Description="@L["Options.Description"]" />
+
+<FunnelProgress Current="FunnelStep.Options" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
+
+<h1>@L["Options.Heading"]</h1>
+
+<FunnelNotice Notice="@_view.Notice" Error="@LastError" />
+
+<div class="funnel-layout">
+    <div class="funnel-layout__main">
+        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)" class="funnel-form" novalidate>
+            <AntiforgeryToken />
+            <fieldset class="options">
+                <legend class="options__legend">@L["Options.Legend"]</legend>
+                @if (_selectable.Count == 0)
+                {
+                    <p class="field-hint">@L["Options.None"]</p>
+                }
+                @foreach (var extra in _selectable)
+                {
+                    var id = $"extra-{extra.Code.ToLowerInvariant()}";
+                    var name = $"{BookingFunnelEndpoints.ExtraFieldPrefix}{extra.Code}";
+                    <div class="option">
+                        @if (extra.MaxQuantity > 1)
+                        {
+                            <div class="form-field option__quantity">
+                                <label for="@id">@ExtraName(extra)</label>
+                                <p class="field-hint" id="@($"{id}-hint")">@PriceText(extra)</p>
+                                <select id="@id" name="@name" aria-describedby="@($"{id}-hint")">
+                                    @for (var quantity = 0; quantity <= extra.MaxQuantity; quantity++)
+                                    {
+                                        <option value="@quantity" selected="@(quantity == extra.Quantity)">@(quantity == 0 ? L["Options.Quantity.None"] : quantity.ToString(CultureInfo.CurrentCulture))</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-check option__check">
+                                <input type="checkbox" id="@id" name="@name" value="1" checked="@(extra.Quantity > 0)" aria-describedby="@($"{id}-hint")" />
+                                <label for="@id">@ExtraName(extra)</label>
+                            </div>
+                            <p class="field-hint option__hint" id="@($"{id}-hint")">
+                                @PriceText(extra)
+                                @if (extra.Kind == ExtraKindInfo.FranchiseWaiver && _view.StandardDeposit > _view.ReducedDeposit)
+                                {
+                                    <br />@L["Options.Waiver.Deposit", PublicFormat.Price(_view.ReducedDeposit), PublicFormat.Price(_view.StandardDeposit)]
+                                }
+                            </p>
+                        }
+                    </div>
+                }
+                @if (_additionalDriver is not null)
+                {
+                    <p class="field-hint options__driver">@L["Options.AdditionalDriver", PriceText(_additionalDriver)]</p>
+                }
+            </fieldset>
+            <div class="funnel-actions">
+                <button type="submit" name="action" value="update" class="button button--secondary">@L["Options.Update"]</button>
+                <button type="submit" name="action" value="@BookingFunnelEndpoints.ContinueAction" class="button">@L["Options.Continue"]</button>
+            </div>
+        </form>
+        <p class="funnel-back"><a href="@SearchLink">@L["Options.ChangeSearch"]</a></p>
+    </div>
+    <aside class="funnel-layout__aside" aria-label="@L["Summary.Title"]">
+        <FunnelSummary View="_view" Agency="_agency!" Culture="@Lang" />
+    </aside>
+</div>
+
+@code {
+    private bool _ready;
+    private FunnelView? _view;
+    private PublicAgency? _agency;
+    private List<FunnelExtraView> _selectable = [];
+    private FunnelExtraView? _additionalDriver;
+
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private string SearchLink => PublicRoutes.PathFor(PublicPage.Results, Lang) + _view!.SearchQuery;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Options)))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        FunnelLookup lookup;
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
+        {
+            lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Options, Aborted);
+        }
+
+        if (lookup.View is not { } view || _agency is null)
+        {
+            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            return;
+        }
+
+        _view = view;
+        _selectable = [.. view.Extras.Where(e => e.Code != FunnelFields.AdditionalDriverExtra)];
+        _additionalDriver = view.Extras.FirstOrDefault(e => e.Code == FunnelFields.AdditionalDriverExtra);
+        if (view.FirstVisit)
+        {
+            await Tracker.TrackAsync(HttpContext, FunnelStepInfo.Options, TrafficOf(view.Attribution, view.Channel), view.CategoryCode, cancellationToken: Aborted);
+        }
+
+        _ready = true;
+    }
+
+    private string ExtraName(FunnelExtraView extra) => BookingRoutes.IsEnglish(Lang) && !string.IsNullOrWhiteSpace(extra.NameEn) ? extra.NameEn : extra.Name;
+
+    private string PriceText(FunnelExtraView extra)
+    {
+        var price = PublicFormat.Price(extra.Price);
+        var text = extra.Mode == ExtraPricingModeInfo.PerDay ? L["Options.Price.PerDay", price] : L["Options.Price.PerRental", price];
+        return extra.CapPerUnit is { } cap ? L["Options.Price.Capped", text, PublicFormat.Price(cap)] : text;
+    }
+
+}

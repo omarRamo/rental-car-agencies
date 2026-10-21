@@ -1,0 +1,75 @@
+@page "/{culture:length(2)}/reserver/redirection/{PaymentId:guid}"
+@page "/{culture:length(2)}/book/redirect/{PaymentId:guid}"
+@* The page between a form of the site and the payment page of the bank (ADR-0049): the CSP of the site only lets forms
+   post to the site (form-action 'self'), so a form never redirects to the bank; this GET page sends the browser there
+   at once (immediate meta refresh) and offers the link. Only for the browser of the request or of the "Ma réservation"
+   session the payment belongs to, while the payment page is open. *@
+@using CarRental.Application.Payments.Contracts
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject IOnlinePayments Payments
+@inject PublicBookingCookies Cookies
+@inject TimeProvider Clock
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+@if (_payment is { } payment)
+{
+    <PrivateHead Title="@L["Redirect.Title"]" Description="@L["Redirect.Description"]">
+        <meta http-equiv="refresh" content="@($"0;url={payment.PaymentPageUrl}")" />
+    </PrivateHead>
+    <section class="status-page" aria-labelledby="redirect-heading">
+        <h1 id="redirect-heading">@L["Redirect.Heading"]</h1>
+        <p>@L["Redirect.Text", PublicFormat.Price(payment.Amount)]</p>
+        <p><a class="button" href="@payment.PaymentPageUrl" data-testid="payment-redirect-link">@L["Redirect.Continue"]</a></p>
+        <p class="field-hint">@L["Redirect.Secure"]</p>
+    </section>
+}
+else
+{
+    <PrivateHead Title="@L["Redirect.Unavailable.Title"]" Description="@L["Redirect.Description"]" />
+    <section class="status-page" aria-labelledby="redirect-heading">
+        <h1 id="redirect-heading">@L["Redirect.Unavailable.Title"]</h1>
+        <p>@L["Redirect.Unavailable.Text"]</p>
+        <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Lang)">@L["Redirect.Unavailable.MyBooking"]</a></p>
+    </section>
+}
+
+@code {
+    private bool _ready;
+    private OnlinePaymentInfo? _payment;
+
+    [Parameter]
+    public Guid PaymentId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.PaymentRedirect(Lang, PaymentId)))
+        {
+            return;
+        }
+
+        var payment = await Payments.FindAsync(PaymentId, Aborted);
+        var owner = payment is not null
+                    && (Cookies.ReadRequest(HttpContext) == payment.BookingId || Cookies.ReadSession(HttpContext)?.BookingId == payment.BookingId);
+        if (owner
+            && payment!.Status == PaymentStatusInfo.Pending
+            && payment.PendingOperation is null
+            && payment.ExpiresAtUtc > Clock.GetUtcNow()
+            && IsPaymentPage(payment.PaymentPageUrl))
+        {
+            _payment = payment;
+        }
+
+        _ready = true;
+    }
+
+    /// <summary>An absolute https address of the bank, or a local page of the simulated gateway (development and tests).</summary>
+    private static bool IsPaymentPage(string? url) =>
+        url is not null
+        && ((Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            || CarRental.Web.Localization.LocalUrls.IsLocal(url));
+}

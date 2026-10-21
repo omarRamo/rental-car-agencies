@@ -126,8 +126,52 @@ public static class PublicRoutes
             segments[1] = TranslateSlug(segments[1], target);
         }
 
+        // Pages of the booking funnel and of "Ma réservation" (/fr/reserver/{token}/conducteurs → /en/book/{token}/drivers).
+        for (var index = 2; index < segments.Length; index++)
+        {
+            segments[index] = TranslateStepSlug(segments[index], target);
+        }
+
         segments[0] = target;
         return "/" + string.Join('/', segments) + query;
+    }
+
+    /// <summary>Slugs of the steps of the booking funnel and of the pages of "Ma réservation", in French and English.</summary>
+    private static readonly (string French, string English)[] StepSlugs =
+    [
+        ("conducteurs", "drivers"),
+        ("paiement", "payment"),
+        ("redirection", "redirect"),
+        ("dossier", "file"),
+        ("acces", "access"),
+        ("annulation", "cancellation"),
+    ];
+
+    /// <summary>The slug of a step of the booking funnel or of "Ma réservation" in <paramref name="culture"/> (<c>drivers</c>, <c>conducteurs</c>).</summary>
+    public static string StepSlug(string frenchSlug, string culture)
+    {
+        foreach (var (french, english) in StepSlugs)
+        {
+            if (string.Equals(french, frenchSlug, StringComparison.Ordinal))
+            {
+                return IsEnglish(culture) ? english : french;
+            }
+        }
+
+        return frenchSlug;
+    }
+
+    private static string TranslateStepSlug(string slug, string targetCulture)
+    {
+        foreach (var (french, english) in StepSlugs)
+        {
+            if (string.Equals(slug, french, StringComparison.OrdinalIgnoreCase) || string.Equals(slug, english, StringComparison.OrdinalIgnoreCase))
+            {
+                return IsEnglish(targetCulture) ? english : french;
+            }
+        }
+
+        return slug;
     }
 
     private static string TranslateSlug(string slug, string targetCulture)

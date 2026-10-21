@@ -1,0 +1,149 @@
+@* The fields of a driver in step 2 (ADR-0050), named {driver}.{field}: identity, contact (required for the main
+   driver), driving licence (with the international permit when the licence is not in latin script) and identity
+   document (CIN for a Tunisian, passport otherwise: the passport fields hide with CSS when Tunisia is chosen), then
+   the photos of the documents. Server-side validation only; each error is next to its field and in the summary. *@
+@using CarRental.Web.Resources
+@inject IStringLocalizer<BookingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<div class="driver-fields" id="@($"{Role}-driver")">
+    @if (_eligibility.Count > 0)
+    {
+        <div class="alert alert--error driver-fields__eligibility" id="@($"{Role}-eligibility")" tabindex="-1">
+            <p class="notice__title">@L["Drivers.Eligibility.Title"]</p>
+            <ul>
+                @foreach (var error in _eligibility)
+                {
+                    <li>@FunnelTexts.Message(L, Shared, error)</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="form-grid">
+        <FunnelTextField Id="@Id("first_name")" Name="@Name("first_name")" Label="@L["Field.first_name"]" Value="@Input?.FirstName"
+                         Error="@ErrorOf("first_name")" Autocomplete="@Auto("given-name")" AutoCapitalize="words" MaxLength="100" />
+        <FunnelTextField Id="@Id("last_name")" Name="@Name("last_name")" Label="@L["Field.last_name"]" Value="@Input?.LastName"
+                         Error="@ErrorOf("last_name")" Autocomplete="@Auto("family-name")" AutoCapitalize="words" MaxLength="100" />
+        <FunnelCountryField Id="@Id("nationality")" Name="@Name("nationality")" Label="@L["Field.nationality"]" Value="@Input?.Nationality"
+                            Error="@ErrorOf("nationality")" DataCountry="nationality" />
+        <FunnelTextField Id="@Id("birth_date")" Name="@Name("birth_date")" Label="@L["Field.birth_date"]" Type="date" Value="@Input?.BirthDate"
+                         Error="@ErrorOf("birth_date")" Autocomplete="@Auto("bday")" Hint="@L["Field.Date.Hint"]" />
+        <FunnelTextField Id="@Id("phone")" Name="@Name("phone")" Label="@L["Field.phone"]" Type="tel" Value="@Input?.Phone"
+                         Error="@ErrorOf("phone")" Autocomplete="@Auto("tel")" InputMode="tel" Hint="@L["Field.phone.Hint"]" Required="@ContactRequired" MaxLength="30" />
+        <FunnelTextField Id="@Id("email")" Name="@Name("email")" Label="@L["Field.email"]" Type="email" Value="@Input?.Email"
+                         Error="@ErrorOf("email")" Autocomplete="@Auto("email")" InputMode="email" Spellcheck="false" AutoCapitalize="off"
+                         Hint="@(ContactRequired ? L["Field.email.Hint"].Value : null)" Required="@ContactRequired" MaxLength="254" />
+    </div>
+
+    <h3 class="driver-fields__section">@L["Drivers.License"]</h3>
+    <div class="form-grid">
+        <FunnelTextField Id="@Id("license_number")" Name="@Name("license_number")" Label="@L["Field.license_number"]" Value="@Input?.LicenseNumber"
+                         Error="@ErrorOf("license_number")" Autocomplete="off" Spellcheck="false" AutoCapitalize="characters" MaxLength="40" />
+        <FunnelCountryField Id="@Id("license_country")" Name="@Name("license_country")" Label="@L["Field.license_country"]" Value="@Input?.LicenseCountry"
+                            Error="@ErrorOf("license_country")" />
+        <FunnelTextField Id="@Id("license_issued_on")" Name="@Name("license_issued_on")" Label="@L["Field.license_issued_on"]" Type="date"
+                         Value="@Input?.LicenseIssuedOn" Error="@ErrorOf("license_issued_on")" Hint="@L["Field.license_issued_on.Hint"]" />
+        <FunnelTextField Id="@Id("license_expires_on")" Name="@Name("license_expires_on")" Label="@L["Field.license_expires_on"]" Type="date"
+                         Value="@Input?.LicenseExpiresOn" Error="@ErrorOf("license_expires_on")" Required="false" />
+    </div>
+    <fieldset class="form-choice">
+        <legend>@L["Field.license_latin"]</legend>
+        <div class="form-check">
+            <input type="radio" id="@Id("license_latin-yes")" name="@Name(BookingFunnelEndpoints.LatinScriptSuffix)" value="1" checked="@_latin" />
+            <label for="@Id("license_latin-yes")">@L["Field.license_latin.Yes"]</label>
+        </div>
+        <div class="form-check">
+            <input type="radio" id="@Id("license_latin-no")" name="@Name(BookingFunnelEndpoints.LatinScriptSuffix)" value="0" checked="@(!_latin)" data-latin-no />
+            <label for="@Id("license_latin-no")">@L["Field.license_latin.No"]</label>
+        </div>
+    </fieldset>
+    <div class="driver-fields__permit">
+        <p class="field-hint">@L["Drivers.Permit.Hint"]</p>
+        <div class="form-grid">
+            <FunnelTextField Id="@Id("permit_number")" Name="@Name("permit_number")" Label="@L["Field.permit_number"]" Value="@Input?.PermitNumber"
+                             Error="@ErrorOf("permit_number")" Autocomplete="off" Spellcheck="false" AutoCapitalize="characters" MaxLength="40" />
+            <FunnelCountryField Id="@Id("permit_country")" Name="@Name("permit_country")" Label="@L["Field.permit_country"]" Value="@Input?.PermitCountry"
+                                Error="@ErrorOf("permit_country")" />
+            <FunnelTextField Id="@Id("permit_expires_on")" Name="@Name("permit_expires_on")" Label="@L["Field.permit_expires_on"]" Type="date"
+                             Value="@Input?.PermitExpiresOn" Error="@ErrorOf("permit_expires_on")" />
+        </div>
+    </div>
+
+    <h3 class="driver-fields__section">@L["Drivers.Identity"]</h3>
+    <p class="field-hint">@L["Drivers.Identity.Hint"]</p>
+    <div class="form-grid">
+        <FunnelTextField Id="@Id("identity_number")" Name="@Name("identity_number")" Label="@L["Field.identity_number"]" Value="@Input?.IdentityNumber"
+                         Error="@ErrorOf("identity_number")" Autocomplete="off" Spellcheck="false" AutoCapitalize="characters" MaxLength="40" />
+        <FunnelCountryField Id="@Id("identity_country")" Name="@Name("identity_country")" Label="@L["Field.identity_country"]" Value="@Input?.IdentityCountry"
+                            Error="@ErrorOf("identity_country")" Hint="@L["Field.identity_country.Hint"]" Required="false" Class="driver-fields__passport"
+                            Placeholder="@L["Field.identity_country.Same"]" />
+        <FunnelTextField Id="@Id("identity_expires_on")" Name="@Name("identity_expires_on")" Label="@L["Field.identity_expires_on"]" Type="date"
+                         Value="@Input?.IdentityExpiresOn" Error="@ErrorOf("identity_expires_on")" Hint="@L["Field.identity_expires_on.Hint"]" Required="false" />
+    </div>
+
+    @if (UploadUrl is not null)
+    {
+        <div class="photos" data-photos data-upload-url="@UploadUrl" hidden
+             data-text-sending="@L["Photo.Status.Sending"]" data-text-received="@L["Photo.Status.Received"]"
+             data-text-failed="@L["Photo.Status.Failed"]" data-text-too-large="@Shared["Error.customers.document_image.too_large"]"
+             data-text-type="@Shared["Error.customers.document_image.unsupported_type"]">
+            <h3 class="driver-fields__section">@L["Photos.Title"]</h3>
+            <p class="field-hint">@L["Photos.Hint"]</p>
+            <ul class="photo-slots">
+                @foreach (var (document, side) in Slots)
+                {
+                    var key = $"{Role}.{document}.{side}";
+                    <PhotoSlot Key="@key" Label="@L[$"Photo.{document}.{side}"]" Received="@Uploads.Contains(key)" Optional="@(document == "permit")" />
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>The photo slots of a driver: identity document and licence on both sides, international permit (identity page).</summary>
+    public static readonly (string Document, string Side)[] Slots =
+        [("identity", "front"), ("identity", "back"), ("license", "front"), ("license", "back"), ("permit", "front")];
+
+    private IReadOnlyList<FunnelFieldError> _eligibility = [];
+    private bool _latin = true;
+
+    /// <summary><c>main</c> or <c>second</c>.</summary>
+    [Parameter, EditorRequired]
+    public string Role { get; set; } = string.Empty;
+
+    [Parameter]
+    public FunnelDriverInput? Input { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<FunnelFieldError> Errors { get; set; } = [];
+
+    /// <summary>Phone and e-mail are required (main driver: the contact of the request).</summary>
+    [Parameter]
+    public bool ContactRequired { get; set; }
+
+    /// <summary>The upload address of the photos (the funnel session), or none.</summary>
+    [Parameter]
+    public string? UploadUrl { get; set; }
+
+    /// <summary>The slots already received.</summary>
+    [Parameter]
+    public IReadOnlySet<string> Uploads { get; set; } = new HashSet<string>();
+
+    protected override void OnParametersSet()
+    {
+        _eligibility = [.. Errors.Where(e => e.Field == $"{Role}.{FunnelFields.Eligibility}")];
+        _latin = Input?.LicenseLatinScript ?? true;
+    }
+
+    private string Id(string field) => FunnelTexts.FieldId($"{Role}.{field}");
+
+    private string Name(string field) => $"{Role}.{field}";
+
+    /// <summary>Autocomplete tokens describe the person filling the form: the main driver only.</summary>
+    private string Auto(string token) => Role == FunnelFields.Main ? token : "off";
+
+    private string? ErrorOf(string field) =>
+        Errors.FirstOrDefault(e => e.Field == $"{Role}.{field}") is { } error ? FunnelTexts.Message(L, Shared, error) : null;
+}

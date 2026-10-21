@@ -454,6 +454,40 @@ internal sealed class FakeCustomers : ICustomersQueries, ICustomerRegistration
         ClosedRentals.Add((personId, closedAtUtc));
         return Task.FromResult(Result.Success());
     }
+
+    /// <summary>Submissions of the drivers by booking (public pages), pending when <see cref="DriverSubmissionInfo.IsPending"/>.</summary>
+    public List<DriverSubmissionInfo> Submissions { get; } = [];
+
+    public List<Guid> DiscardedSubmissions { get; } = [];
+
+    public Task<SubmittedDriverCheck> CheckSubmittedDriverAsync(
+        SubmittedDriverDetails driver,
+        DateTimeOffset pickupAt,
+        DateTimeOffset returnAt,
+        Guid? agencyId = null,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new SubmittedDriverCheck([], new DriverEligibilityInfo(Guid.Empty, true, [], 21, 2)));
+
+    public Task<BookingContactInfo?> GetBookingContactAsync(Guid personId, Guid bookingId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Persons.TryGetValue(personId, out var person) ? new BookingContactInfo(person.FirstName, person.LastName, person.Email, person.Phone) : null);
+
+    public Task<IReadOnlyList<DriverSubmissionInfo>> GetDriverSubmissionsAsync(Guid personId, Guid? bookingId = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<DriverSubmissionInfo>>([.. Submissions.Where(s => s.PersonId == personId && (bookingId == null || s.BookingId == bookingId))]);
+
+    public Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<Result<SubmittedDriverResult>> RegisterSubmittedDriverAsync(SubmittedDriverRequest request, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<Result> SubmitDocumentImageAsync(DocumentImageSubmission submission, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<Result> DiscardDriverSubmissionsAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    {
+        DiscardedSubmissions.Add(bookingId);
+        return Task.FromResult(Result.Success());
+    }
 }
 
 /// <summary>Cached availability of the tests: available with three vehicles left, unless set otherwise per category.</summary>

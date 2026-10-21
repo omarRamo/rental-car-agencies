@@ -1,0 +1,70 @@
+@page "/{culture:length(2)}/ma-reservation/code"
+@page "/{culture:length(2)}/my-booking/code"
+@* After an access request (ADR-0051): "if a booking matches, an e-mail was sent" — the same text whether it exists or
+   not — and the six-digit code of the e-mail, as an alternative to its link. A wrong code counts: after a few the
+   request can no longer be used and a new one must be made. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Code.Title"]" Description="@L["Code.Description"]" />
+
+<section class="account my-booking-code" aria-labelledby="code-heading">
+    <h1 id="code-heading">@L["Code.Heading"]</h1>
+    @if (_error is not null)
+    {
+        <div class="alert alert--error" role="alert" tabindex="-1" autofocus data-testid="code-error">
+            <p>@_error</p>
+        </div>
+    }
+    else
+    {
+        <p class="alert alert--success" role="status" data-testid="access-sent">@L["Code.Sent"]</p>
+    }
+    <p>@L["Code.Intro"]</p>
+
+    @if (!_locked)
+    {
+        <form method="post" action="@BookingRoutes.MyBookingCode(Lang)" class="card" novalidate>
+            <AntiforgeryToken />
+            <input type="hidden" name="@MyBookingEndpoints.RequestParameter" value="@_requestId" />
+            <FunnelTextField Id="access-code" Name="@MyBookingEndpoints.CodeField" Label="@L["Code.Label"]" Autocomplete="one-time-code"
+                             InputMode="numeric" Spellcheck="false" MaxLength="12" Hint="@L["Code.Hint"]" Class="form-field--code" />
+            <button type="submit" class="button button--block">@L["Code.Submit"]</button>
+        </form>
+    }
+    <p><a href="@BookingRoutes.MyBooking(Lang)">@L["Code.Again"]</a></p>
+</section>
+
+@code {
+    private bool _ready;
+    private bool _locked;
+    private Guid _requestId;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCode(Lang)))
+        {
+            return;
+        }
+
+        if (!Guid.TryParse(Query(MyBookingEndpoints.RequestParameter), out _requestId))
+        {
+            Leave(BookingRoutes.MyBooking(Lang));
+            return;
+        }
+
+        if (LastError is { } code)
+        {
+            _locked = code == AccessErrors.AccessLocked.Code;
+            _error = ErrorText(code);
+        }
+
+        _ready = true;
+    }
+}

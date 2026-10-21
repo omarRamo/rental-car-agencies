@@ -6,6 +6,7 @@ using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Tests.Bookings.Fakes;
 using CarRental.Domain.Bookings;
+using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 
 namespace CarRental.Application.Tests.Bookings;
@@ -188,7 +189,10 @@ public sealed class BookingsQueriesTests
         checklist.Items.Single(i => i.Kind == ChecklistItemKind.CustomerCheck).State.ShouldBe(ChecklistState.Attention);
         checklist.Items.Single(i => i.Kind == ChecklistItemKind.CustomerCheck).Details.ShouldBeEmpty("never more specific than a generic check");
         checklist.Items.Single(i => i.Kind == ChecklistItemKind.Names).State.ShouldBe(ChecklistState.Manual);
-        checklist.Items.Single(i => i.Kind == ChecklistItemKind.Payment).State.ShouldBe(ChecklistState.Pending);
+        var payment = checklist.Items.Single(i => i.Kind == ChecklistItemKind.Payment);
+        payment.State.ShouldBe(ChecklistState.Attention, "no online payment in the capture mode: the validation will send a payment link");
+        payment.Payment!.State.ShouldBe(RequestPaymentState.None);
+        payment.Payment.Mode.ShouldBe(BookingValidationPaymentMode.CaptureAtValidation);
         checklist.Items.Single(i => i.Kind == ChecklistItemKind.Availability).State.ShouldBe(ChecklistState.Ok);
         checklist.AllOk.ShouldBeFalse();
     }

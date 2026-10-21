@@ -69,7 +69,20 @@ public sealed record SearchQuery(
     string? Info)
 {
     public const string SoonInfo = "bientot";
+
+    /// <summary>The category chosen is no longer available (booking funnel).</summary>
+    public const string UnavailableInfo = "indisponible";
+
+    /// <summary>The selection of the booking funnel expired with its price guarantee (24 hours).</summary>
+    public const string ExpiredInfo = "expire";
+
+    /// <summary>A booking funnel link that is unknown (or malformed).</summary>
+    public const string UnknownLinkInfo = "lien";
+
     public const int MaxSeatsFilter = 9;
+
+    /// <summary>Notices the results page knows; any other value of <c>info</c> is ignored.</summary>
+    private static readonly string[] KnownInfos = [SoonInfo, UnavailableInfo, ExpiredInfo, UnknownLinkInfo];
 
     private const int RawValueMaxLength = 64;
 
@@ -104,7 +117,7 @@ public sealed record SearchQuery(
             ParseSort(Get(SearchParameters.Sort)),
             ParseQuoteCode(Get(SearchParameters.Quote)),
             TrafficSource.Parse(Get),
-            string.Equals(Raw(Get(SearchParameters.Info)), SoonInfo, StringComparison.OrdinalIgnoreCase) ? SoonInfo : null);
+            KnownInfos.FirstOrDefault(info => string.Equals(Raw(Get(SearchParameters.Info)), info, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>

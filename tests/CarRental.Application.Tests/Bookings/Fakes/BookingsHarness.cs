@@ -51,6 +51,8 @@ internal sealed class BookingsHarness
         As(role);
     }
 
+    private FakeOnlinePayments? _onlinePayments;
+
     public CallJournal Journal { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(Start);
@@ -121,7 +123,9 @@ internal sealed class BookingsHarness
 
     public BookingRequestService Requests => new(Writer, BookingPricing, Quotes, Customers, Settings);
 
-    public BookingWorkflowService Workflow => new(Writer, Checks, Settings);
+    public FakeOnlinePayments OnlinePayments => _onlinePayments ??= new FakeOnlinePayments(Journal);
+
+    public BookingWorkflowService Workflow => new(Writer, Checks, Settings, OnlinePayments);
 
     public BookingAmendmentService Amendments => new(Writer, BookingPricing, Quotes, Customers, Availability);
 

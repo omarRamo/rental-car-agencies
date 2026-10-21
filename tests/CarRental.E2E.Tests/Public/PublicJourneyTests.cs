@@ -101,8 +101,9 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
         await TabUntilFocusedAsync("form.offer__choose button");
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(Page).ToHaveURLAsync(new Regex("info=bientot"));
-        await Expect(Page.GetByText("La réservation en ligne ouvre bientôt")).ToBeVisibleAsync();
+        // The booking funnel opens on its first step (package 2C).
+        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Options et prix");
     }
 
     [Fact]

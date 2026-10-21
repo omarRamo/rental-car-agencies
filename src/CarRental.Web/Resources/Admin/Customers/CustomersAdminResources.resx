@@ -549,4 +549,40 @@
   <data name="Viewer.Title" xml:space="preserve">
     <value>{0} — {1}</value>
   </data>
+  <data name="Submissions.Title" xml:space="preserve">
+    <value>Dépôts en ligne à vérifier</value>
+  </data>
+  <data name="Submissions.Help" xml:space="preserve">
+    <value>Ces informations et pièces ont été envoyées depuis le site pour une demande. La fiche de ce client déjà connu n'a pas été modifiée : comparez-les avec la fiche et les originaux, puis acceptez (pièces ajoutées, champs vides complétés, jamais écrasés) ou écartez (photos supprimées).</value>
+  </data>
+  <data name="Submissions.Item" xml:space="preserve">
+    <value>Dépôt du {0}</value>
+  </data>
+  <data name="Submissions.NameDiffers" xml:space="preserve">
+    <value>Le nom saisi diffère de celui de la fiche alors que le numéro de pièce est le même : vérifiez l'identité.</value>
+  </data>
+  <data name="Submissions.TypedName" xml:space="preserve">
+    <value>Nom saisi</value>
+  </data>
+  <data name="Submissions.ImagesOnly" xml:space="preserve">
+    <value>photos seulement (pièce déjà enregistrée)</value>
+  </data>
+  <data name="Submissions.Accept" xml:space="preserve">
+    <value>Accepter le dépôt</value>
+  </data>
+  <data name="Submissions.Reject" xml:space="preserve">
+    <value>Écarter le dépôt</value>
+  </data>
+  <data name="Submissions.AcceptMessage" xml:space="preserve">
+    <value>Les pièces seront ajoutées à la fiche (un même numéro corrige la pièce et réinitialise sa vérification), leurs photos rattachées, les champs vides complétés et les consentements enregistrés.</value>
+  </data>
+  <data name="Submissions.RejectMessage" xml:space="preserve">
+    <value>Le dépôt sera écarté et ses photos supprimées. La fiche ne change pas.</value>
+  </data>
+  <data name="Submissions.Accepted" xml:space="preserve">
+    <value>Dépôt accepté : fiche mise à jour.</value>
+  </data>
+  <data name="Submissions.Rejected" xml:space="preserve">
+    <value>Dépôt écarté.</value>
+  </data>
 </root>

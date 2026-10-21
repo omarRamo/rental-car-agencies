@@ -81,7 +81,11 @@ public sealed class Person : AggregateRoot
     /// <summary>Documents not superseded by a newer one (at most one per type).</summary>
     public IReadOnlyList<IdentityDocument> CurrentDocuments => _documents.Where(document => document.IsCurrent).ToList();
 
-    public static Result<Person> Register(PersonDetails details, DateTimeOffset now)
+    /// <summary>
+    /// A new person; <paramref name="id"/> lets a caller that stores files before the transaction (public submission,
+    /// ADR-0050) choose the identifier the file paths are made of, and keep it when the transaction is replayed.
+    /// </summary>
+    public static Result<Person> Register(PersonDetails details, DateTimeOffset now, Guid? id = null)
     {
         var facts = PersonFacts.From(details, TunisTime.DateOf(now));
         if (facts.IsFailure)
@@ -89,7 +93,12 @@ public sealed class Person : AggregateRoot
             return facts.Error;
         }
 
-        var person = new Person(NewId(), facts.Value, now);
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A person id cannot be empty.", nameof(id));
+        }
+
+        var person = new Person(id ?? NewId(), facts.Value, now);
         person.Raise(new PersonRegistered(person.Id));
         return person;
     }

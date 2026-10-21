@@ -58,4 +58,24 @@ public interface ICustomersQueries
         DateTimeOffset returnAt,
         Guid? agencyId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Public funnel (ADR-0050): validates what a visitor typed for a driver and evaluates its eligibility for the rental
+    /// on these details only — no stored person is read, so nothing about a person already known can be revealed.
+    /// </summary>
+    Task<SubmittedDriverCheck> CheckSubmittedDriverAsync(
+        SubmittedDriverDetails driver,
+        DateTimeOffset pickupAt,
+        DateTimeOffset returnAt,
+        Guid? agencyId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The contact of a driver for a booking: what was typed with the public submission of that booking (the e-mail the
+    /// visitor expects to be written to), otherwise the person's own; <see langword="null"/> for an unknown or anonymized person.
+    /// </summary>
+    Task<BookingContactInfo?> GetBookingContactAsync(Guid personId, Guid bookingId, CancellationToken cancellationToken = default);
+
+    /// <summary>The submissions of a person (of one booking when <paramref name="bookingId"/> is given), oldest first.</summary>
+    Task<IReadOnlyList<DriverSubmissionInfo>> GetDriverSubmissionsAsync(Guid personId, Guid? bookingId = null, CancellationToken cancellationToken = default);
 }

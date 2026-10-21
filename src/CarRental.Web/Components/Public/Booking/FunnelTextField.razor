@@ -1,0 +1,91 @@
+@* A text, date, e-mail or phone field of a public form: visible label, optional hint, the error text linked by
+   aria-describedby with aria-invalid, and the autocomplete token that lets a phone fill it in. *@
+@inject IStringLocalizer<BookingResources> L
+
+<div class="form-field@(Class is null ? string.Empty : " " + Class)">
+    <label for="@Id">
+        @Label
+        @if (!Required)
+        {
+            <span class="form-field__optional">@L["Field.Optional"]</span>
+        }
+    </label>
+    @if (Hint is not null)
+    {
+        <p id="@($"{Id}-hint")" class="field-hint">@Hint</p>
+    }
+    <input id="@Id" name="@Name" type="@Type" value="@Value" autocomplete="@Autocomplete" inputmode="@InputMode"
+           maxlength="@MaxLength" max="@Max" min="@Min" spellcheck="@(Spellcheck ? null : "false")" autocapitalize="@AutoCapitalize"
+           aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
+    <FieldMessage Id="@($"{Id}-error")" Message="@Error" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    [Parameter]
+    public string? InputMode { get; set; }
+
+    [Parameter]
+    public string? AutoCapitalize { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    [Parameter]
+    public bool Spellcheck { get; set; } = true;
+
+    [Parameter]
+    public int? MaxLength { get; set; }
+
+    [Parameter]
+    public string? Max { get; set; }
+
+    [Parameter]
+    public string? Min { get; set; }
+
+    /// <summary>Extra class of the field (shown or hidden with the choices of the form).</summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    private string? DescribedBy
+    {
+        get
+        {
+            var ids = new List<string>(2);
+            if (Hint is not null)
+            {
+                ids.Add($"{Id}-hint");
+            }
+
+            if (Error is not null)
+            {
+                ids.Add($"{Id}-error");
+            }
+
+            return ids.Count == 0 ? null : string.Join(' ', ids);
+        }
+    }
+}

@@ -3,16 +3,21 @@ using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Handover;
 using CarRental.Application.Bookings.Jobs;
+using CarRental.Application.Bookings.Notifications;
 using CarRental.Application.Bookings.Parties;
+using CarRental.Application.Bookings.Payments;
+using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Bookings.Queries;
 using CarRental.Application.Bookings.Quotes;
 using CarRental.Application.Bookings.Seeding;
 using CarRental.Application.Bookings.Writing;
 using CarRental.Application.Common.BackgroundJobs;
+using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Seeding;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
+using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,7 +64,8 @@ public static class BookingsModule
         services.AddScoped(sp => new BookingWorkflowService(
             sp.GetRequiredService<BookingWriter>(),
             sp.GetRequiredService<DriverChecks>(),
-            sp.GetRequiredService<ISettingsReader>()));
+            sp.GetRequiredService<ISettingsReader>(),
+            sp.GetService<IOnlinePayments>()));
         services.AddScoped(sp => new BookingAmendmentService(
             sp.GetRequiredService<BookingWriter>(),
             sp.GetRequiredService<BookingPricing>(),
@@ -96,6 +102,19 @@ public static class BookingsModule
         services.AddRecurringJob<BookingExpiryJob>();
         services.AddRecurringJob<BookingEscalationJob>();
         services.AddDataSeeder<BookingsDemoSeeder>();
+
+        // Public booking funnel, "Ma réservation" and the booking ↔ payment wiring (phase 2C, ADR-0049 to ADR-0051).
+        services.AddScoped<FunnelService>();
+        services.AddScoped<MyBookingService>();
+        services.AddScoped<CustomerLinkService>();
+        services.AddSettingDefinitions(PublicBookingSettings.All);
+        services.AddRecurringJob<PublicAccessPurgeJob>();
+        services.AddOutboxHandler<BookingStatusChanged, BookingPaymentReleaseHandler>();
+        services.AddOutboxHandler<BookingStatusChanged, BookingPaymentLinkHandler>();
+        services.AddOutboxHandler<BookingStatusChanged, BookingNotificationPublisher>();
+        services.AddOutboxHandler<OnlinePaymentStatusChanged, BookingOnlinePaymentHandler>();
+        services.AddOutboxHandler<BookingCustomerNotification, BookingNotificationEmailHandler>();
+        services.AddOutboxHandler<AccessEmailRequested, AccessEmailHandler>();
         return services;
     }
 }

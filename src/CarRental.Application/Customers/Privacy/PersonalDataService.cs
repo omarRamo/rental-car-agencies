@@ -59,6 +59,11 @@ public sealed class PersonalDataService(
             .Where(c => c.PersonId == personId)
             .Select(c => new { c.Id, c.Kind, c.CreatedAtUtc })
             .ToListAsync(cancellationToken);
+        var submissions = await db.Set<DriverSubmission>()
+            .AsNoTracking()
+            .Where(s => s.PersonId == personId)
+            .OrderBy(s => s.SubmittedAtUtc)
+            .ToListAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var export = new PersonalDataExport(
             Format: "carrental.personal-data/1",
@@ -93,6 +98,18 @@ public sealed class PersonalDataService(
                 c.WithdrawnThrough?.ToString(),
                 c.WithdrawnAtUtc))],
             PayerAccounts: [.. payers.Select(c => new PayerSection(c.Id, c.Kind.ToString(), c.CreatedAtUtc))],
+            OnlineSubmissions: [.. submissions.Select(s => new SubmissionSection(
+                s.Id,
+                s.BookingId,
+                s.State.ToString(),
+                s.SubmittedAtUtc,
+                s.FirstName,
+                s.LastName,
+                s.Nationality,
+                s.BirthDate,
+                s.Phone,
+                s.Email,
+                [.. s.Documents.Select(d => new SubmittedDocumentSection(d.Type.ToString(), d.Number, d.IssuingCountry, d.IssuedOn, d.ExpiresOn, d.HasFrontImage, d.HasBackImage))]))],
             InternalRecords: includeInternalRecords
                 ? [.. person.BlacklistEntries.Select(e => new BlacklistSection(e.Reason, e.AddedAtUtc, e.LiftedAtUtc, e.LiftReason))]
                 : null,
@@ -149,6 +166,14 @@ public sealed class PersonalDataService(
                     return anonymized;
                 }
 
+                // What the person typed in public pages goes too (ADR-0050); pending images are deleted after the commit.
+                var submissions = await db.Set<DriverSubmission>().Where(s => s.PersonId == personId).ToListAsync(ct);
+                foreach (var submission in submissions)
+                {
+                    submission.DiscardForErasure();
+                    db.Set<DriverSubmission>().Remove(submission);
+                }
+
                 await auditTrail.RecordAsync(
                     new AuditEvent(CustomerAuditActions.PersonAnonymized)
                     {
@@ -169,8 +194,31 @@ public sealed class PersonalDataService(
         IReadOnlyList<DocumentSection> IdentityDocuments,
         IReadOnlyList<ConsentSection> Consents,
         IReadOnlyList<PayerSection> PayerAccounts,
+        IReadOnlyList<SubmissionSection> OnlineSubmissions,
         IReadOnlyList<BlacklistSection>? InternalRecords,
         string Notes);
+
+    private sealed record SubmissionSection(
+        Guid Id,
+        Guid BookingId,
+        string State,
+        DateTimeOffset SubmittedAtUtc,
+        string? FirstName,
+        string? LastName,
+        string? Nationality,
+        DateOnly? BirthDate,
+        string? Phone,
+        string? Email,
+        IReadOnlyList<SubmittedDocumentSection> Documents);
+
+    private sealed record SubmittedDocumentSection(
+        string Type,
+        string? Number,
+        string? IssuingCountry,
+        DateOnly? IssuedOn,
+        DateOnly? ExpiresOn,
+        bool HasFrontImage,
+        bool HasBackImage);
 
     private sealed record PersonSection(
         Guid Id,

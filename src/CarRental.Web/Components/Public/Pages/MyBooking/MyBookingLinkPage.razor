@@ -1,0 +1,62 @@
+@page "/{culture:length(2)}/ma-reservation/acces/{Token}"
+@page "/{culture:length(2)}/my-booking/access/{Token}"
+@* The link of an access e-mail (ADR-0051). Single use: it is spent by the click on this page (a POST), never by the GET
+   that mail scanners and link previews make. A spent, expired or unknown link says so and offers a new request. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Link.Title"]" Description="@L["Link.Description"]" />
+
+<section class="account my-booking-link" aria-labelledby="link-heading">
+    @if (_usable)
+    {
+        <h1 id="link-heading">@L["Link.Heading"]</h1>
+        <p>@L["Link.Intro"]</p>
+        <form method="post" action="@AccessPath" novalidate>
+            <AntiforgeryToken />
+            @if (_section is not null)
+            {
+                <input type="hidden" name="@MyBookingEndpoints.SectionParameter" value="@_section" />
+            }
+            <button type="submit" class="button button--block" data-testid="open-booking">@L["Link.Open"]</button>
+        </form>
+    }
+    else
+    {
+        <h1 id="link-heading">@L["Link.Unusable.Heading"]</h1>
+        <p>@L["Link.Unusable.Text"]</p>
+        <p><a class="button" href="@BookingRoutes.MyBooking(Lang)">@L["Link.Unusable.Again"]</a></p>
+    }
+</section>
+
+@code {
+    private bool _ready;
+    private bool _usable;
+    private string? _section;
+
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private string AccessPath => PublicBookingPaths.AccessLink(Lang, Token);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(AccessPath))
+        {
+            return;
+        }
+
+        _section = Query(MyBookingEndpoints.SectionParameter) == PublicBookingPaths.DocumentsSection ? PublicBookingPaths.DocumentsSection : null;
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.MyBooking))
+        {
+            _usable = await scope.ServiceProvider.GetRequiredService<MyBookingService>().IsLinkUsableAsync(Token, Aborted);
+        }
+
+        _ready = true;
+    }
+}

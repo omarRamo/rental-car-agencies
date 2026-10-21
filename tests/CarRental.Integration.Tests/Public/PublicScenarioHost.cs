@@ -38,6 +38,12 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
     })
     {
         RateLimitPermits = RateLimit,
+
+        // No online payment on this host: its funnel sends the requests in the payment link mode.
+        ExtraSettings = new Dictionary<string, string?>
+        {
+            ["ClicToPay:Enabled"] = "false",
+        },
     };
 
     public ValueTask InitializeAsync()

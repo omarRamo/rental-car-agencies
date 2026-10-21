@@ -99,10 +99,11 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(dialog).ToBeVisibleAsync();
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Valider", Exact = true }).ClickAsync();
 
-        await Expect(Page.GetByText("Demande validée : réservation confirmée.")).ToBeVisibleAsync(Slow);
+        // Submitted without a pre-authorization (no payment page): the validation asks for the payment by link (ADR-0051).
+        await Expect(Page.GetByText("Demande validée : en attente du paiement par lien.")).ToBeVisibleAsync(Slow);
         await Expect(item).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
         var summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(request.BookingId));
-        summary.ShouldNotBeNull().Status.ShouldBe(BookingStatusInfo.Confirmed);
+        summary.ShouldNotBeNull().Status.ShouldBe(BookingStatusInfo.AwaitingPayment);
     }
 
     [Fact]

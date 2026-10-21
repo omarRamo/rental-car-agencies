@@ -1,0 +1,1023 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Progress.Label" xml:space="preserve">
+    <value>Booking steps</value>
+  </data>
+  <data name="Progress.Count" xml:space="preserve">
+    <value>Step {0} of {1}</value>
+  </data>
+  <data name="Progress.Options" xml:space="preserve">
+    <value>Extras</value>
+  </data>
+  <data name="Progress.Drivers" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Progress.Payment" xml:space="preserve">
+    <value>Payment</value>
+  </data>
+  <data name="Notice.price_updated" xml:space="preserve">
+    <value>The price was recalculated with the current rates; it is guaranteed for 24 hours.</value>
+  </data>
+  <data name="Notice.young_driver" xml:space="preserve">
+    <value>A young driver supplement applies to the age given: the price was recalculated.</value>
+  </data>
+  <data name="Summary.Title" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Summary.OrSimilar" xml:space="preserve">
+    <value>{0} or similar</value>
+  </data>
+  <data name="Summary.Pickup" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Summary.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Summary.Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Summary.Days.One" xml:space="preserve">
+    <value>1 day</value>
+  </data>
+  <data name="Summary.Days.Other" xml:space="preserve">
+    <value>{0} days</value>
+  </data>
+  <data name="Summary.PriceDetail" xml:space="preserve">
+    <value>Price breakdown including VAT</value>
+  </data>
+  <data name="Summary.Line" xml:space="preserve">
+    <value>Item</value>
+  </data>
+  <data name="Summary.Amount" xml:space="preserve">
+    <value>Amount incl. VAT</value>
+  </data>
+  <data name="Summary.LineDetail" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="Summary.Total" xml:space="preserve">
+    <value>Total incl. VAT</value>
+  </data>
+  <data name="Summary.Included" xml:space="preserve">
+    <value>VAT and daily contribution included.</value>
+  </data>
+  <data name="Summary.PerDay" xml:space="preserve">
+    <value>i.e. {0} per day</value>
+  </data>
+  <data name="Summary.Euro" xml:space="preserve">
+    <value>≈ {0} (indicative equivalent, payment in dinars)</value>
+  </data>
+  <data name="Summary.Deposit" xml:space="preserve">
+    <value>Deposit: {0}, held at pick-up (not included in the total).</value>
+  </data>
+  <data name="Summary.DepositReduced" xml:space="preserve">
+    <value>Reduced deposit: {0} instead of {1} with the franchise waiver (not included in the total).</value>
+  </data>
+  <data name="Summary.PriceGuaranteed" xml:space="preserve">
+    <value>Price guaranteed until {0}.</value>
+  </data>
+  <data name="Summary.QuoteCode" xml:space="preserve">
+    <value>Quote {0}</value>
+  </data>
+  <data name="Summary.DateTime" xml:space="preserve">
+    <value>{0:dddd d MMMM yyyy}, {0:HH:mm}</value>
+  </data>
+  <data name="Options.Title" xml:space="preserve">
+    <value>Extras</value>
+  </data>
+  <data name="Options.Description" xml:space="preserve">
+    <value>Choose your extras and check the price of your rental.</value>
+  </data>
+  <data name="Options.Heading" xml:space="preserve">
+    <value>Extras and price</value>
+  </data>
+  <data name="Options.Legend" xml:space="preserve">
+    <value>Available extras</value>
+  </data>
+  <data name="Options.None" xml:space="preserve">
+    <value>No extra is offered for this rental.</value>
+  </data>
+  <data name="Options.Quantity.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Options.Price.PerDay" xml:space="preserve">
+    <value>{0} per day</value>
+  </data>
+  <data name="Options.Price.PerRental" xml:space="preserve">
+    <value>{0} for the rental</value>
+  </data>
+  <data name="Options.Price.Capped" xml:space="preserve">
+    <value>{0}, capped at {1}</value>
+  </data>
+  <data name="Options.Waiver.Deposit" xml:space="preserve">
+    <value>The deposit drops to {0} instead of {1}.</value>
+  </data>
+  <data name="Options.AdditionalDriver" xml:space="preserve">
+    <value>Additional driver ({0}): added at the next step if you declare a second driver.</value>
+  </data>
+  <data name="Options.Update" xml:space="preserve">
+    <value>Update the price</value>
+  </data>
+  <data name="Options.Continue" xml:space="preserve">
+    <value>Continue to the drivers</value>
+  </data>
+  <data name="Options.ChangeSearch" xml:space="preserve">
+    <value>Change the vehicle or the dates</value>
+  </data>
+  <data name="Drivers.Title" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Drivers.ErrorTitle" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Drivers.Description" xml:space="preserve">
+    <value>The drivers of your rental and their documents.</value>
+  </data>
+  <data name="Drivers.Heading" xml:space="preserve">
+    <value>Who will drive?</value>
+  </data>
+  <data name="Drivers.Intro" xml:space="preserve">
+    <value>Enter the details exactly as they appear on the documents. Every field is required unless marked “optional”.</value>
+  </data>
+  <data name="Drivers.ErrorSummary" xml:space="preserve">
+    <value>Please correct the following</value>
+  </data>
+  <data name="Drivers.Main" xml:space="preserve">
+    <value>Main driver</value>
+  </data>
+  <data name="Drivers.Second" xml:space="preserve">
+    <value>Second driver</value>
+  </data>
+  <data name="Drivers.AddSecond" xml:space="preserve">
+    <value>Add a second driver</value>
+  </data>
+  <data name="Drivers.AddSecond.Price" xml:space="preserve">
+    <value>The additional driver costs {0} per day: the price is recalculated.</value>
+  </data>
+  <data name="Drivers.AddSecond.Free" xml:space="preserve">
+    <value>A second driver may drive the vehicle if they meet the same conditions.</value>
+  </data>
+  <data name="Drivers.License" xml:space="preserve">
+    <value>Driving licence</value>
+  </data>
+  <data name="Drivers.Permit.Hint" xml:space="preserve">
+    <value>An international driving permit is then required in addition to the licence.</value>
+  </data>
+  <data name="Drivers.Identity" xml:space="preserve">
+    <value>Identity document</value>
+  </data>
+  <data name="Drivers.Identity.Hint" xml:space="preserve">
+    <value>CIN (national ID card) for Tunisian nationals, passport for other nationalities.</value>
+  </data>
+  <data name="Drivers.Eligibility.Title" xml:space="preserve">
+    <value>This driver does not meet the rental conditions yet:</value>
+  </data>
+  <data name="Drivers.Continue" xml:space="preserve">
+    <value>Continue to payment</value>
+  </data>
+  <data name="Drivers.Back" xml:space="preserve">
+    <value>Back to the extras</value>
+  </data>
+  <data name="ErrorSummary.Field" xml:space="preserve">
+    <value>{0}, {1}: {2}</value>
+  </data>
+  <data name="ErrorSummary.Driver" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="ErrorSummary.Consent" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="Field.Optional" xml:space="preserve">
+    <value>(optional)</value>
+  </data>
+  <data name="Field.CountryChoose" xml:space="preserve">
+    <value>Choose a country</value>
+  </data>
+  <data name="Field.Date.Hint" xml:space="preserve">
+    <value>For example 24/10/1990.</value>
+  </data>
+  <data name="Field.Error.Required" xml:space="preserve">
+    <value>This field is required.</value>
+  </data>
+  <data name="Field.Error.Date" xml:space="preserve">
+    <value>Invalid date: give the day, month and year (DD/MM/YYYY).</value>
+  </data>
+  <data name="Field.first_name" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Field.last_name" xml:space="preserve">
+    <value>Last name</value>
+  </data>
+  <data name="Field.nationality" xml:space="preserve">
+    <value>Nationality</value>
+  </data>
+  <data name="Field.birth_date" xml:space="preserve">
+    <value>Date of birth</value>
+  </data>
+  <data name="Field.phone" xml:space="preserve">
+    <value>Mobile phone</value>
+  </data>
+  <data name="Field.phone.Hint" xml:space="preserve">
+    <value>With the country code, for example +44 7700 900123 or +216 98 123 456.</value>
+  </data>
+  <data name="Field.email" xml:space="preserve">
+    <value>E-mail address</value>
+  </data>
+  <data name="Field.email.Hint" xml:space="preserve">
+    <value>We send the answer to your request there.</value>
+  </data>
+  <data name="Field.license_number" xml:space="preserve">
+    <value>Licence number</value>
+  </data>
+  <data name="Field.license_country" xml:space="preserve">
+    <value>Country that issued the licence</value>
+  </data>
+  <data name="Field.license_issued_on" xml:space="preserve">
+    <value>Date the licence was obtained</value>
+  </data>
+  <data name="Field.license_issued_on.Hint" xml:space="preserve">
+    <value>The date the category B licence was obtained, printed on the licence.</value>
+  </data>
+  <data name="Field.license_expires_on" xml:space="preserve">
+    <value>Licence expiry date</value>
+  </data>
+  <data name="Field.license_latin" xml:space="preserve">
+    <value>Is the licence written in Latin script?</value>
+  </data>
+  <data name="Field.license_latin.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Field.license_latin.No" xml:space="preserve">
+    <value>No (Arabic, Cyrillic, Chinese…)</value>
+  </data>
+  <data name="Field.permit_number" xml:space="preserve">
+    <value>International driving permit number</value>
+  </data>
+  <data name="Field.permit_country" xml:space="preserve">
+    <value>Country that issued the international permit</value>
+  </data>
+  <data name="Field.permit_expires_on" xml:space="preserve">
+    <value>International permit expiry date</value>
+  </data>
+  <data name="Field.identity_number" xml:space="preserve">
+    <value>Identity document number</value>
+  </data>
+  <data name="Field.identity_country" xml:space="preserve">
+    <value>Country that issued the passport</value>
+  </data>
+  <data name="Field.identity_country.Hint" xml:space="preserve">
+    <value>Only if it differs from the nationality.</value>
+  </data>
+  <data name="Field.identity_country.Same" xml:space="preserve">
+    <value>The country of the nationality</value>
+  </data>
+  <data name="Field.identity_expires_on" xml:space="preserve">
+    <value>Identity document expiry date</value>
+  </data>
+  <data name="Field.identity_expires_on.Hint" xml:space="preserve">
+    <value>Required for a passport.</value>
+  </data>
+  <data name="Field.eligibility" xml:space="preserve">
+    <value>Rental conditions</value>
+  </data>
+  <data name="Eligibility.BirthDateMissing" xml:space="preserve">
+    <value>Enter the driver's date of birth.</value>
+  </data>
+  <data name="Eligibility.UnderMinimumAge" xml:space="preserve">
+    <value>The driver must be at least {0} on the pick-up day (they will be {1}).</value>
+  </data>
+  <data name="Eligibility.NationalityMissing" xml:space="preserve">
+    <value>Enter the driver's nationality.</value>
+  </data>
+  <data name="Eligibility.IdentityDocumentMissing" xml:space="preserve">
+    <value>Identity document missing: {0}.</value>
+  </data>
+  <data name="Eligibility.DrivingLicenseMissing" xml:space="preserve">
+    <value>The driver's driving licence is required.</value>
+  </data>
+  <data name="Eligibility.LicenseHeldTooShort" xml:space="preserve">
+    <value>The licence must have been held for at least {1} years on the pick-up day: obtained on {3}, it will have been held for {2}.</value>
+  </data>
+  <data name="Eligibility.InternationalPermitMissing" xml:space="preserve">
+    <value>With a licence not written in Latin script, an international driving permit is required.</value>
+  </data>
+  <data name="Eligibility.DocumentExpiresBeforeReturn" xml:space="preserve">
+    <value>{0}: it expires on {1}, before the vehicle is returned; it must stay valid for the whole rental.</value>
+  </data>
+  <data name="Eligibility.Generic" xml:space="preserve">
+    <value>This driver does not meet the rental conditions: please contact the agency.</value>
+  </data>
+  <data name="DocumentType.NationalId" xml:space="preserve">
+    <value>National ID card (CIN)</value>
+  </data>
+  <data name="DocumentType.Passport" xml:space="preserve">
+    <value>Passport</value>
+  </data>
+  <data name="DocumentType.DrivingLicense" xml:space="preserve">
+    <value>Driving licence</value>
+  </data>
+  <data name="DocumentType.InternationalDrivingPermit" xml:space="preserve">
+    <value>International driving permit</value>
+  </data>
+  <data name="Consents.Legend" xml:space="preserve">
+    <value>Your consent</value>
+  </data>
+  <data name="Consents.Documents" xml:space="preserve">
+    <value>I agree that the agency processes my identity documents, and those of the second driver, for this rental (required).</value>
+  </data>
+  <data name="Consents.Documents.Link" xml:space="preserve">
+    <value>Privacy policy</value>
+  </data>
+  <data name="Consents.NewWindow" xml:space="preserve">
+    <value>(opens in a new window)</value>
+  </data>
+  <data name="Consents.WhatsApp" xml:space="preserve">
+    <value>Receive updates about my booking on WhatsApp (optional).</value>
+  </data>
+  <data name="Consents.Marketing" xml:space="preserve">
+    <value>Receive the agency's offers by e-mail or WhatsApp (optional).</value>
+  </data>
+  <data name="Photos.Title" xml:space="preserve">
+    <value>Photos of the documents (recommended)</value>
+  </data>
+  <data name="Photos.Hint" xml:space="preserve">
+    <value>Take each side flat, well lit and readable (JPEG, PNG or PDF, 10 MB at most). You can also send them later from “My booking”.</value>
+  </data>
+  <data name="Photos.NoScript" xml:space="preserve">
+    <value>Sending the photos needs JavaScript. You can send them later from “My booking”, or show the documents at the agency.</value>
+  </data>
+  <data name="Photo.identity.front" xml:space="preserve">
+    <value>Identity document (CIN or passport): front</value>
+  </data>
+  <data name="Photo.identity.back" xml:space="preserve">
+    <value>Identity document: back</value>
+  </data>
+  <data name="Photo.cin.front" xml:space="preserve">
+    <value>National ID card (CIN): front</value>
+  </data>
+  <data name="Photo.cin.back" xml:space="preserve">
+    <value>National ID card (CIN): back</value>
+  </data>
+  <data name="Photo.passport.front" xml:space="preserve">
+    <value>Passport: photo page</value>
+  </data>
+  <data name="Photo.passport.back" xml:space="preserve">
+    <value>Passport: signature page</value>
+  </data>
+  <data name="Photo.license.front" xml:space="preserve">
+    <value>Driving licence: front</value>
+  </data>
+  <data name="Photo.license.back" xml:space="preserve">
+    <value>Driving licence: back</value>
+  </data>
+  <data name="Photo.permit.front" xml:space="preserve">
+    <value>International driving permit: photo page</value>
+  </data>
+  <data name="Photo.permit.back" xml:space="preserve">
+    <value>International driving permit: back</value>
+  </data>
+  <data name="Photo.Send" xml:space="preserve">
+    <value>Send the photo</value>
+  </data>
+  <data name="Photo.Retry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Photo.Received" xml:space="preserve">
+    <value>Photo received.</value>
+  </data>
+  <data name="Photo.Status.None" xml:space="preserve">
+    <value>No photo sent yet.</value>
+  </data>
+  <data name="Photo.Status.Received" xml:space="preserve">
+    <value>Photo received.</value>
+  </data>
+  <data name="Photo.Status.Sending" xml:space="preserve">
+    <value>Sending… {0}%</value>
+  </data>
+  <data name="Photo.Status.Failed" xml:space="preserve">
+    <value>Sending failed: check your connection and try again.</value>
+  </data>
+  <data name="Payment.Title" xml:space="preserve">
+    <value>Payment</value>
+  </data>
+  <data name="Payment.Description" xml:space="preserve">
+    <value>Check your request, accept the terms and guarantee your booking.</value>
+  </data>
+  <data name="Payment.Heading" xml:space="preserve">
+    <value>Review and payment</value>
+  </data>
+  <data name="Payment.DraftPending" xml:space="preserve">
+    <value>Your last changes to the drivers were not saved.</value>
+  </data>
+  <data name="Payment.DraftPending.Link" xml:space="preserve">
+    <value>Fix them</value>
+  </data>
+  <data name="Payment.Drivers" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Payment.Driver.Main" xml:space="preserve">
+    <value>Main driver: {0}</value>
+  </data>
+  <data name="Payment.Driver.Second" xml:space="preserve">
+    <value>Second driver: {0}</value>
+  </data>
+  <data name="Payment.Drivers.Change" xml:space="preserve">
+    <value>Change the drivers</value>
+  </data>
+  <data name="Payment.Options" xml:space="preserve">
+    <value>Extras</value>
+  </data>
+  <data name="Payment.Option.Quantity" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="Payment.Options.Change" xml:space="preserve">
+    <value>Change the extras</value>
+  </data>
+  <data name="Payment.Guarantee.Title" xml:space="preserve">
+    <value>Guarantee of your request</value>
+  </data>
+  <data name="Payment.Guarantee.PreAuthorization" xml:space="preserve">
+    <value>To send your request, {0} is held on your bank card (pre-authorization on the bank's secure page). Nothing is charged until the agency approves your request.</value>
+  </data>
+  <data name="Payment.Guarantee.Release" xml:space="preserve">
+    <value>If your request is not accepted or expires, the amount is released; depending on your bank, this can take a few days.</value>
+  </data>
+  <data name="Payment.Guarantee.Link" xml:space="preserve">
+    <value>No payment is asked now: send your request. Once it is approved, you will receive a payment link by e-mail, to be paid before its deadline.</value>
+  </data>
+  <data name="Payment.Answer" xml:space="preserve">
+    <value>The agency answers within 2 business hours.</value>
+  </data>
+  <data name="Payment.Terms" xml:space="preserve">
+    <value>I have read and I accept the</value>
+  </data>
+  <data name="Payment.Terms.Link" xml:space="preserve">
+    <value>terms and conditions of rental</value>
+  </data>
+  <data name="Payment.Submit.PreAuthorization" xml:space="preserve">
+    <value>Send my request and guarantee it by card</value>
+  </data>
+  <data name="Payment.Submit.Link" xml:space="preserve">
+    <value>Send my request</value>
+  </data>
+  <data name="Redirect.Title" xml:space="preserve">
+    <value>Secure payment</value>
+  </data>
+  <data name="Redirect.Description" xml:space="preserve">
+    <value>Redirection to the secure payment page of the bank.</value>
+  </data>
+  <data name="Redirect.Heading" xml:space="preserve">
+    <value>To the payment page of the bank</value>
+  </data>
+  <data name="Redirect.Text" xml:space="preserve">
+    <value>You are being sent to the secure page of the bank for {0}.</value>
+  </data>
+  <data name="Redirect.Continue" xml:space="preserve">
+    <value>Continue to the payment page</value>
+  </data>
+  <data name="Redirect.Secure" xml:space="preserve">
+    <value>Your card is entered on the bank's page (Clic to Pay): the agency never sees your card details.</value>
+  </data>
+  <data name="Redirect.Unavailable.Title" xml:space="preserve">
+    <value>Payment unavailable</value>
+  </data>
+  <data name="Redirect.Unavailable.Text" xml:space="preserve">
+    <value>This payment page is no longer available: it was already used, has expired or was opened on another device.</value>
+  </data>
+  <data name="Redirect.Unavailable.MyBooking" xml:space="preserve">
+    <value>See my booking</value>
+  </data>
+  <data name="Confirmation.Title" xml:space="preserve">
+    <value>Request received</value>
+  </data>
+  <data name="Confirmation.Description" xml:space="preserve">
+    <value>The confirmation of your booking request.</value>
+  </data>
+  <data name="Confirmation.Heading" xml:space="preserve">
+    <value>Request received</value>
+  </data>
+  <data name="Confirmation.Number" xml:space="preserve">
+    <value>Your request number:</value>
+  </data>
+  <data name="Confirmation.Answer" xml:space="preserve">
+    <value>The agency will answer within 2 business hours.</value>
+  </data>
+  <data name="Confirmation.Payment.Held" xml:space="preserve">
+    <value>{0} is held on your card (pre-authorization). It will only be charged when your request is approved, and released if it is not.</value>
+  </data>
+  <data name="Confirmation.Payment.Captured" xml:space="preserve">
+    <value>Payment received: {0}.</value>
+  </data>
+  <data name="Confirmation.Payment.Failed" xml:space="preserve">
+    <value>The pre-authorization of {0} did not go through: your request is saved but not guaranteed yet. Try again below.</value>
+  </data>
+  <data name="Confirmation.Payment.Expired" xml:space="preserve">
+    <value>The payment page expired before the pre-authorization of {0}: your request is not guaranteed yet. Try again below.</value>
+  </data>
+  <data name="Confirmation.Payment.Verifying" xml:space="preserve">
+    <value>We are checking your payment with the bank: this can take a few moments.</value>
+  </data>
+  <data name="Confirmation.Payment.Refresh" xml:space="preserve">
+    <value>Refresh the page</value>
+  </data>
+  <data name="Confirmation.Payment.Link" xml:space="preserve">
+    <value>No payment is asked now: once your request is approved, you will receive a payment link by e-mail.</value>
+  </data>
+  <data name="Confirmation.Payment.Retry" xml:space="preserve">
+    <value>Guarantee my request ({0})</value>
+  </data>
+  <data name="Confirmation.Next.Title" xml:space="preserve">
+    <value>What happens next?</value>
+  </data>
+  <data name="Confirmation.Next.Email" xml:space="preserve">
+    <value>A confirmation e-mail has just been sent to you.</value>
+  </data>
+  <data name="Confirmation.Next.Answer" xml:space="preserve">
+    <value>The agency checks your request and your documents, then answers by e-mail.</value>
+  </data>
+  <data name="Confirmation.Next.Documents" xml:space="preserve">
+    <value>Photos of documents missing? Send them from “My booking”.</value>
+  </data>
+  <data name="Confirmation.MyBooking" xml:space="preserve">
+    <value>Follow my booking</value>
+  </data>
+  <data name="Confirmation.Neutral.Heading" xml:space="preserve">
+    <value>Follow a request</value>
+  </data>
+  <data name="Confirmation.Neutral.Text" xml:space="preserve">
+    <value>To see a booking request, open “My booking” with your e-mail address and the booking number.</value>
+  </data>
+  <data name="Confirmation.Status.Draft.Heading" xml:space="preserve">
+    <value>Request not sent</value>
+  </data>
+  <data name="Confirmation.Status.PendingValidation.Heading" xml:space="preserve">
+    <value>Request received</value>
+  </data>
+  <data name="Confirmation.Status.InformationRequested.Heading" xml:space="preserve">
+    <value>Request received</value>
+  </data>
+  <data name="Confirmation.Status.OptionHeld.Heading" xml:space="preserve">
+    <value>Your option is held</value>
+  </data>
+  <data name="Confirmation.Status.AwaitingPayment.Heading" xml:space="preserve">
+    <value>Your request is approved</value>
+  </data>
+  <data name="Confirmation.Status.Confirmed.Heading" xml:space="preserve">
+    <value>Your booking is confirmed</value>
+  </data>
+  <data name="Confirmation.Status.InProgress.Heading" xml:space="preserve">
+    <value>Your rental is in progress</value>
+  </data>
+  <data name="Confirmation.Status.Returned.Heading" xml:space="preserve">
+    <value>Vehicle returned</value>
+  </data>
+  <data name="Confirmation.Status.Closed.Heading" xml:space="preserve">
+    <value>Rental completed</value>
+  </data>
+  <data name="Confirmation.Status.Refused.Heading" xml:space="preserve">
+    <value>Your request was not accepted</value>
+  </data>
+  <data name="Confirmation.Status.Expired.Heading" xml:space="preserve">
+    <value>Your request has expired</value>
+  </data>
+  <data name="Confirmation.Status.Cancelled.Heading" xml:space="preserve">
+    <value>Your booking is cancelled</value>
+  </data>
+  <data name="Confirmation.Status.NoShow.Heading" xml:space="preserve">
+    <value>Vehicle not collected</value>
+  </data>
+  <data name="Access.Title" xml:space="preserve">
+    <value>My booking</value>
+  </data>
+  <data name="Access.Description" xml:space="preserve">
+    <value>See and manage your booking with your e-mail address and your booking number.</value>
+  </data>
+  <data name="Access.Heading" xml:space="preserve">
+    <value>My booking</value>
+  </data>
+  <data name="Access.Intro" xml:space="preserve">
+    <value>Enter the e-mail address given for the booking and its number: we send you an access link and a code, valid for 30 minutes.</value>
+  </data>
+  <data name="Access.Email" xml:space="preserve">
+    <value>E-mail address</value>
+  </data>
+  <data name="Access.Email.Hint" xml:space="preserve">
+    <value>The main driver's or the payer's.</value>
+  </data>
+  <data name="Access.Email.Invalid" xml:space="preserve">
+    <value>Enter a valid e-mail address.</value>
+  </data>
+  <data name="Access.Number" xml:space="preserve">
+    <value>Booking number</value>
+  </data>
+  <data name="Access.Number.Hint" xml:space="preserve">
+    <value>For example LOC-2027-000123: it is in your e-mails.</value>
+  </data>
+  <data name="Access.Number.Invalid" xml:space="preserve">
+    <value>Enter a number like LOC-YYYY-NNNNNN.</value>
+  </data>
+  <data name="Access.Invalid" xml:space="preserve">
+    <value>Please check what you entered.</value>
+  </data>
+  <data name="Access.Submit" xml:space="preserve">
+    <value>Get my access link</value>
+  </data>
+  <data name="Access.Privacy" xml:space="preserve">
+    <value>To protect your data, we never say whether a booking exists: the link is only sent to the address recorded with it.</value>
+  </data>
+  <data name="Access.SignedOut" xml:space="preserve">
+    <value>You are signed out.</value>
+  </data>
+  <data name="Access.SessionOpen" xml:space="preserve">
+    <value>A booking is already open on this device.</value>
+  </data>
+  <data name="Access.SessionOpen.Link" xml:space="preserve">
+    <value>Go back to it</value>
+  </data>
+  <data name="Code.Title" xml:space="preserve">
+    <value>Access code</value>
+  </data>
+  <data name="Code.Description" xml:space="preserve">
+    <value>Enter the code received by e-mail to open your booking.</value>
+  </data>
+  <data name="Code.Heading" xml:space="preserve">
+    <value>Check your e-mails</value>
+  </data>
+  <data name="Code.Sent" xml:space="preserve">
+    <value>If a booking matches this information, an e-mail has just been sent with a link and a 6-digit code, valid for 30 minutes.</value>
+  </data>
+  <data name="Code.Intro" xml:space="preserve">
+    <value>Open the link of the e-mail, or enter the code below. Remember to check your spam folder.</value>
+  </data>
+  <data name="Code.Label" xml:space="preserve">
+    <value>6-digit code</value>
+  </data>
+  <data name="Code.Hint" xml:space="preserve">
+    <value>It is in the “Your access to booking” e-mail.</value>
+  </data>
+  <data name="Code.Submit" xml:space="preserve">
+    <value>Open my booking</value>
+  </data>
+  <data name="Code.Again" xml:space="preserve">
+    <value>Ask for a new link</value>
+  </data>
+  <data name="Link.Title" xml:space="preserve">
+    <value>Open my booking</value>
+  </data>
+  <data name="Link.Description" xml:space="preserve">
+    <value>Open your booking with your personal link.</value>
+  </data>
+  <data name="Link.Heading" xml:space="preserve">
+    <value>Open my booking</value>
+  </data>
+  <data name="Link.Intro" xml:space="preserve">
+    <value>This personal link works only once: confirm to open your booking on this device.</value>
+  </data>
+  <data name="Link.Open" xml:space="preserve">
+    <value>Open my booking</value>
+  </data>
+  <data name="Link.Unusable.Heading" xml:space="preserve">
+    <value>This link is no longer valid</value>
+  </data>
+  <data name="Link.Unusable.Text" xml:space="preserve">
+    <value>It was already used or has expired. Ask for a new link: it will be sent to you by e-mail.</value>
+  </data>
+  <data name="Link.Unusable.Again" xml:space="preserve">
+    <value>Ask for a new link</value>
+  </data>
+  <data name="File.Title" xml:space="preserve">
+    <value>Booking {0}</value>
+  </data>
+  <data name="File.Description" xml:space="preserve">
+    <value>Where your booking stands, your documents, your payments.</value>
+  </data>
+  <data name="File.Heading" xml:space="preserve">
+    <value>Booking {0}</value>
+  </data>
+  <data name="File.Trip" xml:space="preserve">
+    <value>Your rental</value>
+  </data>
+  <data name="File.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="File.Paid" xml:space="preserve">
+    <value>Already paid</value>
+  </data>
+  <data name="File.Balance" xml:space="preserve">
+    <value>Balance due</value>
+  </data>
+  <data name="File.Deposit" xml:space="preserve">
+    <value>Deposit (held at pick-up)</value>
+  </data>
+  <data name="File.PayBalance" xml:space="preserve">
+    <value>Pay {0} online</value>
+  </data>
+  <data name="File.Payment.PreAuthorized" xml:space="preserve">
+    <value>An amount is held on your card to guarantee your request.</value>
+  </data>
+  <data name="File.Payment.Failed" xml:space="preserve">
+    <value>The last payment attempt failed.</value>
+  </data>
+  <data name="File.Payment.Expired" xml:space="preserve">
+    <value>The last payment page expired without payment.</value>
+  </data>
+  <data name="File.Payment.Released" xml:space="preserve">
+    <value>The pre-authorization on your card was released.</value>
+  </data>
+  <data name="File.Payment.Refunded" xml:space="preserve">
+    <value>A refund was made to your card.</value>
+  </data>
+  <data name="File.Payment.Received" xml:space="preserve">
+    <value>Payment of {0} received, thank you!</value>
+  </data>
+  <data name="File.Payment.NotPaid" xml:space="preserve">
+    <value>The payment did not go through: nothing was charged.</value>
+  </data>
+  <data name="File.Payment.Verifying" xml:space="preserve">
+    <value>We are checking your payment with the bank.</value>
+  </data>
+  <data name="File.Information.Title" xml:space="preserve">
+    <value>The agency needs information</value>
+  </data>
+  <data name="File.Information.Text" xml:space="preserve">
+    <value>Send the photos or information requested below, then let the agency know.</value>
+  </data>
+  <data name="File.Information.Done" xml:space="preserve">
+    <value>I have sent what was requested</value>
+  </data>
+  <data name="File.Documents.Title" xml:space="preserve">
+    <value>My documents</value>
+  </data>
+  <data name="File.Documents.Intro" xml:space="preserve">
+    <value>Send a readable photo of each side. The agency checks them before the pick-up.</value>
+  </data>
+  <data name="File.Documents.Main" xml:space="preserve">
+    <value>Main driver: {0}</value>
+  </data>
+  <data name="File.Documents.Second" xml:space="preserve">
+    <value>Second driver: {0}</value>
+  </data>
+  <data name="File.Documents.Review" xml:space="preserve">
+    <value>The documents sent are checked by an agent before being added to your file.</value>
+  </data>
+  <data name="File.Documents.Closed" xml:space="preserve">
+    <value>Documents can no longer be sent online for this booking.</value>
+  </data>
+  <data name="File.Papers.Title" xml:space="preserve">
+    <value>Contract and invoices</value>
+  </data>
+  <data name="File.Papers.None" xml:space="preserve">
+    <value>No document is available yet.</value>
+  </data>
+  <data name="File.Papers.NotYet" xml:space="preserve">
+    <value>The contract and the invoices will be available here from the pick-up of the vehicle.</value>
+  </data>
+  <data name="File.Papers.RentalContract" xml:space="preserve">
+    <value>Rental contract {0}</value>
+  </data>
+  <data name="File.Papers.Invoice" xml:space="preserve">
+    <value>Invoice {0}</value>
+  </data>
+  <data name="File.Papers.CreditNote" xml:space="preserve">
+    <value>Credit note {0}</value>
+  </data>
+  <data name="File.Papers.Issued" xml:space="preserve">
+    <value>issued on {0}</value>
+  </data>
+  <data name="File.Timeline.Title" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="File.Cancel.Title" xml:space="preserve">
+    <value>Cancel my booking</value>
+  </data>
+  <data name="File.Cancel.Free" xml:space="preserve">
+    <value>Cancelling is free today.</value>
+  </data>
+  <data name="File.Cancel.Fee" xml:space="preserve">
+    <value>A cancellation fee of {0} applies today.</value>
+  </data>
+  <data name="File.Cancel.Link" xml:space="preserve">
+    <value>See the conditions and cancel</value>
+  </data>
+  <data name="File.SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="File.Notice.Document" xml:space="preserve">
+    <value>Photo received: the agency will check it.</value>
+  </data>
+  <data name="File.Notice.Information" xml:space="preserve">
+    <value>Noted: the agency is told and resumes your request.</value>
+  </data>
+  <data name="File.Notice.Cancelled" xml:space="preserve">
+    <value>Your booking is cancelled. A confirmation e-mail has been sent to you.</value>
+  </data>
+  <data name="File.Notice.Cancelled.Requested" xml:space="preserve">
+    <value>Your booking is cancelled. The refund was requested from your bank.</value>
+  </data>
+  <data name="File.Notice.Cancelled.AwaitingApproval" xml:space="preserve">
+    <value>Your booking is cancelled. The refund must be approved by a manager of the agency before it is sent to your bank.</value>
+  </data>
+  <data name="File.Notice.Cancelled.ByTheAgency" xml:space="preserve">
+    <value>Your booking is cancelled. The agency will contact you about the refund.</value>
+  </data>
+  <data name="Cancel.Title" xml:space="preserve">
+    <value>Cancel booking {0}</value>
+  </data>
+  <data name="Cancel.Description" xml:space="preserve">
+    <value>The cancellation conditions of your booking.</value>
+  </data>
+  <data name="Cancel.Heading" xml:space="preserve">
+    <value>Cancel booking {0}</value>
+  </data>
+  <data name="Cancel.FeeChanged" xml:space="preserve">
+    <value>The cancellation conditions changed since this page was opened: please check the new fee.</value>
+  </data>
+  <data name="Cancel.Fee" xml:space="preserve">
+    <value>Cancellation fee</value>
+  </data>
+  <data name="Cancel.Fee.None" xml:space="preserve">
+    <value>No fee</value>
+  </data>
+  <data name="Cancel.Fee.Amount" xml:space="preserve">
+    <value>{0} ({1}% of the total)</value>
+  </data>
+  <data name="Cancel.FreeUntil" xml:space="preserve">
+    <value>Free cancellation until</value>
+  </data>
+  <data name="Cancel.Refund" xml:space="preserve">
+    <value>Estimated refund</value>
+  </data>
+  <data name="Cancel.RefundHow" xml:space="preserve">
+    <value>What was paid online, minus the fee, is refunded to your card.</value>
+  </data>
+  <data name="Cancel.Approval" xml:space="preserve">
+    <value>Above a certain amount, the refund is first approved by a manager of the agency; what was paid otherwise is refunded by the agency.</value>
+  </data>
+  <data name="Cancel.Confirm" xml:space="preserve">
+    <value>Confirm the cancellation</value>
+  </data>
+  <data name="Cancel.Keep" xml:space="preserve">
+    <value>Keep my booking</value>
+  </data>
+  <data name="Cancel.NotAllowed" xml:space="preserve">
+    <value>This booking can no longer be cancelled online: please contact the agency.</value>
+  </data>
+  <data name="Cancel.Back" xml:space="preserve">
+    <value>Back to my booking</value>
+  </data>
+  <data name="Status.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Status.Draft.Text" xml:space="preserve">
+    <value>This request has not been sent yet.</value>
+  </data>
+  <data name="Status.PendingValidation" xml:space="preserve">
+    <value>Being reviewed</value>
+  </data>
+  <data name="Status.PendingValidation.Text" xml:space="preserve">
+    <value>The agency is checking your request and will answer within 2 business hours.</value>
+  </data>
+  <data name="Status.InformationRequested" xml:space="preserve">
+    <value>Information requested</value>
+  </data>
+  <data name="Status.InformationRequested.Text" xml:space="preserve">
+    <value>The agency needs information before {0}: send it below.</value>
+  </data>
+  <data name="Status.OptionHeld" xml:space="preserve">
+    <value>Option held</value>
+  </data>
+  <data name="Status.OptionHeld.Text" xml:space="preserve">
+    <value>A vehicle is held for you as an option; the agency will contact you to confirm it.</value>
+  </data>
+  <data name="Status.AwaitingPayment" xml:space="preserve">
+    <value>Awaiting payment</value>
+  </data>
+  <data name="Status.AwaitingPayment.Text" xml:space="preserve">
+    <value>Your request is approved: pay before {0} to confirm it (link sent by e-mail).</value>
+  </data>
+  <data name="Status.Confirmed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="Status.Confirmed.Text" xml:space="preserve">
+    <value>Your booking is confirmed. On the pick-up day, bring your licence, your identity document and the bank card for the deposit.</value>
+  </data>
+  <data name="Status.InProgress" xml:space="preserve">
+    <value>Rental in progress</value>
+  </data>
+  <data name="Status.InProgress.Text" xml:space="preserve">
+    <value>Enjoy your trip! For any question, contact the agency.</value>
+  </data>
+  <data name="Status.Returned" xml:space="preserve">
+    <value>Vehicle returned</value>
+  </data>
+  <data name="Status.Returned.Text" xml:space="preserve">
+    <value>The vehicle was returned; the agency is finalizing your file.</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Status.Closed.Text" xml:space="preserve">
+    <value>Your rental is completed. Thank you for your trust!</value>
+  </data>
+  <data name="Status.Refused" xml:space="preserve">
+    <value>Not accepted</value>
+  </data>
+  <data name="Status.Refused.Text" xml:space="preserve">
+    <value>Your request could not be accepted. If an amount was held on your card, it is released.</value>
+  </data>
+  <data name="Status.Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Status.Expired.Text" xml:space="preserve">
+    <value>Your request has expired. If an amount was held on your card, it is released.</value>
+  </data>
+  <data name="Status.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Status.Cancelled.Text" xml:space="preserve">
+    <value>This booking is cancelled.</value>
+  </data>
+  <data name="Status.NoShow" xml:space="preserve">
+    <value>Not collected</value>
+  </data>
+  <data name="Status.NoShow.Text" xml:space="preserve">
+    <value>The vehicle was not collected on the planned date.</value>
+  </data>
+  <data name="Timeline.Created" xml:space="preserve">
+    <value>Request created</value>
+  </data>
+  <data name="Timeline.Submitted" xml:space="preserve">
+    <value>Request sent</value>
+  </data>
+  <data name="Timeline.InformationRequested" xml:space="preserve">
+    <value>Information requested by the agency</value>
+  </data>
+  <data name="Timeline.InformationProvided" xml:space="preserve">
+    <value>Information sent</value>
+  </data>
+  <data name="Timeline.Validated" xml:space="preserve">
+    <value>Request approved</value>
+  </data>
+  <data name="Timeline.Refused" xml:space="preserve">
+    <value>Request not accepted</value>
+  </data>
+  <data name="Timeline.Expired" xml:space="preserve">
+    <value>Request expired</value>
+  </data>
+  <data name="Timeline.OptionConfirmed" xml:space="preserve">
+    <value>Option confirmed</value>
+  </data>
+  <data name="Timeline.Paid" xml:space="preserve">
+    <value>Payment received</value>
+  </data>
+  <data name="Timeline.Cancelled" xml:space="preserve">
+    <value>Booking cancelled</value>
+  </data>
+  <data name="Timeline.NoShow" xml:space="preserve">
+    <value>Vehicle not collected</value>
+  </data>
+  <data name="Timeline.RentalStarted" xml:space="preserve">
+    <value>Vehicle picked up</value>
+  </data>
+  <data name="Timeline.Returned" xml:space="preserve">
+    <value>Vehicle returned</value>
+  </data>
+  <data name="Timeline.Closed" xml:space="preserve">
+    <value>File closed</value>
+  </data>
+  <data name="Timeline.Amended" xml:space="preserve">
+    <value>Booking changed</value>
+  </data>
+  <data name="Timeline.Extended" xml:space="preserve">
+    <value>Rental extended</value>
+  </data>
+  <data name="Timeline.VehicleAssigned" xml:space="preserve">
+    <value>Vehicle assigned</value>
+  </data>
+  <data name="Timeline.VehicleUnassigned" xml:space="preserve">
+    <value>Vehicle removed from the booking</value>
+  </data>
+  <data name="Timeline.VehicleSwapped" xml:space="preserve">
+    <value>Vehicle changed</value>
+  </data>
+  <data name="Timeline.Escalated" xml:space="preserve">
+    <value>Request passed to a manager</value>
+  </data>
+  <data name="Error.public.unexpected" xml:space="preserve">
+    <value>Your request could not be processed. Try again in a moment or contact the agency.</value>
+  </data>
+  <data name="Error.public.form_expired" xml:space="preserve">
+    <value>This page has expired: reload it and try again.</value>
+  </data>
+</root>

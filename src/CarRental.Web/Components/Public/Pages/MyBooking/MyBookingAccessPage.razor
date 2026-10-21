@@ -1,0 +1,80 @@
+@page "/{culture:length(2)}/ma-reservation"
+@page "/{culture:length(2)}/my-booking"
+@* "Ma réservation" (ADR-0051): the e-mail and the booking number are asked; when they match a booking, a link and a
+   six-digit code valid 30 minutes are e-mailed. The answer never tells whether the booking exists: the next page is the
+   same in every case. Anti-robot check and rate limit on the form; at most a few e-mails per booking and per hour. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject PublicBookingCookies Cookies
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Access.Title"]" Description="@L["Access.Description"]" />
+
+<section class="account my-booking-access" aria-labelledby="access-heading">
+    <h1 id="access-heading">@L["Access.Heading"]</h1>
+
+    @if (Query(MyBookingEndpoints.NoticeParameter) == MyBookingEndpoints.Notices.SignedOut)
+    {
+        <p class="alert alert--success" role="status">@L["Access.SignedOut"]</p>
+    }
+    @if (_error is not null)
+    {
+        <div class="alert alert--error" role="alert" tabindex="-1" autofocus data-testid="access-error">
+            <p>@_error</p>
+        </div>
+    }
+    @if (_hasSession)
+    {
+        <p class="notice notice--info" role="note">@L["Access.SessionOpen"] <a href="@BookingRoutes.MyBookingFile(Lang)">@L["Access.SessionOpen.Link"]</a></p>
+    }
+
+    <p>@L["Access.Intro"]</p>
+    <form method="post" action="@BookingRoutes.MyBooking(Lang)" class="card" novalidate>
+        <AntiforgeryToken />
+        <FunnelTextField Id="access-email" Name="@MyBookingEndpoints.EmailField" Label="@L["Access.Email"]" Type="email" Autocomplete="email"
+                         InputMode="email" Spellcheck="false" AutoCapitalize="off" Hint="@L["Access.Email.Hint"]" MaxLength="254"
+                         Error="@(_emailInvalid ? L["Access.Email.Invalid"].Value : null)" />
+        <FunnelTextField Id="access-number" Name="@MyBookingEndpoints.NumberField" Label="@L["Access.Number"]" Autocomplete="off"
+                         Spellcheck="false" AutoCapitalize="characters" Hint="@L["Access.Number.Hint"]" MaxLength="30"
+                         Error="@(_numberInvalid ? L["Access.Number.Invalid"].Value : null)" />
+        <TurnstileWidget Action="@MyBookingEndpoints.AccessAction" />
+        <button type="submit" class="button button--block">@L["Access.Submit"]</button>
+    </form>
+    <p class="field-hint">@L["Access.Privacy"]</p>
+</section>
+
+@code {
+    private bool _ready;
+    private bool _hasSession;
+    private bool _emailInvalid;
+    private bool _numberInvalid;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.MyBooking(Lang)))
+        {
+            return;
+        }
+
+        _hasSession = Cookies.ReadSession(HttpContext) is not null;
+        var error = Query(BookingFunnelEndpoints.ErrorParameter);
+        var problems = error?.Split('-') ?? [];
+        _emailInvalid = problems.Contains(MyBookingEndpoints.EmailField);
+        _numberInvalid = problems.Contains(MyBookingEndpoints.NumberField);
+        if (_emailInvalid || _numberInvalid)
+        {
+            _error = L["Access.Invalid"];
+        }
+        else if (LastError is { } code)
+        {
+            _error = ErrorText(code);
+        }
+
+        _ready = true;
+    }
+}

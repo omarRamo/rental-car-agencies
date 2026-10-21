@@ -549,4 +549,40 @@
   <data name="Viewer.Title" xml:space="preserve">
     <value>{0} — {1}</value>
   </data>
+  <data name="Submissions.Title" xml:space="preserve">
+    <value>Documents sent online to review</value>
+  </data>
+  <data name="Submissions.Help" xml:space="preserve">
+    <value>This information and these documents were sent from the website for a request. The record of this known customer was not changed: compare them with the record and the originals, then accept (documents added, empty fields completed, never overwritten) or reject (photos deleted).</value>
+  </data>
+  <data name="Submissions.Item" xml:space="preserve">
+    <value>Sent on {0}</value>
+  </data>
+  <data name="Submissions.NameDiffers" xml:space="preserve">
+    <value>The name typed differs from the record while the document number is the same: check the identity.</value>
+  </data>
+  <data name="Submissions.TypedName" xml:space="preserve">
+    <value>Name typed</value>
+  </data>
+  <data name="Submissions.ImagesOnly" xml:space="preserve">
+    <value>photos only (document on file)</value>
+  </data>
+  <data name="Submissions.Accept" xml:space="preserve">
+    <value>Accept the submission</value>
+  </data>
+  <data name="Submissions.Reject" xml:space="preserve">
+    <value>Reject the submission</value>
+  </data>
+  <data name="Submissions.AcceptMessage" xml:space="preserve">
+    <value>The documents will be added to the record (a same number corrects the document and resets its verification), their photos attached, the empty fields completed and the consents recorded.</value>
+  </data>
+  <data name="Submissions.RejectMessage" xml:space="preserve">
+    <value>The submission will be rejected and its photos deleted. The record does not change.</value>
+  </data>
+  <data name="Submissions.Accepted" xml:space="preserve">
+    <value>Submission accepted: record updated.</value>
+  </data>
+  <data name="Submissions.Rejected" xml:space="preserve">
+    <value>Submission rejected.</value>
+  </data>
 </root>

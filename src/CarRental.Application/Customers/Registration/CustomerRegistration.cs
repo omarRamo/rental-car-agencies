@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Application.Customers.Registration;
 
-internal sealed class CustomerRegistration(
+internal sealed partial class CustomerRegistration(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
     IUserContext userContext,

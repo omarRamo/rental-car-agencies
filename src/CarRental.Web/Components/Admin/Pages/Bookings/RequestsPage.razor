@@ -2,6 +2,7 @@
 @attribute [HasPermission(Permissions.RequestsRead)]
 @implements IDisposable
 @using CarRental.Application.Customers.Contracts
+@using CarRental.Domain.Bookings.Access
 @using CarRental.Web.Resources.Admin.Customers
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
@@ -93,9 +94,26 @@
                                     }
                                     @foreach (var detail in item.Details)
                                     {
-                                        <span class="d-block">
-                                            @detail.DriverName@(detail.Issue is { } issue ? $" : {CustomerLabels.Issue(C, issue)}" : string.Empty)
+                                        <span class="d-block" data-submission-pending="@(detail.SubmissionPending ? "true" : null)">
+                                            @if (detail.SubmissionPending)
+                                            {
+                                                @L["Check.Documents.SubmissionPending", detail.DriverName]
+                                                <text> </text>
+                                                <MudLink Underline="Underline.Always" Href="@($"/admin/customers/persons/{detail.PersonId}#submissions")">@L["Check.Documents.Review"]</MudLink>
+                                            }
+                                            else
+                                            {
+                                                @detail.DriverName@(detail.Issue is { } issue ? $" : {CustomerLabels.Issue(C, issue)}" : string.Empty)
+                                            }
                                         </span>
+                                    }
+                                    @if (item.Payment is { } payment)
+                                    {
+                                        <span class="d-block" data-payment-state="@payment.State.ToString()">@PaymentText(payment)</span>
+                                        @if (payment.PaidLate)
+                                        {
+                                            <span class="d-block">@L["Check.Payment.PaidLate"]</span>
+                                        }
                                     }
                                 </div>
                             </li>
@@ -117,6 +135,10 @@
                             @if (selected.Status == BookingStatusInfo.PendingValidation)
                             {
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => ValidateAsync(selected))" Disabled="_busy">@L["Action.Validate"]</MudButton>
+                                @if (_linkOffer == selected.BookingId)
+                                {
+                                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" OnClick="@(() => ValidateAsync(selected, ValidationPaymentChoice.PaymentLink))" Disabled="_busy">@L["Action.ValidateWithLink"]</MudButton>
+                                }
                                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.HelpOutline" OnClick="@(() => RequestInformationAsync(selected))" Disabled="_busy">@L["Action.RequestInformation"]</MudButton>
                             }
                             else
@@ -148,6 +170,7 @@
     private bool _busy;
     private bool _canManage;
     private Guid? _agencyId;
+    private Guid? _linkOffer;
     private Timer? _timer;
 
     [CascadingParameter]
@@ -248,17 +271,37 @@
         await LoadAsync();
     }
 
-    private async Task ValidateAsync(PendingRequestInfo request)
+    private async Task ValidateAsync(PendingRequestInfo request, ValidationPaymentChoice choice = ValidationPaymentChoice.Automatic)
     {
-        if (!await Dialogs.ConfirmAsync(L["Validate.Title"], L["Validate.MessageFor", request.Number], L["Action.Validate"], Shared["Cancel"]))
+        var withLink = choice == ValidationPaymentChoice.PaymentLink;
+        var confirmed = await Dialogs.ConfirmAsync(
+            withLink ? L["Validate.WithLink.Title"] : L["Validate.Title"],
+            withLink ? L["Validate.WithLink.Message", request.Number] : L["Validate.MessageFor", request.Number],
+            withLink ? L["Action.ValidateWithLink"] : L["Action.Validate"],
+            Shared["Cancel"]);
+        if (!confirmed)
         {
             return;
         }
 
         _busy = true;
         var id = request.BookingId;
-        var result = await Runner.RunAsync<BookingWorkflowService, Result<ValidationOutcome>>((service, ct) => service.ValidateAsync(id, ct));
+        var result = await Runner.RunAsync<BookingWorkflowService, Result<ValidationOutcome>>((service, ct) => service.ValidateAsync(id, choice, ct));
+
+        // A capture refused by the bank: the agent may validate with a payment link instead (ADR-0051).
+        _linkOffer = result.IsFailure && result.Error.Code == BookingErrors.CaptureRejected.Code ? id : null;
         await AfterActionAsync(result.IsSuccess ? Result.Success() : Result.Failure(result.Error), result.IsSuccess ? L[$"Validate.{result.Value}"] : string.Empty);
+    }
+
+    private string PaymentText(ChecklistPayment payment)
+    {
+        var amount = payment.Amount is { } value ? BookingFormat.Amount(value) : string.Empty;
+        return payment.State switch
+        {
+            RequestPaymentState.None when payment.Mode == BookingValidationPaymentMode.PaymentLinkAfterValidation => L["Check.Payment.NoneLinkMode"],
+            RequestPaymentState.PreAuthorized or RequestPaymentState.Captured => L[$"Check.Payment.{payment.State}", amount],
+            _ => L[$"Check.Payment.{payment.State}"],
+        };
     }
 
     private async Task RequestInformationAsync(PendingRequestInfo request)

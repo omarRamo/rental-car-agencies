@@ -12,6 +12,7 @@
 @inject IStringLocalizer<CustomersAdminResources> C
 @inject IStringLocalizer<HandoversResources> H
 @inject IStringLocalizer<SharedResources> Shared
+@inject NavigationManager Navigation
 
 <PageTitle>@Title</PageTitle>
 <BookingStyles />
@@ -135,6 +136,14 @@ else
                 @if (actions.CanCancel)
                 {
                     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel" OnClick="CancelAsync" Disabled="_busy">@L["Action.CancelBooking"]</MudButton>
+                }
+                @if (actions.CanAmend && file.Status is not BookingStatus.InProgress)
+                {
+                    <MudMenu Label="@L["Action.SendCompleteFileLink"]" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ForwardToInbox" Disabled="_busy"
+                             AriaLabel="@L["Action.SendCompleteFileLink"]">
+                        <MudMenuItem OnClick="@(() => SendCompleteFileLinkAsync("fr"))">@L["Language.fr"]</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => SendCompleteFileLinkAsync("en"))">@L["Language.en"]</MudMenuItem>
+                    </MudMenu>
                 }
             </div>
             @if (actions.CanMarkNoShow && actions.NoShowAllowedFrom is { } noShowFrom && noShowFrom > Clock.GetUtcNow())
@@ -403,6 +412,21 @@ else
         }
 
         await ReloadAsync();
+    }
+
+    /// <summary>The "compléter mon dossier" link e-mailed to the main driver, in the language chosen (ADR-0051).</summary>
+    private async Task SendCompleteFileLinkAsync(string culture)
+    {
+        if (!await Dialogs.ConfirmAsync(L["CompleteFileLink.Title"], L["CompleteFileLink.Message"], L["Action.SendCompleteFileLink"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        var id = Id;
+        var baseUrl = Navigation.BaseUri;
+        await RunAsync(
+            () => Runner.RunAsync<CustomerLinkService, Result>((service, ct) => service.SendCompleteFileLinkAsync(id, culture, baseUrl, ct)),
+            L["CompleteFileLink.Sent"]);
     }
 
     private async Task ValidateAsync()

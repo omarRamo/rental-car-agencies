@@ -1,0 +1,176 @@
+@* Documents sent online for a person already known (ADR-0050): the public pages never change a known person, so the
+   agent compares what the visitor typed with the record, views the photos through the logged viewer, then accepts the
+   submission (documents added, missing details completed) or rejects it (photos deleted). Shown only when one waits. *@
+@using CarRental.Application.Customers.Administration
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Web.Components.Admin.Bookings
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CustomersAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+@if (_submissions is { Count: > 0 } submissions)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1" id="submissions" data-testid="driver-submissions">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Submissions.Title"]</MudText>
+        <Notice Kind="NoticeKind.Warning" Class="mb-3">@L["Submissions.Help"]</Notice>
+        @foreach (var submission in submissions)
+        {
+            <section class="mb-4" aria-labelledby="@($"submission-{submission.Id:N}")" data-submission="@submission.Id">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="@($"submission-{submission.Id:N}")">
+                    @L["Submissions.Item", CustomerLabels.Instant(submission.SubmittedAtUtc)]
+                </MudText>
+                @if (submission.NameDiffers)
+                {
+                    <Notice Kind="NoticeKind.Warning" Class="my-2">@L["Submissions.NameDiffers"]</Notice>
+                }
+                @if (submission.FirstName is not null)
+                {
+                    <dl class="ma-0">
+                        <MudText Typo="Typo.caption" HtmlTag="dt">@L["Submissions.TypedName"]</MudText>
+                        <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-1">@($"{submission.FirstName} {submission.LastName}")</MudText>
+                        <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Nationality"]</MudText>
+                        <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-1">@CustomerLabels.Country(submission.Nationality)</MudText>
+                        <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.BirthDate"]</MudText>
+                        <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-1">@(submission.BirthDate is { } birthDate ? CustomerLabels.Date(birthDate) : "—")</MudText>
+                        <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Phone"]</MudText>
+                        <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-1">@(submission.Phone is { } phone ? CustomerLabels.Phone(phone) : "—")</MudText>
+                        <MudText Typo="Typo.caption" HtmlTag="dt">@L["Person.Field.Email"]</MudText>
+                        <MudText Typo="Typo.body1" HtmlTag="dd" Class="ms-0 mb-1">@(submission.Email ?? "—")</MudText>
+                    </dl>
+                }
+                @foreach (var document in submission.Documents)
+                {
+                    <MudDivider Class="my-2" />
+                    <div data-submitted-document="@document.Type.ToString()">
+                        <MudText Typo="Typo.body2">
+                            <strong>@CustomerLabels.DocumentType(L, document.Type)</strong>
+                            @if (document.Number is not null)
+                            {
+                                @($" — {L["Document.NumberAndCountry", document.Number, CustomerLabels.Country(document.IssuingCountry)]}")
+                            }
+                            else
+                            {
+                                @($" — {L["Submissions.ImagesOnly"]}")
+                            }
+                        </MudText>
+                        @if (document.Number is not null)
+                        {
+                            <MudText Typo="Typo.body2">
+                                @L["Document.IssuedOn", CustomerLabels.Date(document.IssuedOn)] ·
+                                @(document.ExpiresOn is null ? L["Document.NoExpiry"] : L["Document.ExpiresOn", CustomerLabels.Date(document.ExpiresOn)])
+                            </MudText>
+                        }
+                        <div class="d-flex flex-wrap gap-2 mt-1">
+                            @foreach (var (side, present) in new[] { (DocumentImageSideInfo.Front, document.HasFrontImage), (DocumentImageSideInfo.Back, document.HasBackImage) })
+                            {
+                                @if (present && CanViewImages)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility"
+                                               OnClick="@(() => ViewAsync(document, side))">@L[$"Image.View.{side}"]</MudButton>
+                                }
+                                else if (!present)
+                                {
+                                    <MudText Typo="Typo.caption">@L[$"Side.{side}"] : @L["Image.None"]</MudText>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+                @if (CanManage)
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="@(() => AcceptAsync(submission))" Disabled="_busy">
+                            @L["Submissions.Accept"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.DeleteSweep" IconColor="Color.Error" OnClick="@(() => RejectAsync(submission))" Disabled="_busy">
+                            @L["Submissions.Reject"]
+                        </MudButton>
+                    </div>
+                }
+            </section>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<DriverSubmissionView>? _submissions;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public bool CanViewImages { get; set; }
+
+    /// <summary>Called after a submission was accepted (the documents of the person changed).</summary>
+    [Parameter]
+    public EventCallback OnReviewed { get; set; }
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var personId = PersonId;
+        var result = await Runner.RunAsync<DriverSubmissionReviewService, Result<IReadOnlyList<DriverSubmissionView>>>((service, ct) => service.GetPendingAsync(personId, ct));
+        _submissions = result.IsSuccess ? result.Value : [];
+    }
+
+    private async Task ViewAsync(SubmittedDocumentView document, DocumentImageSideInfo side)
+    {
+        var title = L["Viewer.Title", CustomerLabels.DocumentType(L, document.Type), L[$"Side.{side}"]];
+        var parameters = new DialogParameters<DocumentImageViewerDialog>
+        {
+            { d => d.DocumentId, document.Id },
+            { d => d.Side, side },
+            { d => d.Title, title },
+            { d => d.IsPdf, side == DocumentImageSideInfo.Front ? document.FrontIsPdf : document.BackIsPdf },
+        };
+        await Dialogs.ShowAsync<DocumentImageViewerDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+    }
+
+    private async Task AcceptAsync(DriverSubmissionView submission)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Submissions.Accept"], L["Submissions.AcceptMessage"], L["Submissions.Accept"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = submission.Id;
+        var result = await Runner.RunAsync<DriverSubmissionReviewService, Result>((service, ct) => service.AcceptAsync(id, ct));
+        await AfterAsync(result, L["Submissions.Accepted"]);
+    }
+
+    private async Task RejectAsync(DriverSubmissionView submission)
+    {
+        if (!await Dialogs.ConfirmAsync(L["Submissions.Reject"], L["Submissions.RejectMessage"], L["Submissions.Reject"], Shared["Cancel"]))
+        {
+            return;
+        }
+
+        _busy = true;
+        var id = submission.Id;
+        var result = await Runner.RunAsync<DriverSubmissionReviewService, Result>((service, ct) => service.RejectAsync(id, ct));
+        await AfterAsync(result, L["Submissions.Rejected"]);
+    }
+
+    private async Task AfterAsync(Result result, string success)
+    {
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await LoadAsync();
+            await OnReviewed.InvokeAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

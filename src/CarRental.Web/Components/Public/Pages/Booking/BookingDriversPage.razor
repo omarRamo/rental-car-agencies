@@ -1,0 +1,176 @@
+@page "/{culture:length(2)}/reserver/{Token}/conducteurs"
+@page "/{culture:length(2)}/book/{Token}/drivers"
+@* Step 2 of the booking funnel (ADR-0050): the main driver and an optional second driver, the photos of their
+   documents (upload module) and the consents. The server validates every field and evaluates each driver on what was
+   typed only (age, licence held long enough, documents valid until the return, international permit, CIN for a
+   Tunisian): the errors are summarized at the top, linked to their fields and repeated next to them. Nothing typed
+   here ever changes a person the agency already knows: it waits for an agent. Records the documents step once. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject FunnelTracker Tracker
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<BookingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@(_errors.Count > 0 ? L["Drivers.ErrorTitle", L["Drivers.Title"]] : L["Drivers.Title"])" Description="@L["Drivers.Description"]" />
+
+<FunnelProgress Current="FunnelStep.Drivers" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
+
+<h1>@L["Drivers.Heading"]</h1>
+
+@if (_errors.Count > 0)
+{
+    <div class="error-summary" role="alert" tabindex="-1" autofocus aria-labelledby="drivers-errors-title" data-testid="drivers-errors">
+        <h2 id="drivers-errors-title" class="error-summary__title">@L["Drivers.ErrorSummary"]</h2>
+        <ul class="error-summary__list">
+            @foreach (var error in _errors)
+            {
+                <li><a href="@PublicRoutes.InPage(Navigation, AnchorOf(error))">@SummaryText(error)</a></li>
+            }
+        </ul>
+    </div>
+}
+else
+{
+    <FunnelNotice Notice="@_view.Notice" Error="@LastError" />
+}
+
+<div class="funnel-layout">
+    <div class="funnel-layout__main">
+        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)" class="funnel-form drivers" novalidate data-drivers-form>
+            <AntiforgeryToken />
+            <p class="field-hint">@L["Drivers.Intro"]</p>
+
+            <fieldset class="driver">
+                <legend class="driver__legend">@L["Drivers.Main"]</legend>
+                <DriverFields Role="@FunnelFields.Main" Input="@_input?.Main" Errors="@_errors" ContactRequired="true"
+                              UploadUrl="@BookingRoutes.UploadsPath(Lang, Token)" Uploads="@_uploads" />
+            </fieldset>
+
+            <div class="form-check drivers__second-toggle">
+                <input type="checkbox" id="second-enabled" name="@BookingFunnelEndpoints.SecondDriverField" value="1" checked="@(_input?.HasSecond == true)"
+                       aria-describedby="second-enabled-hint" data-second-driver />
+                <label for="second-enabled">@L["Drivers.AddSecond"]</label>
+            </div>
+            <p class="field-hint" id="second-enabled-hint">@(_additionalDriver is null ? L["Drivers.AddSecond.Free"] : L["Drivers.AddSecond.Price", AdditionalDriverPrice])</p>
+
+            <fieldset class="driver driver--second">
+                <legend class="driver__legend">@L["Drivers.Second"]</legend>
+                <DriverFields Role="@FunnelFields.Second" Input="@(_input?.HasSecond == true ? _input.Second : null)" Errors="@_errors"
+                              UploadUrl="@BookingRoutes.UploadsPath(Lang, Token)" Uploads="@_uploads" />
+            </fieldset>
+
+            <noscript>
+                <p class="notice">@L["Photos.NoScript"]</p>
+            </noscript>
+
+            <fieldset class="consents">
+                <legend class="driver__legend">@L["Consents.Legend"]</legend>
+                <div class="form-check form-check--top">
+                    <input type="checkbox" id="consent-documents" name="@BookingFunnelEndpoints.DocumentConsentField" value="1"
+                           checked="@(_input?.DocumentProcessingConsent == true)" aria-required="true"
+                           aria-invalid="@(ConsentError is null ? null : "true")" aria-describedby="@(ConsentError is null ? null : "consent-documents-error")" />
+                    <label for="consent-documents">
+                        @L["Consents.Documents"]
+                        <a href="@PublicRoutes.PathFor(PublicPage.Privacy, Lang)" target="_blank" rel="noopener">@L["Consents.Documents.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
+                    </label>
+                </div>
+                <FieldMessage Id="consent-documents-error" Message="@ConsentError" />
+                <div class="form-check form-check--top">
+                    <input type="checkbox" id="consent-whatsapp" name="@BookingFunnelEndpoints.WhatsAppConsentField" value="1" checked="@(_input?.WhatsAppNotificationsConsent == true)" />
+                    <label for="consent-whatsapp">@L["Consents.WhatsApp"]</label>
+                </div>
+                <div class="form-check form-check--top">
+                    <input type="checkbox" id="consent-marketing" name="@BookingFunnelEndpoints.MarketingConsentField" value="1" checked="@(_input?.MarketingConsent == true)" />
+                    <label for="consent-marketing">@L["Consents.Marketing"]</label>
+                </div>
+            </fieldset>
+
+            <div class="funnel-actions">
+                <button type="submit" class="button">@L["Drivers.Continue"]</button>
+            </div>
+        </form>
+        <p class="funnel-back"><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)">@L["Drivers.Back"]</a></p>
+    </div>
+    <aside class="funnel-layout__aside" aria-label="@L["Summary.Title"]">
+        <FunnelSummary View="_view" Agency="_agency!" Culture="@Lang" />
+    </aside>
+</div>
+
+<script type="module" src="@Assets["js/document-upload.js"]"></script>
+
+@code {
+    private bool _ready;
+    private FunnelView? _view;
+    private PublicAgency? _agency;
+    private FunnelDriversInput? _input;
+    private IReadOnlyList<FunnelFieldError> _errors = [];
+    private HashSet<string> _uploads = new(StringComparer.Ordinal);
+    private FunnelExtraView? _additionalDriver;
+
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private string? ConsentError =>
+        _errors.FirstOrDefault(e => e.Field == FunnelFields.DocumentConsent) is { } error ? FunnelTexts.Message(L, Shared, error) : null;
+
+    private string AdditionalDriverPrice => PublicFormat.Price(_additionalDriver!.Price);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        FunnelLookup lookup;
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
+        {
+            lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Documents, Aborted);
+        }
+
+        if (lookup.View is not { } view || _agency is null)
+        {
+            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            return;
+        }
+
+        _view = view;
+        _input = view.Draft?.Input ?? view.Drivers;
+        _errors = view.Draft?.Errors ?? [];
+        _uploads = [.. view.Uploads.Select(u => u.Slot)];
+        _additionalDriver = view.Extras.FirstOrDefault(e => e.Code == FunnelFields.AdditionalDriverExtra);
+        if (view.FirstVisit)
+        {
+            await Tracker.TrackAsync(HttpContext, FunnelStepInfo.Documents, TrafficOf(view.Attribution, view.Channel), view.CategoryCode, cancellationToken: Aborted);
+        }
+
+        _ready = true;
+    }
+
+    /// <summary>The element an error of the summary leads to: its field, the eligibility block or the driver.</summary>
+    private static string AnchorOf(FunnelFieldError error) => FunnelTexts.FieldId(error.Field);
+
+    private string SummaryText(FunnelFieldError error)
+    {
+        var message = FunnelTexts.Message(L, Shared, error);
+        var role = error.Field.Split('.')[0];
+        var driver = role switch
+        {
+            FunnelFields.Main => L["Drivers.Main"].Value,
+            FunnelFields.Second => L["Drivers.Second"].Value,
+            _ => null,
+        };
+        var field = FunnelTexts.FieldLabel(L, error.Field);
+        return driver is null
+            ? L["ErrorSummary.Consent", message]
+            : string.IsNullOrEmpty(field) || error.Field.EndsWith($".{FunnelFields.Eligibility}", StringComparison.Ordinal)
+                ? L["ErrorSummary.Driver", driver, message]
+                : L["ErrorSummary.Field", driver, field, message];
+    }
+}

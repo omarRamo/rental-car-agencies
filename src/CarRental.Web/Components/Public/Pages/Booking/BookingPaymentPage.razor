@@ -1,0 +1,144 @@
+@page "/{culture:length(2)}/reserver/{Token}/paiement"
+@page "/{culture:length(2)}/book/{Token}/payment"
+@* Step 3 of the booking funnel (ADR-0049): the recapitulation, the terms of rental to accept, how the request is
+   guaranteed (pre-authorization of the guaranteed amount on the payment page of the bank, captured only when the agency
+   validates; without online payment, a payment link after the validation) and the anti-robot check. The submission is
+   a plain form; the request is created under the availability lock, then the browser goes to the bank through a page
+   of the site. Records the payment step once per session. *@
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject FunnelTracker Tracker
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<BookingResources> L
+
+@if (!_ready)
+{
+    return;
+}
+
+<PrivateHead Title="@L["Payment.Title"]" Description="@L["Payment.Description"]" />
+
+<FunnelProgress Current="FunnelStep.Payment" Culture="@Lang" Token="@Token" DriversSaved="true" />
+
+<h1>@L["Payment.Heading"]</h1>
+
+<FunnelNotice Notice="@_view!.Notice" Error="@LastError" />
+@if (_view.Draft is not null)
+{
+    <p class="notice" role="note">@L["Payment.DraftPending"] <a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)">@L["Payment.DraftPending.Link"]</a></p>
+}
+
+<div class="funnel-layout">
+    <div class="funnel-layout__main">
+        <section class="recap" aria-labelledby="recap-drivers">
+            <h2 id="recap-drivers" class="recap__title">@L["Payment.Drivers"]</h2>
+            <ul class="recap__list">
+                <li>@L["Payment.Driver.Main", DriverName(_view.Drivers!.Main)]</li>
+                @if (_view.Drivers.HasSecond && _view.Drivers.Second is { } second)
+                {
+                    <li>@L["Payment.Driver.Second", DriverName(second)]</li>
+                }
+            </ul>
+            <p><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)">@L["Payment.Drivers.Change"]</a></p>
+            @if (_chosenExtras.Count > 0)
+            {
+                <h2 class="recap__title">@L["Payment.Options"]</h2>
+                <ul class="recap__list">
+                    @foreach (var extra in _chosenExtras)
+                    {
+                        <li>@(extra.Quantity > 1 ? L["Payment.Option.Quantity", ExtraName(extra), extra.Quantity] : ExtraName(extra))</li>
+                    }
+                </ul>
+            }
+            <p><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)">@L["Payment.Options.Change"]</a></p>
+        </section>
+
+        <section class="guarantee" aria-labelledby="guarantee-title">
+            <h2 id="guarantee-title" class="recap__title">@L["Payment.Guarantee.Title"]</h2>
+            @if (_view.Guarantee.Mode == FunnelGuaranteeMode.PreAuthorization)
+            {
+                <p>@L["Payment.Guarantee.PreAuthorization", PublicFormat.Price(_view.Guarantee.Amount)]</p>
+                <p class="field-hint">@L["Payment.Guarantee.Release"]</p>
+            }
+            else
+            {
+                <p class="notice" data-testid="payment-link-mode">@L["Payment.Guarantee.Link"]</p>
+            }
+            <p class="field-hint">@L["Payment.Answer"]</p>
+        </section>
+
+        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Payment)" class="funnel-form" novalidate>
+            <AntiforgeryToken />
+            <div class="form-check form-check--top">
+                <input type="checkbox" id="terms" name="@BookingFunnelEndpoints.TermsField" value="1" aria-required="true"
+                       aria-invalid="@(TermsMissing ? "true" : null)" aria-describedby="@(TermsMissing ? "terms-error" : null)" />
+                <label for="terms">
+                    @L["Payment.Terms"]
+                    <a href="@PublicRoutes.PathFor(PublicPage.Terms, Lang)" target="_blank" rel="noopener">@L["Payment.Terms.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
+                </label>
+            </div>
+            <FieldMessage Id="terms-error" Message="@(TermsMissing ? ErrorText(FunnelErrors.TermsRequired.Code) : null)" />
+            <TurnstileWidget Action="@BookingFunnelEndpoints.SubmitAction" />
+            <div class="funnel-actions">
+                <button type="submit" class="button button--block" data-testid="funnel-submit">
+                    @(_view.Guarantee.Mode == FunnelGuaranteeMode.PreAuthorization ? L["Payment.Submit.PreAuthorization"] : L["Payment.Submit.Link"])
+                </button>
+            </div>
+        </form>
+    </div>
+    <aside class="funnel-layout__aside" aria-label="@L["Summary.Title"]">
+        <FunnelSummary View="_view" Agency="_agency!" Culture="@Lang" />
+    </aside>
+</div>
+
+@code {
+    private bool _ready;
+    private FunnelView? _view;
+    private PublicAgency? _agency;
+    private List<FunnelExtraView> _chosenExtras = [];
+
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private bool TermsMissing => LastError == FunnelErrors.TermsRequired.Code;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Payment)))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        FunnelLookup lookup;
+        await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
+        {
+            // The links of the funnel lead here once the drivers are saved only.
+            lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Payment, Aborted);
+        }
+
+        if (lookup.View is not { } view || _agency is null)
+        {
+            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            return;
+        }
+
+        if (!view.HasDrivers)
+        {
+            Leave(BookingRoutes.Step(Lang, Token, FunnelStep.Drivers));
+            return;
+        }
+
+        _view = view;
+        _chosenExtras = [.. view.Extras.Where(e => e.Quantity > 0)];
+        if (view.FirstVisit)
+        {
+            await Tracker.TrackAsync(HttpContext, FunnelStepInfo.Payment, TrafficOf(view.Attribution, view.Channel), view.CategoryCode, cancellationToken: Aborted);
+        }
+
+        _ready = true;
+    }
+
+    private static string DriverName(FunnelDriverInput driver) => $"{driver.FirstName} {driver.LastName}".Trim();
+
+    private string ExtraName(FunnelExtraView extra) => BookingRoutes.IsEnglish(Lang) && !string.IsNullOrWhiteSpace(extra.NameEn) ? extra.NameEn : extra.Name;
+}

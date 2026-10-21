@@ -29,3 +29,9 @@ public sealed record PersonAnonymized(Guid PersonId) : IDomainEvent;
 public sealed record CustomerRegistered(Guid CustomerId, CustomerKind Kind) : IDomainEvent;
 
 public sealed record CompanyCustomerUpdated(Guid CustomerId) : IDomainEvent;
+
+/// <summary>A visitor submitted a driver for a booking (public funnel, "Ma réservation"); pending when the person was already known.</summary>
+public sealed record DriverSubmissionReceived(Guid SubmissionId, Guid PersonId, Guid BookingId, bool IsPending) : IDomainEvent;
+
+/// <summary>An agent (or the end of the request) accepted or rejected a pending driver submission.</summary>
+public sealed record DriverSubmissionReviewed(Guid SubmissionId, Guid PersonId, Guid BookingId, bool Accepted) : IDomainEvent;

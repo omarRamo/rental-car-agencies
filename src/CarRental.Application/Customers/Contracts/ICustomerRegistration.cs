@@ -50,4 +50,29 @@ public interface ICustomerRegistration
     /// restarts from there. Called by Bookings when a rental is closed; no permission required.
     /// </summary>
     Task<Result> RecordRentalClosedAsync(Guid personId, DateTimeOffset closedAtUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Public pages (ADR-0050): keeps aside an image uploaded by a visitor before its submission — real format (JPEG,
+    /// PNG, PDF) checked on the content, 10 MB at most, stored privately under an identifier. It is used once by
+    /// <see cref="RegisterSubmittedDriverAsync"/> or <see cref="SubmitDocumentImageAsync"/>, otherwise deleted after a day.
+    /// </summary>
+    Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Public request (ADR-0050): registers a driver submitted by a visitor. When nobody matches (same rules as
+    /// <see cref="FindOrCreatePersonAsync"/>, every submitted document considered), the person is created with its
+    /// documents, images and consents. When a person is already known, it is <b>never changed</b>: the submission
+    /// (details, documents, images, consents) waits for an agent, who reconciles it at the validation. The result is the
+    /// same for the visitor in both cases.
+    /// </summary>
+    Task<Result<SubmittedDriverResult>> RegisterSubmittedDriverAsync(SubmittedDriverRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "Ma réservation": adds the image of one side of a document to the pending submission of the driver for the booking
+    /// (created when there is none). Applied to the person only when an agent accepts it.
+    /// </summary>
+    Task<Result> SubmitDocumentImageAsync(DocumentImageSubmission submission, CancellationToken cancellationToken = default);
+
+    /// <summary>The request ended (refused, expired, cancelled): its pending submissions are rejected and their images deleted.</summary>
+    Task<Result> DiscardDriverSubmissionsAsync(Guid bookingId, CancellationToken cancellationToken = default);
 }
