@@ -31,6 +31,14 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
     })
     {
         RateLimitPermits = RateLimit,
+
+        // The shared host alone processes the jobs and the outbox of the shared database (its simulated bank knows the
+        // orders of the tests); e-mails would go to its folder anyway.
+        ExtraSettings = new Dictionary<string, string?>
+        {
+            ["BackgroundJobs:RunServer"] = "false",
+            ["Email:PickupDirectory"] = host.Factory.EmailDirectory,
+        },
     };
 
     public ValueTask InitializeAsync()

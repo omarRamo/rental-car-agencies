@@ -138,6 +138,6 @@ public static partial class TestEmails
     [GeneratedRegex(@"https?://[^\s<>""]+")]
     private static partial Regex Link();
 
-    [GeneratedRegex(@"code ?: (?<code>[0-9]{6})", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"code ?: (?<code>[0-9]{6})", RegexOptions.IgnoreCase)]
     private static partial Regex SixDigits();
 }
