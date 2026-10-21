@@ -14,6 +14,9 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     public const int AddressMaxLength = 300;
     public const int PhoneMaxLength = 32;
     public const int EmailMaxLength = 254;
+    public const int TradeRegisterNumberMaxLength = 64;
+    public const int LegalAddressMaxLength = 300;
+    public const int InvoiceFooterMaxLength = 1000;
 
     /// <summary>Decimals kept for the coordinates (about 10 cm).</summary>
     public const int CoordinateDecimals = 6;
@@ -50,6 +53,15 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     /// <summary>WGS 84 longitude of the office, set together with <see cref="Latitude"/>.</summary>
     public decimal? Longitude { get; private set; }
 
+    /// <summary>Trade register number (registre national des entreprises), printed on invoices.</summary>
+    public string? TradeRegisterNumber { get; private set; }
+
+    /// <summary>Legal address (head office) printed on invoices; the office address when not set.</summary>
+    public string? LegalAddress { get; private set; }
+
+    /// <summary>Free text printed at the bottom of invoices and credit notes (capital, bank details…).</summary>
+    public string? InvoiceFooter { get; private set; }
+
     public bool IsActive { get; private set; }
 
     public bool IsDeleted { get; private set; }
@@ -83,6 +95,37 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
 
         Apply(normalized);
         Raise(new AgencyDetailsUpdated(Id));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The legal identity printed on the invoices (seller): legal name, tax identifier (matricule fiscal), trade register
+    /// number, legal address and footer. Blank fields are cleared; an incomplete identity is allowed here, the Billing
+    /// module refuses to issue an invoice until legal name, tax identifier and an address are known.
+    /// </summary>
+    public Result UpdateLegalIdentity(AgencyLegalIdentity identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        var legalName = AgencyDetails.NullIfBlank(identity.LegalName);
+        var taxIdentifier = AgencyDetails.NullIfBlank(identity.TaxIdentifier)?.ToUpperInvariant();
+        var register = AgencyDetails.NullIfBlank(identity.TradeRegisterNumber);
+        var address = AgencyDetails.NullIfBlank(identity.LegalAddress);
+        var footer = AgencyDetails.NullIfBlank(identity.InvoiceFooter);
+        if (legalName?.Length > LegalNameMaxLength
+            || taxIdentifier?.Length > TaxIdentifierMaxLength
+            || register?.Length > TradeRegisterNumberMaxLength
+            || address?.Length > LegalAddressMaxLength
+            || footer?.Length > InvoiceFooterMaxLength)
+        {
+            return ReferentialErrors.AgencyFieldTooLong;
+        }
+
+        LegalName = legalName;
+        TaxIdentifier = taxIdentifier;
+        TradeRegisterNumber = register;
+        LegalAddress = address;
+        InvoiceFooter = footer;
+        Raise(new AgencyLegalIdentityUpdated(Id));
         return Result.Success();
     }
 
@@ -166,5 +209,16 @@ public sealed record AgencyDetails(
     private static decimal? RoundCoordinate(decimal? value) =>
         value is { } coordinate ? Math.Round(coordinate, Agency.CoordinateDecimals, MidpointRounding.AwayFromZero) : null;
 
-    private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    internal static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
+
+/// <summary>
+/// The legal identity of an agency, printed as the seller on its invoices: legal name, tax identifier (matricule fiscal),
+/// trade register number, legal address (head office) and the footer of the invoices.
+/// </summary>
+public sealed record AgencyLegalIdentity(
+    string? LegalName,
+    string? TaxIdentifier,
+    string? TradeRegisterNumber,
+    string? LegalAddress,
+    string? InvoiceFooter);

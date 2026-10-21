@@ -18,6 +18,7 @@ public static class ReferentialModule
         services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<SettingsCache>());
         services.AddScoped<ISettingsReader, SettingsReader>();
         services.AddScoped<SettingsAdministrationService>();
+        services.AddScoped<AgencyIdentityAdministrationService>();
         services.AddSettingDefinitions(WellKnownSettings.All);
         services.AddDataSeeder<ReferentialSettingsSeeder>();
         services.AddDataSeeder<ReferentialDemoSeeder>();

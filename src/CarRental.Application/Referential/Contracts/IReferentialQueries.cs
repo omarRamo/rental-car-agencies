@@ -11,7 +11,10 @@ public interface IReferentialQueries
     Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default);
 }
 
-/// <summary>An agency; <see cref="Latitude"/> and <see cref="Longitude"/> (WGS 84) are both set or both null.</summary>
+/// <summary>
+/// An agency; <see cref="Latitude"/> and <see cref="Longitude"/> (WGS 84) are both set or both null; <see cref="Legal"/>
+/// is the legal identity printed on its invoices (the Billing module refuses to invoice while it is incomplete).
+/// </summary>
 public sealed record AgencyInfo(
     Guid Id,
     string Name,
@@ -21,7 +24,19 @@ public sealed record AgencyInfo(
     bool IsActive,
     string? Address = null,
     decimal? Latitude = null,
-    decimal? Longitude = null);
+    decimal? Longitude = null,
+    AgencyLegalIdentityInfo? Legal = null);
+
+/// <summary>
+/// The legal identity of an agency (the seller of its invoices): legal name, tax identifier (matricule fiscal), trade
+/// register number, legal address (head office; the office address applies when empty) and the footer of the invoices.
+/// </summary>
+public sealed record AgencyLegalIdentityInfo(
+    string? LegalName,
+    string? TaxIdentifier,
+    string? TradeRegisterNumber,
+    string? LegalAddress,
+    string? InvoiceFooter);
 
 /// <summary>A pick-up / return location. <see cref="Kind"/> uses the contract enum, not the domain one.</summary>
 public sealed record LocationInfo(Guid Id, Guid AgencyId, string Code, string Name, LocationKindInfo Kind, string? Address);
