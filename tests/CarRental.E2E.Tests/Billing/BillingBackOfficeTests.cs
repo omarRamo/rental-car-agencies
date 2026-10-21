@@ -74,10 +74,7 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         await dialog.GetByLabel("Motif de l'avoir").FillAsync("Geste commercial");
         await Expect(dialog.GetByTestId("credit-sum")).ToContainTextAsync("50,000 TND");
         var submit = dialog.GetByTestId("credit-submit");
-        await Expect(submit).ToBeEnabledAsync();
-
-        // The button fades from its disabled colours: axe would compute the contrast of the blend.
-        await submit.EvaluateAsync("button => Promise.all(button.getAnimations({ subtree: true }).map(a => a.finished))");
+        await SettledAsync(submit);
         await AssertAccessibleAsync();
         await submit.ClickAsync();
 
@@ -162,20 +159,109 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         await AssertAccessibleAsync();
     }
 
+    [Fact]
+    public async Task An_agent_opens_a_claim_for_a_vehicle_and_records_its_repair_cost()
+    {
+        var file = await HandoverE2EData.ConfirmedAsync(Host);
+        string plate;
+        await using (var scope = Scope(null))
+        {
+            plate = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().GetVehicleAsync(file.VehicleId, Ct)).ShouldNotBeNull().PlateNumber;
+        }
+
+        var agent = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
+        await BackOfficeSession.SignInAsync(Page, agent, $"/admin/claims?agency={file.AgencyId}");
+        await WaitUntilReadyAsync();
+        await AssertAccessibleAsync();
+
+        await Page.GetByTestId("claim-new").ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog);
+        await Expect(dialog).ToBeVisibleAsync();
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await dialog.GetByRole(AriaRole.Combobox, new LocatorGetByRoleOptions { Name = "Véhicule" }).ClickAsync();
+        await BackOfficeSession.WaitForOpenPopoverAsync(Page);
+        await Page.GetByRole(AriaRole.Option, new PageGetByRoleOptions { Name = plate }).ClickAsync();
+        await dialog.GetByLabel("Date et heure de l'accident").FillAsync(TunisTime.ToTunis(DateTimeOffset.UtcNow.AddHours(-2)).ToString("yyyy-MM-dd'T'HH:mm", CultureInfo.InvariantCulture));
+        await dialog.GetByLabel("Description").FillAsync("Choc arrière à l'arrêt");
+        await dialog.GetByLabel("Franchise (TND)").FillAsync("500");
+        await SettledAsync(dialog.GetByTestId("claim-submit"));
+        await AssertAccessibleAsync();
+        await dialog.GetByTestId("claim-submit").ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(ClaimPage());
+        await WaitUntilReadyAsync();
+        await Expect(Page.GetByTestId("claim-status")).ToHaveTextAsync("Ouvert");
+        await Page.GetByTestId("claim-add-cost").ClickAsync();
+        var entry = Page.GetByRole(AriaRole.Dialog);
+        await Expect(entry).ToBeVisibleAsync();
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await entry.GetByLabel("Montant (TND)").FillAsync("1200");
+        await entry.GetByLabel("Libellé").FillAsync("Réparation carrosserie");
+        await SettledAsync(entry.GetByTestId("claim-entry-submit"));
+        await AssertAccessibleAsync();
+        await entry.GetByTestId("claim-entry-submit").ClickAsync();
+
+        await Expect(entry).ToHaveCountAsync(0);
+        await Expect(Page.GetByTestId("claim-net-cost")).ToHaveTextAsync(TwelveHundred());
+        await Expect(Page.Locator("tr", new PageLocatorOptions { HasText = "Réparation carrosserie" })).ToBeVisibleAsync();
+        await AssertAccessibleAsync();
+    }
+
+    [Fact]
+    public async Task A_manager_fills_in_the_seller_identity_of_an_agency()
+    {
+        var file = await HandoverE2EData.ConfirmedAsync(Host);
+        var manager = await BackOfficeSession.NewStaffAsync(Host, Roles.Manager);
+        await BackOfficeSession.SignInAsync(Page, manager, $"/admin/agency?agency={file.AgencyId}");
+        await WaitUntilReadyAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Identité incomplète" })).ToBeVisibleAsync();
+        await AssertAccessibleAsync();
+
+        var digits = RandomNumberGenerator.GetInt32(1_000_000, 9_999_999).ToString(CultureInfo.InvariantCulture);
+        await Page.GetByLabel("Raison sociale").FillAsync($"Location E2E {digits} SARL");
+        await Page.GetByLabel("Matricule fiscal").FillAsync($"MF-E2E-{digits}");
+        await Page.GetByLabel("Adresse du siège").FillAsync("12 rue des Essais, 1000 Tunis");
+        await Page.GetByTestId("agency-save").ClickAsync();
+
+        await Expect(Page.GetByText("Identité de l'agence enregistrée.")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Identité incomplète" })).ToHaveCountAsync(0);
+        await AssertAccessibleAsync();
+        await using var scope = Scope(null);
+        var agency = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Agency>().AsNoTracking().SingleAsync(a => a.Id == file.AgencyId, Ct);
+        (agency.LegalName, agency.TaxIdentifier, agency.LegalAddress).ShouldBe(($"Location E2E {digits} SARL", $"MF-E2E-{digits}", "12 rue des Essais, 1000 Tunis"));
+    }
+
     [GeneratedRegex(@"/admin/invoices/[0-9a-f-]{36}$")]
     private static partial Regex InvoicePage();
 
     [GeneratedRegex(@"/admin/fines/[0-9a-f-]{36}$")]
     private static partial Regex FinePage();
 
+    [GeneratedRegex(@"/admin/claims/[0-9a-f-]{36}$")]
+    private static partial Regex ClaimPage();
+
     [GeneratedRegex(@"^Facture FAC-\d{4}-\d{6}$")]
     private static partial Regex InvoiceTitle();
+
+    /// <summary>1 200,000 TND (the group separator of the culture is a narrow no-break space).</summary>
+    [GeneratedRegex(@"^1\s?200,000 TND$")]
+    private static partial Regex TwelveHundred();
 
     /// <summary>−50,000 TND (the minus sign of the culture may be a hyphen or U+2212).</summary>
     [GeneratedRegex("[-−]50,000 TND")]
     private static partial Regex MinusFifty();
 
     private static string Amount(Money amount) => amount.ToString("N", CultureInfo.GetCultureInfo("fr"));
+
+    /// <summary>
+    /// Waits until <paramref name="button"/> is enabled and has finished fading from its disabled colours: axe would compute
+    /// the contrast of the blend.
+    /// </summary>
+    private static async Task SettledAsync(ILocator button)
+    {
+        await Expect(button).ToBeEnabledAsync();
+        await button.EvaluateAsync("button => Promise.all(button.getAnimations({ subtree: true }).map(a => a.finished))");
+    }
 
     /// <summary>The page heading is marked ready once the page is interactive and loaded.</summary>
     private Task WaitUntilReadyAsync() =>
