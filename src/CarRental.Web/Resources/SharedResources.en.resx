@@ -594,4 +594,22 @@
   <data name="Error.referential.agency_coordinates_invalid" xml:space="preserve">
     <value>The agency coordinates need both a latitude (-90 to 90) and a longitude (-180 to 180).</value>
   </data>
+  <data name="Error.reporting.funnel_event.channel_invalid" xml:space="preserve">
+    <value>Unknown sales channel for the funnel measurement.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.culture_invalid" xml:space="preserve">
+    <value>Invalid language for the funnel measurement.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.identifier_invalid" xml:space="preserve">
+    <value>Empty visit or booking identifier in the funnel measurement.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.source_invalid" xml:space="preserve">
+    <value>Invalid traffic source (32 characters at most: lower-case letters, digits, &quot;.&quot;, &quot;_&quot; or &quot;-&quot;).</value>
+  </data>
+  <data name="Error.reporting.funnel_event.step_invalid" xml:space="preserve">
+    <value>Unknown step of the booking funnel.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
+    <value>Invalid UTM tag (100 characters at most, no control character).</value>
+  </data>
 </root>

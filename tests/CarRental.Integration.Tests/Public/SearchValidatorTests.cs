@@ -70,6 +70,7 @@ public sealed class SearchValidatorTests
 
         validation.IsValid.ShouldBeFalse();
         validation.ErrorFor(field).ShouldBe(code);
+        SearchValidator.ErrorCodes.ShouldContain(code);
     }
 
     [Fact]

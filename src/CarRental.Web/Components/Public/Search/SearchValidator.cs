@@ -45,6 +45,14 @@ public static class SearchValidator
 
     private static readonly string[] DateFormats = ["yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss"];
 
+    /// <summary>Every code a <see cref="SearchError"/> can carry (each has a <c>Search.Error.{code}</c> text, fr and en).</summary>
+    public static IReadOnlyList<string> ErrorCodes { get; } =
+    [
+        "pickup_location_required", "pickup_location_unknown", "return_location_unknown",
+        "pickup_required", "pickup_invalid", "pickup_past", "pickup_too_far",
+        "return_required", "return_invalid", "return_before_pickup", "rental_too_long",
+    ];
+
     public static SearchValidation Validate(SearchQuery query, IReadOnlyList<LocationInfo> locations, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(query);
