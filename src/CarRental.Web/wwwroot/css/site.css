@@ -59,6 +59,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Keeps a focused element clear of the floating WhatsApp button when the browser scrolls it into view. */
+  scroll-padding-block-end: 5rem;
 }
 
 body {
@@ -708,6 +710,14 @@ address {
 .search-summary__route {
   margin-block-end: var(--space-1);
   font-weight: 700;
+}
+
+.search-summary__arrow {
+  display: inline-block;
+}
+
+[dir="rtl"] .search-summary__arrow {
+  transform: scaleX(-1);
 }
 
 .search-summary__dates {

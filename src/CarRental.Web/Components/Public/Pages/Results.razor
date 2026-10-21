@@ -46,7 +46,7 @@
         @_criteria.PickupLocation.Name
         @if (_criteria.ReturnLocation.Id != _criteria.PickupLocation.Id)
         {
-            <span aria-hidden="true"> → </span><span class="visually-hidden">, @L["Search.ReturnLocation"] : </span>@_criteria.ReturnLocation.Name
+            <span class="search-summary__arrow" aria-hidden="true"> → </span><span class="visually-hidden">, @L["Search.ReturnLocation"] : </span>@_criteria.ReturnLocation.Name
         }
     </p>
     <p class="search-summary__dates">@L["Results.SummaryDates", DateTimeText(_criteria.PickupAt), DateTimeText(_criteria.ReturnAt)]</p>
