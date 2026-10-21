@@ -19,6 +19,7 @@ public static class PaymentsModule
         services.AddScoped<ICounterPayments, CounterPayments>();
         services.AddScoped<IDeposits, Deposits>();
         services.AddScoped<IPaymentsQueries, PaymentsQueries>();
+        services.AddScoped<IPaymentsReportingQueries, PaymentsReportingQueries>();
 
         // Back office.
         services.AddScoped<PaymentAdminQueries>();

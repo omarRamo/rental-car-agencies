@@ -35,6 +35,7 @@ public static class BookingsModule
 
         // Contracts for the other modules and the public funnel.
         services.AddScoped<IBookingsQueries, BookingsQueries>();
+        services.AddScoped<IBookingsReportingQueries, BookingsReportingQueries>();
         services.AddScoped<IBookingRequests, BookingRequestService>();
         services.AddScoped<IBookingPaymentStatus, BookingPaymentStatus>();
 
