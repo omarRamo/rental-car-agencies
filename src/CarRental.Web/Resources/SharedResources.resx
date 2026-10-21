@@ -876,4 +876,25 @@
   <data name="Error.referential.setting_platform_only" xml:space="preserve">
     <value>Ce paramètre a une seule valeur pour toute la plateforme : une agence ne peut pas avoir la sienne.</value>
   </data>
+  <data name="Error.referential.agency_coordinates_invalid" xml:space="preserve">
+    <value>Les coordonnées de l'agence demandent une latitude (-90 à 90) et une longitude (-180 à 180).</value>
+  </data>
+  <data name="Error.reporting.funnel_event.channel_invalid" xml:space="preserve">
+    <value>Canal de vente inconnu pour la mesure du parcours.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.culture_invalid" xml:space="preserve">
+    <value>Langue invalide pour la mesure du parcours.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.identifier_invalid" xml:space="preserve">
+    <value>Identifiant de visite ou de dossier vide dans la mesure du parcours.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.source_invalid" xml:space="preserve">
+    <value>Source de trafic invalide (32 caractÃ¨res au plus : lettres minuscules, chiffres, Â« . Â», Â« _ Â» ou Â« - Â»).</value>
+  </data>
+  <data name="Error.reporting.funnel_event.step_invalid" xml:space="preserve">
+    <value>Ã‰tape du parcours de rÃ©servation inconnue.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
+    <value>ParamÃ¨tre UTM invalide (100 caractÃ¨res au plus, sans caractÃ¨re de contrÃ´le).</value>
+  </data>
 </root>

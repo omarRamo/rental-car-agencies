@@ -12,8 +12,179 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Agency.Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Agency.Contact" xml:space="preserve">
+    <value>Contact us</value>
+  </data>
+  <data name="Agency.Description" xml:space="preserve">
+    <value>Address, opening hours, phone, e-mail and WhatsApp of your car rental agency in {0}.</value>
+  </data>
+  <data name="Agency.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Agency.Heading" xml:space="preserve">
+    <value>Agency and contact</value>
+  </data>
+  <data name="Agency.Hours" xml:space="preserve">
+    <value>Opening hours</value>
+  </data>
+  <data name="Agency.HoursNote" xml:space="preserve">
+    <value>A pick-up or a return outside these hours is possible for a fee, included in the price shown.</value>
+  </data>
+  <data name="Agency.HoursValue" xml:space="preserve">
+    <value>Every day, {0} to {1}</value>
+  </data>
+  <data name="Agency.Locations" xml:space="preserve">
+    <value>Pick-up and return locations</value>
+  </data>
+  <data name="Agency.Map" xml:space="preserve">
+    <value>Open in maps</value>
+  </data>
+  <data name="Agency.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Agency.Title" xml:space="preserve">
+    <value>Agency and contact</value>
+  </data>
+  <data name="Agency.Unavailable" xml:space="preserve">
+    <value>The contact details of the agency will be available soon.</value>
+  </data>
+  <data name="Agency.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Agency.WhatsAppAction" xml:space="preserve">
+    <value>Message us on WhatsApp</value>
+  </data>
+  <data name="ExternalLink" xml:space="preserve">
+    <value>(opens a new window)</value>
+  </data>
+  <data name="Faq.age.Answer" xml:space="preserve">
+    <value>At least {0} years old with a licence held for {1} years. A young driver fee applies under {2}; it is included in the price as soon as you enter the driver's date of birth.</value>
+  </data>
+  <data name="Faq.age.Question" xml:space="preserve">
+    <value>How old must a driver be?</value>
+  </data>
+  <data name="Faq.cancellation.Answer" xml:space="preserve">
+    <value>Yes, from "My booking" or by contacting us, according to the rental terms: any fee is shown before you confirm the cancellation.</value>
+  </data>
+  <data name="Faq.cancellation.Question" xml:space="preserve">
+    <value>Can I cancel my booking?</value>
+  </data>
+  <data name="Faq.confirmation.Answer" xml:space="preserve">
+    <value>An agent checks your request and your documents, usually within 2 business hours. You then receive the confirmation by e-mail, and on WhatsApp if you accepted it.</value>
+  </data>
+  <data name="Faq.confirmation.Question" xml:space="preserve">
+    <value>When is my booking confirmed?</value>
+  </data>
+  <data name="Faq.Contact" xml:space="preserve">
+    <value>Another question? Contact the agency</value>
+  </data>
+  <data name="Faq.deposit.Answer" xml:space="preserve">
+    <value>Yes, from {0} to {1} depending on the category, taken when you pick up the car and returned when you bring it back. It is reduced with the franchise waiver.</value>
+  </data>
+  <data name="Faq.deposit.Question" xml:space="preserve">
+    <value>Is there a deposit?</value>
+  </data>
+  <data name="Faq.Description" xml:space="preserve">
+    <value>Documents, age, deposit, payment, confirmation, pick-up locations: answers to your car rental questions.</value>
+  </data>
+  <data name="Faq.documents.Answer" xml:space="preserve">
+    <value>For each driver: an identity document (national ID card for Tunisians, passport for other nationalities) and a driving licence, front and back, valid until the return date. An international driving permit is required if your licence is not written in Latin characters. You upload the photos online, from your phone.</value>
+  </data>
+  <data name="Faq.documents.Question" xml:space="preserve">
+    <value>Which documents do I need to rent a car?</value>
+  </data>
+  <data name="Faq.Intro" xml:space="preserve">
+    <value>The answers to the questions we are asked most often.</value>
+  </data>
+  <data name="Faq.locations.Answer" xml:space="preserve">
+    <value>At the locations offered by the search: {0}. A delivery fee may apply depending on the location; it is included in the price shown.</value>
+  </data>
+  <data name="Faq.locations.Question" xml:space="preserve">
+    <value>Where can I pick up and return the car?</value>
+  </data>
+  <data name="Faq.one_way.Answer" xml:space="preserve">
+    <value>Yes: tick "Return the car to another location" in the search. The one-way fee is included in the price shown.</value>
+  </data>
+  <data name="Faq.one_way.Question" xml:space="preserve">
+    <value>Can I return the car to another location?</value>
+  </data>
+  <data name="Faq.payment.Answer" xml:space="preserve">
+    <value>By bank card, on the secure Clic to Pay page: the amount is held on your card when you send the request, and charged only when an agent validates it. We never see nor keep your card number.</value>
+  </data>
+  <data name="Faq.payment.Question" xml:space="preserve">
+    <value>How does payment work?</value>
+  </data>
+  <data name="Faq.price.Answer" xml:space="preserve">
+    <value>The total shown includes the rental for the whole period, VAT and the daily contribution owed to the State. The extras you choose (additional driver, child seat, franchise waiver, delivery) are added to it and the total is recalculated before payment.</value>
+  </data>
+  <data name="Faq.price.Question" xml:space="preserve">
+    <value>Is the price shown the final price?</value>
+  </data>
+  <data name="Faq.territory.Answer" xml:space="preserve">
+    <value>No, the cars cannot leave Tunisian territory.</value>
+  </data>
+  <data name="Faq.territory.Question" xml:space="preserve">
+    <value>Can I drive the car out of Tunisia?</value>
+  </data>
+  <data name="Faq.Title" xml:space="preserve">
+    <value>Frequently asked questions</value>
+  </data>
+  <data name="Footer.Nav" xml:space="preserve">
+    <value>Useful links</value>
+  </data>
+  <data name="Footer.Prices" xml:space="preserve">
+    <value>Prices in Tunisian dinars (TND), VAT and daily contribution included.</value>
+  </data>
+  <data name="Footer.Privacy" xml:space="preserve">
+    <value>Privacy</value>
+  </data>
+  <data name="Footer.Terms" xml:space="preserve">
+    <value>Rental terms</value>
+  </data>
+  <data name="FormExpired.Message" xml:space="preserve">
+    <value>This page has expired: run your search again to choose your car.</value>
+  </data>
+  <data name="FormExpired.Title" xml:space="preserve">
+    <value>Page expired</value>
+  </data>
+  <data name="Home.Agency.More" xml:space="preserve">
+    <value>Directions and contact</value>
+  </data>
+  <data name="Home.Agency.Title" xml:space="preserve">
+    <value>Your agency</value>
+  </data>
+  <data name="Home.Categories.From" xml:space="preserve">
+    <value>from</value>
+  </data>
+  <data name="Home.Categories.MinimumDays" xml:space="preserve">
+    <value>{0} days minimum at these dates</value>
+  </data>
+  <data name="Home.Categories.NoPrice" xml:space="preserve">
+    <value>Price depends on your dates</value>
+  </data>
+  <data name="Home.Categories.Note" xml:space="preserve">
+    <value>Price per day including VAT for a rental from {0} to {1}, daily contribution included.</value>
+  </data>
+  <data name="Home.Categories.PerDay" xml:space="preserve">
+    <value>per day</value>
+  </data>
+  <data name="Home.Categories.See" xml:space="preserve">
+    <value>See availability</value>
+  </data>
+  <data name="Home.Categories.Title" xml:space="preserve">
+    <value>Our car categories</value>
+  </data>
   <data name="Home.Description" xml:space="preserve">
-    <value>Rent a car in Tunisia: total price shown at once, online booking, pick-up at the agency or the airport.</value>
+    <value>Rent a car in Tunisia: total price including VAT shown at once, online booking in three steps, pick-up at the agency or the airport.</value>
+  </data>
+  <data name="Home.Faq.More" xml:space="preserve">
+    <value>All questions</value>
+  </data>
+  <data name="Home.Faq.Title" xml:space="preserve">
+    <value>Frequently asked questions</value>
   </data>
   <data name="Home.Features.Airports.Text" xml:space="preserve">
     <value>Pick-up and return at the agency or at Tunis-Carthage and Enfidha-Hammamet airports.</value>
@@ -40,10 +211,7 @@
     <value>Rent your car in Tunisia</value>
   </data>
   <data name="Home.Lead" xml:space="preserve">
-    <value>At the agency or at Tunis-Carthage and Enfidha-Hammamet airports, with the total price including VAT shown at once.</value>
-  </data>
-  <data name="Home.SearchComingSoon" xml:space="preserve">
-    <value>Online search and booking are coming soon. Meanwhile, message us on WhatsApp.</value>
+    <value>At the agency or the airport, with the total price including VAT shown at once and no account needed.</value>
   </data>
   <data name="Home.Title" xml:space="preserve">
     <value>Car rental in Tunisia</value>
@@ -51,11 +219,441 @@
   <data name="LanguageNav" xml:space="preserve">
     <value>Language</value>
   </data>
+  <data name="MainNav" xml:space="preserve">
+    <value>Main navigation</value>
+  </data>
+  <data name="Nav.Agency" xml:space="preserve">
+    <value>Agency and contact</value>
+  </data>
+  <data name="Nav.Book" xml:space="preserve">
+    <value>Book</value>
+  </data>
+  <data name="Nav.Faq" xml:space="preserve">
+    <value>FAQ</value>
+  </data>
+  <data name="Privacy.ContactFallback" xml:space="preserve">
+    <value>the agency (details on the Agency and contact page)</value>
+  </data>
+  <data name="Privacy.Controller.Text" xml:space="preserve">
+    <value>{0}, {1}. Contact: {2}.</value>
+  </data>
+  <data name="Privacy.Controller.Title" xml:space="preserve">
+    <value>Data controller</value>
+  </data>
+  <data name="Privacy.Cookies.Antiforgery" xml:space="preserve">
+    <value>"carrental.af": security of the booking forms (session).</value>
+  </data>
+  <data name="Privacy.Cookies.Culture" xml:space="preserve">
+    <value>".AspNetCore.Culture": language chosen in the staff area (1 year).</value>
+  </data>
+  <data name="Privacy.Cookies.Intro" xml:space="preserve">
+    <value>The site shows no advertising and sets no third-party cookie. Cookies used:</value>
+  </data>
+  <data name="Privacy.Cookies.Staff" xml:space="preserve">
+    <value>"carrental.auth": sign-in of the agency staff only.</value>
+  </data>
+  <data name="Privacy.Cookies.Title" xml:space="preserve">
+    <value>Cookies</value>
+  </data>
+  <data name="Privacy.Cookies.Visit" xml:space="preserve">
+    <value>"carrental.visit": anonymous measurement of the booking journey (24 hours), not set when your browser sends the Global Privacy Control or Do Not Track signal.</value>
+  </data>
+  <data name="Privacy.Description" xml:space="preserve">
+    <value>Personal data processed for your rentals, purposes, retention periods, cookies and rights.</value>
+  </data>
+  <data name="Privacy.Draft" xml:space="preserve">
+    <value>Provisional version, being validated with our lawyer and the Tunisian data protection authority (INPDP) before online booking opens.</value>
+    <comment>TODO(spec): text to be validated with the agency's lawyer and the INPDP filing.</comment>
+  </data>
+  <data name="Privacy.Hosting.Text" xml:space="preserve">
+    <value>Data is hosted by Microsoft Azure in the European Union (France). This transfer out of Tunisia requires the authorization of the INPDP, under organic law no. 2004-63 on the protection of personal data.</value>
+    <comment>TODO(spec): add the reference of the transfer authorization granted by the INPDP.</comment>
+  </data>
+  <data name="Privacy.Hosting.Title" xml:space="preserve">
+    <value>Hosting and transfer</value>
+  </data>
+  <data name="Privacy.Purposes.Booking" xml:space="preserve">
+    <value>Booking and contract: identity, contact details, dates, locations and extras of the rental, to process your request and issue the contract and the invoice.</value>
+  </data>
+  <data name="Privacy.Purposes.Communications" xml:space="preserve">
+    <value>Communications: e-mails about your booking; WhatsApp messages only if you accept them.</value>
+  </data>
+  <data name="Privacy.Purposes.Documents" xml:space="preserve">
+    <value>Identity documents and licences (photos of both sides): checking the eligibility of the drivers and meeting our legal obligations. They are stored privately and encrypted, viewed only by authorized agents, and every view is logged.</value>
+  </data>
+  <data name="Privacy.Purposes.Marketing" xml:space="preserve">
+    <value>Commercial offers: only with your consent, given separately and withdrawable at any time.</value>
+  </data>
+  <data name="Privacy.Purposes.Measurement" xml:space="preserve">
+    <value>Measurement of the booking journey: a random visit identifier links the steps of a visit, without any personal data, to improve the site; these statistics are kept for {0} days.</value>
+  </data>
+  <data name="Privacy.Purposes.Payment" xml:space="preserve">
+    <value>Payment: processed by Clic to Pay; the agency neither receives nor keeps any card data.</value>
+  </data>
+  <data name="Privacy.Purposes.Security" xml:space="preserve">
+    <value>Security: IP address and action log to prevent abuse (limits on the number of requests, Cloudflare Turnstile anti-bot check when requests are sent).</value>
+  </data>
+  <data name="Privacy.Purposes.Title" xml:space="preserve">
+    <value>Data processed and purposes</value>
+  </data>
+  <data name="Privacy.Retention.Booking" xml:space="preserve">
+    <value>Bookings, contracts and invoices: for the period required by accounting and tax obligations.</value>
+    <comment>TODO(spec): legal period to be confirmed with the chartered accountant and the lawyer.</comment>
+  </data>
+  <data name="Privacy.Retention.Documents.Enabled" xml:space="preserve">
+    <value>Photos of identity documents: deleted {0} days after your last closed rental; the number and dates of the document stay in the file.</value>
+  </data>
+  <data name="Privacy.Retention.Documents.Pending" xml:space="preserve">
+    <value>Photos of identity documents: deleted according to the legal destruction procedure (official report required by law), being validated with the INPDP; the number and dates of the document stay in the file.</value>
+    <comment>TODO(spec): destruction procedure (article 45 of law 2004-63) to be validated with the lawyer.</comment>
+  </data>
+  <data name="Privacy.Retention.Measurement" xml:space="preserve">
+    <value>Statistics of the booking journey: {0} days.</value>
+  </data>
+  <data name="Privacy.Retention.Title" xml:space="preserve">
+    <value>Retention periods</value>
+  </data>
+  <data name="Privacy.Retention.WhatsApp" xml:space="preserve">
+    <value>WhatsApp conversations: 12 months.</value>
+  </data>
+  <data name="Privacy.Rights.Text" xml:space="preserve">
+    <value>You can access your data, have it corrected or object to its processing (organic law no. 2004-63) and, if you live in the European Union, also ask for its erasure, restriction or portability (GDPR). Write to us: {0}. You can also contact the INPDP or the data protection authority of your country.</value>
+  </data>
+  <data name="Privacy.Rights.Title" xml:space="preserve">
+    <value>Your rights</value>
+  </data>
+  <data name="Privacy.Title" xml:space="preserve">
+    <value>Privacy policy</value>
+  </data>
+  <data name="Results.AirConditioning" xml:space="preserve">
+    <value>Air conditioning</value>
+  </data>
+  <data name="Results.Bags" xml:space="preserve">
+    <value>Bags: {0} large, {1} small</value>
+  </data>
+  <data name="Results.CategoryUnavailable" xml:space="preserve">
+    <value>Category {0} is not available for these dates: here are the other available cars.</value>
+  </data>
+  <data name="Results.Choose" xml:space="preserve">
+    <value>Choose</value>
+  </data>
+  <data name="Results.Count.One" xml:space="preserve">
+    <value>1 category available</value>
+  </data>
+  <data name="Results.Count.Other" xml:space="preserve">
+    <value>{0} categories available</value>
+  </data>
+  <data name="Results.DateTime" xml:space="preserve">
+    <value>{0:dddd d MMMM yyyy}, {0:HH:mm}</value>
+  </data>
+  <data name="Results.Description" xml:space="preserve">
+    <value>Available cars and total price including VAT for your dates.</value>
+  </data>
+  <data name="Results.Empty.Contact" xml:space="preserve">
+    <value>Message us on WhatsApp</value>
+  </data>
+  <data name="Results.Empty.MinimumDuration.Extend" xml:space="preserve">
+    <value>See the prices for {0} days</value>
+  </data>
+  <data name="Results.Empty.MinimumDuration.Text" xml:space="preserve">
+    <value>For these dates, a rental lasts at least {0} days. Extend your rental to see the prices.</value>
+  </data>
+  <data name="Results.Empty.MinimumDuration.Title" xml:space="preserve">
+    <value>Minimum rental period not met</value>
+  </data>
+  <data name="Results.Empty.NoAvailability.Text" xml:space="preserve">
+    <value>Try other dates or another location, or message us: we will look for a solution with you.</value>
+  </data>
+  <data name="Results.Empty.NoAvailability.Title" xml:space="preserve">
+    <value>No car available for these dates</value>
+  </data>
+  <data name="Results.Empty.NoMatch.Reset" xml:space="preserve">
+    <value>See all categories</value>
+  </data>
+  <data name="Results.Empty.NoMatch.Text" xml:space="preserve">
+    <value>Other categories are available for these dates.</value>
+  </data>
+  <data name="Results.Empty.NoMatch.Title" xml:space="preserve">
+    <value>No car matches your filters</value>
+  </data>
+  <data name="Results.Empty.Pricing.Text" xml:space="preserve">
+    <value>Message or call us for a quote.</value>
+  </data>
+  <data name="Results.Empty.Pricing.Title" xml:space="preserve">
+    <value>Online prices are temporarily unavailable</value>
+  </data>
+  <data name="Results.ErrorTitle" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Results.Euro" xml:space="preserve">
+    <value>≈ {0} (indicative equivalent)</value>
+  </data>
+  <data name="Results.Filters.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Results.Filters.Gearbox" xml:space="preserve">
+    <value>Gearbox</value>
+  </data>
+  <data name="Results.Filters.GearboxAny" xml:space="preserve">
+    <value>Any</value>
+  </data>
+  <data name="Results.Filters.GearboxAuto" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Results.Filters.GearboxManual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Results.Filters.Seats" xml:space="preserve">
+    <value>Minimum seats</value>
+  </data>
+  <data name="Results.Filters.SeatsAny" xml:space="preserve">
+    <value>Any</value>
+  </data>
+  <data name="Results.Filters.SeatsOption" xml:space="preserve">
+    <value>{0} or more</value>
+  </data>
+  <data name="Results.Filters.Sort" xml:space="preserve">
+    <value>Sort by</value>
+  </data>
+  <data name="Results.Filters.SortAsc" xml:space="preserve">
+    <value>Lowest price first</value>
+  </data>
+  <data name="Results.Filters.SortDesc" xml:space="preserve">
+    <value>Highest price first</value>
+  </data>
+  <data name="Results.Filters.Title" xml:space="preserve">
+    <value>Filter and sort</value>
+  </data>
+  <data name="Results.ForDays.One" xml:space="preserve">
+    <value>for 1 day</value>
+  </data>
+  <data name="Results.ForDays.Other" xml:space="preserve">
+    <value>for {0} days</value>
+  </data>
+  <data name="Results.Gearbox.Automatic" xml:space="preserve">
+    <value>Automatic gearbox</value>
+  </data>
+  <data name="Results.Gearbox.Manual" xml:space="preserve">
+    <value>Manual gearbox</value>
+  </data>
+  <data name="Results.Highlighted" xml:space="preserve">
+    <value>Your selection</value>
+  </data>
+  <data name="Results.Modify" xml:space="preserve">
+    <value>Change the search</value>
+  </data>
+  <data name="Results.NoAgency" xml:space="preserve">
+    <value>Online search is not open yet: message us on WhatsApp or call us.</value>
+  </data>
+  <data name="Results.Notes" xml:space="preserve">
+    <value>Prices include VAT for the whole period and the daily contribution; extras, additional driver and deposit come at the next step. The euro equivalent is indicative (€1 = {0} TND): payment is made in dinars.</value>
+  </data>
+  <data name="Results.OrSimilar" xml:space="preserve">
+    <value>{0} or similar</value>
+  </data>
+  <data name="Results.PerDay" xml:space="preserve">
+    <value>i.e. {0} per day</value>
+  </data>
+  <data name="Results.QuoteCode" xml:space="preserve">
+    <value>Quote {0}: the guaranteed price of your quote will be used at the next step if it is still valid.</value>
+  </data>
+  <data name="Results.Remaining.One" xml:space="preserve">
+    <value>Only 1 car left for these dates</value>
+  </data>
+  <data name="Results.Remaining.Other" xml:space="preserve">
+    <value>Only {0} cars left for these dates</value>
+  </data>
+  <data name="Results.SearchTitle" xml:space="preserve">
+    <value>Find a car</value>
+  </data>
+  <data name="Results.Seats" xml:space="preserve">
+    <value>{0} seats</value>
+  </data>
+  <data name="Results.Soon.Text" xml:space="preserve">
+    <value>To book now, message us on WhatsApp: we will confirm the dates and the category with you.</value>
+  </data>
+  <data name="Results.Soon.Title" xml:space="preserve">
+    <value>Online booking opens soon</value>
+  </data>
+  <data name="Results.Soon.WhatsApp" xml:space="preserve">
+    <value>Book on WhatsApp</value>
+  </data>
+  <data name="Results.Start" xml:space="preserve">
+    <value>Enter your location and dates to see the available cars and their total price.</value>
+  </data>
+  <data name="Results.SummaryDates" xml:space="preserve">
+    <value>From {0} to {1}</value>
+  </data>
+  <data name="Results.SummaryLabel" xml:space="preserve">
+    <value>Your search</value>
+  </data>
+  <data name="Results.Title" xml:space="preserve">
+    <value>Available cars</value>
+  </data>
+  <data name="Results.Total" xml:space="preserve">
+    <value>Total incl. VAT</value>
+  </data>
+  <data name="Results.WhatsApp.Message" xml:space="preserve">
+    <value>Hello, I would like to book a car (category {0}) from {1} to {2}, pick-up: {3}.</value>
+  </data>
+  <data name="Results.WhatsApp.MessageAnyCategory" xml:space="preserve">
+    <value>Hello, I would like to book a car from {0} to {1}, pick-up: {2}.</value>
+  </data>
+  <data name="Search.Error.pickup_invalid" xml:space="preserve">
+    <value>The pick-up date is not valid: choose a date and a time.</value>
+  </data>
+  <data name="Search.Error.pickup_location_required" xml:space="preserve">
+    <value>Choose a pick-up location.</value>
+  </data>
+  <data name="Search.Error.pickup_location_unknown" xml:space="preserve">
+    <value>This pick-up location does not exist: choose one from the list.</value>
+  </data>
+  <data name="Search.Error.pickup_past" xml:space="preserve">
+    <value>The pick-up date is in the past: choose a future date.</value>
+  </data>
+  <data name="Search.Error.pickup_required" xml:space="preserve">
+    <value>Enter the pick-up date and time.</value>
+  </data>
+  <data name="Search.Error.pickup_too_far" xml:space="preserve">
+    <value>Online booking opens one year ahead: choose an earlier date.</value>
+  </data>
+  <data name="Search.Error.rental_too_long" xml:space="preserve">
+    <value>Online, a rental lasts {0} days at most: contact us for a longer rental.</value>
+  </data>
+  <data name="Search.Error.return_before_pickup" xml:space="preserve">
+    <value>The return must be after the pick-up.</value>
+  </data>
+  <data name="Search.Error.return_invalid" xml:space="preserve">
+    <value>The return date is not valid: choose a date and a time.</value>
+  </data>
+  <data name="Search.Error.return_location_unknown" xml:space="preserve">
+    <value>This return location does not exist: choose one from the list.</value>
+  </data>
+  <data name="Search.Error.return_required" xml:space="preserve">
+    <value>Enter the return date and time.</value>
+  </data>
+  <data name="Search.ErrorSummary" xml:space="preserve">
+    <value>Please check your search:</value>
+  </data>
+  <data name="Search.Pickup" xml:space="preserve">
+    <value>Pick-up (date and time)</value>
+  </data>
+  <data name="Search.PickupLocation" xml:space="preserve">
+    <value>Pick-up location</value>
+  </data>
+  <data name="Search.Return" xml:space="preserve">
+    <value>Return (date and time)</value>
+  </data>
+  <data name="Search.ReturnElsewhere" xml:space="preserve">
+    <value>Return the car to another location</value>
+  </data>
+  <data name="Search.ReturnLocation" xml:space="preserve">
+    <value>Return location</value>
+  </data>
+  <data name="Search.SameLocation" xml:space="preserve">
+    <value>Same as pick-up</value>
+  </data>
+  <data name="Search.Submit" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Search.TimeHint" xml:space="preserve">
+    <value>Local time in Tunis (UTC+1).</value>
+  </data>
+  <data name="Search.Title" xml:space="preserve">
+    <value>Find a car</value>
+  </data>
   <data name="SkipToContent" xml:space="preserve">
     <value>Skip to content</value>
   </data>
   <data name="StaffLogin" xml:space="preserve">
     <value>Staff area</value>
+  </data>
+  <data name="Terms.Description" xml:space="preserve">
+    <value>Rental terms and conditions: booking, drivers and documents, price and payment, deposit, cancellation, use of the car.</value>
+  </data>
+  <data name="Terms.Draft" xml:space="preserve">
+    <value>Provisional version: these terms are being written with our lawyer and will be completed before online booking opens. Only the contract signed when you pick up the car is binding.</value>
+    <comment>TODO(spec): rental terms to be written with the agency's lawyer (SPEC §14).</comment>
+  </data>
+  <data name="Terms.Section1.Text" xml:space="preserve">
+    <value>An online booking is a request: an agent validates it after checking the availability and the documents, usually within 2 business hours. It is only binding once the confirmation is sent by e-mail.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section1.Title" xml:space="preserve">
+    <value>Booking and validation</value>
+  </data>
+  <data name="Terms.Section2.Text" xml:space="preserve">
+    <value>Each driver shows an identity document (national ID card for Tunisians, passport otherwise) and a driving licence valid until the return date, with an international driving permit if the licence is not written in Latin characters. Age and licence seniority requirements are given in the FAQ.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section2.Title" xml:space="preserve">
+    <value>Drivers and documents</value>
+  </data>
+  <data name="Terms.Section3.Text" xml:space="preserve">
+    <value>Prices are in Tunisian dinars, VAT and daily contribution included, and the quote is frozen at booking. The guaranteed amount is held on the card with the request and charged when the agent validates it.</value>
+    <comment>TODO(spec): guarantee policy (deposit or full amount) to be set with the agency.</comment>
+  </data>
+  <data name="Terms.Section3.Title" xml:space="preserve">
+    <value>Price and payment</value>
+  </data>
+  <data name="Terms.Section4.Text" xml:space="preserve">
+    <value>A deposit is taken when you pick up the car and returned when you bring it back, minus justified charges. The franchise waiver lowers it and your share in case of damage.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section4.Title" xml:space="preserve">
+    <value>Deposit and franchise</value>
+  </data>
+  <data name="Terms.Section5.Text" xml:space="preserve">
+    <value>Cancellation terms and fees, and the delay after which a rental not picked up counts as a no-show, will be set out here.</value>
+    <comment>TODO(spec): cancellation and no-show policy of the agency.</comment>
+  </data>
+  <data name="Terms.Section5.Title" xml:space="preserve">
+    <value>Cancellation and no-show</value>
+  </data>
+  <data name="Terms.Section6.Text" xml:space="preserve">
+    <value>Fuel, mileage, late return and the ban on leaving Tunisian territory: the detailed rules will be set out here and in the contract.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section6.Title" xml:space="preserve">
+    <value>Use of the car</value>
+  </data>
+  <data name="Terms.Section7.Text" xml:space="preserve">
+    <value>Fines incurred during the rental are paid by the driver. In case of accident or damage, tell the agency at once: a report is drawn up.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section7.Title" xml:space="preserve">
+    <value>Fines and accidents</value>
+  </data>
+  <data name="Terms.Section8.Text" xml:space="preserve">
+    <value>The rental contract signed when you pick up the car is binding. The applicable law and the settlement of disputes will be set out here.</value>
+    <comment>TODO(spec)</comment>
+  </data>
+  <data name="Terms.Section8.Title" xml:space="preserve">
+    <value>Disputes</value>
+  </data>
+  <data name="Terms.Title" xml:space="preserve">
+    <value>Rental terms and conditions</value>
+  </data>
+  <data name="Title.Format" xml:space="preserve">
+    <value>{0} | {1}</value>
+  </data>
+  <data name="TooManyRequests.Home" xml:space="preserve">
+    <value>Back to the home page</value>
+  </data>
+  <data name="TooManyRequests.Message" xml:space="preserve">
+    <value>You sent many requests in a short time. Please wait a minute before trying again.</value>
+  </data>
+  <data name="TooManyRequests.Title" xml:space="preserve">
+    <value>Too many requests</value>
+  </data>
+  <data name="Turnstile.NoScript" xml:space="preserve">
+    <value>The anti-bot check needs JavaScript: turn it on, or contact us on WhatsApp or by phone.</value>
+  </data>
+  <data name="Turnstile.TestMode" xml:space="preserve">
+    <value>Simulated anti-bot check (test environment).</value>
+  </data>
+  <data name="Turnstile.Unavailable" xml:space="preserve">
+    <value>The anti-bot check is temporarily unavailable: contact us on WhatsApp or by phone.</value>
   </data>
   <data name="WhatsApp.Label" xml:space="preserve">
     <value>Message us on WhatsApp (opens a new window)</value>

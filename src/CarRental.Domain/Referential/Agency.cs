@@ -15,6 +15,9 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     public const int PhoneMaxLength = 32;
     public const int EmailMaxLength = 254;
 
+    /// <summary>Decimals kept for the coordinates (about 10 cm).</summary>
+    public const int CoordinateDecimals = 6;
+
     private Agency()
     {
     }
@@ -40,6 +43,12 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     public string? Phone { get; private set; }
 
     public string? Email { get; private set; }
+
+    /// <summary>WGS 84 latitude of the office (map link and structured data of the public site), with <see cref="Longitude"/>.</summary>
+    public decimal? Latitude { get; private set; }
+
+    /// <summary>WGS 84 longitude of the office, set together with <see cref="Latitude"/>.</summary>
+    public decimal? Longitude { get; private set; }
 
     public bool IsActive { get; private set; }
 
@@ -107,6 +116,13 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
             return ReferentialErrors.AgencyEmailInvalid;
         }
 
+        if (details.Latitude.HasValue != details.Longitude.HasValue
+            || details.Latitude is < -90m or > 90m
+            || details.Longitude is < -180m or > 180m)
+        {
+            return ReferentialErrors.AgencyCoordinatesInvalid;
+        }
+
         return Result.Success();
     }
 
@@ -119,10 +135,12 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
         Address = details.Address;
         Phone = details.Phone;
         Email = details.Email;
+        Latitude = details.Latitude;
+        Longitude = details.Longitude;
     }
 }
 
-/// <summary>Editable details of an agency.</summary>
+/// <summary>Editable details of an agency; the coordinates (WGS 84) of the office go together or not at all.</summary>
 public sealed record AgencyDetails(
     string Name,
     string City,
@@ -130,7 +148,9 @@ public sealed record AgencyDetails(
     string? TaxIdentifier = null,
     string? Address = null,
     string? Phone = null,
-    string? Email = null)
+    string? Email = null,
+    decimal? Latitude = null,
+    decimal? Longitude = null)
 {
     internal AgencyDetails Normalize() => new(
         Name?.Trim() ?? string.Empty,
@@ -139,7 +159,12 @@ public sealed record AgencyDetails(
         NullIfBlank(TaxIdentifier),
         NullIfBlank(Address),
         NullIfBlank(Phone),
-        NullIfBlank(Email));
+        NullIfBlank(Email),
+        RoundCoordinate(Latitude),
+        RoundCoordinate(Longitude));
+
+    private static decimal? RoundCoordinate(decimal? value) =>
+        value is { } coordinate ? Math.Round(coordinate, Agency.CoordinateDecimals, MidpointRounding.AwayFromZero) : null;
 
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

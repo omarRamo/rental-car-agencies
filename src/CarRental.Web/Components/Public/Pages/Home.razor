@@ -1,22 +1,38 @@
 @page "/{culture:length(2)}"
+@* Home page: search form (plain GET to the results), three selling points, categories with a "from" price per day
+   computed by the pricing engine for the next weekend, short FAQ and the agency. Cacheable (no POST form): the
+   funnel is measured on the results page. *@
+@inherits PublicPageBase
+@attribute [CacheablePublicPage]
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject PublicAgencyDirectory Directory
+@inject FeaturedOffers Featured
+@inject TimeProvider Clock
 @inject IStringLocalizer<PublicResources> L
-@inject NavigationManager Navigation
-@inject CultureCatalog Cultures
+@inject IOptions<PublicSiteOptions> Site
 
-<PageTitle>@L["Home.Title"]</PageTitle>
-<HeadContent>
-    <meta name="description" content="@L["Home.Description"]" />
-    @foreach (var culture in Cultures.Enabled)
+<PublicHead Page="PublicPage.Home" Title="@L["Home.Title"]" Description="@L["Home.Description"]">
+    @if (_structuredData is not null)
     {
-        <link rel="alternate" hreflang="@culture" href="@($"{Navigation.BaseUri}{culture}")" />
+        <JsonLd Json="@_structuredData" />
     }
-    <link rel="alternate" hreflang="x-default" href="@Navigation.BaseUri" />
-</HeadContent>
+</PublicHead>
 
 <section class="hero" aria-labelledby="home-heading">
-    <h1 id="home-heading">@L["Home.Heading"]</h1>
-    <p class="hero__lead">@L["Home.Lead"]</p>
-    <p class="notice" role="note">@L["Home.SearchComingSoon"]</p>
+    <div class="hero__intro">
+        <h1 id="home-heading">@L["Home.Heading"]</h1>
+        <p class="hero__lead">@L["Home.Lead"]</p>
+    </div>
+    <div class="hero__search card" id="recherche">
+        @if (_agency is null)
+        {
+            <p class="notice" role="note">@L["Results.NoAgency"]</p>
+        }
+        else
+        {
+            <SearchForm Agency="_agency" Culture="@Lang" Now="_now" Query="_query" Heading="@L["Search.Title"]" />
+        }
+    </div>
 </section>
 
 <section class="features" aria-labelledby="features-heading">
@@ -37,8 +53,113 @@
     </ul>
 </section>
 
+@if (_featured is { Offers.Count: > 0 } featured)
+{
+    <section class="categories" aria-labelledby="categories-heading">
+        <h2 id="categories-heading">@L["Home.Categories.Title"]</h2>
+        <p class="section-note">@L["Home.Categories.Note", PublicFormat.Date(featured.PickupAt), PublicFormat.Date(featured.ReturnAt)]</p>
+        @if (featured.Offers.Any(o => string.IsNullOrEmpty(o.Category.PhotoUrl)))
+        {
+            <CarSymbol />
+        }
+        <ul class="category-grid">
+            @foreach (var offer in featured.Offers)
+            {
+                <li class="category-card">
+                    <CategoryMedia Category="offer.Category" />
+                    <div class="category-card__body">
+                        <h3 class="category-card__title">@offer.Category.Name</h3>
+                        <p class="category-card__model">@L["Results.OrSimilar", offer.Category.ExampleModel]</p>
+                        <ul class="category-card__features">
+                            <li>@L["Results.Seats", offer.Category.Seats]</li>
+                            <li>@L["Results.Bags", offer.Category.LargeBags, offer.Category.SmallBags]</li>
+                            <li>@(offer.Category.Transmission == TransmissionInfo.Automatic ? L["Results.Gearbox.Automatic"] : L["Results.Gearbox.Manual"])</li>
+                        </ul>
+                        @if (offer.PerDay is { } perDay)
+                        {
+                            <p class="category-card__price">
+                                @L["Home.Categories.From"] <strong>@PublicFormat.Price(perDay)</strong> @L["Home.Categories.PerDay"]
+                            </p>
+                            @if (offer.Days > WeekendDays)
+                            {
+                                <p class="category-card__minimum">@L["Home.Categories.MinimumDays", offer.Days]</p>
+                            }
+                        }
+                        else
+                        {
+                            <p class="category-card__price">@L["Home.Categories.NoPrice"]</p>
+                        }
+                        <a class="button button--secondary category-card__link" href="@SearchLink(featured, offer)">@L["Home.Categories.See"]<span class="visually-hidden"> — @offer.Category.Name</span></a>
+                    </div>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+<section class="faq-short" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">@L["Home.Faq.Title"]</h2>
+    <FaqList Items="_faq" />
+    <p><a href="@PublicRoutes.PathFor(PublicPage.Faq, Lang)">@L["Home.Faq.More"]</a></p>
+</section>
+
+@if (_agency is not null)
+{
+    <section class="agency-section" aria-labelledby="agency-heading">
+        <h2 id="agency-heading">@L["Home.Agency.Title"]</h2>
+        <AgencyBlock Agency="_agency" />
+        <p><a href="@PublicRoutes.PathFor(PublicPage.Agency, Lang)">@L["Home.Agency.More"]</a></p>
+    </section>
+}
+
 @code {
-    /// <summary>Culture prefix of the URL (validated by the culture middleware).</summary>
-    [Parameter]
-    public string Culture { get; set; } = CultureCatalog.Default;
+    private const int WeekendDays = 2;
+
+    private PublicAgency? _agency;
+    private FeaturedWeekend? _featured;
+    private SearchQuery _query = SearchQuery.Empty;
+    private IReadOnlyList<FaqItem> _faq = [];
+    private string? _structuredData;
+    private DateTimeOffset _now;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonical(PublicPage.Home))
+        {
+            return;
+        }
+
+        _now = Clock.GetUtcNow();
+        _query = SearchQuery.Parse(HttpContext.Request.Query);
+        _agency = await Directory.GetAsync(Aborted);
+        _faq = [.. FaqContent.Build(L, _agency).Take(FaqContent.HomeCount)];
+        if (_agency is null)
+        {
+            return;
+        }
+
+        _featured = await Featured.GetAsync(_agency, Aborted);
+        var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
+        _structuredData = AgencyStructuredData.Build(
+            _agency,
+            Site.Value.AgencyName,
+            baseUri,
+            PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(PublicPage.Home, Lang)),
+            Site.Value.WhatsAppNumber);
+    }
+
+    /// <summary>The results of the featured weekend for this category, with the traffic source of the home page.</summary>
+    private string SearchLink(FeaturedWeekend weekend, FeaturedOffer offer)
+    {
+        var category = AcrissCode.Create(offer.Category.AcrissCode);
+        var query = _query with
+        {
+            PickupLocation = weekend.LocationCode,
+            ReturnLocation = null,
+            Pickup = SearchValidator.FormatLocal(weekend.PickupAt),
+            Return = SearchValidator.FormatLocal(offer.ReturnAt),
+            Category = category.IsSuccess ? category.Value : null,
+        };
+        return PublicRoutes.PathFor(PublicPage.Results, Lang) + query.ToQueryString();
+    }
 }

@@ -11,7 +11,17 @@ public interface IReferentialQueries
     Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default);
 }
 
-public sealed record AgencyInfo(Guid Id, string Name, string City, string? Phone, string? Email, bool IsActive);
+/// <summary>An agency; <see cref="Latitude"/> and <see cref="Longitude"/> (WGS 84) are both set or both null.</summary>
+public sealed record AgencyInfo(
+    Guid Id,
+    string Name,
+    string City,
+    string? Phone,
+    string? Email,
+    bool IsActive,
+    string? Address = null,
+    decimal? Latitude = null,
+    decimal? Longitude = null);
 
 /// <summary>A pick-up / return location. <see cref="Kind"/> uses the contract enum, not the domain one.</summary>
 public sealed record LocationInfo(Guid Id, Guid AgencyId, string Code, string Name, LocationKindInfo Kind, string? Address);

@@ -1,0 +1,11 @@
+@* Structured data block. The JSON comes from AgencyStructuredData, whose encoder escapes <, > and &: it cannot close
+   the script element. A JSON-LD block is data, not script: the CSP (script-src 'self') does not apply to it. *@
+@if (!string.IsNullOrEmpty(Json))
+{
+    @((MarkupString)$"<script type=\"application/ld+json\">{Json}</script>")
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string? Json { get; set; }
+}

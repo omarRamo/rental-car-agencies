@@ -129,4 +129,22 @@
   <data name="Setting.pricing.round_public_prices_to_dinar.Help" xml:space="preserve">
     <value>After the channel rule (markup), every published daily price is rounded to the nearest dinar; totals are still computed to the millime.</value>
   </data>
+  <data name="Group.public_site" xml:space="preserve">
+    <value>Public site</value>
+  </data>
+  <data name="Group.reporting" xml:space="preserve">
+    <value>Reporting</value>
+  </data>
+  <data name="Setting.public_site.eur_exchange_rate.Label" xml:space="preserve">
+    <value>Indicative euro rate (TND for €1)</value>
+  </data>
+  <data name="Setting.public_site.eur_exchange_rate.Help" xml:space="preserve">
+    <value>Only used to show an indicative euro equivalent of dinar prices on the public site (price ÷ rate, rounded to the euro). Invoiced and paid amounts stay in TND.</value>
+  </data>
+  <data name="Setting.reporting.funnel_event_retention_days.Label" xml:space="preserve">
+    <value>Booking journey statistics retention (days)</value>
+  </data>
+  <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
+    <value>How long the anonymous booking journey events (search, results, funnel steps) are kept; older ones are deleted every night. Shown on the privacy page.</value>
+  </data>
 </root>

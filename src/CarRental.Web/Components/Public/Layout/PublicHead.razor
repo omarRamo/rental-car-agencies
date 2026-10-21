@@ -1,0 +1,74 @@
+@* Title and head of a public page (ADR-0036): description, canonical address, hreflang alternates of the enabled
+   cultures plus x-default, Open Graph basics, and an optional noindex. Absolute addresses use PublicSite:BaseUrl.
+   A page renders a single PublicHead: extra head content (JSON-LD) goes in ChildContent. *@
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+@inject CultureCatalog Cultures
+
+<PageTitle>@_title</PageTitle>
+<HeadContent>
+    <meta name="description" content="@Description" />
+    @if (NoIndex)
+    {
+        <meta name="robots" content="noindex, follow" />
+    }
+    <link rel="canonical" href="@_canonical" />
+    @foreach (var (hrefLang, url) in _alternates)
+    {
+        <link rel="alternate" hreflang="@hrefLang" href="@url" />
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="@Site.Value.AgencyName" />
+    <meta property="og:title" content="@_title" />
+    <meta property="og:description" content="@Description" />
+    <meta property="og:url" content="@_canonical" />
+    <meta property="og:locale" content="@OpenGraphLocale(_culture)" />
+    @foreach (var culture in Cultures.Enabled.Where(c => c != _culture))
+    {
+        <meta property="og:locale:alternate" content="@OpenGraphLocale(culture)" />
+    }
+    @ChildContent
+</HeadContent>
+
+@code {
+    private string _title = string.Empty;
+    private string _culture = CultureCatalog.Default;
+    private string _canonical = "/";
+    private IReadOnlyList<(string HrefLang, Uri Url)> _alternates = [];
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PublicPage Page { get; set; }
+
+    /// <summary>Title of the page; the brand is appended.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>Keeps the page out of search engines (search results, error states).</summary>
+    [Parameter]
+    public bool NoIndex { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        _title = L["Title.Format", Title, Site.Value.AgencyName];
+        var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
+        _canonical = PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(Page, _culture)).AbsoluteUri;
+        _alternates = PublicUrls.Alternates(Page, baseUri, Cultures.Enabled, CultureCatalog.Default);
+    }
+
+    private static string OpenGraphLocale(string culture) => culture switch
+    {
+        "en" => "en_GB",
+        "ar" => "ar_AR",
+        _ => "fr_FR",
+    };
+}

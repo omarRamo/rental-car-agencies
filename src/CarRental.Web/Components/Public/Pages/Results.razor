@@ -1,0 +1,256 @@
+@page "/{culture:length(2)}/reserver"
+@page "/{culture:length(2)}/book"
+@* Results of a search (/fr/reserver, /en/book): the deep link is parsed and validated, availability and prices are
+   always recomputed (channel WhatsApp for src=whatsapp), filters and sort are GET parameters. Not cacheable: the
+   "Choose" forms carry an antiforgery token. Records the search and results steps of the funnel. *@
+@inherits PublicPageBase
+@attribute [EnableRateLimiting(PublicRateLimits.Search)]
+@inject PublicAgencyDirectory Directory
+@inject PublicSearchService Search
+@inject FunnelTracker Tracker
+@inject TimeProvider Clock
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+@if (!_canonical || !_ready)
+{
+    return;
+}
+
+<PublicHead Page="PublicPage.Results" Title="@PageTitle" Description="@L["Results.Description"]" NoIndex="true" />
+
+@if (_agency is null)
+{
+    <h1>@L["Results.SearchTitle"]</h1>
+    <p class="notice" role="note">@L["Results.NoAgency"]</p>
+    return;
+}
+
+@if (_criteria is null)
+{
+    <h1>@L["Results.SearchTitle"]</h1>
+    @if (_errors.Count == 0)
+    {
+        <p class="results-intro">@L["Results.Start"]</p>
+    }
+    <div class="card search-card">
+        <SearchForm Agency="_agency" Culture="@Lang" Now="_now" Query="_query" Errors="_errors" />
+    </div>
+    return;
+}
+
+<h1>@L["Results.Title"]</h1>
+
+<section class="search-summary" aria-label="@L["Results.SummaryLabel"]">
+    <p class="search-summary__route">
+        @_criteria.PickupLocation.Name
+        @if (_criteria.ReturnLocation.Id != _criteria.PickupLocation.Id)
+        {
+            <span class="search-summary__arrow" aria-hidden="true"> → </span><span class="visually-hidden">, @L["Search.ReturnLocation"] : </span>@_criteria.ReturnLocation.Name
+        }
+    </p>
+    <p class="search-summary__dates">@L["Results.SummaryDates", DateTimeText(_criteria.PickupAt), DateTimeText(_criteria.ReturnAt)]</p>
+    <details class="search-summary__modify">
+        <summary>@L["Results.Modify"]</summary>
+        <div class="search-summary__form">
+            <SearchForm Agency="_agency" Culture="@Lang" Now="_now" Query="_criteria.Query" IdPrefix="modify" />
+        </div>
+    </details>
+</section>
+
+@if (_criteria.Query.Info == SearchQuery.SoonInfo)
+{
+    <div class="notice notice--info" role="status">
+        <p class="notice__title">@L["Results.Soon.Title"]</p>
+        <p>@L["Results.Soon.Text"]</p>
+        @if (WhatsAppLink() is { } soonLink)
+        {
+            <p><a class="button button--whatsapp" href="@soonLink" target="_blank" rel="noopener noreferrer">@L["Results.Soon.WhatsApp"] <span class="visually-hidden">@L["ExternalLink"]</span></a></p>
+        }
+    </div>
+}
+
+@if (_criteria.Query.QuoteCode is { } quoteCode)
+{
+    <p class="notice" role="note">@L["Results.QuoteCode", quoteCode]</p>
+}
+
+@if (_criteria.Query.Category is { } requested && _outcome!.Offers.Count > 0 && _outcome.Offers.All(o => o.Category.AcrissCode != requested.Value))
+{
+    <p class="notice" role="note">@L["Results.CategoryUnavailable", requested.Value]</p>
+}
+
+<form class="filters" method="get" action="@PublicRoutes.PathFor(PublicPage.Results, Lang)" aria-labelledby="filters-heading">
+    <h2 id="filters-heading" class="filters__title">@L["Results.Filters.Title"]</h2>
+    @foreach (var (name, value) in _criteria.Query.ToParameters(includeFilters: false))
+    {
+        <input type="hidden" name="@name" value="@value" />
+    }
+    <div class="filters__fields">
+        <div class="form-field">
+            <label for="filter-gearbox">@L["Results.Filters.Gearbox"]</label>
+            <select id="filter-gearbox" name="@SearchParameters.Gearbox">
+                <option value="" selected="@(_criteria.Query.Gearbox == GearboxFilter.Any)">@L["Results.Filters.GearboxAny"]</option>
+                <option value="auto" selected="@(_criteria.Query.Gearbox == GearboxFilter.Automatic)">@L["Results.Filters.GearboxAuto"]</option>
+                <option value="manuelle" selected="@(_criteria.Query.Gearbox == GearboxFilter.Manual)">@L["Results.Filters.GearboxManual"]</option>
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="filter-seats">@L["Results.Filters.Seats"]</label>
+            <select id="filter-seats" name="@SearchParameters.Seats">
+                <option value="" selected="@(_criteria.Query.MinimumSeats is null)">@L["Results.Filters.SeatsAny"]</option>
+                @foreach (var seats in SeatOptions)
+                {
+                    <option value="@seats" selected="@(_criteria.Query.MinimumSeats == seats)">@L["Results.Filters.SeatsOption", seats]</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="filter-sort">@L["Results.Filters.Sort"]</label>
+            <select id="filter-sort" name="@SearchParameters.Sort">
+                <option value="prix" selected="@(_criteria.Query.Sort == ResultSort.PriceAscending)">@L["Results.Filters.SortAsc"]</option>
+                <option value="prix_desc" selected="@(_criteria.Query.Sort == ResultSort.PriceDescending)">@L["Results.Filters.SortDesc"]</option>
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="button button--secondary">@L["Results.Filters.Apply"]</button>
+</form>
+
+<section class="results" aria-labelledby="results-heading">
+    @switch (_outcome!.Kind)
+    {
+        case SearchOutcomeKind.Offers:
+            <h2 id="results-heading" class="results__count">@(_outcome.Offers.Count == 1 ? L["Results.Count.One"] : L["Results.Count.Other", _outcome.Offers.Count])</h2>
+            @if (_outcome.Offers.Any(o => string.IsNullOrEmpty(o.Category.PhotoUrl)))
+            {
+                <CarSymbol />
+            }
+            <ul class="offers">
+                @for (var index = 0; index < _outcome.Offers.Count; index++)
+                {
+                    var offer = _outcome.Offers[index];
+                    <OfferCard Offer="offer" Criteria="_criteria" Culture="@Lang" EurRate="_agency.EurExchangeRate"
+                               Highlighted="@(_criteria.Query.Category?.Value == offer.Category.AcrissCode)" Priority="@(index == 0)" />
+                }
+            </ul>
+            <p class="results__notes">@L["Results.Notes", _agency.EurExchangeRate.ToString("0.00", CultureInfo.CurrentCulture)]</p>
+            break;
+        case SearchOutcomeKind.NoMatch:
+            <div class="empty-state">
+                <h2 id="results-heading">@L["Results.Empty.NoMatch.Title"]</h2>
+                <p>@L["Results.Empty.NoMatch.Text"]</p>
+                <p><a class="button" href="@ResultsLink(_criteria.Query with { Gearbox = GearboxFilter.Any, MinimumSeats = null })">@L["Results.Empty.NoMatch.Reset"]</a></p>
+            </div>
+            break;
+        case SearchOutcomeKind.MinimumDuration:
+            var minimumDays = _outcome.RequiredMinimumDays!.Value;
+            <div class="empty-state">
+                <h2 id="results-heading">@L["Results.Empty.MinimumDuration.Title"]</h2>
+                <p>@L["Results.Empty.MinimumDuration.Text", minimumDays]</p>
+                <p><a class="button" href="@ResultsLink(_criteria.Query with { Return = SearchValidator.FormatLocal(_criteria.PickupAt.AddDays(minimumDays)) })">@L["Results.Empty.MinimumDuration.Extend", minimumDays]</a></p>
+            </div>
+            break;
+        case SearchOutcomeKind.NoAvailability:
+            <div class="empty-state">
+                <h2 id="results-heading">@L["Results.Empty.NoAvailability.Title"]</h2>
+                <p>@L["Results.Empty.NoAvailability.Text"]</p>
+                <ContactLink Href="@WhatsAppLink()" />
+            </div>
+            break;
+        default:
+            <div class="empty-state">
+                <h2 id="results-heading">@L["Results.Empty.Pricing.Title"]</h2>
+                <p>@L["Results.Empty.Pricing.Text"]</p>
+                <ContactLink Href="@WhatsAppLink()" />
+            </div>
+            break;
+    }
+</section>
+
+@code {
+    private static readonly int[] SeatOptions = [4, 5, 7];
+
+    private bool _canonical;
+    private bool _ready;
+    private PublicAgency? _agency;
+    private SearchQuery _query = SearchQuery.Empty;
+    private IReadOnlyList<SearchError> _errors = [];
+    private SearchCriteria? _criteria;
+    private SearchOutcome? _outcome;
+    private DateTimeOffset _now;
+
+    private string PageTitle => _criteria is not null
+        ? L["Results.Title"]
+        : _errors.Count > 0 ? L["Results.ErrorTitle", L["Results.SearchTitle"]] : L["Results.SearchTitle"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadAsync();
+        }
+        finally
+        {
+            _ready = true;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _canonical = EnsureCanonical(PublicPage.Results);
+        if (!_canonical)
+        {
+            return;
+        }
+
+        _now = Clock.GetUtcNow();
+        _agency = await Directory.GetAsync(Aborted);
+        if (_agency is null)
+        {
+            return;
+        }
+
+        _query = SearchQuery.Parse(HttpContext.Request.Query);
+        if (_query.IsEmpty)
+        {
+            return;
+        }
+
+        var validation = SearchValidator.Validate(_query, _agency.Locations, _now);
+        _errors = validation.Errors;
+        _criteria = validation.Criteria;
+        if (_criteria is null)
+        {
+            return;
+        }
+
+        _outcome = await Search.SearchAsync(_criteria, Aborted);
+        var traffic = _criteria.Query.Traffic;
+        await Tracker.TrackAsync(HttpContext, FunnelStepInfo.Search, traffic, _criteria.Query.Category?.Value, cancellationToken: Aborted);
+        if (_outcome.Offers.Count > 0)
+        {
+            var highlighted = _outcome.Offers[0].Category.AcrissCode == _criteria.Query.Category?.Value ? _criteria.Query.Category?.Value : null;
+            await Tracker.TrackAsync(HttpContext, FunnelStepInfo.Results, traffic, highlighted, cancellationToken: Aborted);
+        }
+    }
+
+    private string DateTimeText(DateTimeOffset instant) => L["Results.DateTime", PublicFormat.TunisLocal(instant)];
+
+    private string ResultsLink(SearchQuery query) => PublicRoutes.PathFor(PublicPage.Results, Lang) + query.ToQueryString();
+
+    /// <summary>WhatsApp link pre-filled with the search, to book or ask while online booking is not open.</summary>
+    private string? WhatsAppLink()
+    {
+        if (_criteria is null)
+        {
+            return AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, L["WhatsApp.Message"]);
+        }
+
+        var from = DateTimeText(_criteria.PickupAt);
+        var to = DateTimeText(_criteria.ReturnAt);
+        var message = _criteria.Query.Category is { } category
+            ? L["Results.WhatsApp.Message", category.Value, from, to, _criteria.PickupLocation.Name]
+            : L["Results.WhatsApp.MessageAnyCategory", from, to, _criteria.PickupLocation.Name];
+        return AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, message);
+    }
+}

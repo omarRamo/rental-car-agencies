@@ -1,0 +1,75 @@
+@page "/{culture:length(2)}/agence"
+@page "/{culture:length(2)}/agency"
+@* Agency and contact: address with a map link, phone, e-mail, WhatsApp, opening hours, pick-up locations, and the
+   AutoRental structured data. *@
+@inherits PublicPageBase
+@attribute [CacheablePublicPage]
+@inject PublicAgencyDirectory Directory
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+<PublicHead Page="PublicPage.Agency" Title="@L["Agency.Title"]" Description="@L["Agency.Description", _agency?.Agency.City ?? "Tunis"]">
+    @if (_structuredData is not null)
+    {
+        <JsonLd Json="@_structuredData" />
+    }
+</PublicHead>
+
+<h1>@L["Agency.Heading"]</h1>
+
+@if (_agency is null)
+{
+    <p class="notice" role="note">@L["Agency.Unavailable"]</p>
+}
+else
+{
+    <section class="agency-section" aria-labelledby="agency-contact-heading">
+        <h2 id="agency-contact-heading">@L["Agency.Contact"]</h2>
+        <AgencyBlock Agency="_agency" ShowEmail="true" ShowWhatsApp="true" />
+        <p class="field-hint">@L["Agency.HoursNote"]</p>
+    </section>
+
+    @if (_agency.Locations.Count > 0)
+    {
+        <section class="agency-section" aria-labelledby="agency-locations-heading">
+            <h2 id="agency-locations-heading">@L["Agency.Locations"]</h2>
+            <ul class="location-list">
+                @foreach (var location in _agency.Locations)
+                {
+                    <li class="location-list__item">
+                        <span class="location-list__name">@location.Name</span>
+                        @if (!string.IsNullOrWhiteSpace(location.Address))
+                        {
+                            <span class="location-list__address">@location.Address</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}
+
+@code {
+    private PublicAgency? _agency;
+    private string? _structuredData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!EnsureCanonical(PublicPage.Agency))
+        {
+            return;
+        }
+
+        _agency = await Directory.GetAsync(Aborted);
+        if (_agency is not null)
+        {
+            var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
+            _structuredData = AgencyStructuredData.Build(
+                _agency,
+                Site.Value.AgencyName,
+                baseUri,
+                PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(PublicPage.Home, Lang)),
+                Site.Value.WhatsAppNumber);
+        }
+    }
+}

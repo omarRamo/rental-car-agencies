@@ -39,7 +39,7 @@ internal sealed class SecurityHeadersMiddleware(RequestDelegate next)
                 headers["Cross-Origin-Opener-Policy"] = "same-origin";
                 headers["Permissions-Policy"] =
                     "accelerometer=(), camera=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
-                headers.ContentSecurityPolicy = PolicyFor(path);
+                headers.ContentSecurityPolicy = PolicyFor(path, httpContext.Features.Get<ContentSecurityPolicyAdditions>());
 
                 if (IsPrivateArea(path) && !headers.ContainsKey("Cache-Control"))
                 {
@@ -52,6 +52,10 @@ internal sealed class SecurityHeadersMiddleware(RequestDelegate next)
 
         return next(context);
     }
+
+    /// <summary>The policy of the area, extended with the sources requested for this response (see <see cref="ContentSecurityPolicyAdditions"/>).</summary>
+    internal static string PolicyFor(PathString path, ContentSecurityPolicyAdditions? additions) =>
+        additions is null || additions.IsEmpty ? PolicyFor(path) : additions.ApplyTo(PolicyFor(path));
 
     internal static string PolicyFor(PathString path)
     {

@@ -129,4 +129,22 @@
   <data name="Setting.pricing.round_public_prices_to_dinar.Help" xml:space="preserve">
     <value>Après la règle du canal (majoration), chaque prix journalier publié est arrondi au dinar le plus proche ; les totaux restent calculés au millime.</value>
   </data>
+  <data name="Group.public_site" xml:space="preserve">
+    <value>Site public</value>
+  </data>
+  <data name="Group.reporting" xml:space="preserve">
+    <value>Pilotage</value>
+  </data>
+  <data name="Setting.public_site.eur_exchange_rate.Label" xml:space="preserve">
+    <value>Taux indicatif de l'euro (TND pour 1 €)</value>
+  </data>
+  <data name="Setting.public_site.eur_exchange_rate.Help" xml:space="preserve">
+    <value>Sert uniquement à afficher sur le site public un équivalent indicatif en euros des prix en dinars (prix ÷ taux, arrondi à l'euro). Les montants facturés et payés restent en TND.</value>
+  </data>
+  <data name="Setting.reporting.funnel_event_retention_days.Label" xml:space="preserve">
+    <value>Conservation des statistiques du parcours (jours)</value>
+  </data>
+  <data name="Setting.reporting.funnel_event_retention_days.Help" xml:space="preserve">
+    <value>Durée de conservation des événements anonymes du parcours de réservation (recherche, résultats, étapes du tunnel), supprimés chaque nuit au-delà. Affichée sur la page de confidentialité.</value>
+  </data>
 </root>

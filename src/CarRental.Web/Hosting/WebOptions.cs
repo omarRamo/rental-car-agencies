@@ -13,6 +13,12 @@ public sealed class PublicSiteOptions
 
     /// <summary>Absolute public URL used in e-mail links (e.g. <c>https://www.example.tn</c>); the request URL is used when empty.</summary>
     public Uri? BaseUrl { get; set; }
+
+    /// <summary>Agency presented by the public site; when empty, the only active agency (or the first one created).</summary>
+    public Guid? AgencyId { get; set; }
+
+    /// <summary>Lets search engines index the site (robots.txt); defaults to true in Production only (recette stays hidden).</summary>
+    public bool? AllowIndexing { get; set; }
 }
 
 /// <summary>

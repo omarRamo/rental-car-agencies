@@ -1,0 +1,28 @@
+@page "/{culture:length(2)}/conditions"
+@page "/{culture:length(2)}/terms"
+@* General rental terms. TODO(spec): placeholder outline built from SPEC §4-§9, to be written with the agency's lawyer
+   (franchise, deposit, fuel, late return, leaving the territory, fines); the page says it is provisional and that the
+   signed contract prevails. *@
+@inherits PublicPageBase
+@attribute [CacheablePublicPage]
+@inject IStringLocalizer<PublicResources> L
+
+<PublicHead Page="PublicPage.Terms" Title="@L["Terms.Title"]" Description="@L["Terms.Description"]" />
+
+<article class="legal" aria-labelledby="terms-heading">
+    <h1 id="terms-heading">@L["Terms.Title"]</h1>
+    <p class="notice" role="note">@L["Terms.Draft"]</p>
+    @for (var section = 1; section <= SectionCount; section++)
+    {
+        <section class="legal__section" aria-labelledby="@($"terms-{section}")">
+            <h2 id="@($"terms-{section}")">@L[$"Terms.Section{section}.Title"]</h2>
+            <p>@L[$"Terms.Section{section}.Text"]</p>
+        </section>
+    }
+</article>
+
+@code {
+    private const int SectionCount = 8;
+
+    protected override void OnInitialized() => EnsureCanonical(PublicPage.Terms);
+}

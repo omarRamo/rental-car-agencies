@@ -1,4 +1,5 @@
-@* Same page in each enabled culture: the culture prefix of the path is replaced (query string kept). *@
+@* Same page in each enabled culture: the culture prefix and the localized slug are replaced (/fr/reserver?… →
+   /en/book?…), the query string is kept. *@
 @inject NavigationManager Navigation
 @inject CultureCatalog Cultures
 
@@ -13,7 +14,7 @@
             }
             else
             {
-                <a href="@LinkFor(culture)" hreflang="@culture" lang="@culture">@CultureCatalog.NativeName(culture)</a>
+                <a href="@PublicRoutes.Localize(_relative, culture)" hreflang="@culture" lang="@culture">@CultureCatalog.NativeName(culture)</a>
             }
         </li>
     }
@@ -21,17 +22,11 @@
 
 @code {
     private string _current = CultureCatalog.Default;
+    private string _relative = "/";
 
-    protected override void OnParametersSet() => _current = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
-    private string LinkFor(string culture)
+    protected override void OnParametersSet()
     {
-        var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
-        var queryStart = relative.IndexOf('?', StringComparison.Ordinal);
-        var path = queryStart < 0 ? relative : relative[..queryStart];
-        var query = queryStart < 0 ? string.Empty : relative[queryStart..];
-        var segment = PathRequestCultureProvider.FirstSegment(path);
-        var rest = segment is not null && Cultures.IsEnabled(segment) ? path[(segment.Length + 1)..] : string.Empty;
-        return $"/{culture}{rest}{query}";
+        _current = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        _relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
     }
 }

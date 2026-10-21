@@ -3,6 +3,7 @@ using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
 using CarRental.Web.Components.Account;
 using CarRental.Web.Endpoints;
+using CarRental.Web.Endpoints.PublicSite;
 using CarRental.Web.Localization;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -70,6 +71,7 @@ internal static class WebServiceCollectionExtensions
         }
 
         services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = 10 * 1024 * 1024);
+        services.AddPublicSite(configuration, environment);
         return services;
     }
 

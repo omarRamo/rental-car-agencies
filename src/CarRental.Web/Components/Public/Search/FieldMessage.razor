@@ -1,0 +1,13 @@
+@* Error text of a form field; the field references it with aria-describedby and sets aria-invalid. *@
+@if (!string.IsNullOrEmpty(Message))
+{
+    <p id="@Id" class="field-error">@Message</p>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = default!;
+
+    [Parameter]
+    public string? Message { get; set; }
+}
