@@ -42,12 +42,15 @@ let fileCount = 0;
 for (const path of trxFiles(root)) {
   fileCount++;
   const xml = readFileSync(path, "utf8");
-  for (const match of xml.matchAll(/<UnitTestResult\b([^>]*)>([\s\S]*?)<\/UnitTestResult>/g)) {
+  // A result without output is self-closing (<UnitTestResult ... />): both forms are matched, otherwise a passed result
+  // would swallow the failed result that follows it.
+  for (const match of xml.matchAll(/<UnitTestResult\b((?:[^>"]|"[^"]*")*?)(?:\/>|>([\s\S]*?)<\/UnitTestResult>)/g)) {
     const attributes = match[1];
     if (!/\boutcome="Failed"/.test(attributes)) continue;
     const name = decode(/\btestName="([^"]*)"/.exec(attributes)?.[1] ?? "?");
-    const message = decode(/<Message>([\s\S]*?)<\/Message>/.exec(match[2])?.[1] ?? "").trim();
-    const stack = decode(/<StackTrace>([\s\S]*?)<\/StackTrace>/.exec(match[2])?.[1] ?? "").trim();
+    const body = match[2] ?? "";
+    const message = decode(/<Message>([\s\S]*?)<\/Message>/.exec(body)?.[1] ?? "").trim();
+    const stack = decode(/<StackTrace>([\s\S]*?)<\/StackTrace>/.exec(body)?.[1] ?? "").trim();
     failures.push({ file: basename(path), name, message, stack });
   }
 
