@@ -117,6 +117,44 @@ public sealed class VehicleAssignmentServiceTests
     }
 
     [Fact]
+    public async Task Files_still_out_at_the_end_of_the_range_are_planned_for_their_whole_period()
+    {
+        var harness = new BookingsHarness();
+        var fixedFile = await harness.ConfirmedAsync();
+        (await harness.Assignments.AssignAsync(fixedFile.Id, harness.VehicleA.Id, cancellationToken: Ct)).IsSuccess.ShouldBeTrue();
+        var crossing = await harness.ConfirmedAsync(harness.Quick() with { PickupAt = harness.PickupAt.AddDays(1), ReturnAt = harness.ReturnAt.AddDays(1) });
+
+        // The week shown on the planning ends while both files are out (the fleet clips the windows to the period asked).
+        var week = Period.Create(harness.PickupAt.AddDays(-1), harness.PickupAt.AddDays(2)).Value;
+        var plan = await harness.Assignments.ProposeAsync(harness.AgencyId, week, Ct);
+
+        plan.IsSuccess.ShouldBeTrue(plan.IsFailure ? plan.Error.ToString() : null);
+        plan.Value.Conflicts.ShouldBeEmpty("the vehicle of the fixed file is rentable until its return, after the week");
+        plan.Value.Unassignable.ShouldBeEmpty();
+        var proposal = plan.Value.Proposals.ShouldHaveSingleItem();
+        proposal.BookingId.ShouldBe(crossing.Id);
+        proposal.VehicleId.ShouldBe(harness.VehicleB.Id, "vehicle A carries the fixed file until its return");
+    }
+
+    [Fact]
+    public async Task A_file_after_the_range_still_keeps_its_vehicle_from_the_proposals()
+    {
+        var harness = new BookingsHarness();
+        var fixedFile = await harness.ConfirmedAsync();
+        (await harness.Assignments.AssignAsync(fixedFile.Id, harness.VehicleA.Id, cancellationToken: Ct)).IsSuccess.ShouldBeTrue();
+        var crossing = await harness.ConfirmedAsync(harness.Quick() with { PickupAt = harness.PickupAt.AddDays(1), ReturnAt = harness.ReturnAt.AddDays(1) });
+        var later = await harness.ConfirmedAsync(harness.Quick() with { PickupAt = harness.PickupAt.AddDays(3), ReturnAt = harness.ReturnAt.AddDays(3) });
+        (await harness.Assignments.AssignAsync(later.Id, harness.VehicleB.Id, cancellationToken: Ct)).IsSuccess.ShouldBeTrue();
+
+        var week = Period.Create(harness.PickupAt.AddDays(-1), harness.PickupAt.AddDays(2)).Value;
+        var plan = await harness.Assignments.ProposeAsync(harness.AgencyId, week, Ct);
+
+        plan.Value.Proposals.ShouldBeEmpty("vehicle B leaves again before the crossing file is back");
+        plan.Value.Unassignable.ShouldHaveSingleItem().BookingId.ShouldBe(crossing.Id);
+        plan.Value.Conflicts.ShouldBeEmpty("the file after the week is not part of the proposals");
+    }
+
+    [Fact]
     public async Task Candidates_are_pre_checked_for_the_assignment_dialog()
     {
         var harness = new BookingsHarness();

@@ -39,6 +39,7 @@ Le détail et la justification de chaque décision sont dans les [ADR](docs/adr/
 | [Conception de la phase 3](docs/conception/phase-3-finance.md) | Factures et avoirs, facture électronique, amendes et sinistres, dépenses, rapprochements, pré-comptabilité, indicateurs |
 | [Conception de la phase 4](docs/conception/phase-4-whatsapp.md) | WhatsApp Cloud API, agent IA (Claude Haiku 5.5) avec outils et garde-fous, boîte partagée, notifications, jeu d'évaluation |
 | [Conception de la phase 5](docs/conception/phase-5-canaux.md) | Modèle de canaux, correspondances, quotas et arrêts de vente, adaptateurs (manuel, Booking.com à venir), flux entrants et sortants, banc de contrat |
+| [Journée type de haute saison](docs/scenarios/journee-haute-saison.md) | Scénario de bout en bout qui clôt la phase 1 : ce qu'il joue, les invariants qu'il prouve, comment le lancer, ce qu'il ne couvre pas |
 | [Règles du projet](CLAUDE.md) | Commandes, architecture, invariants, conventions et recettes de développement |
 | [Infrastructure Azure](infra/README.md) | Ressources, sécurité, coûts, premier déploiement, CI/CD, exploitation |
 
@@ -60,7 +61,7 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | Lot | Livré | En cours ou à venir |
 |---|---|---|
 | 0 — Socle | CI (format, build, tests, intégration sur conteneurs, E2E, couverture, secrets, Bicep, Lighthouse), Bicep, identité avec double authentification, permissions, audit, santé, Data Protection, localisation FR/EN, données de démonstration | Déploiement Azure (non lancé : attend les accès de l'agence) |
-| 1 — Exploitation | Flotte et échéances, moteur de prix (test de référence vert), disponibilité sans surréservation, clients et pièces, dossiers, planning, création rapide, paiements, cautions et caisse, départs et retours (état des lieux, signatures, contrat PDF, frais de retour, clôture) | Scénario E2E « journée type de haute saison » |
+| 1 — Exploitation | Flotte et échéances, moteur de prix (test de référence vert), disponibilité sans surréservation, clients et pièces, dossiers, planning, création rapide, paiements, cautions et caisse, départs et retours (état des lieux, signatures, contrat PDF, frais de retour, clôture), scénario « journée type de haute saison » en intégration et dans le navigateur ([`docs/scenarios/journee-haute-saison.md`](docs/scenarios/journee-haute-saison.md)) | — |
 | 2 — Vitrine et paiement | Vitrine (pages, recherche, liens profonds, SEO, Turnstile, limitation de débit), passerelle Clic to Pay isolée avec simulateur, tunnel en 3 étapes (devis figés, pièces, garantie en ligne), « Ma réservation » (lien et code, pièces, solde, annulation, contrat), API publique des devis | Recette Clic to Pay avec la banque |
 | 3 — Finance et pilotage | Instantané quotidien, indicateurs, exports Excel ; factures et avoirs (numérotation continue, TVA par taux, timbre, PDF, envoi), facture électronique en régime papier transitoire (port TTN prêt), amendes et fiche de désignation, sinistres | Dépenses, rapprochements, journaux et clôture mensuelle ; schéma TEIF et barème du timbre à fournir |
 | 4 — WhatsApp IA | Webhook signé, conversations, fenêtre de 24 h, boîte partagée avec reprise humaine, notifications par modèles approuvés, agent IA (Claude Haiku 5.5 : exécuteur hors outbox, 5 outils, garde-fous dans le code, cache du prompt, coûts et plafonds, base de connaissances validée, 30 conversations d'évaluation sur modèle scripté) | Évaluation contre le vrai modèle (clé de l'agence), ouverture à des numéros pilotes |
@@ -118,7 +119,7 @@ Sans Docker, ils peuvent utiliser des serveurs déjà démarrés : SQL Server 20
 
 ```bash
 npx azurite --inMemoryPersistence --skipApiVersionCheck --silent &   # Azurite sur 10000-10002
-export CARRENTAL_TEST_SQL='Server=(localdb)MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
+export CARRENTAL_TEST_SQL='Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true'
 export CARRENTAL_TEST_STORAGE='UseDevelopmentStorage=true'
 dotnet test
 ```

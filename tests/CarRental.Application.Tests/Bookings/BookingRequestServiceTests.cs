@@ -71,6 +71,23 @@ public sealed class BookingRequestServiceTests
     }
 
     [Fact]
+    public async Task A_request_takes_the_availability_lock_before_its_number_like_every_other_writer()
+    {
+        var harness = new BookingsHarness();
+        harness.AsSystem("system:public-funnel");
+
+        var submitted = await harness.Requests.SubmitRequestAsync(
+            new BookingRequestDraft(SalesChannel.Web, Price: Price(harness)),
+            new BookingRequestParties(harness.MainDriverId),
+            Ct);
+
+        submitted.IsSuccess.ShouldBeTrue(submitted.IsFailure ? submitted.Error.ToString() : null);
+        harness.Journal.Entries.ShouldBe(
+            ["begin", "guard.lock", "number", $"guard.available {harness.Ecmr.Id}", "commit", $"notify {harness.Ecmr.Id}"],
+            "the number after the lock, as a phone booking takes them: otherwise the two wait on each other (deadlock)");
+    }
+
+    [Fact]
     public async Task The_hold_comes_from_the_settings_of_the_agency()
     {
         var harness = new BookingsHarness();
