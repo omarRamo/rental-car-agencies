@@ -18,7 +18,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0010](0010-conformite-ttn-inpdp.md) | Conformité intégrée : facture électronique TTN, contribution journalière, INPDP | Acceptée |
 | [0011](0011-services-applicatifs-et-result.md) | Cas d'usage en services applicatifs explicites, erreurs métier par `Result` | Acceptée |
 | [0012](0012-dbcontext-unique-et-frontieres-de-modules.md) | Un seul DbContext derrière le port `IAppDbContext`, frontières de modules vérifiées | Acceptée |
-| [0013](0013-outbox-traitee-par-hangfire.md) | Outbox transactionnelle traitée par Hangfire | Acceptée |
+| [0013](0013-outbox-traitee-par-hangfire.md) | Outbox transactionnelle traitée par Hangfire | Acceptée (déclenchement remplacé par ADR-0043) |
 | [0014](0014-identite-2fa-permissions.md) | Identité : double authentification obligatoire, rôles en préréglages de permissions | Acceptée |
 | [0015](0015-localisation-routes-par-culture.md) | Localisation par ressources .resx, routes publiques préfixées par la culture | Acceptée |
 | [0016](0016-numerotation-continue-table-de-compteurs.md) | Numérotation continue des pièces par table de compteurs | Acceptée |
@@ -44,6 +44,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0036](0036-vitrine-rendu-statique-cache-et-referencement.md) | Vitrine : rendu statique sans script Blazor, pages publiques cachables, référencement et budget Lighthouse | Acceptée |
 | [0037](0037-vitrine-anti-abus-et-mesure-entonnoir.md) | Vitrine : limitation de débit, Turnstile en échec fermé, mesure anonyme de l'entonnoir | Acceptée |
 | [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
+| [0043](0043-outbox-pompe-en-processus.md) | Outbox : déclenchement immédiat par une pompe en processus | Acceptée |
 
 ## Modèle
 
