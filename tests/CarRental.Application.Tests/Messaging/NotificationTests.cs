@@ -77,6 +77,25 @@ public sealed class NotificationTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_consent_withdrawn_before_the_send_stops_the_notification_already_queued()
+    {
+        var personId = _harness.AddPerson(Phone, consent: true);
+        var booking = _harness.Bookings.Add(_harness.AgencyId, _harness.OfficeId, BookingStatusInfo.Confirmed, Tomorrow10, Tomorrow10.AddDays(4), personId);
+        (await _harness.RunAsync<BookingNotifier, NotificationOutcome>(n => n.NotifyAsync(booking.Id, NotificationKind.BookingConfirmed, TestContext.Current.CancellationToken)))
+            .ShouldBe(NotificationOutcome.Queued);
+
+        // Withdrawn while the notification waits in the outbox.
+        _harness.Customers.Consents.Add((personId, CarRental.Application.Customers.Contracts.ConsentPurposeInfo.WhatsAppNotifications, CarRental.Application.Customers.Contracts.ConsentChannelInfo.Email, false));
+        await _harness.DrainAsync();
+
+        _harness.WhatsApp.Sent.ShouldBeEmpty();
+        var message = _harness.Messages.ShouldHaveSingleItem();
+        message.Status.ShouldBe(MessageStatus.Cancelled);
+        message.FailureCode.ShouldBe(MessagingErrors.ConsentWithdrawn.Code);
+        _harness.Db.Rows<BookingNotification>().ShouldHaveSingleItem("the notification is not sent later either");
+    }
+
+    [Fact]
     public async Task A_file_is_notified_once_per_kind_however_often_it_is_asked()
     {
         var personId = _harness.AddPerson(Phone, consent: true);

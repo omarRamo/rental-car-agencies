@@ -26,6 +26,13 @@ internal sealed partial class WhatsAppEventRecorder(
     {
         ArgumentNullException.ThrowIfNull(inbound);
         var metaId = inbound.MetaMessageId.Trim();
+        if (metaId.Length is 0 or > Message.MetaMessageIdMaxLength)
+        {
+            // Meta ids are a few dozen characters: one that cannot be stored as is could not be deduplicated either.
+            LogInvalidMetaId();
+            return false;
+        }
+
         if (await db.Set<Message>().AnyAsync(m => m.MetaMessageId == metaId, cancellationToken))
         {
             LogDuplicateMessage();
@@ -104,6 +111,9 @@ internal sealed partial class WhatsAppEventRecorder(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp message from an invalid sender number: ignored.")]
     private partial void LogInvalidSender();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp message with a blank or over-long Meta id: ignored.")]
+    private partial void LogInvalidMetaId();
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "WhatsApp status {Status} for a message the platform did not send: ignored.")]
     private partial void LogUnknownMessage(string status);

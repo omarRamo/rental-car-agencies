@@ -70,6 +70,9 @@ internal sealed class RecordingWhatsAppClient : IWhatsAppClient
 
     public List<WhatsAppSendRequest> Sent { get; } = [];
 
+    /// <summary>Runs during each send, with the token the sender passed (e.g. the process stops, or a shutdown is requested).</summary>
+    public Action<CancellationToken>? During { get; set; }
+
     /// <summary>The next sends answer these outcomes, in order; then accepted.</summary>
     public void Answer(params WhatsAppSendResult[] outcomes)
     {
@@ -82,6 +85,7 @@ internal sealed class RecordingWhatsAppClient : IWhatsAppClient
     public Task<WhatsAppSendResult> SendAsync(WhatsAppSendRequest request, CancellationToken cancellationToken)
     {
         Sent.Add(request);
+        During?.Invoke(cancellationToken);
         return Task.FromResult(_outcomes.TryDequeue(out var outcome) ? outcome : WhatsAppSendResult.Accepted($"wamid.test{Sent.Count}"));
     }
 }

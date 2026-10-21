@@ -127,13 +127,40 @@ public sealed class Message : AggregateRoot
         return message;
     }
 
-    /// <summary>The Graph API accepted the message and gave its Meta id (<see cref="MessageStatus.Queued"/> only).</summary>
+    /// <summary>
+    /// The Graph API is about to be called (<see cref="MessageStatus.Queued"/> only). Saved before the call: when its
+    /// outcome is then lost (crash, database failure), the next attempt finds the message
+    /// <see cref="MessageStatus.Sending"/> and gives up rather than sending it twice; and of two concurrent senders, or
+    /// a sender and a takeover cancelling the message, only one wins on the row version.
+    /// </summary>
+    public void MarkSending()
+    {
+        if (Direction != MessageDirection.Outbound || Status != MessageStatus.Queued)
+        {
+            throw new InvalidOperationException($"Only a queued outbound message can be sent (status {Status}).");
+        }
+
+        Status = MessageStatus.Sending;
+    }
+
+    /// <summary>The call certainly did not deliver the message (rate limit, service unavailable): queued again for a later attempt.</summary>
+    public void ReturnToQueue()
+    {
+        if (Direction != MessageDirection.Outbound || Status != MessageStatus.Sending)
+        {
+            throw new InvalidOperationException($"Only a message being sent returns to the queue (status {Status}).");
+        }
+
+        Status = MessageStatus.Queued;
+    }
+
+    /// <summary>The Graph API accepted the message and gave its Meta id (<see cref="MessageStatus.Sending"/> only).</summary>
     public void MarkAccepted(string metaMessageId, DateTimeOffset now)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(metaMessageId);
-        if (Direction != MessageDirection.Outbound || Status != MessageStatus.Queued)
+        if (Direction != MessageDirection.Outbound || Status != MessageStatus.Sending)
         {
-            throw new InvalidOperationException($"Only a queued outbound message can be accepted (status {Status}).");
+            throw new InvalidOperationException($"Only a message being sent can be accepted (status {Status}).");
         }
 
         MetaMessageId = MessageTexts.Truncate(metaMessageId.Trim(), MetaMessageIdMaxLength);
@@ -141,11 +168,14 @@ public sealed class Message : AggregateRoot
         AcceptedAtUtc = now;
     }
 
-    /// <summary>The message could not be sent: refused by Meta, outcome unknown or service unavailable (queued only).</summary>
+    /// <summary>
+    /// The message could not be sent: WhatsApp not configured (still queued), refused by Meta, service unavailable or
+    /// outcome unknown (being sent).
+    /// </summary>
     public void MarkNotSent(Error reason, int? metaErrorCode, string? metaErrorTitle, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(reason);
-        if (Direction != MessageDirection.Outbound || Status != MessageStatus.Queued)
+        if (Direction != MessageDirection.Outbound || Status is not (MessageStatus.Queued or MessageStatus.Sending))
         {
             throw new InvalidOperationException($"Only a queued outbound message can fail to be sent (status {Status}).");
         }
@@ -157,7 +187,7 @@ public sealed class Message : AggregateRoot
         MetaErrorTitle = metaErrorTitle is { } title ? MessageTexts.Truncate(title, MetaErrorTitleMaxLength) : null;
     }
 
-    /// <summary>The message will never be sent (the bot was silenced, the 24-hour window closed): queued only.</summary>
+    /// <summary>The message will never be sent (the bot was silenced, the 24-hour window closed, the consent withdrawn): queued only.</summary>
     public void Cancel(Error reason, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(reason);
@@ -190,7 +220,7 @@ public sealed class Message : AggregateRoot
             throw new ArgumentOutOfRangeException(nameof(status), status, "Meta reports sent, delivered, read or failed.");
         }
 
-        if (Direction != MessageDirection.Outbound || Status is MessageStatus.Queued or MessageStatus.Cancelled
+        if (Direction != MessageDirection.Outbound || Status is MessageStatus.Queued or MessageStatus.Sending or MessageStatus.Cancelled
             || _statusChanges.Exists(change => change.Status == status))
         {
             return false;

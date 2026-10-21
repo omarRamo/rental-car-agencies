@@ -204,30 +204,63 @@ public sealed class InboundPipelineTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task A_bot_reply_queued_before_a_takeover_is_cancelled_when_it_should_leave()
+    public async Task A_takeover_cancels_the_bot_reply_still_queued()
     {
-        _harness.Responder.Reply = _ => new ConversationReply { Message = new OutboundText("Bonjour !") };
-        var payload = $"payload-{Guid.NewGuid():N}";
-        _harness.Parser.Batches[payload] = new WhatsAppWebhookBatch(
-            [new InboundWhatsAppMessage("wamid.x", Customer, null, _harness.Clock.GetUtcNow(), TextContent.Received("Bonjour"))],
-            [],
-            0);
-        await _harness.HandleAsync(new WhatsAppWebhookReceived(payload, _harness.Clock.GetUtcNow()));
-        var turnEvent = _harness.Db.PublishedEvents.OfType<CustomerMessageReceived>().Single();
-        _harness.Db.PublishedEvents.Clear();
-        await _harness.HandleAsync(turnEvent);
-        var queued = _harness.Db.PublishedEvents.OfType<OutboundMessageQueued>().Single();
-        _harness.Db.PublishedEvents.Clear();
+        var queued = await BotReplyQueuedAsync();
 
         await _harness.RunAsync<WhatsAppInboxService, CarRental.Domain.Common.Result>(
             s => s.TakeOverAsync(_harness.Conversations[0].Id, TestContext.Current.CancellationToken),
             MessagingHarness.Agent());
+
+        var reply = _harness.Messages.Single(m => m.Id == queued.MessageId);
+        reply.Status.ShouldBe(MessageStatus.Cancelled, "cancelled by the takeover itself, before the outbox sends it");
+        reply.FailureCode.ShouldBe(MessagingErrors.BotSilenced.Code);
+        await _harness.HandleAsync(queued);
+        _harness.WhatsApp.Sent.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_bot_reply_is_checked_again_when_it_should_leave()
+    {
+        var queued = await BotReplyQueuedAsync();
+
+        // An agent holds the conversation by the time the outbox sends the reply (the takeover did not see it queued).
+        _harness.Conversations[0].TakeOver(new CarRental.Domain.Common.AuditActor(Guid.CreateVersion7(), "agent@demo.local", null, null), _harness.Clock.GetUtcNow());
         await _harness.HandleAsync(queued);
 
         _harness.WhatsApp.Sent.ShouldBeEmpty();
         var reply = _harness.Messages.Single(m => m.Id == queued.MessageId);
         reply.Status.ShouldBe(MessageStatus.Cancelled);
         reply.FailureCode.ShouldBe(MessagingErrors.BotSilenced.Code);
+    }
+
+    [Fact]
+    public async Task A_takeover_handed_back_during_the_responder_call_still_drops_the_stale_reply()
+    {
+        var agent = MessagingHarness.Agent();
+        _harness.Responder.During = async turn =>
+        {
+            (await AsAgentAsync(s => s.TakeOverAsync(turn.ConversationId, TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+            (await AsAgentAsync(s => s.SendTextAsync(turn.ConversationId, "Bonjour, ici l'agence.", TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+            (await AsAgentAsync(s => s.HandBackToBotAsync(turn.ConversationId, TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+        };
+        _harness.Responder.Reply = _ => new ConversationReply
+        {
+            Message = new OutboundText("Réponse périmée du bot"),
+            Usage = new ConversationTurnUsageInfo(900, 40, AiCostUsd: 0.0002m),
+        };
+
+        await _harness.CustomerWritesAsync(Customer, "Bonjour");
+
+        _harness.WhatsApp.Sent.ShouldHaveSingleItem().Content.ShouldBeOfType<TextContent>().Body.ShouldBe("Bonjour, ici l'agence.");
+        _harness.Messages.Single(m => m.IsInbound).BotTurn.ShouldBe(BotTurnState.Silenced);
+        var conversation = _harness.Conversations.ShouldHaveSingleItem();
+        conversation.Mode.ShouldBe(ConversationMode.Bot);
+        conversation.Usage.BotTurns.ShouldBe(1, "the model call happened: its cost counts");
+        conversation.Usage.AiCostUsd.ShouldBe(0.0002m);
+
+        Task<CarRental.Domain.Common.Result> AsAgentAsync(Func<WhatsAppInboxService, Task<CarRental.Domain.Common.Result>> action) =>
+            _harness.RunAsync<WhatsAppInboxService, CarRental.Domain.Common.Result>(action, agent);
     }
 
     [Fact]
@@ -304,5 +337,39 @@ public sealed class InboundPipelineTests : IAsyncDisposable
         await _harness.HandleAsync(new WhatsAppWebhookReceived("{not json", _harness.Clock.GetUtcNow()));
 
         _harness.Messages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_message_without_a_usable_meta_id_is_ignored()
+    {
+        var now = _harness.Clock.GetUtcNow();
+
+        await _harness.DeliverAsync(
+        [
+            new InboundWhatsAppMessage(" ", Customer, null, now, TextContent.Received("Bonjour")),
+            new InboundWhatsAppMessage(new string('w', Message.MetaMessageIdMaxLength + 1), Customer, null, now, TextContent.Received("Bonjour")),
+        ]);
+        await _harness.DeliverAsync([new InboundWhatsAppMessage(new string('w', Message.MetaMessageIdMaxLength + 1), Customer, null, now, TextContent.Received("Bonjour"))]);
+
+        _harness.Messages.ShouldBeEmpty();
+        _harness.Responder.Turns.ShouldBeEmpty();
+    }
+
+    /// <summary>A customer writes, the bot answers: its reply is queued (not sent yet).</summary>
+    private async Task<OutboundMessageQueued> BotReplyQueuedAsync()
+    {
+        _harness.Responder.Reply = _ => new ConversationReply { Message = new OutboundText("Bonjour !") };
+        var payload = $"payload-{Guid.NewGuid():N}";
+        _harness.Parser.Batches[payload] = new WhatsAppWebhookBatch(
+            [new InboundWhatsAppMessage("wamid.x", Customer, null, _harness.Clock.GetUtcNow(), TextContent.Received("Bonjour"))],
+            [],
+            0);
+        await _harness.HandleAsync(new WhatsAppWebhookReceived(payload, _harness.Clock.GetUtcNow()));
+        var turnEvent = _harness.Db.PublishedEvents.OfType<CustomerMessageReceived>().Single();
+        _harness.Db.PublishedEvents.Clear();
+        await _harness.HandleAsync(turnEvent);
+        var queued = _harness.Db.PublishedEvents.OfType<OutboundMessageQueued>().Single();
+        _harness.Db.PublishedEvents.Clear();
+        return queued;
     }
 }

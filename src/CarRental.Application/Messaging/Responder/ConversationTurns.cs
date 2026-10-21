@@ -83,23 +83,19 @@ internal sealed partial class ConversationTurns(IAppDbContext db, TimeProvider c
 
     /// <summary>
     /// Applies the reply of <paramref name="turn"/> on the current state: in bot mode, the usage, the need, the single
-    /// message (queued for sending) and the hand-over; after a takeover, nothing but the silenced marks. The messages of
-    /// the turn are marked answered (or superseded). Returns whether a message was queued.
+    /// message (queued for sending) and the hand-over; after a takeover (even one already handed back: the takeover
+    /// silenced the messages of the turn), nothing but the usage and the silenced marks. The messages of the turn are
+    /// marked answered (or superseded). Returns whether a message was queued.
     /// </summary>
     public async Task<bool> ApplyAsync(ConversationTurn turn, ConversationReply reply, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(turn);
         ArgumentNullException.ThrowIfNull(reply);
         var conversation = await db.Set<Conversation>().FirstOrDefaultAsync(c => c.Id == turn.ConversationId, cancellationToken);
-        var pending = await PendingAsync(turn.ConversationId, cancellationToken);
-        var trigger = pending.Find(m => m.Id == turn.TriggerMessageId);
-        if (conversation is null || trigger is null)
+        if (conversation is null)
         {
             return false;
         }
-
-        var turnMessageIds = turn.NewMessages.Select(m => m.Id).ToHashSet();
-        var ofTurn = pending.Where(m => turnMessageIds.Contains(m.Id)).ToList();
 
         // The model calls happened whatever comes next: their cost counts.
         if (reply.Usage is { } usage)
@@ -107,7 +103,11 @@ internal sealed partial class ConversationTurns(IAppDbContext db, TimeProvider c
             conversation.RecordBotTurn(usage.ToDomain());
         }
 
-        if (conversation.Mode != ConversationMode.Bot)
+        var pending = await PendingAsync(turn.ConversationId, cancellationToken);
+        var trigger = pending.Find(m => m.Id == turn.TriggerMessageId);
+        var turnMessageIds = turn.NewMessages.Select(m => m.Id).ToHashSet();
+        var ofTurn = pending.Where(m => turnMessageIds.Contains(m.Id)).ToList();
+        if (trigger is null || conversation.Mode != ConversationMode.Bot)
         {
             Silence(ofTurn);
             await db.SaveChangesAsync(cancellationToken);

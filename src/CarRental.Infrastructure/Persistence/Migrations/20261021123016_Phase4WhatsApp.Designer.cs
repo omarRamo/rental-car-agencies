@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRental.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CarRentalDbContext))]
-    [Migration("20261021103013_Phase4WhatsApp")]
+    [Migration("20261021123016_Phase4WhatsApp")]
     partial class Phase4WhatsApp
     {
         /// <inheritdoc />
@@ -1968,6 +1968,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("MessageId")
+                        .IsUnique();
 
                     b.HasIndex("BookingId", "Kind")
                         .IsUnique();

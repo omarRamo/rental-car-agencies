@@ -83,6 +83,43 @@ public sealed class SendingTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_send_whose_outcome_was_lost_is_never_sent_again()
+    {
+        var queued = await BotReplyQueuedAsync();
+        _harness.WhatsApp.During = _ => throw new InvalidOperationException("The process stops during the call.");
+
+        await Should.ThrowAsync<InvalidOperationException>(() => _harness.HandleAsync(queued));
+        Reply(queued).Status.ShouldBe(MessageStatus.Sending, "saved before the call");
+        _harness.WhatsApp.During = null;
+        await _harness.HandleAsync(queued, attempt: 2);
+
+        _harness.WhatsApp.Sent.ShouldHaveSingleItem();
+        var message = Reply(queued);
+        message.Status.ShouldBe(MessageStatus.Failed);
+        message.FailureCode.ShouldBe(MessagingErrors.SendOutcomeUnknown.Code);
+    }
+
+    [Fact]
+    public async Task A_shutdown_during_the_call_does_not_cancel_it_and_its_outcome_is_recorded()
+    {
+        var queued = await BotReplyQueuedAsync();
+        using var shutdown = new CancellationTokenSource();
+        var callCancellable = true;
+        _harness.WhatsApp.During = token =>
+        {
+            shutdown.Cancel();
+            callCancellable = token.CanBeCanceled;
+        };
+
+        await _harness.HandleUntilShutdownAsync(queued, shutdown.Token);
+
+        callCancellable.ShouldBeFalse();
+        var message = Reply(queued);
+        message.Status.ShouldBe(MessageStatus.Accepted);
+        message.MetaMessageId.ShouldBe("wamid.test1");
+    }
+
+    [Fact]
     public async Task A_free_form_message_is_not_sent_once_the_window_closed()
     {
         var queued = await BotReplyQueuedAsync();

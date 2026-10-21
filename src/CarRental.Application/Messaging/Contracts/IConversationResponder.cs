@@ -16,7 +16,8 @@ namespace CarRental.Application.Messaging.Contracts;
 /// <remarks>
 /// <para>A turn groups the customer messages not answered yet (<see cref="ConversationTurn.NewMessages"/>): messages
 /// received in a burst are answered once, by the turn of the latest one. A takeover by an agent, before the call or
-/// during it, silences the turn: its message is dropped.</para>
+/// during it, silences the turn: its message is dropped (even if the agent hands the conversation back before the reply
+/// comes), its usage still counts.</para>
 /// <para>Return <see cref="ConversationReply.None"/> to stay silent. Business problems (caps reached, model refusal,
 /// tool failure) are answered with a hand-over, never with an exception: an exception retries the whole turn later
 /// through the outbox (the responder may then be called again for the same turn).</para>

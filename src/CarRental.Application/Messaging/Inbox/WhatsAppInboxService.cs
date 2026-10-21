@@ -32,6 +32,11 @@ public sealed class WhatsAppInboxService(
     IWhatsAppClient client,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Takes the conversation over: the bot is silenced at once, including a turn in progress (its customer messages are
+    /// marked silenced, so that its reply is dropped even if the conversation is handed back before it comes) and its
+    /// replies not sent yet (cancelled; one already being sent still leaves).
+    /// </summary>
     public Task<Result> TakeOverAsync(Guid conversationId, CancellationToken cancellationToken) =>
         ChangeAsync(
             conversationId,
@@ -40,6 +45,7 @@ public sealed class WhatsAppInboxService(
                 var taken = conversation.TakeOver(actor, now);
                 if (taken.IsSuccess)
                 {
+                    await SilenceBotAsync(conversation.Id, now, ct);
                     await AuditAsync(MessagingAuditActions.ConversationTakenOver, conversation, "taken over by an agent: the bot is silenced", ct);
                 }
 
@@ -271,6 +277,27 @@ public sealed class WhatsAppInboxService(
             catch (DbUpdateConcurrencyException)
             {
                 return MessagingErrors.ConcurrentUpdate;
+            }
+        }
+    }
+
+    /// <summary>Ends the pending bot turns of the conversation (silenced) and cancels the bot replies still queued.</summary>
+    private async Task SilenceBotAsync(Guid conversationId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var messages = await db.Set<Message>()
+            .Where(m => m.ConversationId == conversationId
+                        && ((m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending)
+                            || (m.Direction == MessageDirection.Outbound && m.Author == MessageAuthor.Bot && m.Status == MessageStatus.Queued)))
+            .ToListAsync(cancellationToken);
+        foreach (var message in messages)
+        {
+            if (message.IsInbound)
+            {
+                message.CompleteBotTurn(BotTurnState.Silenced);
+            }
+            else
+            {
+                message.Cancel(MessagingErrors.BotSilenced, now);
             }
         }
     }

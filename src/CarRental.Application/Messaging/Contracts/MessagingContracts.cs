@@ -51,6 +51,7 @@ public enum MessageStatusInfo
     Read = 6,
     Failed = 7,
     Cancelled = 8,
+    Sending = 9,
 }
 
 /// <summary>Kind of an inbound media (same values as the domain enum).</summary>

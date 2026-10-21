@@ -16,10 +16,11 @@ namespace CarRental.Infrastructure.Messaging;
 /// </summary>
 /// <remarks>
 /// Retries only where safe: the client itself never retries a send (a message is not idempotent at Meta). It classifies
-/// the outcome for <see cref="OutboundMessageSender"/>: rate limits (HTTP 429, codes 4, 80007, 130429, 131056) and
-/// temporary unavailability (codes 2, 131000, 131016, HTTP 503) are transient — the request was refused, retrying later
-/// is safe; a connection that could not be opened is transient too; a timeout or a broken answer after the request was
-/// sent is unknown; any other error answer is a refusal.
+/// the outcome for <see cref="OutboundMessageSender"/>: rate limits (HTTP 429, codes 4, 80007, 130429, 131056),
+/// temporary unavailability (codes 2, 131000, 131016, HTTP 503) and a refused access token or permission (HTTP 401,
+/// codes 0, 10, 190, 200–299: an expired token must not lose the messages for good) are transient — the request was
+/// refused, retrying later is safe; a connection that could not be opened is transient too; a timeout or a broken
+/// answer after the request was sent is unknown; any other error answer is a refusal.
 /// </remarks>
 internal sealed partial class WhatsAppGraphClient(HttpClient httpClient, IOptions<WhatsAppOptions> options, ILogger<WhatsAppGraphClient> logger)
     : IWhatsAppClient
@@ -48,6 +49,11 @@ internal sealed partial class WhatsAppGraphClient(HttpClient httpClient, IOption
             var body = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var result = Interpret(response.StatusCode, body);
             LogCall(kind, (int)response.StatusCode, result.ErrorCode, result.Outcome.ToString(), Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            if (IsAccessRefused(response.StatusCode, result.ErrorCode))
+            {
+                LogAccessRefused(result.ErrorCode);
+            }
+
             return result;
         }
         catch (HttpRequestException exception) when (exception.HttpRequestError is HttpRequestError.ConnectionError
@@ -80,7 +86,10 @@ internal sealed partial class WhatsAppGraphClient(HttpClient httpClient, IOption
             return string.IsNullOrWhiteSpace(messageId) ? WhatsAppSendResult.Unknown() : WhatsAppSendResult.Accepted(messageId);
         }
 
-        if (status == HttpStatusCode.TooManyRequests || (errorCode is { } code && TransientCodes.Contains(code)) || status == HttpStatusCode.ServiceUnavailable)
+        if (status == HttpStatusCode.TooManyRequests
+            || status == HttpStatusCode.ServiceUnavailable
+            || (errorCode is { } code && TransientCodes.Contains(code))
+            || IsAccessRefused(status, errorCode))
         {
             return WhatsAppSendResult.Transient(errorCode, errorTitle);
         }
@@ -93,6 +102,10 @@ internal sealed partial class WhatsAppGraphClient(HttpClient httpClient, IOption
 
         return WhatsAppSendResult.Rejected(errorCode, errorTitle);
     }
+
+    /// <summary>The access token or a permission of the app was refused (HTTP 401, codes 0, 10, 190, 200–299): Meta processed nothing.</summary>
+    internal static bool IsAccessRefused(HttpStatusCode status, int? errorCode) =>
+        status == HttpStatusCode.Unauthorized || errorCode is 0 or 10 or 190 or (>= 200 and <= 299);
 
     private static (string? MessageId, int? ErrorCode, string? ErrorTitle, bool Readable) Read(ReadOnlySpan<byte> body)
     {
@@ -142,4 +155,9 @@ internal sealed partial class WhatsAppGraphClient(HttpClient httpClient, IOption
 
     [LoggerMessage(Level = LogLevel.Error, Message = "WhatsApp Graph API did not answer a {Kind} message: outcome unknown.")]
     private partial void LogNoAnswer(Exception exception, string kind);
+
+    [LoggerMessage(
+        Level = LogLevel.Critical,
+        Message = "WhatsApp Graph API refused the access token or a permission (Meta error {ErrorCode}): renew the Key Vault secret WhatsApp--AccessToken or the permissions of the app; messages are retried meanwhile.")]
+    private partial void LogAccessRefused(int? errorCode);
 }

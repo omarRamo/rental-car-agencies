@@ -66,9 +66,10 @@ public enum MessageAuthor
 }
 
 /// <summary>
-/// Delivery state of a message. Inbound messages are <see cref="Received"/>. Outbound ones are <see cref="Queued"/>
-/// until the Graph API accepts them (<see cref="Accepted"/>), then follow the statuses reported by Meta (sent,
-/// delivered, read, failed); <see cref="Cancelled"/> means never sent (the bot was silenced, the window closed).
+/// Delivery state of a message. Inbound messages are <see cref="Received"/>. Outbound ones are <see cref="Queued"/>,
+/// then <see cref="Sending"/> while the Graph API is called, until it accepts them (<see cref="Accepted"/>); they then
+/// follow the statuses reported by Meta (sent, delivered, read, failed). <see cref="Cancelled"/> means never sent (the
+/// bot was silenced, the window closed, the consent withdrawn).
 /// </summary>
 public enum MessageStatus
 {
@@ -80,6 +81,9 @@ public enum MessageStatus
     Read = 6,
     Failed = 7,
     Cancelled = 8,
+
+    /// <summary>The Graph API is being called: committed before the call, so that a lost outcome is never sent twice.</summary>
+    Sending = 9,
 }
 
 /// <summary>What the auto-responder did with an inbound customer message (one turn per message at most).</summary>

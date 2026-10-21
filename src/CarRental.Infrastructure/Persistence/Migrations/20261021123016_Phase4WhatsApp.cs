@@ -161,6 +161,13 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BookingNotifications_MessageId",
+                schema: "messaging",
+                table: "BookingNotifications",
+                column: "MessageId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Conversations_BookingId",
                 schema: "messaging",
                 table: "Conversations",

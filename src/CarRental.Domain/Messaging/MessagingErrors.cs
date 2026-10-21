@@ -102,5 +102,9 @@ public static class MessagingErrors
 
     public static readonly Error SendOutcomeUnknown = Error.Failure(
         "messaging.send.outcome_unknown",
-        "Meta did not answer in time: the message may have been sent; check with the customer before sending it again.");
+        "The send was interrupted before Meta answered: the message may have been sent; check with the customer before sending it again.");
+
+    public static readonly Error ConsentWithdrawn = Error.Conflict(
+        "messaging.send.no_consent",
+        "The customer no longer consents to WhatsApp notifications (or was anonymized): the notification was not sent.");
 }

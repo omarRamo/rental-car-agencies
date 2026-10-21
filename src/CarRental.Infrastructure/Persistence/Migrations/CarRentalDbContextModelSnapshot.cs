@@ -1966,6 +1966,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedAtUtc");
 
+                    b.HasIndex("MessageId")
+                        .IsUnique();
+
                     b.HasIndex("BookingId", "Kind")
                         .IsUnique();
 

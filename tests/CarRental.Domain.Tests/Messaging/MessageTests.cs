@@ -123,6 +123,45 @@ public sealed class MessageTests
     }
 
     [Fact]
+    public void A_message_is_accepted_only_while_being_sent_and_goes_back_to_the_queue_after_a_transient_failure()
+    {
+        var conversation = NewConversation();
+        Receive(conversation);
+        var reply = conversation.ReplyAsBot(TextContent.Create("Bonjour").Value, Now).Value;
+
+        Should.Throw<InvalidOperationException>(() => reply.MarkAccepted("wamid.too-early", Now));
+        Should.Throw<InvalidOperationException>(() => reply.ReturnToQueue());
+        reply.MarkSending();
+        reply.Status.ShouldBe(MessageStatus.Sending);
+        reply.RecordStatus(MessageStatus.Sent, Now, null, null, null, Now).ShouldBeFalse();
+        Should.Throw<InvalidOperationException>(() => reply.MarkSending());
+        Should.Throw<InvalidOperationException>(() => reply.Cancel(MessagingErrors.BotSilenced, Now));
+
+        reply.ReturnToQueue();
+        reply.Status.ShouldBe(MessageStatus.Queued);
+        reply.MarkSending();
+        reply.MarkAccepted(" wamid.ok ", Now.AddSeconds(1));
+
+        reply.Status.ShouldBe(MessageStatus.Accepted);
+        reply.MetaMessageId.ShouldBe("wamid.ok");
+    }
+
+    [Fact]
+    public void A_message_being_sent_whose_outcome_is_lost_fails_as_unknown()
+    {
+        var conversation = NewConversation();
+        Receive(conversation);
+        var reply = conversation.ReplyAsBot(TextContent.Create("Bonjour").Value, Now).Value;
+        reply.MarkSending();
+
+        reply.MarkNotSent(MessagingErrors.SendOutcomeUnknown, null, null, Now.AddMinutes(1));
+
+        reply.Status.ShouldBe(MessageStatus.Failed);
+        reply.FailureCode.ShouldBe("messaging.send.outcome_unknown");
+        reply.FailedAtUtc.ShouldBe(Now.AddMinutes(1));
+    }
+
+    [Fact]
     public void A_bot_turn_is_completed_once()
     {
         var conversation = NewConversation();
@@ -178,6 +217,7 @@ public sealed class MessageTests
         var conversation = NewConversation();
         Receive(conversation);
         var reply = conversation.ReplyAsBot(TextContent.Create("Bonjour ! Pour quelles dates ?").Value, Now).Value;
+        reply.MarkSending();
         reply.MarkAccepted("wamid.reply", Now.AddSeconds(1));
         return reply;
     }

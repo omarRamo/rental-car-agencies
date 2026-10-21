@@ -54,7 +54,8 @@ internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory,
             }
             catch (DbUpdateException exception) when (attempt < MaxAttempts && !cancellationToken.IsCancellationRequested)
             {
-                LogReplayed(exception, typeof(TService).Name, attempt);
+                // Not the exception itself: the message of a duplicate key names the key (a customer's number).
+                LogReplayed(typeof(TService).Name, attempt, exception is DbUpdateConcurrencyException ? "row version" : "unique index or constraint");
             }
         }
     }
@@ -66,6 +67,6 @@ internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory,
         return scope;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "WhatsApp step {Step} met a concurrent change (attempt {Attempt}); replayed on fresh data.")]
-    private partial void LogReplayed(Exception exception, string step, int attempt);
+    [LoggerMessage(Level = LogLevel.Information, Message = "WhatsApp step {Step} met a concurrent change (attempt {Attempt}, {Conflict}); replayed on fresh data.")]
+    private partial void LogReplayed(string step, int attempt, string conflict);
 }

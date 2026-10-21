@@ -143,7 +143,12 @@ internal sealed class MessagingHarness : IAsyncDisposable
         throw new InvalidOperationException("The events never stop: a handler loops.");
     }
 
-    public async Task HandleAsync(object message, int attempt = 1)
+    public Task HandleAsync(object message, int attempt = 1) => DispatchAsync(message, attempt, CancellationToken.None);
+
+    /// <summary>Runs the outbox handlers of <paramref name="message"/> with the token of the outbox pump (a shutdown cancels it).</summary>
+    public Task HandleUntilShutdownAsync(object message, CancellationToken pumpToken) => DispatchAsync(message, 1, pumpToken);
+
+    private async Task DispatchAsync(object message, int attempt, CancellationToken pumpToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         var context = new OutboxMessageContext(Guid.CreateVersion7(), Clock.GetUtcNow(), attempt, "corr-tests");
@@ -151,7 +156,7 @@ internal sealed class MessagingHarness : IAsyncDisposable
         var handlerType = typeof(IOutboxHandler<>).MakeGenericType(message.GetType());
         foreach (var handler in scope.ServiceProvider.GetServices(handlerType))
         {
-            await (Task)handlerType.GetMethod(nameof(IOutboxHandler<object>.HandleAsync))!.Invoke(handler, [message, context, CancellationToken.None])!;
+            await (Task)handlerType.GetMethod(nameof(IOutboxHandler<object>.HandleAsync))!.Invoke(handler, [message, context, pumpToken])!;
         }
     }
 

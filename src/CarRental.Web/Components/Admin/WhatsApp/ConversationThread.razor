@@ -71,7 +71,7 @@ else
 
     private static string StatusIcon(MessageStatusInfo status) => status switch
     {
-        MessageStatusInfo.Queued => Icons.Material.Outlined.Schedule,
+        MessageStatusInfo.Queued or MessageStatusInfo.Sending => Icons.Material.Outlined.Schedule,
         MessageStatusInfo.Accepted or MessageStatusInfo.Sent => Icons.Material.Filled.Check,
         MessageStatusInfo.Delivered => Icons.Material.Filled.DoneAll,
         MessageStatusInfo.Read => Icons.Material.Filled.MarkChatRead,

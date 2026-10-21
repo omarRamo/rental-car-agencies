@@ -453,4 +453,13 @@
   <data name="Message.TemplateUnnamedWith" xml:space="preserve">
     <value>Template: {0}</value>
   </data>
+  <data name="Status.Sending" xml:space="preserve">
+    <value>Sending</value>
+  </data>
+  <data name="Reply.TakeOverFromColleague" xml:space="preserve">
+    <value>Another agent handles this conversation. Take it over in turn to write to the customer.</value>
+  </data>
+  <data name="Reply.TakeOverAwaiting" xml:space="preserve">
+    <value>The bot is waiting for an agent. Take over to answer the customer.</value>
+  </data>
 </root>

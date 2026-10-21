@@ -104,7 +104,10 @@ internal sealed class MessageStatusChangeConfiguration : IEntityTypeConfiguratio
     }
 }
 
-/// <summary>Notifications queued per rental file and kind (unique: never twice), ids only; purged with the conversations.</summary>
+/// <summary>
+/// Notifications queued per rental file and kind (unique: never twice), ids only; purged with the conversations. Found
+/// by message when it is sent (the consent is checked again).
+/// </summary>
 internal sealed class BookingNotificationConfiguration : IEntityTypeConfiguration<BookingNotification>
 {
     public void Configure(EntityTypeBuilder<BookingNotification> builder)
@@ -113,6 +116,7 @@ internal sealed class BookingNotificationConfiguration : IEntityTypeConfiguratio
         builder.ExcludeFromAudit();
         builder.HasKey(n => n.Id);
         builder.HasIndex(n => new { n.BookingId, n.Kind }).IsUnique();
+        builder.HasIndex(n => n.MessageId).IsUnique();
         builder.HasIndex(n => n.CreatedAtUtc);
     }
 }
