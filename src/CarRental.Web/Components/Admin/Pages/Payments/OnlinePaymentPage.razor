@@ -1,0 +1,346 @@
+@page "/admin/payments/online/{PaymentId:guid}"
+@attribute [HasPermission(Permissions.PaymentsRead)]
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+    <MudLink Href="/admin/payments">@L["Online.Back"]</MudLink>
+</MudStack>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && (_view is not null || _error is not null) ? "true" : "false")">@Title</MudText>
+
+@if (_error is not null)
+{
+    <FinanceNotice Tone="FinanceTone.Danger" Role="alert">@_error</FinanceNotice>
+}
+else if (_view is { } view)
+{
+    var payment = view.Payment;
+    <section data-testid="online-payment" aria-labelledby="online-summary">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="online-summary">@L["Online.Summary"]</MudText>
+                <FinanceBadge Tone="PaymentsFormat.ToneOf(payment.Status)">@L[$"Status.Incoming.{payment.Status}"]</FinanceBadge>
+            </MudStack>
+            <dl class="d-flex flex-wrap gap-6" style="margin:0" data-testid="online-summary">
+                <div><dt class="mud-typography mud-typography-caption">@L["Column.Flow"]</dt><dd style="margin:0">@L[PaymentsFormat.FlowKey(payment)]</dd></div>
+                <div>
+                    <dt class="mud-typography mud-typography-caption">@L["Column.Booking"]</dt>
+                    <dd style="margin:0"><MudLink Href="@($"/admin/payments/bookings/{payment.BookingId}")">@PaymentsFormat.ShortId(payment.BookingId)</MudLink></dd>
+                </div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Column.Amount"]</dt><dd style="margin:0" data-testid="online-amount">@PaymentsFormat.Amount(payment.Amount)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Captured"]</dt><dd style="margin:0" data-testid="online-captured">@PaymentsFormat.Amount(payment.CapturedAmount)</dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Totals.Refunded"]</dt><dd style="margin:0">@PaymentsFormat.Amount(payment.RefundedAmount)</dd></div>
+                @if (payment.PendingRefundAmount.IsPositive)
+                {
+                    <div><dt class="mud-typography mud-typography-caption">@L["Online.PendingRefund"]</dt><dd style="margin:0">@PaymentsFormat.Amount(payment.PendingRefundAmount)</dd></div>
+                }
+                <div><dt class="mud-typography mud-typography-caption">@L["Online.OrderNumber"]</dt><dd style="margin:0"><code>@payment.OrderNumber</code></dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Online.GatewayOrderId"]</dt><dd style="margin:0"><code>@(payment.GatewayOrderId ?? "—")</code></dd></div>
+                <div><dt class="mud-typography mud-typography-caption">@L["Column.Gateway"]</dt><dd style="margin:0">@(payment.GatewayStatusCode is { } code ? L["Gateway.Code", code] : "—")</dd></div>
+                @if (payment.PendingOperation is { } pending)
+                {
+                    <div><dt class="mud-typography mud-typography-caption">@L["Column.Pending"]</dt><dd style="margin:0">@L[$"Pending.{pending}"] (@PaymentsFormat.Instant(payment.PendingSinceUtc))</dd></div>
+                }
+                @if (payment.ExpiredAtUtc is { } expired)
+                {
+                    <div><dt class="mud-typography mud-typography-caption">@L["Online.Expired"]</dt><dd style="margin:0">@PaymentsFormat.Instant(expired)</dd></div>
+                }
+                else if (payment.ExpiresAtUtc is { } expires)
+                {
+                    <div><dt class="mud-typography mud-typography-caption">@L["Online.Expires"]</dt><dd style="margin:0">@PaymentsFormat.Instant(expires)</dd></div>
+                }
+                <div><dt class="mud-typography mud-typography-caption">@L["Column.Date"]</dt><dd style="margin:0">@PaymentsFormat.Instant(payment.RecordedAtUtc)</dd></div>
+                @if (payment.StatusReason is { } reason)
+                {
+                    <div><dt class="mud-typography mud-typography-caption">@L["Online.StatusReason"]</dt><dd style="margin:0">@reason</dd></div>
+                }
+            </dl>
+
+            @if (payment.Status == PaymentStatusInfo.Pending && payment.PaymentPageUrl is { } page)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mt-4">
+                    <MudTextField T="string" Value="@AbsoluteUrl(page)" Label="@L["Online.PaymentPage"]" ReadOnly="true" Class="flex-grow-1" />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="@(() => CopyAsync(page))">@L["Online.CopyLink"]</MudButton>
+                </MudStack>
+            }
+        </MudPaper>
+
+        @if (payment.Attention is { } attention)
+        {
+            <FinanceNotice Tone="PaymentsFormat.ToneOf(attention)" Class="mb-4" Role="status">
+                <strong>@L[$"Attention.{attention}"]</strong>
+                @if (payment.AttentionDetail is { } detail)
+                {
+                    <span> — @detail</span>
+                }
+                @if (_canManage)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Class="ms-2" OnClick="MarkReviewedAsync">@L["Online.MarkReviewed"]</MudButton>
+                }
+            </FinanceNotice>
+        }
+
+        @if (_canManage)
+        {
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mb-4">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Sync" OnClick="RefreshAsync" Disabled="_busy">@L["Online.Refresh"]</MudButton>
+                @if (payment.CanCapture)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => CaptureAsync(payment))" Disabled="_busy">@L["Online.Capture"]</MudButton>
+                }
+                @if (payment.CanReverse)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo" OnClick="@(() => ReverseAsync(payment))" Disabled="_busy">@L["Online.Reverse"]</MudButton>
+                }
+                @if (payment.CanRefund)
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="@(() => RefundAsync(payment))" Disabled="_busy">@L["Online.Refund"]</MudButton>
+                }
+            </MudStack>
+        }
+
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@L["Online.Refunds"]</MudText>
+            <MudTable T="OnlineRefundInfo" Items="payment.Refunds" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm"
+                      TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Online.Refunds"].Value })">
+                <HeaderContent>
+                    <MudTh>@L["Column.Date"]</MudTh>
+                    <MudTh>@L["Column.Amount"]</MudTh>
+                    <MudTh>@L["Field.RefundReason"]</MudTh>
+                    <MudTh>@L["Column.Status"]</MudTh>
+                    <MudTh>@L["Column.Approval"]</MudTh>
+                    @if (_canApprove)
+                    {
+                        <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Instant(context.RequestedAtUtc) — @(context.RequestedByName ?? "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.Amount"]">@PaymentsFormat.Amount(context.Amount)</MudTd>
+                    <MudTd DataLabel="@L["Field.RefundReason"]">@(context.Reason ?? "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.Status"]">
+                        <FinanceBadge Tone="PaymentsFormat.ToneOf(context.State)">@L[$"RefundState.{context.State}"]</FinanceBadge>
+                        @if (context.StatusReason is { } refundReason)
+                        {
+                            <MudText Typo="Typo.caption" Class="d-block">@refundReason</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@L["Column.Approval"]">
+                        @(context.ApprovedByName is { } approver ? L["Online.ApprovedBy", approver, PaymentsFormat.Instant(context.ApprovedAtUtc)] : context.RequiresApproval ? L["Online.ApprovalNeeded"] : "—")
+                    </MudTd>
+                    @if (_canApprove)
+                    {
+                        <MudTd>
+                            @if (context.State == OnlineRefundStateInfo.AwaitingApproval)
+                            {
+                                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => ApproveAsync(context))" Disabled="_busy"
+                                               aria-label="@L["Online.Approve.Label", PaymentsFormat.Amount(context.Amount)]">@L["Online.Approve"]</MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => RejectAsync(context))" Disabled="_busy"
+                                               aria-label="@L["Online.Reject.Label", PaymentsFormat.Amount(context.Amount)]">@L["Online.Reject"]</MudButton>
+                                </MudStack>
+                            }
+                        </MudTd>
+                    }
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@L["Online.NoRefund"]</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@L["Online.Calls"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@L["Online.CallsNote"]</MudText>
+            <MudTable T="GatewayCallInfo" Items="view.Calls" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm" data-testid="online-calls"
+                      TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Online.Calls"].Value })">
+                <HeaderContent>
+                    <MudTh>@L["Column.Date"]</MudTh>
+                    <MudTh>@L["Column.Operation"]</MudTh>
+                    <MudTh>@L["Column.Outcome"]</MudTh>
+                    <MudTh>@L["Column.HttpStatus"]</MudTh>
+                    <MudTh>@L["Column.ErrorCode"]</MudTh>
+                    <MudTh>@L["Column.OrderStatus"]</MudTh>
+                    <MudTh>@L["Column.Amount"]</MudTh>
+                    <MudTh>@L["Column.Duration"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Instant(context.StartedAtUtc)</MudTd>
+                    <MudTd DataLabel="@L["Column.Operation"]">@L[$"Operation.{context.Operation}"]</MudTd>
+                    <MudTd DataLabel="@L["Column.Outcome"]"><FinanceBadge Tone="PaymentsFormat.ToneOf(context.Outcome)">@L[$"Outcome.{context.Outcome}"]</FinanceBadge></MudTd>
+                    <MudTd DataLabel="@L["Column.HttpStatus"]">@(context.HttpStatus?.ToString(CultureInfo.InvariantCulture) ?? "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.ErrorCode"]">@(context.GatewayErrorCode is { } errorCode ? $"{errorCode} {context.GatewayErrorMessage}" : "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.OrderStatus"]">@(context.OrderStatus?.ToString(CultureInfo.InvariantCulture) ?? "—")</MudTd>
+                    <MudTd DataLabel="@L["Column.Amount"]">@PaymentsFormat.Amount(context.Amount)</MudTd>
+                    <MudTd DataLabel="@L["Column.Duration"]">@L["Online.Duration", context.DurationMilliseconds]</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@L["Online.NoCall"]</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </section>
+}
+else
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Panel.Loading"]" />
+}
+
+@code {
+    private OnlinePaymentView? _view;
+    private string? _error;
+    private bool _canManage;
+    private bool _canApprove;
+    private bool _busy;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    [Parameter]
+    public Guid PaymentId { get; set; }
+
+    private string Title => _view is { } view
+        ? L["Online.Title", PaymentsFormat.ShortOrder(view.Payment.OrderNumber)]
+        : L["Online.TitleLoading"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        _canManage = user.HasPermission(Permissions.PaymentsManage);
+        _canApprove = user.HasPermission(Permissions.PaymentsRefundsApprove);
+    }
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var paymentId = PaymentId;
+        var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentView>>((admin, ct) => admin.GetAsync(paymentId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            _view = null;
+            return;
+        }
+
+        _error = null;
+        _view = result.Value;
+    }
+
+    private string AbsoluteUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out _) ? url : Navigation.ToAbsoluteUri(url).ToString();
+
+    private async Task CopyAsync(string url)
+    {
+        var copied = await ClipboardCopy.TryAsync(JS, AbsoluteUrl(url));
+        Snackbar.Add(copied ? L["Online.Copied"] : L["Online.CopyFailed"], copied ? Severity.Success : Severity.Warning);
+    }
+
+    private async Task RefreshAsync()
+    {
+        var paymentId = PaymentId;
+        await RunAsync(() => Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentInfo>>((admin, ct) => admin.RefreshAsync(paymentId, ct)), L["Online.Refresh.Done"]);
+    }
+
+    private async Task MarkReviewedAsync()
+    {
+        var paymentId = PaymentId;
+        await RunAsync(() => Runner.RunAsync<OnlinePaymentAdministration, Result>((admin, ct) => admin.MarkReviewedAsync(paymentId, ct)), L["Online.MarkReviewed.Done"]);
+    }
+
+    private async Task CaptureAsync(OnlinePaymentInfo payment)
+    {
+        var parameters = new DialogParameters<CaptureDialog> { { d => d.Payment, payment } };
+        var dialog = await Dialogs.ShowAsync<CaptureDialog>(L["Capture.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Capture.Done"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ReverseAsync(OnlinePaymentInfo payment)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Online.Reverse.Title"],
+            L["Online.Reverse.Message", PaymentsFormat.Amount(payment.Amount)],
+            yesText: L["Online.Reverse"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var paymentId = payment.PaymentId;
+        _busy = true;
+        var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentInfo>>((admin, ct) => admin.ReverseAsync(paymentId, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add(result.Value.Status == PaymentStatusInfo.Cancelled ? L["Online.Reverse.Done"] : L["Online.Reverse.Recorded"], Severity.Success);
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task RefundAsync(OnlinePaymentInfo payment)
+    {
+        var parameters = new DialogParameters<OnlineRefundDialog> { { d => d.Payment, payment } };
+        var dialog = await Dialogs.ShowAsync<OnlineRefundDialog>(L["OnlineRefund.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false, Data: OnlineRefundOutcome outcome })
+        {
+            Snackbar.Add(L[$"OnlineRefund.Done.{outcome.State}"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ApproveAsync(OnlineRefundInfo refund)
+    {
+        var refundId = refund.RefundId;
+        await RunAsync(() => Runner.RunAsync<OnlinePaymentAdministration, Result<OnlineRefundOutcome>>((admin, ct) => admin.ApproveRefundAsync(refundId, ct)), L["Online.Approve.Done"]);
+    }
+
+    private async Task RejectAsync(OnlineRefundInfo refund)
+    {
+        var parameters = new DialogParameters<FinanceReasonDialog>
+        {
+            { d => d.Label, L["Online.Reject.Reason"].Value },
+            { d => d.SubmitText, L["Online.Reject"].Value },
+            { d => d.Message, L["Online.Reject.Message", PaymentsFormat.Amount(refund.Amount)].Value },
+        };
+        var dialog = await Dialogs.ShowAsync<FinanceReasonDialog>(L["Online.Reject.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false, Data: string reason })
+        {
+            var refundId = refund.RefundId;
+            await RunAsync(() => Runner.RunAsync<OnlinePaymentAdministration, Result>((admin, ct) => admin.RejectRefundAsync(refundId, reason, ct)), L["Online.Reject.Done"]);
+        }
+    }
+
+    private async Task RunAsync<TResult>(Func<Task<TResult>> operation, string success)
+        where TResult : Result
+    {
+        _busy = true;
+        var result = await operation();
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add(success, Severity.Success);
+        }
+
+        await LoadAsync();
+    }
+}

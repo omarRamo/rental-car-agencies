@@ -86,6 +86,46 @@ public static class PaymentsFormat
 
     /// <summary>Tone of a variance: zero is fine, anything else needs attention.</summary>
     public static FinanceTone ToneOf(Money? variance) => variance is { IsZero: false } ? FinanceTone.Danger : FinanceTone.Success;
+
+    /// <summary>Tone of a flag of an online payment: money at stake (status, amount, late payment, refusal) is red.</summary>
+    public static FinanceTone ToneOf(GatewayAttentionInfo attention) => attention switch
+    {
+        GatewayAttentionInfo.UnknownStatus or GatewayAttentionInfo.CaptureNotConfirmed
+            or GatewayAttentionInfo.ReversalNotConfirmed or GatewayAttentionInfo.RefundNotConfirmed => FinanceTone.Warning,
+        _ => FinanceTone.Danger,
+    };
+
+    public static FinanceTone ToneOf(OnlineRefundStateInfo state) => state switch
+    {
+        OnlineRefundStateInfo.Refunded => FinanceTone.Success,
+        OnlineRefundStateInfo.AwaitingApproval or OnlineRefundStateInfo.Sent => FinanceTone.Warning,
+        OnlineRefundStateInfo.Failed => FinanceTone.Danger,
+        _ => FinanceTone.Neutral,
+    };
+
+    public static FinanceTone ToneOf(GatewayCallOutcomeInfo outcome) => outcome switch
+    {
+        GatewayCallOutcomeInfo.Succeeded => FinanceTone.Success,
+        GatewayCallOutcomeInfo.Unavailable => FinanceTone.Warning,
+        _ => FinanceTone.Danger,
+    };
+
+    /// <summary>The resource key of the kind of an online payment: pre-authorization, one-step payment or payment link.</summary>
+    public static string FlowKey(OnlinePaymentInfo payment)
+    {
+        ArgumentNullException.ThrowIfNull(payment);
+        return payment.IsPaymentLink ? "Flow.Link" : $"Flow.{payment.Flow}";
+    }
+
+    /// <summary>
+    /// The last characters of an order number, for titles and links: the random part of the version 7 id (its first
+    /// characters are a timestamp, shared by the payments of the same minute).
+    /// </summary>
+    public static string ShortOrder(string orderNumber)
+    {
+        ArgumentNullException.ThrowIfNull(orderNumber);
+        return orderNumber.Length > 8 ? orderNumber[^8..].ToUpperInvariant() : orderNumber.ToUpperInvariant();
+    }
 }
 
 /// <summary>Colour family of a <see cref="FinanceBadge"/>.</summary>

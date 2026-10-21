@@ -30,7 +30,7 @@
             <dt>@L["Result.Amount"]</dt>
             <dd>@Amount</dd>
             <dt>@L["Result.Reference"]</dt>
-            <dd>@_payment.OrderNumber[..8].ToUpperInvariant()</dd>
+            <dd>@_payment.OrderNumber[^8..].ToUpperInvariant()</dd>
         </dl>
     }
     <p><a class="button button--secondary" href="@($"/{Culture}")">@L["Result.Home"]</a></p>

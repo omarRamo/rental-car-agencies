@@ -1,0 +1,56 @@
+@* Captures a pre-authorized online payment (deposit.do): at most the pre-authorized amount, the rest is released. The
+   payment becomes captured only once the gateway confirms the deposit (status read). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">@L["Capture.Authorized", PaymentsFormat.Amount(Payment.Amount)]</MudText>
+        <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Capture.Amount"]" Min="0m" Max="@Payment.Amount.Amount" Format="N3"
+                         Adornment="Adornment.End" AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]"
+                         HelperText="@L["Capture.Hint"]" HideSpinButtons="true" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Capture.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private decimal? _amount;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public OnlinePaymentInfo Payment { get; set; } = default!;
+
+    protected override void OnInitialized() => _amount = Payment.Amount.Amount;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var paymentId = Payment.PaymentId;
+        var amount = PaymentsFormat.Value(_amount);
+        var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentInfo>>((admin, ct) => admin.CaptureAsync(paymentId, amount, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}
