@@ -79,6 +79,10 @@ jobs:
           done
           exit "$status"
 
+      - name: Annotate failed tests
+        if: ${{ failure() }}
+        run: node .github/scripts/trx-annotations.mjs "$RUNNER_TEMP/TestResults"
+
       - name: Upload test results and coverage
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -123,6 +127,10 @@ jobs:
           --results-directory "$RUNNER_TEMP/TestResults"
           --collect "XPlat Code Coverage" --settings "$RUN_SETTINGS"
           --blame-hang-timeout 15m
+
+      - name: Annotate failed tests
+        if: ${{ failure() }}
+        run: node .github/scripts/trx-annotations.mjs "$RUNNER_TEMP/TestResults"
 
       - name: Upload test results and coverage
         if: ${{ !cancelled() }}
@@ -189,6 +197,10 @@ jobs:
           --results-directory "$RUNNER_TEMP/TestResults"
           --collect "XPlat Code Coverage" --settings "$RUN_SETTINGS"
           --blame-hang-timeout 20m
+
+      - name: Annotate failed tests
+        if: ${{ failure() }}
+        run: node .github/scripts/trx-annotations.mjs "$RUNNER_TEMP/TestResults"
 
       - name: Upload test results, coverage and Playwright artifacts
         if: ${{ !cancelled() }}
