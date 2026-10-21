@@ -45,6 +45,14 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         outcome.Version.ShouldBe(1);
         outcome.EmailedTo.ShouldBe(file.DriverEmail);
 
+        // What the screens read once the rental started: the departure context, the summary of the file page.
+        var context = Ok(await RunAsync<DepartureService, Result<DepartureContext>>(host, agent, s => s.GetContextAsync(file.BookingId, Ct)));
+        context.IsDone.ShouldBeTrue();
+        context.Contracts.ShouldHaveSingleItem().Id.ShouldBe(outcome.ContractId);
+        var summary = Ok(await RunAsync<HandoverQueries, Result<HandoverSummary>>(host, agent, q => q.GetSummaryAsync(file.BookingId, Ct)));
+        summary.Departure.ShouldNotBeNull().Status.ShouldBe(InspectionStatus.Completed);
+        summary.Contracts.ShouldHaveSingleItem().SentTo.ShouldBe(file.DriverEmail);
+
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var booking = await db.Set<Booking>().AsNoTracking().SingleAsync(b => b.Id == file.BookingId, Ct);
@@ -160,6 +168,11 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         balance.ShouldNotBeNull().Balance.ShouldBe(Money.Zero);
         balance.DepositsHeldCount.ShouldBe(0);
         Ok(await RunAsync<ReturnService, Result>(host, agent, s => s.CloseAsync(file.BookingId, Ct)));
+        var closedContext = Ok(await RunAsync<ReturnService, Result<ReturnContext>>(host, agent, s => s.GetContextAsync(file.BookingId, Ct)));
+        closedContext.IsClosed.ShouldBeTrue();
+        var closedSummary = Ok(await RunAsync<HandoverQueries, Result<HandoverSummary>>(host, agent, q => q.GetSummaryAsync(file.BookingId, Ct)));
+        closedSummary.Return.ShouldNotBeNull().Charges.Count.ShouldBe(revised.Lines.Count);
+        closedSummary.Balance.ShouldNotBeNull().Balance.ShouldBe(Money.Zero);
 
         var deposit = Ok(await RunAsync<IDeposits, Result<BookingDeposits>>(host, agent, d => d.GetBookingDepositsAsync(file.BookingId, Ct))).Deposits.ShouldHaveSingleItem();
         deposit.Status.ShouldBe(DepositStatusInfo.PartiallyRetained);

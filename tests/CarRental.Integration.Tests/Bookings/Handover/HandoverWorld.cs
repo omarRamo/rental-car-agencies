@@ -83,6 +83,9 @@ internal static class HandoverWorld
         }
 
         await SignAsync(host, agent, inspectionId, cancellationToken);
+        var preview = Ok(await RunAsync<DepartureService, Result<RentalContractDocument>>(host, agent, s => s.PreviewContractAsync(file.BookingId, cancellationToken: cancellationToken)));
+        preview.IsPreview.ShouldBeTrue();
+        preview.Number.ShouldBe(file.Number);
         return inspectionId;
     }
 
