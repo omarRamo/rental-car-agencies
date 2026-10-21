@@ -1939,6 +1939,373 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Messaging.BookingNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("BookingId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("BookingNotifications", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Conversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ClosedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("HandoverReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasAnnotation("CarRental:Audit:Sensitive", true);
+
+                    b.Property<Guid?>("HumanAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("HumanAgentName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("HumanSinceUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("LastActivityAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<DateTimeOffset?>("LastCustomerMessageAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<DateTimeOffset?>("LastReadAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("PersonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProfileName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasAnnotation("CarRental:Audit:Sensitive", true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnreadCount")
+                        .HasColumnType("int")
+                        .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                    b.Property<string>("WhatsAppNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)")
+                        .HasAnnotation("CarRental:Audit:Sensitive", true);
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Need", "CarRental.Domain.Messaging.Conversation.Need#ConversationNeed", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<decimal?>("Budget")
+                                .HasPrecision(18, 3)
+                                .HasColumnType("decimal(18,3)")
+                                .HasColumnName("NeedBudget")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<int?>("Gearbox")
+                                .HasColumnType("int")
+                                .HasColumnName("NeedGearbox")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<int?>("Luggage")
+                                .HasColumnType("int")
+                                .HasColumnName("NeedLuggage")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<int?>("Passengers")
+                                .HasColumnType("int")
+                                .HasColumnName("NeedPassengers")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<DateTimeOffset?>("PickupAt")
+                                .HasColumnType("datetimeoffset")
+                                .HasColumnName("NeedPickupAt")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<string>("PickupPlace")
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
+                                .HasColumnName("NeedPickupPlace")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<DateTimeOffset?>("ReturnAt")
+                                .HasColumnType("datetimeoffset")
+                                .HasColumnName("NeedReturnAt")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<string>("ReturnPlace")
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
+                                .HasColumnName("NeedReturnPlace")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Usage", "CarRental.Domain.Messaging.Conversation.Usage#ConversationUsage", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<decimal>("AiCostUsd")
+                                .HasPrecision(18, 6)
+                                .HasColumnType("decimal(18,6)")
+                                .HasColumnName("BotAiCostUsd")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<int>("BotTurns")
+                                .HasColumnType("int")
+                                .HasColumnName("BotTurns")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<long>("CacheReadTokens")
+                                .HasColumnType("bigint")
+                                .HasColumnName("BotCacheReadTokens")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<long>("CacheWriteTokens")
+                                .HasColumnType("bigint")
+                                .HasColumnName("BotCacheWriteTokens")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<long>("InputTokens")
+                                .HasColumnType("bigint")
+                                .HasColumnName("BotInputTokens")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<decimal>("MetaCostUsd")
+                                .HasPrecision(18, 6)
+                                .HasColumnType("decimal(18,6)")
+                                .HasColumnName("BotMetaCostUsd")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<long>("OutputTokens")
+                                .HasColumnType("bigint")
+                                .HasColumnName("BotOutputTokens")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+
+                            b1.Property<int>("ToolCalls")
+                                .HasColumnType("int")
+                                .HasColumnName("BotToolCalls")
+                                .HasAnnotation("CarRental:Audit:Ignore", true);
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .HasFilter("[BookingId] IS NOT NULL");
+
+                    b.HasIndex("LastActivityAtUtc");
+
+                    b.HasIndex("PersonId")
+                        .HasFilter("[PersonId] IS NOT NULL");
+
+                    b.HasIndex("WhatsAppNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "LastActivityAtUtc");
+
+                    b.ToTable("Conversations", "messaging");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("AcceptedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Author")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BotTurn")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeliveredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("FailedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool?>("IsBillable")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MetaErrorCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MetaErrorTitle")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("MetaMessageId")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PricingCategory")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("PricingModel")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<DateTimeOffset?>("ReadAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("SentAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("MetaMessageId")
+                        .IsUnique()
+                        .HasFilter("[MetaMessageId] IS NOT NULL");
+
+                    b.HasIndex("ConversationId", "CreatedAtUtc");
+
+                    b.ToTable("Messages", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.MessageStatusChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ErrorCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErrorTitle")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageId", "Status")
+                        .IsUnique();
+
+                    b.ToTable("MessageStatusChanges", "messaging");
+
+                    b.HasAnnotation("CarRental:Audit:Exclude", true);
+                });
+
             modelBuilder.Entity("CarRental.Domain.Payments.DepositHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3512,6 +3879,24 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Messaging.Message", b =>
+                {
+                    b.HasOne("CarRental.Domain.Messaging.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.MessageStatusChange", b =>
+                {
+                    b.HasOne("CarRental.Domain.Messaging.Message", null)
+                        .WithMany("StatusChanges")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarRental.Domain.Payments.DepositHold", b =>
                 {
                     b.HasOne("CarRental.Domain.Referential.Agency", null)
@@ -3743,6 +4128,11 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Navigation("MaintenancePlans");
 
                     b.Navigation("Photos");
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Message", b =>
+                {
+                    b.Navigation("StatusChanges");
                 });
 
             modelBuilder.Entity("CarRental.Domain.Pricing.RatePlan", b =>

@@ -45,6 +45,12 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
     /// <summary>Turnstile verifier of the host: accepts any token except <see cref="FakeTurnstileVerifier.RejectedToken"/>.</summary>
     public FakeTurnstileVerifier TurnstileVerifier { get; } = new();
 
+    /// <summary>
+    /// WhatsApp of the host (<c>WhatsApp:Mode=Fake</c>): records the messages sent, simulates customers and statuses. The
+    /// webhook verifies signatures with <see cref="CarRental.Infrastructure.Messaging.WhatsAppDevelopmentKeys.AppSecret"/>.
+    /// </summary>
+    public CarRental.Infrastructure.Messaging.FakeWhatsApp WhatsApp => Services.GetRequiredService<CarRental.Infrastructure.Messaging.FakeWhatsApp>();
+
     public string SqlConnectionString => _containers.SqlConnectionString(_database);
 
     /// <summary>Starts the application on Kestrel (free port) and returns its base address.</summary>
@@ -85,6 +91,9 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         }
 
         builder.UseSetting("Turnstile:OfflineTestWidget", "true");
+
+        // WhatsApp without Meta: the fake records the sends and simulates the statuses (development keys of the webhook).
+        builder.UseSetting("WhatsApp:Mode", "Fake");
         builder.ConfigureTestServices(services =>
             services.Replace(ServiceDescriptor.Singleton<CarRental.Web.Endpoints.PublicSite.Turnstile.ITurnstileVerifier>(TurnstileVerifier)));
 
