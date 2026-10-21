@@ -82,8 +82,11 @@ internal sealed partial class BotTurnPump(
 {
     private const string ActorName = "system:whatsapp";
 
-    /// <summary>A conversation locked by another instance, or whose run failed, is left alone this long (no busy loop).</summary>
+    /// <summary>A conversation locked by another instance is left alone this long (no busy loop).</summary>
     private static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(2);
+
+    /// <summary>A conversation whose run failed outside the responder (database, data) is left alone longer: it is a fault, not a race.</summary>
+    private static readonly TimeSpan FailureCooldown = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<Guid, Task> _running = new();
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _resting = new();
@@ -207,7 +210,7 @@ internal sealed partial class BotTurnPump(
         catch (Exception exception)
 #pragma warning restore CA1031
         {
-            _resting[conversationId] = clock.GetUtcNow() + Cooldown;
+            _resting[conversationId] = clock.GetUtcNow() + FailureCooldown;
             LogTurnFailed(exception.GetType().Name);
         }
         finally

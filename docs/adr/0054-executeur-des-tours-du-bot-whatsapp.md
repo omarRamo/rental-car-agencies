@@ -38,8 +38,8 @@ silence — tout en gardant la règle préparer → répondre → appliquer.
   balaie la file toutes les `BotTurns:SweepInterval` (15 s) ou à la prochaine échéance (fin d'un silence, nouvelle
   tentative) — filet de sécurité pour les redémarrages et les autres instances.
 - Au plus `BotTurns:MaxParallelism` (4) conversations à la fois sur l'instance. Un tour est marqué « en cours » avant de
-  démarrer ; une conversation tenue ailleurs (verrou pris) ou dont l'exécution a échoué est laissée deux secondes de côté,
-  sans boucle active.
+  démarrer ; une conversation tenue ailleurs (verrou pris) est laissée deux secondes de côté, une conversation dont
+  l'exécution a échoué hors du répondeur (base indisponible, donnée illisible) trente secondes, sans boucle active.
 
 ### Un tour à la fois par conversation, sur toutes les instances
 
