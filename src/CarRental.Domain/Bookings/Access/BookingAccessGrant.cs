@@ -124,13 +124,16 @@ public sealed class BookingAccessGrant : AggregateRoot
             return AccessErrors.AccessLocked;
         }
 
-        if (!IsOpenable(now) || CodeHash is null || CodeSalt is null)
+        if (UsedAtUtc is not null || now >= ExpiresAtUtc || CodeHash is null || CodeSalt is null)
         {
             return AccessErrors.AccessInvalid;
         }
 
+        // A request that matched no booking behaves exactly like one that did: its code is compared, every code is wrong,
+        // and the attempts count and lock it the same way (the answers never tell whether a booking exists).
         var normalized = AccessSecrets.NormalizeCode(code);
-        if (normalized is null || !AccessSecrets.SameHash(CodeHash, AccessSecrets.HashCode(normalized, CodeSalt)))
+        var matches = normalized is not null && AccessSecrets.SameHash(CodeHash, AccessSecrets.HashCode(normalized, CodeSalt));
+        if (!matches || BookingId is null)
         {
             FailedCodeAttempts++;
             if (FailedCodeAttempts >= maxAttempts)
