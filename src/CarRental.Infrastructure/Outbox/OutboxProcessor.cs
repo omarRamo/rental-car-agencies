@@ -55,6 +55,10 @@ public sealed partial class OutboxProcessor(
     private static readonly ConcurrentDictionary<Type, Func<IServiceProvider, object, OutboxMessageContext, CancellationToken, Task>> Invokers = new();
 
     /// <summary>Processes due messages until none is left or the per-run limit is reached; returns the number handled.</summary>
+    /// <remarks>
+    /// The caller holds the distributed lock <c>carrental:job:outbox.process</c> (<see cref="OutboxPump"/>,
+    /// <c>RecurringJobRunner</c>): two processors running at once could dispatch the same message twice.
+    /// </remarks>
     public async Task<int> ProcessPendingAsync(CancellationToken cancellationToken)
     {
         var settings = options.Value;

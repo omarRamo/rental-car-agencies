@@ -117,6 +117,7 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `HostFiltering__CustomDomains` | paramètre `customDomains` (`www.agence.tn;agence.tn`) : l'application n'accepte que `*.azurewebsites.net`, `localhost` et ces domaines (réponse 400 sinon, sauf `/health*`) |
 | `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
 | `PublicSite__AgencyName`, `PublicSite__WhatsAppNumber` | paramètres `publicSiteAgencyName` et `publicSiteWhatsAppNumber` (bouton WhatsApp masqué si vide) |
+| `WhatsApp__Mode`, `WhatsApp__PhoneNumberId`, `WhatsApp__BusinessAccountId` | `Graph` une fois le numéro WhatsApp Business validé (sinon le canal reste désactivé) ; identifiants lus dans le gestionnaire WhatsApp de Meta ; webhook à déclarer chez Meta sur `https://<domaine>/webhooks/whatsapp` avec le jeton `WhatsApp--VerifyToken` |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` : l'application lit `X-Forwarded-Proto` et `X-Forwarded-For` posés par le frontal App Service |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` : le paquet publié est déployé tel quel |
 
@@ -311,7 +312,9 @@ Les membres du groupe d'administration ont le rôle Key Vault Secrets Officer. L
 
 ```bash
 az keyvault secret set --vault-name "<keyVaultName>" --name "ClicToPay--Password" --file ./clictopay-password.txt
+az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AccessToken" --file ./whatsapp-access-token.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--AppSecret" --file ./whatsapp-app-secret.txt
+az keyvault secret set --vault-name "<keyVaultName>" --name "WhatsApp--VerifyToken" --file ./whatsapp-verify-token.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "Turnstile--SecretKey" --file ./turnstile-secret.txt
 ```
 

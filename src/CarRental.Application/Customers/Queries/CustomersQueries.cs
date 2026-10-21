@@ -13,6 +13,7 @@ namespace CarRental.Application.Customers.Queries;
 internal sealed class CustomersQueries(IAppDbContext db, IUserContext userContext, DriverEligibilityChecker eligibility) : ICustomersQueries
 {
     private const int MaxLimit = 100;
+    private const int MaxPersonsPerPhone = 20;
 
     public async Task<IReadOnlyList<PersonSummaryInfo>> SearchPersonsAsync(string term, int limit = 20, CancellationToken cancellationToken = default)
     {
@@ -100,6 +101,43 @@ internal sealed class CustomersQueries(IAppDbContext db, IUserContext userContex
             .AsNoTracking()
             .Where(p => p.Id == personId)
             .AnyAsync(p => p.BlacklistEntries.Any(e => e.LiftedAtUtc == null), cancellationToken);
+
+    public async Task<IReadOnlyList<PersonSummaryInfo>> FindPersonsByPhoneAsync(string phone, CancellationToken cancellationToken = default)
+    {
+        var normalized = PhoneNumbers.Normalize(phone);
+        if (normalized.IsFailure)
+        {
+            return [];
+        }
+
+        var number = normalized.Value;
+        return await db.Set<Person>()
+            .AsNoTracking()
+            .Where(p => p.Phone == number && p.AnonymizedAtUtc == null)
+            .OrderBy(p => p.LastName)
+            .ThenBy(p => p.FirstName)
+            .ThenBy(p => p.Id)
+            .Take(MaxPersonsPerPhone)
+            .Select(p => new PersonSummaryInfo(
+                p.Id,
+                p.FirstName,
+                p.LastName,
+                p.Nationality,
+                p.BirthDate,
+                p.Phone,
+                p.Email,
+                p.Documents.Count(d => d.SupersededAtUtc == null)))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasConsentAsync(Guid personId, ConsentPurposeInfo purpose, CancellationToken cancellationToken = default)
+    {
+        var domainPurpose = purpose.ToDomain();
+        return await db.Set<Person>()
+            .AsNoTracking()
+            .Where(p => p.Id == personId && p.AnonymizedAtUtc == null)
+            .AnyAsync(p => p.Consents.Any(c => c.Purpose == domainPurpose && c.WithdrawnAtUtc == null), cancellationToken);
+    }
 
     public Task<Result<DriverEligibilityInfo>> CheckDriverEligibilityAsync(
         Guid personId,

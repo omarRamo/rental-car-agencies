@@ -1,0 +1,35 @@
+@* Time left in the 24-hour customer service window (free-form replies), refreshed every 30 seconds; under an hour it
+   is shown in bold with an alarm icon (never by colour alone). Not a live region: screen readers read it on demand. *@
+@implements IDisposable
+@inject TimeProvider Clock
+@inject IStringLocalizer<WhatsAppResources> L
+
+<span class="@CssClass" data-testid="window">
+    <MudIcon Icon="@Icon" Size="Size.Small" aria-hidden="true" />
+    @Text
+</span>
+
+@code {
+    private Timer? _timer;
+
+    /// <summary>End of the window, <see langword="null"/> when the customer never wrote.</summary>
+    [Parameter]
+    public DateTimeOffset? ClosesAt { get; set; }
+
+    private TimeSpan Left => ClosesAt is { } closes ? closes - Clock.GetUtcNow() : TimeSpan.Zero;
+
+    private bool IsOpen => Left > TimeSpan.Zero;
+
+    private bool IsUrgent => IsOpen && Left < TimeSpan.FromHours(1);
+
+    private string CssClass => $"whatsapp-window{(IsOpen ? string.Empty : " whatsapp-window--closed")}{(IsUrgent ? " whatsapp-window--urgent" : string.Empty)}";
+
+    private string Icon => IsUrgent ? Icons.Material.Filled.AlarmOn : IsOpen ? Icons.Material.Outlined.Timer : Icons.Material.Outlined.TimerOff;
+
+    private string Text => IsOpen ? L["Window.Left", WhatsAppFormat.Duration(L, Left)] : L["Window.Closed"];
+
+    protected override void OnInitialized() =>
+        _timer = new Timer(_ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
+    public void Dispose() => _timer?.Dispose();
+}

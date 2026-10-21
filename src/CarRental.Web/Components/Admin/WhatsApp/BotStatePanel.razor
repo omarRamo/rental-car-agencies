@@ -1,0 +1,71 @@
+@* What the bot understood of the customer's need (filled by the auto-responder) and what it cost so far on this
+   conversation: turns, tokens, tool calls, AI and estimated Meta costs. Shown only when there is something to show. *@
+@inject IStringLocalizer<WhatsAppResources> L
+
+@if (HasNeed || Usage.BotTurns > 0)
+{
+    <MudExpansionPanels Elevation="0" Outlined="true" Class="mt-3">
+        <MudExpansionPanel Text="@L["Bot.Title"]">
+            @if (HasNeed)
+            {
+                <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Bot.Need"]</MudText>
+                <dl class="whatsapp-facts mb-2">
+                    @if (Need.PickupPlace is { } pickup)
+                    {
+                        <dt>@L["Bot.Need.PickupPlace"]</dt><dd>@pickup</dd>
+                    }
+                    @if (Need.ReturnPlace is { } dropOff)
+                    {
+                        <dt>@L["Bot.Need.ReturnPlace"]</dt><dd>@dropOff</dd>
+                    }
+                    @if (Need.PickupAt is { } pickupAt)
+                    {
+                        <dt>@L["Bot.Need.PickupAt"]</dt><dd>@WhatsAppFormat.Instant(pickupAt)</dd>
+                    }
+                    @if (Need.ReturnAt is { } returnAt)
+                    {
+                        <dt>@L["Bot.Need.ReturnAt"]</dt><dd>@WhatsAppFormat.Instant(returnAt)</dd>
+                    }
+                    @if (Need.Passengers is { } passengers)
+                    {
+                        <dt>@L["Bot.Need.Passengers"]</dt><dd>@passengers</dd>
+                    }
+                    @if (Need.Luggage is { } luggage)
+                    {
+                        <dt>@L["Bot.Need.Luggage"]</dt><dd>@luggage</dd>
+                    }
+                    @if (Need.Gearbox is { } gearbox)
+                    {
+                        <dt>@L["Bot.Need.Gearbox"]</dt><dd>@L[$"Bot.Gearbox.{gearbox}"]</dd>
+                    }
+                    @if (Need.Budget is { } budget)
+                    {
+                        <dt>@L["Bot.Need.Budget"]</dt><dd>@budget.ToString("N", CultureInfo.CurrentCulture)</dd>
+                    }
+                </dl>
+            }
+            @if (Usage.BotTurns > 0)
+            {
+                <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Bot.Usage"]</MudText>
+                <dl class="whatsapp-facts">
+                    <dt>@L["Bot.Usage.Turns"]</dt><dd>@Usage.BotTurns.ToString("N0", CultureInfo.CurrentCulture)</dd>
+                    <dt>@L["Bot.Usage.Tokens"]</dt>
+                    <dd>@L["Bot.Usage.TokensValue", Usage.InputTokens.ToString("N0", CultureInfo.CurrentCulture), Usage.OutputTokens.ToString("N0", CultureInfo.CurrentCulture), Usage.CacheReadTokens.ToString("N0", CultureInfo.CurrentCulture)]</dd>
+                    <dt>@L["Bot.Usage.ToolCalls"]</dt><dd>@Usage.ToolCalls.ToString("N0", CultureInfo.CurrentCulture)</dd>
+                    <dt>@L["Bot.Usage.Cost"]</dt>
+                    <dd>@L["Bot.Usage.CostValue", Usage.AiCostUsd.ToString("0.0000", CultureInfo.CurrentCulture), Usage.MetaCostUsd.ToString("0.0000", CultureInfo.CurrentCulture)]</dd>
+                </dl>
+            }
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ConversationNeedInfo Need { get; set; } = ConversationNeedInfo.Empty;
+
+    [Parameter, EditorRequired]
+    public ConversationUsageInfo Usage { get; set; } = default!;
+
+    private bool HasNeed => Need != ConversationNeedInfo.Empty;
+}

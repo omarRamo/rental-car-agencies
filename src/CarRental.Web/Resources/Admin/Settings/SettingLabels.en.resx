@@ -228,4 +228,61 @@
   <data name="Setting.reporting.sell_hint_months.Help" xml:space="preserve">
     <value>A vehicle whose margin (revenue minus commissions, direct costs and depreciation) is negative over these last months is flagged in the profitability table (6 months by default).</value>
   </data>
+  <data name="Group.messaging" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Setting.messaging.retention_days.Label" xml:space="preserve">
+    <value>Conversation retention (days)</value>
+  </data>
+  <data name="Setting.messaging.retention_days.Help" xml:space="preserve">
+    <value>Older WhatsApp messages, then conversations without activity since, are deleted every night (365 days by default).</value>
+  </data>
+  <data name="Setting.messaging.template_language.Label" xml:space="preserve">
+    <value>Language of the WhatsApp templates</value>
+  </data>
+  <data name="Setting.messaging.template_language.Help" xml:space="preserve">
+    <value>Language code of the templates approved by Meta (fr, en, en_US…); it also sets the format of the dates and amounts sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.booking_confirmed.Label" xml:space="preserve">
+    <value>Template: booking confirmed</value>
+  </data>
+  <data name="Setting.messaging.templates.booking_confirmed.Help" xml:space="preserve">
+    <value>Name of the approved template sent when a booking is confirmed; parameters: first name, booking number, pick-up date and time, pick-up place. Empty: not sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.payment_link.Label" xml:space="preserve">
+    <value>Template: payment due</value>
+  </data>
+  <data name="Setting.messaging.templates.payment_link.Help" xml:space="preserve">
+    <value>Name of the approved template sent when a validated request waits for its payment; parameters: first name, booking number, amount due, deadline. Empty: not sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.pickup_reminder.Label" xml:space="preserve">
+    <value>Template: reminder the day before pick-up</value>
+  </data>
+  <data name="Setting.messaging.templates.pickup_reminder.Help" xml:space="preserve">
+    <value>Name of the approved template; parameters: first name, booking number, pick-up date and time, place, address. Empty: not sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.return_reminder.Label" xml:space="preserve">
+    <value>Template: reminder the day before return</value>
+  </data>
+  <data name="Setting.messaging.templates.return_reminder.Help" xml:space="preserve">
+    <value>Name of the approved template; parameters: first name, booking number, return date and time, place, address. Empty: not sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.review_request.Label" xml:space="preserve">
+    <value>Template: review request</value>
+  </data>
+  <data name="Setting.messaging.templates.review_request.Help" xml:space="preserve">
+    <value>Name of the approved template sent the day after the return; parameters: first name, review link. Empty: not sent.</value>
+  </data>
+  <data name="Setting.messaging.templates.follow_up.Label" xml:space="preserve">
+    <value>Template: conversation follow-up</value>
+  </data>
+  <data name="Setting.messaging.templates.follow_up.Help" xml:space="preserve">
+    <value>Name of the approved template an agent sends to get back in touch after the 24-hour window; parameter: customer name.</value>
+  </data>
+  <data name="Setting.messaging.review_link.Label" xml:space="preserve">
+    <value>Review request link</value>
+  </data>
+  <data name="Setting.messaging.review_link.Help" xml:space="preserve">
+    <value>Address of the agency's review page (Google), sent with the review request. Empty: no review request.</value>
+  </data>
 </root>

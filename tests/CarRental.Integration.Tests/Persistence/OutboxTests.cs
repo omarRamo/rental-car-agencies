@@ -5,6 +5,7 @@ using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -95,9 +96,15 @@ public sealed class OutboxTests(IntegrationHost host)
             await db.SaveChangesAsync(Ct);
         }
 
+        // Under the processors' lock, as the pump and the scheduled job run it: without it, this run and the pump could
+        // dispatch the same messages of the other tests at once (an e-mail sent twice).
         await using (var scope = host.CreateScope())
         {
-            await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessPendingAsync(Ct);
+            using var connection = scope.ServiceProvider.GetRequiredService<JobStorage>().GetConnection();
+            using (connection.AcquireDistributedLock(OutboxPump.LockName, Timeout))
+            {
+                await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessPendingAsync(Ct);
+            }
         }
 
         await using var check = host.CreateScope();

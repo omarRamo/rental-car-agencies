@@ -56,6 +56,7 @@ internal static class WebApplicationExtensions
         app.MapCustomerEndpoints();
         app.MapFleetEndpoints();
         app.MapReportExportEndpoints();
+        app.MapWhatsAppWebhook();
         app.MapPublicSite();
         app.MapClicToPayEndpoints(app.Environment);
         app.MapHangfireDashboardWithAuthorizationPolicy(

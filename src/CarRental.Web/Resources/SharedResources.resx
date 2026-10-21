@@ -1137,4 +1137,82 @@
   <data name="Error.reporting.snapshot.concurrent_recompute" xml:space="preserve">
     <value>Ces jours étaient déjà en cours de calcul : réessayez dans un instant.</value>
   </data>
+  <data name="Error.messaging.conversation.not_found" xml:space="preserve">
+    <value>Conversation introuvable.</value>
+  </data>
+  <data name="Error.messaging.conversation.number_invalid" xml:space="preserve">
+    <value>Le numéro WhatsApp doit être un numéro international de 8 à 15 chiffres.</value>
+  </data>
+  <data name="Error.messaging.conversation.concurrent_update" xml:space="preserve">
+    <value>La conversation a changé entre-temps : rechargez-la et recommencez.</value>
+  </data>
+  <data name="Error.messaging.conversation.window_closed" xml:space="preserve">
+    <value>La fenêtre de 24 heures depuis le dernier message du client est fermée : envoyez un modèle approuvé.</value>
+  </data>
+  <data name="Error.messaging.conversation.bot_silenced" xml:space="preserve">
+    <value>Un agent gère cette conversation : le bot ne répond pas.</value>
+  </data>
+  <data name="Error.messaging.conversation.not_taken_over" xml:space="preserve">
+    <value>Prenez la main sur la conversation avant de répondre au client.</value>
+  </data>
+  <data name="Error.messaging.conversation.handover_reason_invalid" xml:space="preserve">
+    <value>Le motif du transfert est obligatoire (500 caractères au plus).</value>
+  </data>
+  <data name="Error.messaging.message.text_invalid" xml:space="preserve">
+    <value>Le message est vide ou dépasse 4 096 caractères.</value>
+  </data>
+  <data name="Error.messaging.message.buttons_invalid" xml:space="preserve">
+    <value>Boutons de réponse : un texte de 1 024 caractères au plus et 1 à 3 boutons aux identifiants et titres uniques (20 caractères au plus).</value>
+  </data>
+  <data name="Error.messaging.message.list_invalid" xml:space="preserve">
+    <value>Liste : un texte, un bouton de 20 caractères au plus et 1 à 10 lignes aux identifiants uniques, dans des sections titrées s'il y en a plusieurs.</value>
+  </data>
+  <data name="Error.messaging.message.header_footer_invalid" xml:space="preserve">
+    <value>L'en-tête et le pied d'un message interactif font 60 caractères au plus.</value>
+  </data>
+  <data name="Error.messaging.message.template_invalid" xml:space="preserve">
+    <value>Modèle invalide : il faut son nom approuvé (minuscules, chiffres, tirets bas) et une langue comme fr ou en_US.</value>
+  </data>
+  <data name="Error.messaging.message.template_parameter_invalid" xml:space="preserve">
+    <value>Chaque paramètre du modèle est obligatoire et fait 300 caractères au plus (10 paramètres au plus).</value>
+  </data>
+  <data name="Error.messaging.message.content_not_allowed" xml:space="preserve">
+    <value>Ce type de message n'est pas permis ici.</value>
+  </data>
+  <data name="Error.messaging.message.not_found" xml:space="preserve">
+    <value>Message introuvable.</value>
+  </data>
+  <data name="Error.messaging.need.invalid" xml:space="preserve">
+    <value>Besoin invalide : lieux de 100 caractères au plus, retour après le départ, 1 à 50 passagers, 0 à 50 bagages, budget positif en TND.</value>
+  </data>
+  <data name="Error.messaging.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas accès à la boîte WhatsApp.</value>
+  </data>
+  <data name="Error.messaging.link.person_not_found" xml:space="preserve">
+    <value>Cette personne n'existe pas ou a été anonymisée.</value>
+  </data>
+  <data name="Error.messaging.link.booking_not_found" xml:space="preserve">
+    <value>Aucun dossier ne porte ce numéro.</value>
+  </data>
+  <data name="Error.messaging.template.not_configured" xml:space="preserve">
+    <value>Aucun modèle approuvé n'est configuré pour ce message (paramètres « messaging.templates »).</value>
+  </data>
+  <data name="Error.messaging.disabled" xml:space="preserve">
+    <value>WhatsApp n'est pas configuré sur cette plateforme : aucun message ne peut partir.</value>
+  </data>
+  <data name="Error.messaging.send.rejected" xml:space="preserve">
+    <value>Meta a refusé le message.</value>
+  </data>
+  <data name="Error.messaging.send.unavailable" xml:space="preserve">
+    <value>Le service WhatsApp est resté injoignable après plusieurs tentatives.</value>
+  </data>
+  <data name="Error.messaging.send.outcome_unknown" xml:space="preserve">
+    <value>L'envoi a été interrompu avant la réponse de Meta : le message est peut-être parti, vérifiez avec le client avant de le renvoyer.</value>
+  </data>
+  <data name="Error.messaging.webhook.unreadable" xml:space="preserve">
+    <value>Le contenu reçu de Meta n'est pas lisible.</value>
+  </data>
+  <data name="Error.messaging.send.no_consent" xml:space="preserve">
+    <value>Le client ne consent plus aux notifications WhatsApp (ou a été anonymisé) : la notification n'est pas partie.</value>
+  </data>
 </root>

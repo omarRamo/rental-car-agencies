@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Inbox.Title" xml:space="preserve">
+    <value>WhatsApp inbox</value>
+  </data>
+  <data name="Inbox.Help" xml:space="preserve">
+    <value>The WhatsApp conversations of the customers. The bot answers until an agent takes over; a free-form reply is only possible within 24 hours of the customer's last message, then only an approved template. Tunis time.</value>
+  </data>
+  <data name="Inbox.Disabled" xml:space="preserve">
+    <value>WhatsApp is not configured on this platform yet: conversations are shown, but no message can be sent.</value>
+  </data>
+  <data name="List.Title" xml:space="preserve">
+    <value>Conversations</value>
+  </data>
+  <data name="List.View" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="List.View.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="List.View.Unread" xml:space="preserve">
+    <value>Unread</value>
+  </data>
+  <data name="List.View.Human" xml:space="preserve">
+    <value>Handled by an agent</value>
+  </data>
+  <data name="List.View.Bot" xml:space="preserve">
+    <value>Handled by the bot</value>
+  </data>
+  <data name="List.View.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="List.View.All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="List.Search" xml:space="preserve">
+    <value>Search (number or name)</value>
+  </data>
+  <data name="List.Column.Conversation" xml:space="preserve">
+    <value>Conversation</value>
+  </data>
+  <data name="List.Unread" xml:space="preserve">
+    <value>{0} unread</value>
+  </data>
+  <data name="List.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="List.You" xml:space="preserve">
+    <value>Us: </value>
+  </data>
+  <data name="List.Empty" xml:space="preserve">
+    <value>No conversation.</value>
+  </data>
+  <data name="Conversation.Title" xml:space="preserve">
+    <value>Conversation</value>
+  </data>
+  <data name="Conversation.Select" xml:space="preserve">
+    <value>Choose a conversation in the list.</value>
+  </data>
+  <data name="Conversation.Profile" xml:space="preserve">
+    <value>WhatsApp profile "{0}"</value>
+  </data>
+  <data name="Conversation.HandedOver" xml:space="preserve">
+    <value>Handed over by the bot: {0}</value>
+  </data>
+  <data name="Action.TakeOver" xml:space="preserve">
+    <value>Take over</value>
+  </data>
+  <data name="Action.TakeOver.Done" xml:space="preserve">
+    <value>You handle this conversation: the bot no longer answers.</value>
+  </data>
+  <data name="Action.HandBack" xml:space="preserve">
+    <value>Hand back to the bot</value>
+  </data>
+  <data name="Action.HandBack.Done" xml:space="preserve">
+    <value>The bot will answer the customer's next message.</value>
+  </data>
+  <data name="Action.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Action.Close.Done" xml:space="preserve">
+    <value>Conversation closed: it reopens at the customer's next message.</value>
+  </data>
+  <data name="Action.Reopen" xml:space="preserve">
+    <value>Reopen</value>
+  </data>
+  <data name="Action.Reopen.Done" xml:space="preserve">
+    <value>Conversation reopened.</value>
+  </data>
+  <data name="Mode.Bot" xml:space="preserve">
+    <value>Bot</value>
+  </data>
+  <data name="Mode.Agent" xml:space="preserve">
+    <value>Agent: {0}</value>
+  </data>
+  <data name="Mode.AwaitingAgent" xml:space="preserve">
+    <value>Waiting for an agent</value>
+  </data>
+  <data name="Window.Left" xml:space="preserve">
+    <value>24-hour window: {0}</value>
+  </data>
+  <data name="Window.Closed" xml:space="preserve">
+    <value>24-hour window closed</value>
+  </data>
+  <data name="Duration.HoursMinutes" xml:space="preserve">
+    <value>{0} h {1} left</value>
+  </data>
+  <data name="Duration.Minutes" xml:space="preserve">
+    <value>{0} min left</value>
+  </data>
+  <data name="Thread.Title" xml:space="preserve">
+    <value>Messages</value>
+  </data>
+  <data name="Thread.Label" xml:space="preserve">
+    <value>Conversation thread</value>
+  </data>
+  <data name="Thread.Empty" xml:space="preserve">
+    <value>No message.</value>
+  </data>
+  <data name="Thread.Earlier" xml:space="preserve">
+    <value>Only the last 200 messages are shown.</value>
+  </data>
+  <data name="Author.Customer" xml:space="preserve">
+    <value>Customer</value>
+  </data>
+  <data name="Author.Bot" xml:space="preserve">
+    <value>Bot</value>
+  </data>
+  <data name="Author.Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Author.System" xml:space="preserve">
+    <value>Notification</value>
+  </data>
+  <data name="Author.AgentNamed" xml:space="preserve">
+    <value>Agent ({0})</value>
+  </data>
+  <data name="Message.Reply" xml:space="preserve">
+    <value>customer's choice</value>
+  </data>
+  <data name="Message.ListOffered" xml:space="preserve">
+    <value>List offered (button "{0}"):</value>
+  </data>
+  <data name="Message.ButtonsOffered" xml:space="preserve">
+    <value>Buttons offered:</value>
+  </data>
+  <data name="Message.Pricing" xml:space="preserve">
+    <value>Meta category "{0}"</value>
+  </data>
+  <data name="Message.Media.Image" xml:space="preserve">
+    <value>Photo received (never shown nor downloaded)</value>
+  </data>
+  <data name="Message.Media.Audio" xml:space="preserve">
+    <value>Audio message received (never played nor downloaded)</value>
+  </data>
+  <data name="Message.Media.Video" xml:space="preserve">
+    <value>Video received (never shown nor downloaded)</value>
+  </data>
+  <data name="Message.Media.Document" xml:space="preserve">
+    <value>Document received (never opened nor downloaded)</value>
+  </data>
+  <data name="Message.Media.Sticker" xml:space="preserve">
+    <value>Sticker received</value>
+  </data>
+  <data name="Message.Unsupported" xml:space="preserve">
+    <value>Unsupported message ({0})</value>
+  </data>
+  <data name="Message.Template" xml:space="preserve">
+    <value>Template "{0}"</value>
+  </data>
+  <data name="Message.TemplateWith" xml:space="preserve">
+    <value>Template "{0}": {1}</value>
+  </data>
+  <data name="Status.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Status.Queued" xml:space="preserve">
+    <value>Waiting to be sent</value>
+  </data>
+  <data name="Status.Accepted" xml:space="preserve">
+    <value>Accepted by Meta</value>
+  </data>
+  <data name="Status.Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="Status.Delivered" xml:space="preserve">
+    <value>Delivered</value>
+  </data>
+  <data name="Status.Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Status.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Status.Cancelled" xml:space="preserve">
+    <value>Not sent</value>
+  </data>
+  <data name="Status.FailedWith" xml:space="preserve">
+    <value>{0}: {1} (Meta no. {2} {3})</value>
+  </data>
+  <data name="Status.FailedBecause" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Links.Person" xml:space="preserve">
+    <value>Person</value>
+  </data>
+  <data name="Links.Anonymized" xml:space="preserve">
+    <value>Anonymized person</value>
+  </data>
+  <data name="Links.Unlink" xml:space="preserve">
+    <value>Unlink</value>
+  </data>
+  <data name="Links.Person.Unlink.Label" xml:space="preserve">
+    <value>Unlink {0} from the conversation</value>
+  </data>
+  <data name="Links.Consent.Given" xml:space="preserve">
+    <value>Accepts WhatsApp notifications</value>
+  </data>
+  <data name="Links.Consent.None" xml:space="preserve">
+    <value>Has not accepted WhatsApp notifications</value>
+  </data>
+  <data name="Links.Candidates" xml:space="preserve">
+    <value>{0} person(s) have this number:</value>
+  </data>
+  <data name="Links.LinkNamed" xml:space="preserve">
+    <value>Link {0}</value>
+  </data>
+  <data name="Links.Person.Search" xml:space="preserve">
+    <value>Link a person</value>
+  </data>
+  <data name="Links.None" xml:space="preserve">
+    <value>Not linked.</value>
+  </data>
+  <data name="Links.Booking" xml:space="preserve">
+    <value>Rental file</value>
+  </data>
+  <data name="Links.Booking.Unlink.Label" xml:space="preserve">
+    <value>Unlink the rental file {0}</value>
+  </data>
+  <data name="Links.Booking.Suggested.Label" xml:space="preserve">
+    <value>Link the rental file {0} ({1})</value>
+  </data>
+  <data name="Links.Booking.Number" xml:space="preserve">
+    <value>Rental file number</value>
+  </data>
+  <data name="Links.Link" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Links.Person.Linked" xml:space="preserve">
+    <value>Person linked.</value>
+  </data>
+  <data name="Links.Person.Unlinked" xml:space="preserve">
+    <value>Person unlinked.</value>
+  </data>
+  <data name="Links.Booking.Linked" xml:space="preserve">
+    <value>Rental file linked.</value>
+  </data>
+  <data name="Links.Booking.Unlinked" xml:space="preserve">
+    <value>Rental file unlinked.</value>
+  </data>
+  <data name="Bot.Title" xml:space="preserve">
+    <value>What the bot understood</value>
+  </data>
+  <data name="Bot.Need" xml:space="preserve">
+    <value>Customer's need</value>
+  </data>
+  <data name="Bot.Need.PickupPlace" xml:space="preserve">
+    <value>Pick-up place</value>
+  </data>
+  <data name="Bot.Need.ReturnPlace" xml:space="preserve">
+    <value>Return place</value>
+  </data>
+  <data name="Bot.Need.PickupAt" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Bot.Need.ReturnAt" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Bot.Need.Passengers" xml:space="preserve">
+    <value>Passengers</value>
+  </data>
+  <data name="Bot.Need.Luggage" xml:space="preserve">
+    <value>Bags</value>
+  </data>
+  <data name="Bot.Need.Gearbox" xml:space="preserve">
+    <value>Gearbox</value>
+  </data>
+  <data name="Bot.Need.Budget" xml:space="preserve">
+    <value>Budget (TND)</value>
+  </data>
+  <data name="Bot.Gearbox.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Bot.Gearbox.Automatic" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Bot.Usage" xml:space="preserve">
+    <value>Cost of the bot on this conversation</value>
+  </data>
+  <data name="Bot.Usage.Turns" xml:space="preserve">
+    <value>Turns</value>
+  </data>
+  <data name="Bot.Usage.Tokens" xml:space="preserve">
+    <value>Tokens</value>
+  </data>
+  <data name="Bot.Usage.TokensValue" xml:space="preserve">
+    <value>{0} input, {1} output, {2} read from cache</value>
+  </data>
+  <data name="Bot.Usage.ToolCalls" xml:space="preserve">
+    <value>Tool calls</value>
+  </data>
+  <data name="Bot.Usage.Cost" xml:space="preserve">
+    <value>Cost (USD)</value>
+  </data>
+  <data name="Bot.Usage.CostValue" xml:space="preserve">
+    <value>AI {0} · Meta estimated {1}</value>
+  </data>
+  <data name="Reply.Title" xml:space="preserve">
+    <value>Reply</value>
+  </data>
+  <data name="Reply.Disabled" xml:space="preserve">
+    <value>WhatsApp is not configured: no message can be sent.</value>
+  </data>
+  <data name="Reply.TakeOverFirst" xml:space="preserve">
+    <value>The bot answers this customer. Take over to write to them.</value>
+  </data>
+  <data name="Reply.Text" xml:space="preserve">
+    <value>Your reply</value>
+  </data>
+  <data name="Reply.Text.Help" xml:space="preserve">
+    <value>One message per reply: every free-form message may be billed by Meta.</value>
+  </data>
+  <data name="Reply.Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Reply.UseTemplate" xml:space="preserve">
+    <value>Send a template</value>
+  </data>
+  <data name="Reply.WindowClosed" xml:space="preserve">
+    <value>The 24-hour window is closed: only an approved template can be sent.</value>
+  </data>
+  <data name="Reply.NoTemplate" xml:space="preserve">
+    <value>No approved template is configured ("WhatsApp" settings).</value>
+  </data>
+  <data name="Reply.Template" xml:space="preserve">
+    <value>Approved template</value>
+  </data>
+  <data name="Reply.Template.Approved" xml:space="preserve">
+    <value>Meta template "{0}" ({1})</value>
+  </data>
+  <data name="Reply.SendTemplate" xml:space="preserve">
+    <value>Send the template</value>
+  </data>
+  <data name="Reply.Queued" xml:space="preserve">
+    <value>Message being sent.</value>
+  </data>
+  <data name="Template.FollowUp" xml:space="preserve">
+    <value>Conversation follow-up</value>
+  </data>
+  <data name="Template.BookingConfirmed" xml:space="preserve">
+    <value>Booking confirmed</value>
+  </data>
+  <data name="Template.PaymentLink" xml:space="preserve">
+    <value>Payment due</value>
+  </data>
+  <data name="Template.PickupReminder" xml:space="preserve">
+    <value>Pick-up reminder</value>
+  </data>
+  <data name="Template.ReturnReminder" xml:space="preserve">
+    <value>Return reminder</value>
+  </data>
+  <data name="Template.ReviewRequest" xml:space="preserve">
+    <value>Review request</value>
+  </data>
+  <data name="Template.FollowUp.Param1" xml:space="preserve">
+    <value>Customer name</value>
+  </data>
+  <data name="Template.BookingConfirmed.Param1" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Template.BookingConfirmed.Param2" xml:space="preserve">
+    <value>Booking number</value>
+  </data>
+  <data name="Template.BookingConfirmed.Param3" xml:space="preserve">
+    <value>Pick-up date and time</value>
+  </data>
+  <data name="Template.BookingConfirmed.Param4" xml:space="preserve">
+    <value>Pick-up place</value>
+  </data>
+  <data name="Template.PaymentLink.Param1" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Template.PaymentLink.Param2" xml:space="preserve">
+    <value>Booking number</value>
+  </data>
+  <data name="Template.PaymentLink.Param3" xml:space="preserve">
+    <value>Amount due</value>
+  </data>
+  <data name="Template.PaymentLink.Param4" xml:space="preserve">
+    <value>Payment deadline</value>
+  </data>
+  <data name="Template.PickupReminder.Param1" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Template.PickupReminder.Param2" xml:space="preserve">
+    <value>Booking number</value>
+  </data>
+  <data name="Template.PickupReminder.Param3" xml:space="preserve">
+    <value>Pick-up date and time</value>
+  </data>
+  <data name="Template.PickupReminder.Param4" xml:space="preserve">
+    <value>Place</value>
+  </data>
+  <data name="Template.PickupReminder.Param5" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Template.ReturnReminder.Param1" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Template.ReturnReminder.Param2" xml:space="preserve">
+    <value>Booking number</value>
+  </data>
+  <data name="Template.ReturnReminder.Param3" xml:space="preserve">
+    <value>Return date and time</value>
+  </data>
+  <data name="Template.ReturnReminder.Param4" xml:space="preserve">
+    <value>Place</value>
+  </data>
+  <data name="Template.ReturnReminder.Param5" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Template.ReviewRequest.Param1" xml:space="preserve">
+    <value>First name</value>
+  </data>
+  <data name="Template.ReviewRequest.Param2" xml:space="preserve">
+    <value>Review link</value>
+  </data>
+  <data name="Message.TemplateUnnamed" xml:space="preserve">
+    <value>Approved template</value>
+  </data>
+  <data name="Message.TemplateUnnamedWith" xml:space="preserve">
+    <value>Template: {0}</value>
+  </data>
+  <data name="Status.Sending" xml:space="preserve">
+    <value>Sending</value>
+  </data>
+  <data name="Reply.TakeOverFromColleague" xml:space="preserve">
+    <value>Another agent handles this conversation. Take it over in turn to write to the customer.</value>
+  </data>
+  <data name="Reply.TakeOverAwaiting" xml:space="preserve">
+    <value>The bot is waiting for an agent. Take over to answer the customer.</value>
+  </data>
+</root>

@@ -16,6 +16,7 @@ using CarRental.Infrastructure.BackgroundJobs;
 using CarRental.Infrastructure.DataProtection;
 using CarRental.Infrastructure.Email;
 using CarRental.Infrastructure.Identity;
+using CarRental.Infrastructure.Messaging;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Payments.ClicToPay;
 using CarRental.Infrastructure.Persistence;
@@ -64,6 +65,7 @@ public static class InfrastructureServiceCollectionExtensions
         AddStorage(services);
         AddEmail(services, environment);
         services.AddClicToPay(configuration);
+        services.AddWhatsApp(configuration);
 
         var dataProtection = configuration.GetSection(DataProtectionSettings.SectionName).Get<DataProtectionSettings>() ?? new DataProtectionSettings();
         services.AddCarRentalDataProtection(dataProtection, () => credential);

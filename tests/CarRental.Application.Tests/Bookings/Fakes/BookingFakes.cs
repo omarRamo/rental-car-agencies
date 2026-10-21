@@ -383,6 +383,18 @@ internal sealed class FakeCustomers : ICustomersQueries, ICustomerRegistration
         return Task.FromResult(Blacklisted.Contains(personId));
     }
 
+    public Task<IReadOnlyList<PersonSummaryInfo>> FindPersonsByPhoneAsync(string phone, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PersonSummaryInfo>>(
+        [
+            .. Persons.Values
+                .Where(p => !p.IsAnonymized && string.Equals(p.Phone, phone, StringComparison.Ordinal))
+                .Select(p => new PersonSummaryInfo(p.Id, p.FirstName, p.LastName, p.Nationality, p.BirthDate, p.Phone, p.Email, p.Documents.Count)),
+        ]);
+
+    /// <summary>The last consent change recorded for the person and purpose decides (none: no consent).</summary>
+    public Task<bool> HasConsentAsync(Guid personId, ConsentPurposeInfo purpose, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Consents.LastOrDefault(c => c.PersonId == personId && c.Purpose == purpose) is { Given: true });
+
     public Task<Result<DriverEligibilityInfo>> CheckDriverEligibilityAsync(
         Guid personId,
         DateTimeOffset pickupAt,

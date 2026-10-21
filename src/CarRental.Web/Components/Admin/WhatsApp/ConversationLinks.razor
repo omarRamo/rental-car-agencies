@@ -1,0 +1,151 @@
+@* The person and the rental file a conversation is about: quick links to their pages, the WhatsApp notifications consent
+   of the person, and — with customers.read and bookings.read — linking: persons sharing the number in one click, a
+   search of the persons, files of the person or a file number. Every change goes through the inbox service (audited). *@
+@using CarRental.Application.Customers.Contracts
+@using CarRental.Web.Components.Admin.Bookings
+@using CarRental.Web.Resources.Admin.Bookings
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<WhatsAppResources> L
+@inject IStringLocalizer<BookingsResources> B
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudGrid Spacing="2" Class="mt-1">
+    <MudItem xs="12" sm="6">
+        <section aria-labelledby="whatsapp-person-title" data-testid="person-link">
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3" id="whatsapp-person-title">@L["Links.Person"]</MudText>
+            @if (Details.Person is { } person)
+            {
+                <div class="d-flex flex-wrap align-center gap-2">
+                    @if (person.IsAnonymized)
+                    {
+                        <span>@L["Links.Anonymized"]</span>
+                    }
+                    else
+                    {
+                        <MudLink Href="@($"/admin/customers/persons/{person.Id}")" Underline="Underline.Always">@person.FullName</MudLink>
+                    }
+                    @if (CanLinkPerson)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.LinkOff" Disabled="_busy"
+                                   OnClick="@(() => LinkPersonAsync(null))" aria-label="@L["Links.Person.Unlink.Label", person.FullName]">@L["Links.Unlink"]</MudButton>
+                    }
+                </div>
+                <MudText Typo="Typo.body2" Class="whatsapp-muted" data-testid="consent">
+                    <MudIcon Icon="@(person.NotificationsConsent ? Icons.Material.Filled.NotificationsActive : Icons.Material.Outlined.NotificationsOff)" Size="Size.Small" aria-hidden="true" />
+                    @(person.NotificationsConsent ? L["Links.Consent.Given"] : L["Links.Consent.None"])
+                </MudText>
+            }
+            else if (CanLinkPerson)
+            {
+                @if (Details.PersonCandidates.Count > 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["Links.Candidates", Details.PersonCandidates.Count]</MudText>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        @foreach (var candidate in Details.PersonCandidates)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" Disabled="_busy"
+                                       OnClick="@(() => LinkPersonAsync(candidate.Id))">@L["Links.LinkNamed", candidate.FullName]</MudButton>
+                        }
+                    </div>
+                }
+                <PersonPicker Label="@L["Links.Person.Search"]" InputId="whatsapp-person-search" AllowCreate="false"
+                              Selected="null" SelectedChanged="@(async (PersonSummaryInfo? picked) => { if (picked is not null) { await LinkPersonAsync(picked.Id); } })" />
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="whatsapp-muted">@L["Links.None"]</MudText>
+            }
+        </section>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <section aria-labelledby="whatsapp-booking-title" data-testid="booking-link">
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3" id="whatsapp-booking-title">@L["Links.Booking"]</MudText>
+            @if (Details.Booking is { } booking)
+            {
+                <div class="d-flex flex-wrap align-center gap-2">
+                    <MudLink Href="@($"/admin/bookings/{booking.Id}")" Underline="Underline.Always">@booking.Number</MudLink>
+                    <span class="whatsapp-muted">@B[$"Status.{booking.Status}"] · @WhatsAppFormat.Instant(booking.PickupAt)</span>
+                    @if (CanLinkBooking)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.LinkOff" Disabled="_busy"
+                                   OnClick="@(() => LinkBookingAsync(null))" aria-label="@L["Links.Booking.Unlink.Label", booking.Number]">@L["Links.Unlink"]</MudButton>
+                    }
+                </div>
+            }
+            else if (CanLinkBooking)
+            {
+                @if (Details.SuggestedBookings.Count > 0)
+                {
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        @foreach (var suggested in Details.SuggestedBookings)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" Disabled="_busy"
+                                       OnClick="@(() => LinkBookingAsync(suggested.Number))"
+                                       aria-label="@L["Links.Booking.Suggested.Label", suggested.Number, B[$"Status.{suggested.Status}"]]">@suggested.Number</MudButton>
+                        }
+                    </div>
+                }
+                <div class="d-flex flex-wrap align-end gap-2">
+                    <MudTextField T="string" @bind-Value="_bookingNumber" Label="@L["Links.Booking.Number"]" Placeholder="LOC-2027-000123"
+                                  InputId="whatsapp-booking-number" Class="flex-grow-1" autocomplete="off" />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Link" Disabled="@(_busy || string.IsNullOrWhiteSpace(_bookingNumber))"
+                               OnClick="@(() => LinkBookingAsync(_bookingNumber))">@L["Links.Link"]</MudButton>
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="whatsapp-muted">@L["Links.None"]</MudText>
+            }
+        </section>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private bool _busy;
+    private string? _bookingNumber;
+
+    [Parameter, EditorRequired]
+    public InboxConversationDetails Details { get; set; } = default!;
+
+    [Parameter]
+    public bool CanLinkPerson { get; set; }
+
+    [Parameter]
+    public bool CanLinkBooking { get; set; }
+
+    /// <summary>Raised after a link changed (the page reloads the conversation).</summary>
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private async Task LinkPersonAsync(Guid? personId)
+    {
+        var conversationId = Details.Id;
+        await RunAsync((service, ct) => service.LinkPersonAsync(conversationId, personId, ct), personId is null ? L["Links.Person.Unlinked"] : L["Links.Person.Linked"]);
+    }
+
+    private async Task LinkBookingAsync(string? number)
+    {
+        var conversationId = Details.Id;
+        await RunAsync((service, ct) => service.LinkBookingAsync(conversationId, number, ct), number is null ? L["Links.Booking.Unlinked"] : L["Links.Booking.Linked"]);
+        if (number is not null)
+        {
+            _bookingNumber = null;
+        }
+    }
+
+    private async Task RunAsync(Func<WhatsAppInboxService, CancellationToken, Task<Result>> action, string success)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<WhatsAppInboxService, Result>(action);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(success, Severity.Success);
+        await Changed.InvokeAsync();
+    }
+}
