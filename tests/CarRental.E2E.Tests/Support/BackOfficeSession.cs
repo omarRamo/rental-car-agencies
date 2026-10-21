@@ -77,16 +77,38 @@ internal static class BackOfficeSession
             "() => { const dialogs = [...document.querySelectorAll('.mud-dialog')]; return dialogs.length > 0 && dialogs.every(d => getComputedStyle(d).opacity === '1' && d.getAnimations().every(a => a.playState === 'finished')); }");
     }
 
-    /// <summary>No critical or serious axe violation on the page as it is now.</summary>
+    /// <summary>No critical or serious axe violation on the page, once its transitions have ended.</summary>
     public static async Task AssertNoSeriousAxeViolationAsync(IPage page)
     {
         ArgumentNullException.ThrowIfNull(page);
+        await WaitForTransitionsAsync(page);
         var result = await page.RunAxe();
         var blocking = result.Violations
             .Where(v => v.Impact is "critical" or "serious")
             .Select(v => $"{v.Id} ({v.Impact}): {v.Help} [{string.Join(", ", v.Nodes.Select(n => n.Html.Length > 300 ? n.Html[..300] : n.Html))}]")
             .ToList();
         blocking.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Waits, at most 5 seconds, until no finite animation or transition runs on the page: axe would otherwise measure the
+    /// contrast of a text or a button half-way through its fade (a false color-contrast violation). Endless animations,
+    /// such as progress indicators, are ignored.
+    /// </summary>
+    public static async Task WaitForTransitionsAsync(IPage page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        try
+        {
+            await page.WaitForFunctionAsync(
+                "() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity)",
+                null,
+                new PageWaitForFunctionOptions { Timeout = 5_000 });
+        }
+        catch (PlaywrightException)
+        {
+            // Something keeps animating: the page is checked as it is.
+        }
     }
 
     /// <summary>
