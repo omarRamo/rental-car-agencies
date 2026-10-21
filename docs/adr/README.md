@@ -35,6 +35,10 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0027](0027-personnes-dedoublonnage-et-anonymisation.md) | Personnes : dédoublonnage par clés normalisées, export et anonymisation réservés au gérant | Acceptée |
 | [0028](0028-exploitation-outbox-et-requetes-fractionnees.md) | Exploitation du socle : outbox purgée, surveillée et relançable, requêtes fractionnées par défaut | Acceptée |
 | [0029](0029-administration-parametres-permissions-et-accessibilite.md) | Administration du back office : paramètres typés, permissions par utilisateur, sessions rafraîchies, MudBlazor accessible et traduit | Acceptée |
+| [0030](0030-dossier-de-location-agregat-et-chronologie.md) | Dossier de location : agrégat `Booking`, machine à états unique et chronologie métier | Acceptée |
+| [0031](0031-devis-figes-versions-et-prolongation.md) | Devis figés : agrégat `Quote` immuable, versions par dossier et règle de prolongation | Acceptée |
+| [0032](0032-protocole-ecriture-dossiers-et-taches.md) | Écriture des dossiers : un pipeline unique sous garde, tâches d'expiration et d'escalade, contrats du module | Acceptée |
+| [0033](0033-planning-grille-et-affectation.md) | Planning : grille CSS sur mesure, affectation au clavier ou par glisser-déposer, propositions revues | Acceptée |
 | [0034](0034-paiements-et-cautions.md) | Paiements et cautions : mouvements typés, caution comme dette, statut Clic to Pay venu de la banque seulement | Acceptée |
 | [0035](0035-sessions-de-caisse.md) | Sessions de caisse : une par agent et par jour, espèces de recette et cautions comptées à part, verrouillage définitif | Acceptée |
 | [0036](0036-vitrine-rendu-statique-cache-et-referencement.md) | Vitrine : rendu statique sans script Blazor, pages publiques cachables, référencement et budget Lighthouse | Acceptée |
