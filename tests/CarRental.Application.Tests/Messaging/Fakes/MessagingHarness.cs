@@ -29,7 +29,8 @@ internal sealed class MessagingHarness : IAsyncDisposable
 {
     public static readonly DateTimeOffset Start = new(2027, 7, 1, 8, 0, 0, TimeSpan.Zero);
 
-    public MessagingHarness()
+    /// <param name="configure">Last changes to the services (the bot turn tests defer the turns to the runner).</param>
+    public MessagingHarness(Action<IServiceCollection>? configure = null)
     {
         AgencyId = Guid.CreateVersion7();
         OfficeId = Guid.CreateVersion7();
@@ -53,6 +54,7 @@ internal sealed class MessagingHarness : IAsyncDisposable
         services.AddSingleton<IWhatsAppWebhookParser>(Parser);
         services.AddSingleton<IIdentityQueries>(Identity);
         services.Replace(ServiceDescriptor.Scoped<IConversationResponder>(_ => Responder));
+        configure?.Invoke(services);
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
     }
 

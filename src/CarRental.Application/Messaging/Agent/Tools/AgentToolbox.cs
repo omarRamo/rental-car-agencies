@@ -209,7 +209,8 @@ internal sealed partial class AgentToolbox
 
         if (outcome.IsError)
         {
-            LogToolError(call.Name);
+            // The name of a known tool only: an unknown name is model output, never logged.
+            LogToolError(tool?.Name ?? "unknown");
         }
 
         var json = AgentJson.Serialize(outcome.Result);
