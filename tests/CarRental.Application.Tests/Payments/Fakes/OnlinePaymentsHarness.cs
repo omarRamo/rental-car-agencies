@@ -46,6 +46,9 @@ internal sealed class OnlinePaymentsHarness
 
     public InlineUnitOfWork UnitOfWork { get; } = new();
 
+    /// <summary>The application messages written by the flows (<see cref="OnlinePaymentStatusChanged"/>).</summary>
+    public RecordingOutbox Outbox { get; } = new();
+
     public RecordingGatewayCallLog CallLog { get; }
 
     public ClicToPayOptions Options { get; }
@@ -67,7 +70,11 @@ internal sealed class OnlinePaymentsHarness
     public static ScopedUserContext Visitor() => new([]);
 
     public OnlinePayments Online(IUserContext? user = null, IClicToPayGateway? gateway = null) =>
-        new(Db, UnitOfWork, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance);
+        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance);
+
+    /// <summary>The status changes told to the other modules for one payment, in order.</summary>
+    public IReadOnlyList<OnlinePaymentStatusChanged> StatusChangesOf(Guid paymentId) =>
+        [.. Outbox.Messages.OfType<OnlinePaymentStatusChanged>().Where(m => m.PaymentId == paymentId)];
 
     public OnlinePaymentAdministration Admin(IUserContext user) => new(Db, UnitOfWork, user, Online(user), Settings);
 

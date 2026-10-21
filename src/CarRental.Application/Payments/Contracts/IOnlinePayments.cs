@@ -44,7 +44,10 @@ public interface IOnlinePayments
     /// <summary>
     /// Validation: captures the pre-authorization (<c>deposit.do</c>, at most the pre-authorized amount; all of it when
     /// <paramref name="amount"/> is null), then reads the status: success only once the gateway confirms the deposit.
-    /// Capturing an already captured payment returns it unchanged.
+    /// Capturing an already captured payment returns it unchanged. After a capture left without answer, the status is
+    /// read first: the capture is sent again only when the read shows it had no effect (two minutes later at the
+    /// earliest), and the error of the read is returned when it fails (nothing is sent on a stale state);
+    /// <c>payments.online.capture_unconfirmed</c> means the gateway acknowledged it and the catch-up job confirms it.
     /// </summary>
     Task<Result<OnlinePaymentInfo>> CaptureAsync(Guid paymentId, decimal? amount = null, CancellationToken cancellationToken = default);
 
@@ -57,7 +60,9 @@ public interface IOnlinePayments
     /// <summary>
     /// Refusal or expiry: reverses the pre-authorization (<c>reverse.do</c>) then reads the status. Before the customer
     /// paid, the release is recorded and performed as soon as the gateway confirms a pre-authorization (catch-up job); an
-    /// unpaid order otherwise expires. Reversing a cancelled or failed payment returns it unchanged.
+    /// unpaid order otherwise expires. Reversing a cancelled or failed payment returns it unchanged. When the status that
+    /// must be read first cannot be read, the release of a payment not made yet is still recorded; for any other, the
+    /// error of the read is returned and nothing is sent.
     /// </summary>
     Task<Result<OnlinePaymentInfo>> ReverseAsync(Guid paymentId, CancellationToken cancellationToken = default);
 

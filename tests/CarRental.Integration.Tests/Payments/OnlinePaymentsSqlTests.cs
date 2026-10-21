@@ -70,6 +70,7 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         calls.ShouldContain(GatewayOperation.RegisterPreAuth);
         calls.ShouldContain(GatewayOperation.GetOrderStatusExtended);
         (await OutboxCountAsync(db, typeof(PaymentStatusChanged), started.PaymentId)).ShouldBe(1);
+        (await OutboxCountAsync(db, typeof(OnlinePaymentStatusChanged), started.PaymentId)).ShouldBe(1, "told to the other modules with the change");
     }
 
     [Fact]
@@ -121,6 +122,7 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         (await db.Set<Payment>().AsNoTracking().SingleAsync(p => p.Id == payment.PaymentId, Ct)).Status.ShouldBe(PaymentStatus.PreAuthorized);
         (await OutboxCountAsync(db, typeof(PaymentStatusChanged), payment.PaymentId)).ShouldBe(1, "the transition is applied once");
+        (await OutboxCountAsync(db, typeof(OnlinePaymentStatusChanged), payment.PaymentId)).ShouldBe(1, "and told to the other modules once");
         (await db.Set<Payment>().TemporalAll().CountAsync(p => p.Id == payment.PaymentId && p.Status == PaymentStatus.PreAuthorized, Ct)).ShouldBe(1);
     }
 
@@ -142,6 +144,20 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         payment.ExpiredAtUtc.ShouldNotBeNull();
         payment.StatusChangedByName.ShouldBe($"system:job:{CatchUpJobId}");
         (await OutboxCountAsync(db, typeof(OnlinePaymentExpired), link.PaymentId)).ShouldBe(1);
+        var type = typeof(OnlinePaymentStatusChanged).FullName!;
+        var id = link.PaymentId.ToString();
+        var stored = await db.Set<OutboxMessage>().AsNoTracking().SingleAsync(m => m.Type == type && m.Payload.Contains(id), Ct);
+        var changed = (OnlinePaymentStatusChanged)check.ServiceProvider.GetRequiredService<OutboxSerializer>().Deserialize(stored.Payload, typeof(OnlinePaymentStatusChanged));
+        changed.ShouldBe(new OnlinePaymentStatusChanged(
+            link.PaymentId,
+            payment.BookingId,
+            agencyId,
+            OnlinePaymentFlowInfo.OneStep,
+            IsPaymentLink: true,
+            PaymentStatusInfo.Pending,
+            PaymentStatusInfo.Cancelled,
+            Expired: true,
+            PaidLate: false));
     }
 
     [Fact]

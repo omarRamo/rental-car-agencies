@@ -50,6 +50,7 @@ public sealed class OnlineRefundTests
 
         payment.Status.ShouldBe(PaymentStatus.Refunded);
         _harness.Gateway.FindOrderByNumber(payment.OrderNumber)!.StatusCode.ShouldBe(FakeClicToPay.RefundedStatusCode);
+        _harness.StatusChangesOf(payment.Id).Select(c => c.Status).ShouldBe([PaymentStatusInfo.Captured, PaymentStatusInfo.Refunded]);
     }
 
     [Fact]

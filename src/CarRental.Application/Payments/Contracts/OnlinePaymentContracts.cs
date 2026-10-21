@@ -183,8 +183,14 @@ public sealed record OnlinePaymentInfo(
     /// <summary>The customer has not paid yet (nothing requested from the gateway meanwhile).</summary>
     public bool IsAwaitingCustomer => Status == PaymentStatusInfo.Pending;
 
-    /// <summary>A pre-authorization the agency can capture now.</summary>
-    public bool CanCapture => Flow == OnlinePaymentFlowInfo.PreAuthorization && Status == PaymentStatusInfo.PreAuthorized && PendingOperation is null;
+    /// <summary>
+    /// A pre-authorization the agency can capture now, or whose capture was left without answer (sent again once the
+    /// status read shows it had no effect).
+    /// </summary>
+    public bool CanCapture =>
+        Flow == OnlinePaymentFlowInfo.PreAuthorization
+        && Status == PaymentStatusInfo.PreAuthorized
+        && (PendingOperation is null || (PendingOperation == PendingGatewayOperationInfo.Capture && !PendingAcknowledged));
 
     /// <summary>A pre-authorization (or a payment not made yet) the agency can release now.</summary>
     public bool CanReverse => Status is PaymentStatusInfo.PreAuthorized or PaymentStatusInfo.Pending && PendingOperation is null;

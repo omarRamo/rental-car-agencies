@@ -32,7 +32,9 @@
     [Parameter, EditorRequired]
     public OnlinePaymentInfo Payment { get; set; } = default!;
 
-    protected override void OnInitialized() => _amount = Payment.Amount.Amount;
+    /// <summary>The whole pre-authorization, or the amount of a capture left without answer (sent again).</summary>
+    protected override void OnInitialized() =>
+        _amount = Payment is { PendingOperation: PendingGatewayOperationInfo.Capture, PendingAmount: { } pending } ? pending.Amount : Payment.Amount.Amount;
 
     private async Task SubmitAsync()
     {

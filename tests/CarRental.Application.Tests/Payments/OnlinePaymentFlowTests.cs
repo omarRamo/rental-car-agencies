@@ -80,6 +80,37 @@ public sealed class OnlinePaymentFlowTests
     }
 
     [Fact]
+    public async Task Each_confirmed_change_of_status_is_told_to_the_other_modules_once()
+    {
+        var online = _harness.Online();
+        var started = (await online.StartPreAuthorizationAsync(_harness.Request(300m), Ct)).Value;
+        var payment = _harness.Payment(started.PaymentId);
+        await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), Ct);
+        _harness.StatusChangesOf(payment.Id).ShouldBeEmpty("still unpaid: nothing changed");
+
+        _harness.Gateway.Pay(payment.ExternalReference!);
+        await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), Ct);
+        await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, payment.ExternalReference, false), Ct);
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+        (await _harness.Online(OnlinePaymentsHarness.User(Roles.Agent)).CaptureAsync(payment.Id, 250m, Ct)).IsSuccess.ShouldBeTrue();
+
+        var changes = _harness.StatusChangesOf(payment.Id);
+        changes.Count.ShouldBe(2);
+        changes[0].ShouldBe(new OnlinePaymentStatusChanged(
+            payment.Id,
+            payment.BookingId,
+            _harness.AgencyId,
+            OnlinePaymentFlowInfo.PreAuthorization,
+            IsPaymentLink: false,
+            PaymentStatusInfo.Pending,
+            PaymentStatusInfo.PreAuthorized,
+            Expired: false,
+            PaidLate: false));
+        changes[1].PreviousStatus.ShouldBe(PaymentStatusInfo.PreAuthorized);
+        changes[1].Status.ShouldBe(PaymentStatusInfo.Captured);
+    }
+
+    [Fact]
     public async Task The_return_identifies_the_order_by_our_number_first_and_ignores_another_gateway_order_id()
     {
         var online = _harness.Online();
@@ -235,6 +266,9 @@ public sealed class OnlinePaymentFlowTests
         payment.PendingGatewayAmount.ShouldBe(Money.Tnd(450m));
         payment.GatewayAttention.ShouldBe(GatewayAttention.CaptureNotConfirmed);
         _harness.CallsOf(GatewayOperation.Deposit, payment).ShouldBe(1, "the job never sends a capture");
+        var flagged = (await online.FindAsync(payment.Id, Ct)).ShouldNotBeNull();
+        flagged.CanCapture.ShouldBeTrue("the back office can send it again");
+        flagged.CanReverse.ShouldBeFalse();
 
         var captured = await online.CaptureAsync(payment.Id, 450m, Ct);
 
@@ -284,6 +318,7 @@ public sealed class OnlinePaymentFlowTests
         result.Error.ShouldBe(PaymentsErrors.OnlineCaptureUnconfirmed);
         payment.Status.ShouldBe(PaymentStatus.PreAuthorized);
         payment.PendingGatewayAcknowledged.ShouldBeTrue();
+        (await _harness.Online().FindAsync(payment.Id, Ct)).ShouldNotBeNull().CanCapture.ShouldBeFalse("an acknowledged deposit is never sent again");
         _harness.Time.Advance(TimeSpan.FromMinutes(3));
         await _harness.CatchUpJob().ExecuteAsync(Ct);
         payment.Status.ShouldBe(PaymentStatus.Captured);
@@ -411,6 +446,11 @@ public sealed class OnlinePaymentFlowTests
         returned.RedirectPath.ShouldBe(OnlinePaymentsHarness.ReturnPath);
         payment.Status.ShouldBe(PaymentStatus.PreAuthorized);
         payment.GatewayAttention.ShouldBe(GatewayAttention.LatePayment);
+        _harness.StatusChangesOf(payment.Id).Select(c => (c.PreviousStatus, c.Status, c.Expired, c.PaidLate)).ShouldBe(
+        [
+            (PaymentStatusInfo.Pending, PaymentStatusInfo.Cancelled, true, false),
+            (PaymentStatusInfo.Cancelled, PaymentStatusInfo.PreAuthorized, false, true),
+        ]);
     }
 
     [Fact]
@@ -495,6 +535,7 @@ public sealed class OnlinePaymentFlowTests
         var payment = _harness.Db.Rows<Payment>().ShouldHaveSingleItem();
         payment.Status.ShouldBe(PaymentStatus.Failed);
         payment.StatusReason.ShouldBe("registration refused (payments.gateway.rejected)");
+        _harness.StatusChangesOf(payment.Id).ShouldHaveSingleItem().Status.ShouldBe(PaymentStatusInfo.Failed);
     }
 
     [Fact]

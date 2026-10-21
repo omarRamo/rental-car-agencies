@@ -1,3 +1,4 @@
+using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
@@ -16,11 +17,13 @@ namespace CarRental.Application.Payments.Online;
 /// second unit of work — so a replayed transaction never repeats a call, and a call whose answer is lost is resolved by
 /// reading the status by order number. The status of a payment only changes from a status read server to server
 /// (<see cref="Payment.ApplyConfirmedGatewayStatus"/>); concurrent returns and job runs apply it once (row version, then
-/// the replay of the same status is a no-op).
+/// the replay of the same status is a no-op). Each confirmed change is told to the other modules by an
+/// <see cref="OnlinePaymentStatusChanged"/> message written in the same transaction.
 /// </summary>
 internal sealed partial class OnlinePayments(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
+    IOutbox outbox,
     IUserContext userContext,
     IClicToPayGateway gateway,
     IReferentialQueries referential,
@@ -856,6 +859,7 @@ internal sealed partial class OnlinePayments(
                 }
 
                 var now = timeProvider.GetUtcNow();
+                var before = payment.Status;
                 payment.RecordGatewayStatusCode(status.StatusCode);
 
                 // A pre-authorization debited without any capture of ours and without the debited amount (outside the
@@ -892,6 +896,7 @@ internal sealed partial class OnlinePayments(
                 }
 
                 await ConfirmSentRefundsAsync(payment, status, now, ct);
+                PublishStatusChange(payment, before);
                 return payment;
             },
             cancellationToken);
@@ -907,10 +912,41 @@ internal sealed partial class OnlinePayments(
                     return PaymentsErrors.OnlinePaymentNotFound;
                 }
 
+                var before = payment.Status;
                 var applied = payment.ApplyConfirmedGatewayStatus(confirmed, Actor, timeProvider.GetUtcNow());
-                return applied.IsFailure ? applied.Error : payment;
+                if (applied.IsFailure)
+                {
+                    return applied.Error;
+                }
+
+                PublishStatusChange(payment, before);
+                return payment;
             },
             cancellationToken);
+
+    /// <summary>
+    /// Tells the other modules about a confirmed change of status (contract message, written with the change; a replayed
+    /// transaction writes it again on its clean change tracker, a no-op replay of the same status writes nothing).
+    /// </summary>
+    private void PublishStatusChange(Payment payment, PaymentStatus before)
+    {
+        if (payment.Status == before || payment.Direction != PaymentDirection.Incoming || payment.OnlineFlow is not { } flow)
+        {
+            return;
+        }
+
+        var expired = payment.ExpiredAtUtc is not null;
+        outbox.Enqueue(new OnlinePaymentStatusChanged(
+            payment.Id,
+            payment.BookingId,
+            payment.AgencyId,
+            flow.ToInfo(),
+            payment.IsPaymentLink,
+            before.ToInfo(),
+            payment.Status.ToInfo(),
+            Expired: expired && payment.Status == PaymentStatus.Cancelled,
+            PaidLate: expired && before == PaymentStatus.Cancelled));
+    }
 
     /// <summary>
     /// Confirms the refunds sent for this payment: up to the refunded amount the gateway reports when it does (TODO(spec)
