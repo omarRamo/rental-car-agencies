@@ -171,16 +171,18 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IEmailSender>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<EmailOptions>>();
+            // Attachments are read from the private storage when the e-mail is sent.
+            var storage = serviceProvider.GetRequiredService<IFileStorage>();
             if (options.Value.AcsEndpoint is { } endpoint)
             {
                 var client = new EmailClient(endpoint, serviceProvider.GetRequiredService<TokenCredential>());
-                return new AcsEmailSender(client, options);
+                return new AcsEmailSender(client, options, storage);
             }
 
             var directory = Path.IsPathRooted(options.Value.PickupDirectory)
                 ? options.Value.PickupDirectory
                 : Path.Combine(environment.ContentRootPath, options.Value.PickupDirectory);
-            return new PickupDirectoryEmailSender(directory, serviceProvider.GetRequiredService<TimeProvider>());
+            return new PickupDirectoryEmailSender(directory, serviceProvider.GetRequiredService<TimeProvider>(), storage);
         });
     }
 }
