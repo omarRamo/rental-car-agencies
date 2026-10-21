@@ -1,0 +1,1389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Back.Booking" xml:space="preserve">
+    <value>Open the rental file</value>
+  </data>
+  <data name="Back.Day" xml:space="preserve">
+    <value>The day's pick-ups and returns</value>
+  </data>
+  <data name="Booking.Departure" xml:space="preserve">
+    <value>Departure (inspection)</value>
+  </data>
+  <data name="Booking.Return" xml:space="preserve">
+    <value>Return (inspection)</value>
+  </data>
+  <data name="Booking.Close" xml:space="preserve">
+    <value>Close the file</value>
+  </data>
+  <data name="Steps.Done" xml:space="preserve">
+    <value>(done)</value>
+  </data>
+  <data name="Steps.Next" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Steps.Previous" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Steps.Progress" xml:space="preserve">
+    <value>Step {0} of {1}: {2}</value>
+  </data>
+  <data name="Day.Title" xml:space="preserve">
+    <value>Pick-ups and returns</value>
+  </data>
+  <data name="Day.Filter" xml:space="preserve">
+    <value>Day selection</value>
+  </data>
+  <data name="Day.Date" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="Day.Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Day.Previous" xml:space="preserve">
+    <value>Previous day</value>
+  </data>
+  <data name="Day.PreviousLabel" xml:space="preserve">
+    <value>Show the previous day</value>
+  </data>
+  <data name="Day.Next" xml:space="preserve">
+    <value>Next day</value>
+  </data>
+  <data name="Day.NextLabel" xml:space="preserve">
+    <value>Show the next day</value>
+  </data>
+  <data name="Day.Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Day.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Day.Loading" xml:space="preserve">
+    <value>Loading the pick-ups and returns…</value>
+  </data>
+  <data name="Day.Of" xml:space="preserve">
+    <value>Day of {0}</value>
+  </data>
+  <data name="Day.Departures" xml:space="preserve">
+    <value>Pick-ups ({0})</value>
+  </data>
+  <data name="Day.Returns" xml:space="preserve">
+    <value>Returns ({0})</value>
+  </data>
+  <data name="Day.LateReturns" xml:space="preserve">
+    <value>Late returns ({0})</value>
+  </data>
+  <data name="Day.NoDeparture" xml:space="preserve">
+    <value>No pick-up that day.</value>
+  </data>
+  <data name="Day.NoReturn" xml:space="preserve">
+    <value>No return that day.</value>
+  </data>
+  <data name="Day.NoLateReturn" xml:space="preserve">
+    <value>No late return.</value>
+  </data>
+  <data name="Day.NoVehicle" xml:space="preserve">
+    <value>no vehicle</value>
+  </data>
+  <data name="Day.Readiness" xml:space="preserve">
+    <value>Readiness of file {0}</value>
+  </data>
+  <data name="Day.OpenLabel" xml:space="preserve">
+    <value>{0} — file {1}</value>
+  </data>
+  <data name="Day.StartDeparture" xml:space="preserve">
+    <value>Start the departure</value>
+  </data>
+  <data name="Day.ResumeDeparture" xml:space="preserve">
+    <value>Resume the departure</value>
+  </data>
+  <data name="Day.ViewDeparture" xml:space="preserve">
+    <value>View the departure</value>
+  </data>
+  <data name="Day.StartReturn" xml:space="preserve">
+    <value>Start the return</value>
+  </data>
+  <data name="Day.ResumeReturn" xml:space="preserve">
+    <value>Resume the return</value>
+  </data>
+  <data name="Day.SettleReturn" xml:space="preserve">
+    <value>Settle and close</value>
+  </data>
+  <data name="Day.ViewReturn" xml:space="preserve">
+    <value>View the return</value>
+  </data>
+  <data name="Ready.Yes" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Ready.No" xml:space="preserve">
+    <value>To prepare</value>
+  </data>
+  <data name="Ready.Vehicle" xml:space="preserve">
+    <value>Vehicle ready</value>
+  </data>
+  <data name="Ready.NoVehicle" xml:space="preserve">
+    <value>No vehicle</value>
+  </data>
+  <data name="Ready.VehicleNotCompliant" xml:space="preserve">
+    <value>Vehicle documents to check</value>
+  </data>
+  <data name="Ready.Paid" xml:space="preserve">
+    <value>Paid</value>
+  </data>
+  <data name="Ready.Due" xml:space="preserve">
+    <value>Due {0}</value>
+  </data>
+  <data name="Ready.Deferred" xml:space="preserve">
+    <value>Payment deferred</value>
+  </data>
+  <data name="Ready.DepositHeld" xml:space="preserve">
+    <value>Deposit taken</value>
+  </data>
+  <data name="Ready.DepositMissing" xml:space="preserve">
+    <value>Deposit to take</value>
+  </data>
+  <data name="Ready.DepositWaived" xml:space="preserve">
+    <value>No deposit (approved)</value>
+  </data>
+  <data name="Ready.DepositToRelease" xml:space="preserve">
+    <value>Deposit to release</value>
+  </data>
+  <data name="Ready.Settled" xml:space="preserve">
+    <value>Settled</value>
+  </data>
+  <data name="Ready.Inspecting" xml:space="preserve">
+    <value>Inspection in progress</value>
+  </data>
+  <data name="Ready.Late" xml:space="preserve">
+    <value>Late</value>
+  </data>
+  <data name="Widget.Title" xml:space="preserve">
+    <value>Today's pick-ups and returns</value>
+  </data>
+  <data name="Widget.Open" xml:space="preserve">
+    <value>All pick-ups and returns</value>
+  </data>
+  <data name="Widget.Loading" xml:space="preserve">
+    <value>Loading the pick-ups and returns…</value>
+  </data>
+  <data name="Widget.Error" xml:space="preserve">
+    <value>The day's pick-ups and returns could not be loaded.</value>
+  </data>
+  <data name="Widget.Counts" xml:space="preserve">
+    <value>{0} pick-up(s) and {1} return(s) to do today, {2} late return(s).</value>
+  </data>
+  <data name="Widget.Departure" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Widget.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Departure.Title" xml:space="preserve">
+    <value>Departure — {0}</value>
+  </data>
+  <data name="Departure.TitleLoading" xml:space="preserve">
+    <value>Departure</value>
+  </data>
+  <data name="Departure.Steps" xml:space="preserve">
+    <value>Departure steps</value>
+  </data>
+  <data name="Departure.Step.Originals" xml:space="preserve">
+    <value>Original documents</value>
+  </data>
+  <data name="Departure.Step.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Departure.Step.Photos" xml:space="preserve">
+    <value>Photos</value>
+  </data>
+  <data name="Departure.Step.Readings" xml:space="preserve">
+    <value>Mileage, fuel, accessories</value>
+  </data>
+  <data name="Departure.Step.Damages" xml:space="preserve">
+    <value>Damages</value>
+  </data>
+  <data name="Departure.Step.Payment" xml:space="preserve">
+    <value>Payment and deposit</value>
+  </data>
+  <data name="Departure.Step.Contract" xml:space="preserve">
+    <value>Contract and signatures</value>
+  </data>
+  <data name="Departure.Step.Finish" xml:space="preserve">
+    <value>Key hand-over</value>
+  </data>
+  <data name="Departure.NotPossible" xml:space="preserve">
+    <value>No departure possible for this file (status: {0}).</value>
+  </data>
+  <data name="Departure.InspectionReady" xml:space="preserve">
+    <value>Inspection ready: the agent finishes the departure at the counter (original documents, payment, contract and signatures).</value>
+  </data>
+  <data name="Departure.Done" xml:space="preserve">
+    <value>Departure completed on {0} by {1}.</value>
+  </data>
+  <data name="Departure.Emailed" xml:space="preserve">
+    <value>Contract e-mailed to {0}.</value>
+  </data>
+  <data name="Departure.NotEmailed" xml:space="preserve">
+    <value>The main driver has no e-mail address: print the contract.</value>
+  </data>
+  <data name="Departure.OpenContract" xml:space="preserve">
+    <value>Open the contract ({0})</value>
+  </data>
+  <data name="Departure.ToReturn" xml:space="preserve">
+    <value>Return screen</value>
+  </data>
+  <data name="Originals.Intro" xml:space="preserve">
+    <value>Check the originals of each driver's documents (identity card or passport, driving licence): they must match the recorded documents.</value>
+  </data>
+  <data name="Originals.NoDocument" xml:space="preserve">
+    <value>No document recorded for this driver.</value>
+  </data>
+  <data name="Originals.Expires" xml:space="preserve">
+    <value>expires on {0}</value>
+  </data>
+  <data name="Originals.NoExpiry" xml:space="preserve">
+    <value>no expiry date</value>
+  </data>
+  <data name="Originals.Verified" xml:space="preserve">
+    <value>Verified by {0}</value>
+  </data>
+  <data name="Originals.NotVerified" xml:space="preserve">
+    <value>Document to verify</value>
+  </data>
+  <data name="Originals.ExpiresBeforeReturn" xml:space="preserve">
+    <value>expires before the return</value>
+  </data>
+  <data name="Originals.VerifyDocuments" xml:space="preserve">
+    <value>Verify the documents of {0} (new tab)</value>
+  </data>
+  <data name="Originals.SeenLegend" xml:space="preserve">
+    <value>Originals seen for {0}</value>
+  </data>
+  <data name="Originals.IdentitySeen" xml:space="preserve">
+    <value>Original identity document seen</value>
+  </data>
+  <data name="Originals.LicenceSeen" xml:space="preserve">
+    <value>Original driving licence seen</value>
+  </data>
+  <data name="Vehicle.None" xml:space="preserve">
+    <value>No vehicle is assigned to the file.</value>
+  </data>
+  <data name="Vehicle.Assign" xml:space="preserve">
+    <value>Assign a vehicle</value>
+  </data>
+  <data name="Vehicle.AskAgent" xml:space="preserve">
+    <value>Ask an agent to assign a vehicle to the file.</value>
+  </data>
+  <data name="Vehicle.Plate" xml:space="preserve">
+    <value>Number plate</value>
+  </data>
+  <data name="Vehicle.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Vehicle.Mileage" xml:space="preserve">
+    <value>Last known mileage</value>
+  </data>
+  <data name="Vehicle.Compliance" xml:space="preserve">
+    <value>Vehicle documents</value>
+  </data>
+  <data name="Vehicle.Compliant" xml:space="preserve">
+    <value>Valid until {0}</value>
+  </data>
+  <data name="Vehicle.Waived" xml:space="preserve">
+    <value>Waiver granted</value>
+  </data>
+  <data name="Vehicle.NotCompliant" xml:space="preserve">
+    <value>Do not cover the rental (valid until {0})</value>
+  </data>
+  <data name="Vehicle.Changed" xml:space="preserve">
+    <value>The vehicle changed since the inspection started: confirm the new vehicle (photos, readings and damages have to be done again).</value>
+  </data>
+  <data name="Vehicle.Confirmed" xml:space="preserve">
+    <value>Vehicle confirmed: last known mileage {0}.</value>
+  </data>
+  <data name="Vehicle.PreviousDamages" xml:space="preserve">
+    <value>{0} damage(s) from the last inspection ({1}) carried over.</value>
+  </data>
+  <data name="Vehicle.Confirm" xml:space="preserve">
+    <value>Confirm vehicle {0}</value>
+  </data>
+  <data name="Vehicle.ConfirmedDone" xml:space="preserve">
+    <value>Vehicle confirmed.</value>
+  </data>
+  <data name="Vehicle.Change" xml:space="preserve">
+    <value>Change the vehicle</value>
+  </data>
+  <data name="Photos.Intro" xml:space="preserve">
+    <value>Take the {0} guided views of the vehicle (mandatory at departure); each photo is reduced on the tablet before it is sent.</value>
+  </data>
+  <data name="Photos.Complete" xml:space="preserve">
+    <value>All the guided views are taken.</value>
+  </data>
+  <data name="Photos.Missing" xml:space="preserve">
+    <value>Views missing: {0}</value>
+  </data>
+  <data name="Photos.Others" xml:space="preserve">
+    <value>Other photos</value>
+  </data>
+  <data name="Photo.Take" xml:space="preserve">
+    <value>Take the photo</value>
+  </data>
+  <data name="Photo.Retake" xml:space="preserve">
+    <value>Retake the photo</value>
+  </data>
+  <data name="Photo.Remove" xml:space="preserve">
+    <value>Remove the photo</value>
+  </data>
+  <data name="Photo.Missing" xml:space="preserve">
+    <value>No photo</value>
+  </data>
+  <data name="Photo.Uploading" xml:space="preserve">
+    <value>Uploading the photo: {0}</value>
+  </data>
+  <data name="Photo.Done" xml:space="preserve">
+    <value>Photo saved: {0}.</value>
+  </data>
+  <data name="Photo.Failed" xml:space="preserve">
+    <value>The photo could not be prepared: try again.</value>
+  </data>
+  <data name="Photo.Alt" xml:space="preserve">
+    <value>Photo: {0}</value>
+  </data>
+  <data name="Photo.AltDeparture" xml:space="preserve">
+    <value>Photo at departure: {0}</value>
+  </data>
+  <data name="Photo.AtDeparture" xml:space="preserve">
+    <value>At departure</value>
+  </data>
+  <data name="Photo.Now" xml:space="preserve">
+    <value>Now</value>
+  </data>
+  <data name="Photo.AddOther" xml:space="preserve">
+    <value>Additional photo</value>
+  </data>
+  <data name="Photo.Slot.Front" xml:space="preserve">
+    <value>Front</value>
+  </data>
+  <data name="Photo.Slot.Rear" xml:space="preserve">
+    <value>Rear</value>
+  </data>
+  <data name="Photo.Slot.Left" xml:space="preserve">
+    <value>Left side</value>
+  </data>
+  <data name="Photo.Slot.Right" xml:space="preserve">
+    <value>Right side</value>
+  </data>
+  <data name="Photo.Slot.InteriorFront" xml:space="preserve">
+    <value>Front interior</value>
+  </data>
+  <data name="Photo.Slot.InteriorRear" xml:space="preserve">
+    <value>Rear interior</value>
+  </data>
+  <data name="Photo.Slot.Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Photo.Slot.Boot" xml:space="preserve">
+    <value>Boot</value>
+  </data>
+  <data name="Photo.Slot.Other" xml:space="preserve">
+    <value>Other photo</value>
+  </data>
+  <data name="Photo.Hint.Front" xml:space="preserve">
+    <value>Whole front, number plate readable</value>
+  </data>
+  <data name="Photo.Hint.Rear" xml:space="preserve">
+    <value>Whole rear, number plate readable</value>
+  </data>
+  <data name="Photo.Hint.Left" xml:space="preserve">
+    <value>Whole left side, wheels included</value>
+  </data>
+  <data name="Photo.Hint.Right" xml:space="preserve">
+    <value>Whole right side, wheels included</value>
+  </data>
+  <data name="Photo.Hint.InteriorFront" xml:space="preserve">
+    <value>Front seats and dashboard area</value>
+  </data>
+  <data name="Photo.Hint.InteriorRear" xml:space="preserve">
+    <value>Rear seats</value>
+  </data>
+  <data name="Photo.Hint.Dashboard" xml:space="preserve">
+    <value>Ignition on: mileage and fuel gauge readable</value>
+  </data>
+  <data name="Photo.Hint.Boot" xml:space="preserve">
+    <value>Boot open, spare wheel visible</value>
+  </data>
+  <data name="Readings.Mileage" xml:space="preserve">
+    <value>Mileage</value>
+  </data>
+  <data name="Readings.MileageHelp" xml:space="preserve">
+    <value>At least {0} km (last reading).</value>
+  </data>
+  <data name="Readings.Driven" xml:space="preserve">
+    <value>{0} km driven</value>
+  </data>
+  <data name="Readings.Fuel" xml:space="preserve">
+    <value>Fuel level (in eighths)</value>
+  </data>
+  <data name="Readings.Full" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="Readings.FuelHelp" xml:space="preserve">
+    <value>Pick the level shown by the gauge.</value>
+  </data>
+  <data name="Readings.FuelAtDeparture" xml:space="preserve">
+    <value>At departure: {0}</value>
+  </data>
+  <data name="Readings.Accessories" xml:space="preserve">
+    <value>Accessories</value>
+  </data>
+  <data name="Readings.MissingAccessories" xml:space="preserve">
+    <value>Missing compared with the departure: {0}</value>
+  </data>
+  <data name="Readings.Cleaning" xml:space="preserve">
+    <value>Cleaning needed</value>
+  </data>
+  <data name="Readings.Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Readings.SaveContinue" xml:space="preserve">
+    <value>Save and continue</value>
+  </data>
+  <data name="Readings.Saved" xml:space="preserve">
+    <value>Readings saved.</value>
+  </data>
+  <data name="AccessoryItem.SpareWheel" xml:space="preserve">
+    <value>Spare wheel</value>
+  </data>
+  <data name="AccessoryItem.Jack" xml:space="preserve">
+    <value>Jack</value>
+  </data>
+  <data name="AccessoryItem.WarningTriangle" xml:space="preserve">
+    <value>Warning triangle</value>
+  </data>
+  <data name="AccessoryItem.SafetyVest" xml:space="preserve">
+    <value>Safety vest</value>
+  </data>
+  <data name="AccessoryItem.Keys" xml:space="preserve">
+    <value>Keys</value>
+  </data>
+  <data name="AccessoryItem.ChildSeats" xml:space="preserve">
+    <value>Child seats</value>
+  </data>
+  <data name="AccessoryItem.Gps" xml:space="preserve">
+    <value>GPS</value>
+  </data>
+  <data name="AccessoryItem.VehiclePapers" xml:space="preserve">
+    <value>Vehicle papers</value>
+  </data>
+  <data name="DamageView.Front" xml:space="preserve">
+    <value>Front</value>
+  </data>
+  <data name="DamageView.Rear" xml:space="preserve">
+    <value>Rear</value>
+  </data>
+  <data name="DamageView.Left" xml:space="preserve">
+    <value>Left side</value>
+  </data>
+  <data name="DamageView.Right" xml:space="preserve">
+    <value>Right side</value>
+  </data>
+  <data name="DamageView.Top" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="DamageView.Interior" xml:space="preserve">
+    <value>Interior</value>
+  </data>
+  <data name="DamageType.Scratch" xml:space="preserve">
+    <value>Scratch</value>
+  </data>
+  <data name="DamageType.Dent" xml:space="preserve">
+    <value>Dent</value>
+  </data>
+  <data name="DamageType.CrackOrChip" xml:space="preserve">
+    <value>Crack or chip</value>
+  </data>
+  <data name="DamageType.MissingPart" xml:space="preserve">
+    <value>Missing part</value>
+  </data>
+  <data name="DamageType.Stain" xml:space="preserve">
+    <value>Stain</value>
+  </data>
+  <data name="DamageType.Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="DamageSeverity.Minor" xml:space="preserve">
+    <value>Minor</value>
+  </data>
+  <data name="DamageSeverity.Moderate" xml:space="preserve">
+    <value>Moderate</value>
+  </data>
+  <data name="DamageSeverity.Major" xml:space="preserve">
+    <value>Major</value>
+  </data>
+  <data name="Schematic.ViewLabel" xml:space="preserve">
+    <value>{0}: {1} damage(s) marked</value>
+  </data>
+  <data name="Damage.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Damage.Zone" xml:space="preserve">
+    <value>Area</value>
+  </data>
+  <data name="Damage.ZoneName" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="Damage.Row.0" xml:space="preserve">
+    <value>top</value>
+  </data>
+  <data name="Damage.Row.1" xml:space="preserve">
+    <value>middle</value>
+  </data>
+  <data name="Damage.Row.2" xml:space="preserve">
+    <value>bottom</value>
+  </data>
+  <data name="Damage.Column.0" xml:space="preserve">
+    <value>left</value>
+  </data>
+  <data name="Damage.Column.1" xml:space="preserve">
+    <value>centre</value>
+  </data>
+  <data name="Damage.Column.2" xml:space="preserve">
+    <value>right</value>
+  </data>
+  <data name="Damage.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Damage.Severity" xml:space="preserve">
+    <value>Severity</value>
+  </data>
+  <data name="Damage.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Damage.PreExisting" xml:space="preserve">
+    <value>Already there at departure</value>
+  </data>
+  <data name="Damage.Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Damage.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Damage.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Damage.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Damage.AddDamage" xml:space="preserve">
+    <value>Add a damage</value>
+  </data>
+  <data name="Damage.AddTitle" xml:space="preserve">
+    <value>New damage</value>
+  </data>
+  <data name="Damage.EditTitle" xml:space="preserve">
+    <value>Damage no. {0}</value>
+  </data>
+  <data name="Damage.EditLabel" xml:space="preserve">
+    <value>Edit damage no. {0}</value>
+  </data>
+  <data name="Damage.RemoveLabel" xml:space="preserve">
+    <value>Remove damage no. {0}</value>
+  </data>
+  <data name="Damage.RemoveTitle" xml:space="preserve">
+    <value>Remove damage no. {0}?</value>
+  </data>
+  <data name="Damage.RemoveMessage" xml:space="preserve">
+    <value>This damage will be removed from the inspection (repaired since, for example).</value>
+  </data>
+  <data name="Damage.Number" xml:space="preserve">
+    <value>Damage no. {0}</value>
+  </data>
+  <data name="Damage.NewBadge" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Damage.PreExistingBadge" xml:space="preserve">
+    <value>Pre-existing</value>
+  </data>
+  <data name="Damage.Added" xml:space="preserve">
+    <value>Damage added.</value>
+  </data>
+  <data name="Damage.Saved" xml:space="preserve">
+    <value>Damage saved.</value>
+  </data>
+  <data name="Damage.Removed" xml:space="preserve">
+    <value>Damage removed.</value>
+  </data>
+  <data name="Damages.List" xml:space="preserve">
+    <value>Damages ({0})</value>
+  </data>
+  <data name="Damages.ListLabel" xml:space="preserve">
+    <value>List of the damages</value>
+  </data>
+  <data name="Damages.None" xml:space="preserve">
+    <value>No damage.</value>
+  </data>
+  <data name="Damages.Photos" xml:space="preserve">
+    <value>Photos of the damages</value>
+  </data>
+  <data name="Damages.FromPrevious" xml:space="preserve">
+    <value>{0} damage(s) from the vehicle's last inspection ({1}) are carried over as pre-existing: remove those repaired since.</value>
+  </data>
+  <data name="Money.Total" xml:space="preserve">
+    <value>Quote total incl. VAT</value>
+  </data>
+  <data name="Money.NetPaid" xml:space="preserve">
+    <value>Already paid</value>
+  </data>
+  <data name="Money.Pending" xml:space="preserve">
+    <value>Pending payments</value>
+  </data>
+  <data name="Money.AmountDue" xml:space="preserve">
+    <value>Amount due</value>
+  </data>
+  <data name="Money.DepositRequired" xml:space="preserve">
+    <value>Deposit required</value>
+  </data>
+  <data name="Money.ReducedDeposit" xml:space="preserve">
+    <value>reduced (franchise waiver)</value>
+  </data>
+  <data name="Money.DepositsHeld" xml:space="preserve">
+    <value>Deposit held</value>
+  </data>
+  <data name="Money.ChannelPrepaid" xml:space="preserve">
+    <value>Booking.com booking: record the prepayment to the channel as a "prepaid to the channel" payment with the reference {0}.</value>
+  </data>
+  <data name="Money.Deferred" xml:space="preserve">
+    <value>Departure allowed by {0} on {1}: balance deferred {2}, {3}. Reason: {4}</value>
+  </data>
+  <data name="Money.DepositWaived" xml:space="preserve">
+    <value>without a deposit</value>
+  </data>
+  <data name="Money.DepositNotWaived" xml:space="preserve">
+    <value>deposit required</value>
+  </data>
+  <data name="Money.CancelDeferral" xml:space="preserve">
+    <value>Cancel the approval</value>
+  </data>
+  <data name="Money.Defer" xml:space="preserve">
+    <value>Let the vehicle leave anyway (manager)</value>
+  </data>
+  <data name="Money.Charges" xml:space="preserve">
+    <value>Return charges</value>
+  </data>
+  <data name="Money.Retained" xml:space="preserve">
+    <value>Retained from the deposit</value>
+  </data>
+  <data name="Money.Balance" xml:space="preserve">
+    <value>Balance</value>
+  </data>
+  <data name="Money.BalanceDue" xml:space="preserve">
+    <value>(due by the customer)</value>
+  </data>
+  <data name="Money.BalanceRefund" xml:space="preserve">
+    <value>(to refund to the customer)</value>
+  </data>
+  <data name="Money.BalanceSettled" xml:space="preserve">
+    <value>(settled)</value>
+  </data>
+  <data name="Defer.Title" xml:space="preserve">
+    <value>Departure without full payment — {0}</value>
+  </data>
+  <data name="Defer.Message" xml:space="preserve">
+    <value>Manager's decision: the vehicle leaves without the balance paid and/or without a deposit. The decision is traced with its reason and shown on the contract.</value>
+  </data>
+  <data name="Defer.Balance" xml:space="preserve">
+    <value>Defer the balance of {0}</value>
+  </data>
+  <data name="Defer.Deposit" xml:space="preserve">
+    <value>Let the vehicle leave without a deposit ({0})</value>
+  </data>
+  <data name="Defer.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Defer.Submit" xml:space="preserve">
+    <value>Allow the departure</value>
+  </data>
+  <data name="Defer.Done" xml:space="preserve">
+    <value>Approval recorded: it will be shown on the contract.</value>
+  </data>
+  <data name="Defer.Cancelled" xml:space="preserve">
+    <value>Approval cancelled.</value>
+  </data>
+  <data name="Signature.Customer" xml:space="preserve">
+    <value>Customer's signature</value>
+  </data>
+  <data name="Signature.Agent" xml:space="preserve">
+    <value>Agent's signature</value>
+  </data>
+  <data name="Signature.Name" xml:space="preserve">
+    <value>Signer's name</value>
+  </data>
+  <data name="Signature.Canvas" xml:space="preserve">
+    <value>Signature area: {0}</value>
+  </data>
+  <data name="Signature.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Signature.Save" xml:space="preserve">
+    <value>Confirm the signature</value>
+  </data>
+  <data name="Signature.Again" xml:space="preserve">
+    <value>Sign again</value>
+  </data>
+  <data name="Signature.Alt" xml:space="preserve">
+    <value>Signature of {0}</value>
+  </data>
+  <data name="Signature.Signed" xml:space="preserve">
+    <value>Signed by {0} on {1}</value>
+  </data>
+  <data name="Signature.None" xml:space="preserve">
+    <value>Not signed yet.</value>
+  </data>
+  <data name="Signature.Done" xml:space="preserve">
+    <value>Signature saved: {0}.</value>
+  </data>
+  <data name="Signature.Failed" xml:space="preserve">
+    <value>The signature could not be read: try again.</value>
+  </data>
+  <data name="Signature.Voided" xml:space="preserve">
+    <value>Any change to the inspection after signing voids the signatures: they will have to be made again.</value>
+  </data>
+  <data name="Signature.PaperHelp" xml:space="preserve">
+    <value>If signing on the tablet is not possible (disability, broken tablet…), have the printed contract signed and say why.</value>
+  </data>
+  <data name="Signature.Paper" xml:space="preserve">
+    <value>Sign on paper</value>
+  </data>
+  <data name="Signature.PaperTitle" xml:space="preserve">
+    <value>Signature on paper</value>
+  </data>
+  <data name="Signature.PaperMessage" xml:space="preserve">
+    <value>The printed contract is signed by hand by the customer and the agent; keep it with the file.</value>
+  </data>
+  <data name="Signature.PaperReason" xml:space="preserve">
+    <value>Why on paper?</value>
+  </data>
+  <data name="Signature.PaperRecorded" xml:space="preserve">
+    <value>Paper signature recorded.</value>
+  </data>
+  <data name="Signature.PaperDone" xml:space="preserve">
+    <value>Contract signed on paper (recorded by {0} on {1}): {2}</value>
+  </data>
+  <data name="Signature.PaperCancel" xml:space="preserve">
+    <value>Cancel the paper signature</value>
+  </data>
+  <data name="Finish.Blocked" xml:space="preserve">
+    <value>The departure is not possible yet:</value>
+  </data>
+  <data name="Finish.Ready" xml:space="preserve">
+    <value>Everything is ready: hand the keys over to the customer.</value>
+  </data>
+  <data name="Finish.GoTo" xml:space="preserve">
+    <value>Go there</value>
+  </data>
+  <data name="Finish.VehicleNotCompliant" xml:space="preserve">
+    <value>The vehicle's documents do not cover the rental.</value>
+  </data>
+  <data name="Finish.DriverNotEligible" xml:space="preserve">
+    <value>{0} does not meet the rental conditions.</value>
+  </data>
+  <data name="Finish.PickupAt" xml:space="preserve">
+    <value>Actual pick-up time</value>
+  </data>
+  <data name="Finish.PickupAtHelp" xml:space="preserve">
+    <value>Leave empty for the current time.</value>
+  </data>
+  <data name="Finish.PickupInvalid" xml:space="preserve">
+    <value>The pick-up time is invalid or in the future.</value>
+  </data>
+  <data name="Finish.EmailTo" xml:space="preserve">
+    <value>The contract will be e-mailed to {0}.</value>
+  </data>
+  <data name="Finish.NoEmail" xml:space="preserve">
+    <value>The main driver has no e-mail address: the contract will have to be printed.</value>
+  </data>
+  <data name="Finish.Submit" xml:space="preserve">
+    <value>Hand over the keys and start the rental</value>
+  </data>
+  <data name="Finish.Working" xml:space="preserve">
+    <value>Issuing the contract…</value>
+  </data>
+  <data name="Finish.Done" xml:space="preserve">
+    <value>Departure recorded: contract {0} issued.</value>
+  </data>
+  <data name="Contract.Title" xml:space="preserve">
+    <value>Rental contract</value>
+  </data>
+  <data name="Contract.Number" xml:space="preserve">
+    <value>No. {0} — version {1}</value>
+  </data>
+  <data name="Contract.Preview" xml:space="preserve">
+    <value>PREVIEW — NOT SIGNED</value>
+  </data>
+  <data name="Contract.PreviewLabel" xml:space="preserve">
+    <value>Preview of contract {0}</value>
+  </data>
+  <data name="Contract.Loading" xml:space="preserve">
+    <value>Preparing the contract…</value>
+  </data>
+  <data name="Contract.Language" xml:space="preserve">
+    <value>Contract language</value>
+  </data>
+  <data name="Contract.Language.French" xml:space="preserve">
+    <value>French</value>
+  </data>
+  <data name="Contract.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Contract.Rental" xml:space="preserve">
+    <value>Rental</value>
+  </data>
+  <data name="Contract.Pickup" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Contract.ActualPickup" xml:space="preserve">
+    <value>Actual pick-up</value>
+  </data>
+  <data name="Contract.Return" xml:space="preserve">
+    <value>Planned return</value>
+  </data>
+  <data name="Contract.Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Contract.Days" xml:space="preserve">
+    <value>{0} day(s)</value>
+  </data>
+  <data name="Contract.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Contract.Drivers" xml:space="preserve">
+    <value>Drivers</value>
+  </data>
+  <data name="Contract.Role.MainDriver" xml:space="preserve">
+    <value>Main driver</value>
+  </data>
+  <data name="Contract.Role.SecondaryDriver" xml:space="preserve">
+    <value>Second driver</value>
+  </data>
+  <data name="Contract.Role.Payer" xml:space="preserve">
+    <value>Payer</value>
+  </data>
+  <data name="Contract.BirthDate" xml:space="preserve">
+    <value>born on {0}</value>
+  </data>
+  <data name="Contract.Document" xml:space="preserve">
+    <value>{0} no. {1} ({2}), valid until {3}</value>
+  </data>
+  <data name="Contract.DocumentNoExpiry" xml:space="preserve">
+    <value>{0} no. {1} ({2})</value>
+  </data>
+  <data name="Contract.DocumentType.NationalId" xml:space="preserve">
+    <value>Identity card</value>
+  </data>
+  <data name="Contract.DocumentType.Passport" xml:space="preserve">
+    <value>Passport</value>
+  </data>
+  <data name="Contract.DocumentType.DrivingLicense" xml:space="preserve">
+    <value>Driving licence</value>
+  </data>
+  <data name="Contract.DocumentType.InternationalDrivingPermit" xml:space="preserve">
+    <value>International driving permit</value>
+  </data>
+  <data name="Contract.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Contract.VehicleLine" xml:space="preserve">
+    <value>{0} — {1} {2} ({3}), category {4} — {5}</value>
+  </data>
+  <data name="Contract.Condition" xml:space="preserve">
+    <value>Condition of the vehicle at pick-up</value>
+  </data>
+  <data name="Contract.Mileage" xml:space="preserve">
+    <value>Mileage: {0} km</value>
+  </data>
+  <data name="Contract.Fuel" xml:space="preserve">
+    <value>Fuel: {0}</value>
+  </data>
+  <data name="Contract.Accessories" xml:space="preserve">
+    <value>Accessories: {0}</value>
+  </data>
+  <data name="Contract.Present" xml:space="preserve">
+    <value>present</value>
+  </data>
+  <data name="Contract.Absent" xml:space="preserve">
+    <value>missing</value>
+  </data>
+  <data name="Contract.Notes" xml:space="preserve">
+    <value>Notes: {0}</value>
+  </data>
+  <data name="Contract.Damages" xml:space="preserve">
+    <value>Recorded damages</value>
+  </data>
+  <data name="Contract.DamageCount" xml:space="preserve">
+    <value>Recorded damages: {0}</value>
+  </data>
+  <data name="Contract.NoDamage" xml:space="preserve">
+    <value>No damage recorded.</value>
+  </data>
+  <data name="Contract.Damage.Number" xml:space="preserve">
+    <value>No.</value>
+  </data>
+  <data name="Contract.Damage.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Contract.Damage.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Contract.Damage.Severity" xml:space="preserve">
+    <value>Severity</value>
+  </data>
+  <data name="Contract.Damage.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Contract.Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Contract.Column.Label" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Contract.Column.Quantity" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="Contract.Column.UnitPrice" xml:space="preserve">
+    <value>Unit price</value>
+  </data>
+  <data name="Contract.Column.ExclVat" xml:space="preserve">
+    <value>Excl. VAT</value>
+  </data>
+  <data name="Contract.Column.Vat" xml:space="preserve">
+    <value>VAT</value>
+  </data>
+  <data name="Contract.Column.InclVat" xml:space="preserve">
+    <value>Incl. VAT</value>
+  </data>
+  <data name="Contract.Column.TotalInclVat" xml:space="preserve">
+    <value>Total incl. VAT</value>
+  </data>
+  <data name="Contract.TotalExclVat" xml:space="preserve">
+    <value>Total excl. VAT: {0}</value>
+  </data>
+  <data name="Contract.TotalVat" xml:space="preserve">
+    <value>VAT: {0}</value>
+  </data>
+  <data name="Contract.TotalInclVat" xml:space="preserve">
+    <value>Total incl. VAT: {0}</value>
+  </data>
+  <data name="Contract.Paid" xml:space="preserve">
+    <value>Already paid: {0}</value>
+  </data>
+  <data name="Contract.BalanceDue" xml:space="preserve">
+    <value>Balance due: {0}</value>
+  </data>
+  <data name="Contract.BalanceDeferred" xml:space="preserve">
+    <value>Balance deferred (manager's approval): {0}</value>
+  </data>
+  <data name="Contract.Deposit" xml:space="preserve">
+    <value>Deposit and franchise</value>
+  </data>
+  <data name="Contract.DepositRequired" xml:space="preserve">
+    <value>Deposit required: {0}</value>
+  </data>
+  <data name="Contract.DepositHeld" xml:space="preserve">
+    <value>Deposit held: {0}</value>
+  </data>
+  <data name="Contract.DepositWaived" xml:space="preserve">
+    <value>No deposit (manager's approval)</value>
+  </data>
+  <data name="Contract.Franchise" xml:space="preserve">
+    <value>Franchise in case of damage: {0}</value>
+  </data>
+  <data name="Contract.FranchiseWaiver" xml:space="preserve">
+    <value>Franchise waiver purchased</value>
+  </data>
+  <data name="Contract.Terms" xml:space="preserve">
+    <value>General terms</value>
+  </data>
+  <data name="Contract.TermsText" xml:space="preserve">
+    <value>The customer declares having read and accepted the general rental terms (reference {0}) given with this contract.</value>
+  </data>
+  <data name="Contract.Signatures" xml:space="preserve">
+    <value>Signatures</value>
+  </data>
+  <data name="Contract.SignedOnPaper" xml:space="preserve">
+    <value>Contract signed on paper: {0}</value>
+  </data>
+  <data name="Contract.CustomerSignature" xml:space="preserve">
+    <value>Customer's signature</value>
+  </data>
+  <data name="Contract.AgentSignature" xml:space="preserve">
+    <value>Agent's signature</value>
+  </data>
+  <data name="Contract.NotSigned" xml:space="preserve">
+    <value>Not signed</value>
+  </data>
+  <data name="Contract.SignedAt" xml:space="preserve">
+    <value>signed on {0}</value>
+  </data>
+  <data name="Contract.GeneratedAt" xml:space="preserve">
+    <value>Issued on {0} by {1}</value>
+  </data>
+  <data name="Contract.Footer" xml:space="preserve">
+    <value>{0} — contract {1}, version {2}</value>
+  </data>
+  <data name="Email.Contract.Subject" xml:space="preserve">
+    <value>Your rental contract {0} — {1}</value>
+  </data>
+  <data name="Email.Contract.Greeting" xml:space="preserve">
+    <value>Hello {0},</value>
+  </data>
+  <data name="Email.Contract.Body" xml:space="preserve">
+    <value>Please find attached your rental contract {0} (pick-up on {1}, return planned on {2}).</value>
+  </data>
+  <data name="Email.Contract.Closing" xml:space="preserve">
+    <value>Have a good trip!</value>
+  </data>
+  <data name="Email.Contract.Signature" xml:space="preserve">
+    <value>The {0} team</value>
+  </data>
+  <data name="ReturnCharge.Label.ExtraMileage" xml:space="preserve">
+    <value>Extra kilometres</value>
+  </data>
+  <data name="ReturnCharge.Detail.ExtraMileage" xml:space="preserve">
+    <value>{0} km driven, {1} km included</value>
+  </data>
+  <data name="ReturnCharge.Label.Fuel" xml:space="preserve">
+    <value>Missing fuel (eighths)</value>
+  </data>
+  <data name="ReturnCharge.Detail.Fuel" xml:space="preserve">
+    <value>{0}/8 at pick-up, {1}/8 at return</value>
+  </data>
+  <data name="ReturnCharge.Label.LateReturn" xml:space="preserve">
+    <value>Late return</value>
+  </data>
+  <data name="ReturnCharge.Detail.LateReturn" xml:space="preserve">
+    <value>{0} late day(s)</value>
+  </data>
+  <data name="ReturnCharge.Label.LateContribution" xml:space="preserve">
+    <value>Daily contribution of the late days</value>
+  </data>
+  <data name="ReturnCharge.Detail.LateContribution" xml:space="preserve">
+    <value>{0} day(s) × {1} excl. VAT</value>
+  </data>
+  <data name="ReturnCharge.Label.Cleaning" xml:space="preserve">
+    <value>Cleaning</value>
+  </data>
+  <data name="ReturnCharge.Label.Damage" xml:space="preserve">
+    <value>Damage repair</value>
+  </data>
+  <data name="ReturnCharge.Label.FranchiseCap" xml:space="preserve">
+    <value>Franchise cap</value>
+  </data>
+  <data name="ReturnCharge.Detail.FranchiseCap" xml:space="preserve">
+    <value>damages limited to {0}</value>
+  </data>
+  <data name="ReturnCharge.Label.Other" xml:space="preserve">
+    <value>Other charge</value>
+  </data>
+  <data name="Charges.Table" xml:space="preserve">
+    <value>Return charges</value>
+  </data>
+  <data name="Charges.Column.Label" xml:space="preserve">
+    <value>Charge</value>
+  </data>
+  <data name="Charges.Column.Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Charges.Column.UnitPrice" xml:space="preserve">
+    <value>Unit price incl. VAT</value>
+  </data>
+  <data name="Charges.Column.Amount" xml:space="preserve">
+    <value>Amount incl. VAT</value>
+  </data>
+  <data name="Charges.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Charges.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Charges.UnitPriceOf" xml:space="preserve">
+    <value>Unit price of "{0}"</value>
+  </data>
+  <data name="Charges.Waive" xml:space="preserve">
+    <value>Waive</value>
+  </data>
+  <data name="Charges.WaiveLabel" xml:space="preserve">
+    <value>Waive "{0}"</value>
+  </data>
+  <data name="Charges.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Charges.RemoveLabel" xml:space="preserve">
+    <value>Remove "{0}"</value>
+  </data>
+  <data name="Charges.Total" xml:space="preserve">
+    <value>Total charges incl. VAT</value>
+  </data>
+  <data name="Charges.None" xml:space="preserve">
+    <value>No return charge.</value>
+  </data>
+  <data name="Charges.Franchise" xml:space="preserve">
+    <value>Damages are capped at the franchise of {0}.</value>
+  </data>
+  <data name="Charges.FranchiseReduced" xml:space="preserve">
+    <value>Damages are capped at the reduced franchise of {0} (franchise waiver).</value>
+  </data>
+  <data name="Charges.AddDamage" xml:space="preserve">
+    <value>Add a repair</value>
+  </data>
+  <data name="Charges.Damage" xml:space="preserve">
+    <value>Damage</value>
+  </data>
+  <data name="Charges.DamageName" xml:space="preserve">
+    <value>Damage no. {0} — {1}, {2}</value>
+  </data>
+  <data name="Charges.DamageAmount" xml:space="preserve">
+    <value>Repair amount (incl. VAT)</value>
+  </data>
+  <data name="Charges.AddOther" xml:space="preserve">
+    <value>Add another charge</value>
+  </data>
+  <data name="Charges.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Charges.OtherAmount" xml:space="preserve">
+    <value>Amount (incl. VAT)</value>
+  </data>
+  <data name="Charges.AddLine" xml:space="preserve">
+    <value>Add the line</value>
+  </data>
+  <data name="Charges.ReturnAt" xml:space="preserve">
+    <value>Actual return</value>
+  </data>
+  <data name="Charges.ReturnAtHelp" xml:space="preserve">
+    <value>When the vehicle came back (planned return: {0}).</value>
+  </data>
+  <data name="Charges.ReturnAtInvalid" xml:space="preserve">
+    <value>Enter the date and time of the return.</value>
+  </data>
+  <data name="Charges.ReturnInFuture" xml:space="preserve">
+    <value>The return cannot be in the future.</value>
+  </data>
+  <data name="Charges.ReturnedAt" xml:space="preserve">
+    <value>Vehicle returned on {0}.</value>
+  </data>
+  <data name="Charges.Loading" xml:space="preserve">
+    <value>Computing the charges…</value>
+  </data>
+  <data name="Charges.Driven" xml:space="preserve">
+    <value>Kilometres driven</value>
+  </data>
+  <data name="Charges.Included" xml:space="preserve">
+    <value>Mileage included</value>
+  </data>
+  <data name="Charges.IncludedValue" xml:space="preserve">
+    <value>{0} km ({1} km per day)</value>
+  </data>
+  <data name="Charges.Unlimited" xml:space="preserve">
+    <value>Unlimited</value>
+  </data>
+  <data name="Charges.Fuel" xml:space="preserve">
+    <value>Fuel (pick-up → return)</value>
+  </data>
+  <data name="Charges.LateDays" xml:space="preserve">
+    <value>Late days charged</value>
+  </data>
+  <data name="Charges.PricingFailed" xml:space="preserve">
+    <value>The late days could not be priced ({0}): add an "other" charge if needed.</value>
+  </data>
+  <data name="Charges.ProposalOnly" xml:space="preserve">
+    <value>The proposed charges apply as they are: only a user allowed to manage payments can change them.</value>
+  </data>
+  <data name="Charges.Complete" xml:space="preserve">
+    <value>Complete the return</value>
+  </data>
+  <data name="Charges.Completed" xml:space="preserve">
+    <value>Return completed: charges {0}, balance of the file {1}.</value>
+  </data>
+  <data name="Charges.Invalid" xml:space="preserve">
+    <value>The edited charges are not valid: correct the flagged lines.</value>
+  </data>
+  <data name="Charges.Recorded" xml:space="preserve">
+    <value>Charges recorded: {0}</value>
+  </data>
+  <data name="Charges.Revise" xml:space="preserve">
+    <value>Revise the charges</value>
+  </data>
+  <data name="Charges.SaveRevision" xml:space="preserve">
+    <value>Save the revision</value>
+  </data>
+  <data name="Charges.Revised" xml:space="preserve">
+    <value>Charges revised.</value>
+  </data>
+  <data name="Deposit.Decision" xml:space="preserve">
+    <value>Deposit decision</value>
+  </data>
+  <data name="Deposit.RetainSuggestion" xml:space="preserve">
+    <value>Retain {0} from the deposit to settle the balance; the rest ({1}) is returned.</value>
+  </data>
+  <data name="Deposit.Retain" xml:space="preserve">
+    <value>Retain {0} from the deposit</value>
+  </data>
+  <data name="Deposit.Retained" xml:space="preserve">
+    <value>{0} retained from the deposit, the rest is returned.</value>
+  </data>
+  <data name="Deposit.Justification" xml:space="preserve">
+    <value>Return charges of file {0}</value>
+  </data>
+  <data name="Deposit.ReleaseSuggestion" xml:space="preserve">
+    <value>Nothing is due: release the deposit of {0}.</value>
+  </data>
+  <data name="Deposit.Release" xml:space="preserve">
+    <value>Release the deposit</value>
+  </data>
+  <data name="Deposit.Released" xml:space="preserve">
+    <value>Deposit released.</value>
+  </data>
+  <data name="Close.Settled" xml:space="preserve">
+    <value>Balance at zero</value>
+  </data>
+  <data name="Close.BalanceDue" xml:space="preserve">
+    <value>Balance not zero: {0}</value>
+  </data>
+  <data name="Close.NoDeposit" xml:space="preserve">
+    <value>No deposit held</value>
+  </data>
+  <data name="Close.DepositHeld" xml:space="preserve">
+    <value>Deposit(s) still held: {0}</value>
+  </data>
+  <data name="Close.Submit" xml:space="preserve">
+    <value>Close the file</value>
+  </data>
+  <data name="Close.NotAllowed" xml:space="preserve">
+    <value>Closing needs the right to manage rental files.</value>
+  </data>
+  <data name="Close.Done" xml:space="preserve">
+    <value>File closed.</value>
+  </data>
+  <data name="Return.Title" xml:space="preserve">
+    <value>Return — {0}</value>
+  </data>
+  <data name="Return.TitleLoading" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Return.Steps" xml:space="preserve">
+    <value>Return steps</value>
+  </data>
+  <data name="Return.Step.Readings" xml:space="preserve">
+    <value>Mileage, fuel, accessories</value>
+  </data>
+  <data name="Return.Step.Photos" xml:space="preserve">
+    <value>Photos</value>
+  </data>
+  <data name="Return.Step.Damages" xml:space="preserve">
+    <value>Damage comparison</value>
+  </data>
+  <data name="Return.Step.Charges" xml:space="preserve">
+    <value>Return charges</value>
+  </data>
+  <data name="Return.Step.Payment" xml:space="preserve">
+    <value>Payment and deposit</value>
+  </data>
+  <data name="Return.Step.Close" xml:space="preserve">
+    <value>Closing</value>
+  </data>
+  <data name="Return.Late" xml:space="preserve">
+    <value>Late return</value>
+  </data>
+  <data name="Return.Planned" xml:space="preserve">
+    <value>Return planned on {0} · {1}</value>
+  </data>
+  <data name="Return.NotPossible" xml:space="preserve">
+    <value>No return possible for this file (status: {0}).</value>
+  </data>
+  <data name="Return.ToDeparture" xml:space="preserve">
+    <value>Departure screen</value>
+  </data>
+  <data name="Return.Closed" xml:space="preserve">
+    <value>File closed.</value>
+  </data>
+  <data name="Return.PhotosIntro" xml:space="preserve">
+    <value>Take the guided views again (recommended): the pick-up photo is shown beside for comparison.</value>
+  </data>
+  <data name="Return.NoNewDamage" xml:space="preserve">
+    <value>No new damage compared with the pick-up.</value>
+  </data>
+  <data name="Return.NewDamages" xml:space="preserve">
+    <value>{0} new damage(s) compared with the pick-up.</value>
+  </data>
+  <data name="Return.AtDeparture" xml:space="preserve">
+    <value>At pick-up</value>
+  </data>
+  <data name="Return.AtReturn" xml:space="preserve">
+    <value>At return</value>
+  </data>
+  <data name="Return.DepartureDamages" xml:space="preserve">
+    <value>Damages at pick-up</value>
+  </data>
+  <data name="Return.NoDeparture" xml:space="preserve">
+    <value>No pick-up inspection.</value>
+  </data>
+  <data name="Return.InspectionReady" xml:space="preserve">
+    <value>Return inspection recorded: the agent completes the return at the counter (charges, payment, closing).</value>
+  </data>
+  <data name="Summary.Title" xml:space="preserve">
+    <value>Inspections and contract</value>
+  </data>
+  <data name="Summary.Loading" xml:space="preserve">
+    <value>Loading the inspections…</value>
+  </data>
+  <data name="Summary.None" xml:space="preserve">
+    <value>No inspection yet.</value>
+  </data>
+  <data name="Summary.Departure" xml:space="preserve">
+    <value>Pick-up</value>
+  </data>
+  <data name="Summary.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Summary.Contract" xml:space="preserve">
+    <value>Contract</value>
+  </data>
+  <data name="Summary.ContractSent" xml:space="preserve">
+    <value>E-mailed to {0} on {1}</value>
+  </data>
+  <data name="Summary.ContractNotSent" xml:space="preserve">
+    <value>Not e-mailed</value>
+  </data>
+  <data name="Summary.Done" xml:space="preserve">
+    <value>On {0} by {1} — {2}, fuel {3}, {4} damage(s) including {5} new</value>
+  </data>
+  <data name="Summary.Draft" xml:space="preserve">
+    <value>In progress since {0} ({1})</value>
+  </data>
+  <data name="Summary.Charges" xml:space="preserve">
+    <value>Return charges</value>
+  </data>
+  <data name="Summary.NoCharge" xml:space="preserve">
+    <value>No charge</value>
+  </data>
+  <data name="Summary.ChargesTotal" xml:space="preserve">
+    <value>Total: {0}</value>
+  </data>
+  <data name="Summary.Balance" xml:space="preserve">
+    <value>Balance of the file</value>
+  </data>
+</root>

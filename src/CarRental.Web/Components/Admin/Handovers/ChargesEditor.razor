@@ -1,0 +1,284 @@
+@* The charges of a return (ADR-0042): the proposal of the platform (kilometres, fuel, late days and their
+   contribution, cleaning) whose price an agent can change or waive with a reason, the repairs of the new damages and
+   other charges with a reason; the damages are capped at the franchise. The final lines are computed live with the
+   same rules as the server. Read only for a user without payment rights (the proposal applies). *@
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+@{
+    var final = Final;
+}
+<div class="handover-scroll" tabindex="0" role="region" aria-label="@L["Charges.Table"]">
+    <table class="handover-lines" data-testid="charges-table">
+        <caption class="visually-hidden">@L["Charges.Table"]</caption>
+        <thead>
+            <tr>
+                <th scope="col">@L["Charges.Column.Label"]</th>
+                <th scope="col" class="handover-number">@L["Charges.Column.Quantity"]</th>
+                <th scope="col" class="handover-number">@L["Charges.Column.UnitPrice"]</th>
+                <th scope="col" class="handover-number">@L["Charges.Column.Amount"]</th>
+                @if (Editable)
+                {
+                    <th scope="col"><span class="visually-hidden">@L["Charges.Column.Actions"]</span></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in _rows)
+            {
+                <tr data-charge="@row.Kind">
+                    <td>
+                        @Label(row)
+                        @if (Editable && row.Changed)
+                        {
+                            <MudTextField T="string" @bind-Value="row.Reason" Label="@L["Charges.Reason"]" MaxLength="Inspection.ReasonMaxLength" Immediate="true" Class="mt-1"
+                                          Required="true" RequiredError="@Shared["Validation.Required"]" />
+                        }
+                        else if (!string.IsNullOrEmpty(row.Reason))
+                        {
+                            <span class="handover-muted d-block">@row.Reason</span>
+                        }
+                    </td>
+                    <td class="handover-number">@row.Quantity</td>
+                    <td class="handover-number">
+                        @if (Editable)
+                        {
+                            <MudNumericField T="decimal" @bind-Value="row.UnitPrice" Label="@L["Charges.UnitPriceOf", Label(row)]" Min="0m" Format="N3"
+                                             HideSpinButtons="true" Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-inline-size:8rem" />
+                        }
+                        else
+                        {
+                            @BookingFormat.Amount(Money.Tnd(row.UnitPrice))
+                        }
+                    </td>
+                    <td class="handover-number">@BookingFormat.Amount(Money.Tnd(row.UnitPrice) * row.Quantity)</td>
+                    @if (Editable)
+                    {
+                        <td>
+                            @if (row.Proposed)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => Waive(row))" Disabled="@(row.UnitPrice == 0m)"
+                                           aria-label="@L["Charges.WaiveLabel", Label(row)]">@L["Charges.Waive"]</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _rows.Remove(row))"
+                                           aria-label="@L["Charges.RemoveLabel", Label(row)]">@L["Charges.Remove"]</MudButton>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+            @if (final.IsSuccess && final.Value.FirstOrDefault(l => l.Kind == ReturnChargeKind.FranchiseCap) is { } cap)
+            {
+                <tr data-charge="FranchiseCap">
+                    <td>@HandoverText.Charge(key => L[key], cap.Kind, cap.LabelArguments, null, CultureInfo.CurrentCulture)</td>
+                    <td class="handover-number">1</td>
+                    <td class="handover-number">@BookingFormat.Amount(cap.UnitPrice)</td>
+                    <td class="handover-number">@BookingFormat.Amount(cap.InclVat)</td>
+                    @if (Editable)
+                    {
+                        <td></td>
+                    }
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th scope="row" colspan="3">@L["Charges.Total"]</th>
+                <td class="handover-number" data-testid="charges-total">@(final.IsSuccess ? BookingFormat.Amount(ReturnCharges.TotalOf(final.Value)) : "—")</td>
+                @if (Editable)
+                {
+                    <td></td>
+                }
+            </tr>
+        </tfoot>
+    </table>
+</div>
+@if (_rows.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-2">@L["Charges.None"]</MudText>
+}
+<MudText Typo="Typo.body2" Class="mt-2">
+    @L[Preview.FranchiseReduced ? "Charges.FranchiseReduced" : "Charges.Franchise", BookingFormat.Amount(Preview.Franchise)]
+</MudText>
+@if (final.IsFailure && Editable)
+{
+    <Notice Kind="NoticeKind.Warning" Class="mt-2" Role="status">@ErrorMessages.For(Shared, final.Error)</Notice>
+}
+
+@if (Editable)
+{
+    <MudGrid Spacing="2" Class="mt-3">
+        @if (NewDamages.Count > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="pa-3">
+                    <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Charges.AddDamage"]</MudText>
+                    <MudSelect T="Guid?" @bind-Value="_damage" Label="@L["Charges.Damage"]" ToStringFunc="DamageName" Class="mt-1">
+                        @foreach (var damage in NewDamages)
+                        {
+                            <MudSelectItem T="Guid?" Value="@damage.Id">@DamageName(damage.Id)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudNumericField T="decimal?" @bind-Value="_damageAmount" Label="@L["Charges.DamageAmount"]" Min="0m" Format="N3" HideSpinButtons="true"
+                                     Adornment="Adornment.End" AdornmentText="TND" Class="mt-1" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="handover-touch mt-2" OnClick="AddDamage"
+                               Disabled="@(_damage is null || _damageAmount is not > 0m)">@L["Charges.AddLine"]</MudButton>
+                </MudPaper>
+            </MudItem>
+        }
+        <MudItem xs="12" md="6">
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudText Typo="Typo.subtitle2" HtmlTag="h3">@L["Charges.AddOther"]</MudText>
+                <MudTextField T="string" @bind-Value="_otherDescription" Label="@L["Charges.Description"]" MaxLength="ReturnCharge.DescriptionMaxLength" Class="mt-1" />
+                <MudNumericField T="decimal?" @bind-Value="_otherAmount" Label="@L["Charges.OtherAmount"]" Min="0m" Format="N3" HideSpinButtons="true"
+                                 Adornment="Adornment.End" AdornmentText="TND" Class="mt-1" />
+                <MudTextField T="string" @bind-Value="_otherReason" Label="@L["Charges.Reason"]" MaxLength="Inspection.ReasonMaxLength" Class="mt-1" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="handover-touch mt-2" OnClick="AddOther"
+                           Disabled="@(string.IsNullOrWhiteSpace(_otherDescription) || string.IsNullOrWhiteSpace(_otherReason) || _otherAmount is not > 0m)">@L["Charges.AddLine"]</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private readonly List<ChargeRow> _rows = [];
+    private ChargesPreview? _loaded;
+    private Guid? _damage;
+    private decimal? _damageAmount;
+    private string? _otherDescription;
+    private decimal? _otherAmount;
+    private string? _otherReason;
+
+    /// <summary>The proposal and the rules of the return.</summary>
+    [Parameter, EditorRequired]
+    public ChargesPreview Preview { get; set; } = default!;
+
+    /// <summary>The charges recorded already (revision after the return), shown instead of the proposal.</summary>
+    [Parameter]
+    public IReadOnlyList<ReturnChargeView>? Recorded { get; set; }
+
+    /// <summary>The damages marked new at this return (what a repair refers to).</summary>
+    [Parameter]
+    public IReadOnlyList<DamageMarkView> NewDamages { get; set; } = [];
+
+    [Parameter]
+    public bool Editable { get; set; }
+
+    /// <summary>The charges as the agent edited them: the proposed lines whose price changed, and the lines added.</summary>
+    public IReadOnlyList<ReturnChargeInput> Inputs =>
+        [.. _rows.Where(r => !r.Proposed || r.Changed).Select(r => new ReturnChargeInput(r.Kind, r.Quantity, r.UnitPrice, r.Description, r.Reason, r.DamageMarkId))];
+
+    /// <summary>Whether the edited charges follow the rules (a reason for each change…).</summary>
+    public bool IsValid => Final.IsSuccess;
+
+    /// <summary>The final lines as the server will compute them (the cap line included), or why they are refused.</summary>
+    private Result<IReadOnlyList<ReturnChargeLine>> Final => ReturnCharges.Finalize(
+        [.. Preview.Proposal.Select(p => new ReturnChargeLine(p.Kind, p.Quantity, p.UnitPrice, p.ExclVat, p.Vat, p.InclVat, p.VatRate, p.LabelArguments, p.Description, p.Reason, p.DamageMarkId, p.ProposedInclVat))],
+        Inputs,
+        Preview.Franchise,
+        Preview.Policy.VatRate,
+        [.. NewDamages.Select(d => d.Id)]);
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_loaded, Preview))
+        {
+            return;
+        }
+
+        _loaded = Preview;
+        _rows.Clear();
+        foreach (var line in Preview.Proposal)
+        {
+            _rows.Add(ChargeRow.From(line, proposed: true));
+        }
+
+        // A revision starts from what was recorded: the agent's earlier changes and lines are kept.
+        foreach (var line in Recorded ?? [])
+        {
+            if (line.Kind == ReturnChargeKind.FranchiseCap)
+            {
+                continue;
+            }
+
+            var proposed = _rows.FirstOrDefault(r => r.Proposed && r.Kind == line.Kind);
+            if (proposed is not null)
+            {
+                proposed.UnitPrice = line.UnitPrice.Amount;
+                proposed.Reason = line.Reason;
+            }
+            else if (line.ProposedInclVat is null)
+            {
+                _rows.Add(ChargeRow.From(line, proposed: false));
+            }
+        }
+
+    }
+
+    private string Label(ChargeRow row) => HandoverText.Charge(key => L[key], row.Kind, row.Arguments, row.Description ?? DamageDescription(row.DamageMarkId), CultureInfo.CurrentCulture);
+
+    private string? DamageDescription(Guid? damageId) => damageId is { } id ? DamageName(id) : null;
+
+    private string DamageName(Guid? damageId)
+    {
+        var damage = NewDamages.FirstOrDefault(d => d.Id == damageId);
+        return damage is null ? string.Empty : L["Charges.DamageName", damage.Number, L[$"DamageType.{damage.Type}"], L[$"DamageView.{damage.View}"]];
+    }
+
+    private void Waive(ChargeRow row) => row.UnitPrice = 0m;
+
+    private void AddDamage()
+    {
+        if (_damage is { } damage && _damageAmount is > 0m and var amount)
+        {
+            _rows.Add(new ChargeRow { Kind = ReturnChargeKind.Damage, Quantity = 1, UnitPrice = amount, DamageMarkId = damage });
+            (_damage, _damageAmount) = (null, null);
+        }
+    }
+
+    private void AddOther()
+    {
+        if (_otherAmount is > 0m and var amount)
+        {
+            _rows.Add(new ChargeRow { Kind = ReturnChargeKind.Other, Quantity = 1, UnitPrice = amount, Description = _otherDescription?.Trim(), Reason = _otherReason?.Trim() });
+            (_otherDescription, _otherAmount, _otherReason) = (null, null, null);
+        }
+    }
+
+    private sealed class ChargeRow
+    {
+        public ReturnChargeKind Kind { get; init; }
+
+        public int Quantity { get; init; }
+
+        public decimal UnitPrice { get; set; }
+
+        public decimal? ProposedUnitPrice { get; init; }
+
+        public IReadOnlyList<string> Arguments { get; init; } = [];
+
+        public string? Description { get; init; }
+
+        public string? Reason { get; set; }
+
+        public Guid? DamageMarkId { get; init; }
+
+        public bool Proposed => ProposedUnitPrice is not null;
+
+        public bool Changed => Proposed && UnitPrice != ProposedUnitPrice;
+
+        public static ChargeRow From(ReturnChargeView line, bool proposed) => new()
+        {
+            Kind = line.Kind,
+            Quantity = line.Quantity,
+            UnitPrice = line.UnitPrice.Amount,
+            ProposedUnitPrice = proposed ? line.UnitPrice.Amount : null,
+            Arguments = line.LabelArguments,
+            Description = line.Description,
+            Reason = proposed ? null : line.Reason,
+            DamageMarkId = line.DamageMarkId,
+        };
+    }
+}

@@ -1,0 +1,658 @@
+@page "/admin/handovers/{BookingId:guid}/return"
+@attribute [HasPermission(Permissions.HandoversManage)]
+@* The return on the tablet (SPEC §6 "Retour", ADR-0041 and ADR-0042), one step per screen, resumable: mileage / fuel /
+   accessories, photos beside the departure ones, damages compared with the departure (the new ones flagged), the
+   charges proposed (editable with a reason, damages capped at the franchise) and the completion, the payment and the
+   deposit decision, the closing of the file. A preparer sees the inspection steps only. *@
+@using CarRental.Application.Payments.Contracts
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<BookingsResources> B
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@Title</PageTitle>
+<HandoverStyles />
+<BookingStyles />
+
+<MudLink Href="/admin/handovers" Class="d-inline-flex align-center gap-1 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" aria-hidden="true" />@L["Back.Day"]
+</MudLink>
+
+@if (_context is not { } context)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@Title</MudText>
+    @if (_error is not null)
+    {
+        <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+}
+else
+{
+    var booking = context.Booking;
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
+        <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="true">@Title</MudText>
+        <BookingStatusChip Status="booking.Status" />
+        @if (booking.IsLate)
+        {
+            <span class="handover-state handover-state--blocked"><MudIcon Icon="@Icons.Material.Filled.AlarmOn" Size="Size.Small" aria-hidden="true" />@L["Return.Late"]</span>
+        }
+    </MudStack>
+    <MudText Typo="Typo.body2" Class="mb-3">
+        @L["Return.Planned", BookingFormat.Instant(booking.ReturnAt), booking.ReturnLocation] · @(context.Vehicle?.PlateNumber ?? "—")
+        · <MudLink Href="@($"/admin/bookings/{booking.Id}")" Underline="Underline.Always">@L["Back.Booking"]</MudLink>
+    </MudText>
+
+    @if (booking.Status is not (BookingStatus.InProgress or BookingStatus.Returned or BookingStatus.Closed))
+    {
+        <Notice Kind="NoticeKind.Info">@L["Return.NotPossible", B[$"Status.{booking.Status}"]]</Notice>
+        @if (booking.Status == BookingStatus.Confirmed)
+        {
+            <MudButton Href="@($"/admin/handovers/{booking.Id}/departure")" Variant="Variant.Outlined" Class="handover-touch mt-3">@L["Return.ToDeparture"]</MudButton>
+        }
+    }
+    else if (context.Inspection is not { } inspection)
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+    }
+    else
+    {
+        var steps = StepsOf(context);
+        var index = Math.Max(0, steps.ToList().FindIndex(s => s.Key == _step));
+        var readOnly = !inspection.IsDraft;
+        @if (context.IsClosed)
+        {
+            <Notice Kind="NoticeKind.Success" Role="status" Class="mb-3" data-testid="return-closed">@L["Return.Closed"]</Notice>
+        }
+        <HandoverSteps Steps="steps" Current="@_step" Label="@L["Return.Steps"]" OnSelect="GoTo" />
+        <MudPaper Elevation="1" Class="handover-panel" data-step-panel="@_step">
+            <h2 class="mud-typography mud-typography-h5 handover-heading mb-3" tabindex="-1" @ref="_heading">@steps[index].Title</h2>
+            @switch (_step)
+            {
+                case "readings":
+                    <ReadingsForm Inspection="inspection" Departure="context.Departure" MissingAccessories="context.MissingAccessories" ReadOnly="readOnly"
+                                  SaveText="@L["Readings.SaveContinue"]" OnSaved="@(() => SavedAsync("readings"))" />
+                    break;
+                case "photos":
+                    @Photos(context, inspection, readOnly)
+                    break;
+                case "damages":
+                    @Damages(context, inspection, readOnly)
+                    break;
+                case "charges":
+                    @Charges(context, inspection)
+                    break;
+                case "payment":
+                    @Payment(context)
+                    break;
+                default:
+                    @Close(context)
+                    break;
+            }
+            <div class="handover-actions">
+                @if (index > 0)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => GoTo(steps[index - 1].Key))">@L["Steps.Previous"]</MudButton>
+                }
+                else
+                {
+                    <span></span>
+                }
+                @if (index < steps.Count - 1 && steps[index + 1].Enabled && (_step != "readings" || steps[index].Done))
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" OnClick="@(() => GoTo(steps[index + 1].Key))"
+                               data-testid="step-next">@L["Steps.Next"]</MudButton>
+                }
+            </div>
+        </MudPaper>
+    }
+}
+
+@code {
+    private ReturnContext? _context;
+    private string? _error;
+    private Guid? _loadedFor;
+    private string? _urlStep;
+    private string _step = string.Empty;
+    private ElementReference _heading;
+    private bool _rendered;
+    private bool _focusHeading;
+    private bool _busy;
+    private string? _returnText;
+    private ChargesPreview? _preview;
+    private string? _previewError;
+    private ChargesEditor? _editor;
+    private bool _revising;
+    private readonly HashSet<string> _visited = [];
+
+    [Parameter]
+    public Guid BookingId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "step")]
+    public string? Step { get; set; }
+
+    private string Title => _context is { } context ? L["Return.Title", context.Booking.Number] : L["Return.TitleLoading"];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Loaded once interactive: the prerendered pass would read the file (and start the draft) for nothing.
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        if (_loadedFor != BookingId)
+        {
+            _loadedFor = BookingId;
+            (_context, _preview, _step, _returnText) = (null, null, string.Empty, null);
+            await LoadAsync();
+        }
+
+        if (_context is not null && (Step != _urlStep || _step.Length == 0))
+        {
+            _urlStep = Step;
+            SelectStep();
+        }
+
+        if (_step == "charges" && _preview is null)
+        {
+            await PreviewAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _rendered = true;
+        if (_focusHeading && !string.IsNullOrEmpty(_heading.Id))
+        {
+            _focusHeading = false;
+            await _heading.FocusAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        var id = BookingId;
+        var result = await Runner.RunAsync<ReturnService, Result<ReturnContext>>(async (service, ct) =>
+        {
+            var context = await service.GetContextAsync(id, ct);
+            if (context.IsFailure || context.Value.Booking.Status != BookingStatus.InProgress
+                || (context.Value.Inspection is { } draft && draft.VehicleId == context.Value.Vehicle?.Id))
+            {
+                return context;
+            }
+
+            // The first visit (or a vehicle swapped since) starts the draft: the return can be resumed from any tablet.
+            var started = await service.StartAsync(id, ct);
+            return started.IsFailure ? started.Error : await service.GetContextAsync(id, ct);
+        });
+        if (result.IsSuccess)
+        {
+            _context = result.Value;
+            _error = null;
+            if (_returnText is null && _context.Inspection is { } inspection)
+            {
+                var at = _context.Booking.ActualReturnAt ?? Earliest(inspection.StartedAtUtc, Clock.GetUtcNow());
+                _returnText = BookingFormat.ToLocalInput(at);
+            }
+        }
+        else
+        {
+            _context = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private static DateTimeOffset Earliest(DateTimeOffset first, DateTimeOffset second) => first < second ? first : second;
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+        if (_context is { } context && !StepsOf(context).Any(s => s.Key == _step && s.Enabled))
+        {
+            SelectStep();
+        }
+
+        if (_step == "charges")
+        {
+            await PreviewAsync();
+        }
+    }
+
+    private IReadOnlyList<HandoverStep> StepsOf(ReturnContext context)
+    {
+        var inspection = context.Inspection;
+        var returned = context.IsReturned;
+        var readings = inspection is { Mileage: not null, FuelEighths: not null, Accessories: not null };
+        var steps = new List<HandoverStep>
+        {
+            new("readings", L["Return.Step.Readings"], readings),
+            new("photos", L["Return.Step.Photos"], returned || _visited.Contains("photos") || inspection is { Photos.Count: > 0 }),
+            new("damages", L["Return.Step.Damages"], returned || _visited.Contains("damages")),
+        };
+        if (context.Can.Counter)
+        {
+            steps.Add(new("charges", L["Return.Step.Charges"], returned, readings || returned));
+            steps.Add(new("payment", L["Return.Step.Payment"], returned && context.Balance.Balance.IsZero && context.Balance.DepositsHeldCount == 0, returned));
+            steps.Add(new("close", L["Return.Step.Close"], context.IsClosed, returned));
+        }
+
+        return steps;
+    }
+
+    private void SelectStep()
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+
+        var steps = StepsOf(context);
+        var wanted = steps.FirstOrDefault(s => s.Key == Step && s.Enabled)?.Key
+                     ?? steps.FirstOrDefault(s => !s.Done && s.Enabled)?.Key
+                     ?? steps[^1].Key;
+        if (wanted != _step)
+        {
+            _step = wanted;
+            _visited.Add(wanted);
+            _focusHeading = _rendered;
+        }
+    }
+
+    private void GoTo(string key) => Navigation.NavigateTo(Navigation.GetUriWithQueryParameter("step", key));
+
+    /// <summary>After the save of a step, the next one (when open).</summary>
+    private async Task SavedAsync(string step)
+    {
+        await ReloadAsync();
+        if (_context is not { } context)
+        {
+            return;
+        }
+
+        var steps = StepsOf(context);
+        var index = steps.ToList().FindIndex(s => s.Key == step);
+        if (index >= 0 && index < steps.Count - 1 && steps[index + 1].Enabled)
+        {
+            GoTo(steps[index + 1].Key);
+        }
+    }
+
+    private async Task<bool> RunAsync<TService>(Func<TService, CancellationToken, Task<Result>> action, string? success = null)
+        where TService : notnull
+    {
+        _busy = true;
+        var result = await Runner.RunAsync(action);
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+        else if (success is not null)
+        {
+            Snackbar.Add(success, Severity.Success);
+        }
+
+        await ReloadAsync();
+        return result.IsSuccess;
+    }
+
+    // ----- Photos ------------------------------------------------------------------------------------------------
+
+    private RenderFragment Photos(ReturnContext context, InspectionView inspection, bool readOnly) => __builder =>
+    {
+        <MudText Typo="Typo.body1" Class="mb-3">@L["Return.PhotosIntro"]</MudText>
+        <div class="handover-photos">
+            @foreach (var slot in PhotoSlots.Guided)
+            {
+                <PhotoSlotCapture InspectionId="inspection.Id" Slot="slot" Title="@L[$"Photo.Slot.{slot}"]" Hint="@L[$"Photo.Hint.{slot}"]"
+                                  Photo="@inspection.Photos.LastOrDefault(p => p.Slot == slot)" Comparison="@context.Departure?.Photos.LastOrDefault(p => p.Slot == slot)"
+                                  ReadOnly="readOnly" OnChanged="ReloadAsync" />
+            }
+        </div>
+        <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Photos.Others"]</MudText>
+        <div class="handover-photos mt-2">
+            @foreach (var photo in inspection.Photos.Where(p => p.Slot == PhotoSlot.Other))
+            {
+                <PhotoSlotCapture InspectionId="inspection.Id" Slot="PhotoSlot.Other" Title="@L["Photo.Slot.Other"]" Photo="photo" CanRemove="true" ReadOnly="readOnly" OnChanged="ReloadAsync" />
+            }
+            @if (!readOnly)
+            {
+                <PhotoSlotCapture InspectionId="inspection.Id" Slot="PhotoSlot.Other" Title="@L["Photo.AddOther"]" OnChanged="ReloadAsync" />
+            }
+        </div>
+    };
+
+    // ----- Damages -----------------------------------------------------------------------------------------------
+
+    private RenderFragment Damages(ReturnContext context, InspectionView inspection, bool readOnly) => __builder =>
+    {
+        var added = inspection.Damages.Count(d => !d.IsPreExisting);
+        <MudText Typo="Typo.body1" Class="mb-3" role="status" data-testid="new-damages">
+            @(added == 0 ? L["Return.NoNewDamage"] : L["Return.NewDamages", added])
+        </MudText>
+        <div class="handover-compare">
+            <section aria-labelledby="damages-departure">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="damages-departure" Class="mb-2">@L["Return.AtDeparture"]</MudText>
+                @if (context.Departure is { } departure)
+                {
+                    <DamageSchematic Damages="departure.Damages" TestId="schematic-departure" />
+                    @if (departure.Damages.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@L["Damages.None"]</MudText>
+                    }
+                    else
+                    {
+                        <ul class="handover-list mt-2" aria-label="@L["Return.DepartureDamages"]">
+                            @foreach (var damage in departure.Damages)
+                            {
+                                <li>
+                                    <strong>@L["Damage.Number", damage.Number]</strong>
+                                    <span>@L[$"DamageType.{damage.Type}"] · @L[$"DamageSeverity.{damage.Severity}"] · @L[$"DamageView.{damage.View}"]</span>
+                                    @if (!string.IsNullOrEmpty(damage.Note))
+                                    {
+                                        <span class="handover-muted">@damage.Note</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">@L["Return.NoDeparture"]</MudText>
+                }
+            </section>
+            <section aria-labelledby="damages-return">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="damages-return" Class="mb-2">@L["Return.AtReturn"]</MudText>
+                <DamageEditor Inspection="inspection" ReadOnly="readOnly" OnChanged="ReloadAsync" />
+            </section>
+        </div>
+        if (!readOnly && inspection.Damages.Any(d => !d.IsPreExisting))
+        {
+            <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4">@L["Damages.Photos"]</MudText>
+            <div class="handover-photos mt-2">
+                @foreach (var damage in inspection.Damages.Where(d => !d.IsPreExisting))
+                {
+                    <PhotoSlotCapture InspectionId="inspection.Id" Slot="PhotoSlot.Damage" DamageMarkId="damage.Id" Title="@L["Damage.Number", damage.Number]"
+                                      Hint="@($"{L[$"DamageType.{damage.Type}"]} · {L[$"DamageView.{damage.View}"]}")"
+                                      Photo="@inspection.Photos.LastOrDefault(p => p.DamageMarkId == damage.Id)" CanRemove="true" OnChanged="ReloadAsync" />
+                }
+            </div>
+        }
+        if (!context.Can.Counter && inspection.IsDraft && inspection.Mileage is not null)
+        {
+            <Notice Kind="NoticeKind.Success" Class="mt-4" Role="status">@L["Return.InspectionReady"]</Notice>
+        }
+    };
+
+    // ----- Charges -----------------------------------------------------------------------------------------------
+
+    private RenderFragment Charges(ReturnContext context, InspectionView inspection) => __builder =>
+    {
+        var returned = context.IsReturned;
+        if (!returned)
+        {
+            <MudGrid Spacing="3" Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Value="_returnText" ValueChanged="ReturnChangedAsync" Label="@L["Charges.ReturnAt"]" InputType="InputType.DateTimeLocal"
+                                  ShrinkLabel="true" InputId="return-at" HelperText="@L["Charges.ReturnAtHelp", BookingFormat.Instant(context.Booking.ReturnAt)]" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">@L["Charges.ReturnedAt", BookingFormat.Instant(context.Booking.ActualReturnAt)]</MudText>
+        }
+
+        if (_preview is not { } preview)
+        {
+            if (_previewError is not null)
+            {
+                <Notice Kind="NoticeKind.Warning">@_previewError</Notice>
+            }
+            else
+            {
+                <MudProgressLinear Indeterminate="true" aria-label="@L["Charges.Loading"]" />
+            }
+
+            return;
+        }
+
+        <dl class="handover-facts mb-3" data-testid="charges-facts">
+            <dt>@L["Charges.Driven"]</dt>
+            <dd>@(context.Departure?.Mileage is { } start && inspection.Mileage is { } end ? HandoverText.Kilometres(end - start, CultureInfo.CurrentCulture) : "—")</dd>
+            <dt>@L["Charges.Included"]</dt>
+            <dd>@(preview.Policy.IncludedKmPerDay == 0 ? L["Charges.Unlimited"] : L["Charges.IncludedValue", preview.Policy.IncludedKmPerDay * preview.ChargedDays, preview.Policy.IncludedKmPerDay])</dd>
+            <dt>@L["Charges.Fuel"]</dt>
+            <dd>@HandoverText.Fuel(context.Departure?.FuelEighths) → @HandoverText.Fuel(inspection.FuelEighths)</dd>
+            <dt>@L["Charges.LateDays"]</dt>
+            <dd data-testid="late-days">@preview.LateDays</dd>
+        </dl>
+        if (preview.PricingError is { } pricingError)
+        {
+            <Notice Kind="NoticeKind.Warning" Class="mb-3">@L["Charges.PricingFailed", ErrorMessages.For(Shared, pricingError)]</Notice>
+        }
+
+        var editable = context.Can.EditCharges && (!returned || (_revising && !context.IsClosed));
+        if (returned && !_revising)
+        {
+            <ChargesEditor Preview="preview" Recorded="inspection.Charges" NewDamages="NewDamages(inspection)" Editable="false" />
+            <MudText Typo="Typo.body1" Class="mt-2"><strong>@L["Charges.Recorded", BookingFormat.Amount(inspection.ChargesTotal)]</strong></MudText>
+            if (context.Can.EditCharges && !context.IsClosed)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit" Class="handover-touch mt-3" OnClick="@(() => _revising = true)">@L["Charges.Revise"]</MudButton>
+            }
+        }
+        else
+        {
+            <ChargesEditor @ref="_editor" @key="preview" Preview="preview" Recorded="@(returned ? inspection.Charges : null)" NewDamages="NewDamages(inspection)" Editable="editable" />
+            if (!context.Can.EditCharges)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">@L["Charges.ProposalOnly"]</MudText>
+            }
+            <div class="d-flex flex-wrap gap-3 mt-3">
+                @if (returned)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _revising = false)">@Shared["Cancel"]</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Class="handover-touch" OnClick="ReviseAsync" Disabled="_busy">
+                        @L["Charges.SaveRevision"]
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" StartIcon="@Icons.Material.Filled.AssignmentTurnedIn" Class="handover-touch"
+                               OnClick="CompleteAsync" Disabled="@(_busy || inspection.Mileage is null)" data-testid="return-complete">@L["Charges.Complete"]</MudButton>
+                }
+            </div>
+        }
+    };
+
+    private static IReadOnlyList<DamageMarkView> NewDamages(InspectionView inspection) => [.. inspection.Damages.Where(d => !d.IsPreExisting)];
+
+    private DateTimeOffset? ReturnAt() => _context?.Booking.ActualReturnAt ?? BookingFormat.FromLocalInput(_returnText);
+
+    private async Task ReturnChangedAsync(string? value)
+    {
+        _returnText = value;
+        _preview = null;
+        await PreviewAsync();
+    }
+
+    private async Task PreviewAsync()
+    {
+        if (ReturnAt() is not { } at)
+        {
+            _preview = null;
+            _previewError = L["Charges.ReturnAtInvalid"];
+            return;
+        }
+
+        var id = BookingId;
+        var result = await Runner.RunAsync<ReturnService, Result<ChargesPreview>>((service, ct) => service.PreviewChargesAsync(id, at, ct));
+        _preview = result.IsSuccess ? result.Value : null;
+        _previewError = result.IsSuccess ? null : ErrorMessages.For(Shared, result.Error);
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (_preview is not { } preview || ReturnAt() is not { } at)
+        {
+            return;
+        }
+
+        if (at > Clock.GetUtcNow())
+        {
+            Snackbar.Add(L["Charges.ReturnInFuture"], Severity.Error);
+            return;
+        }
+
+        if (_editor is { IsValid: false })
+        {
+            Snackbar.Add(L["Charges.Invalid"], Severity.Error);
+            return;
+        }
+
+        var request = new CompleteReturnRequest(BookingId, at, _editor?.Inputs ?? [], preview.ProposalTotal);
+        _busy = true;
+        var result = await Runner.RunAsync<ReturnService, Result<ReturnOutcome>>((service, ct) => service.CompleteAsync(request, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            _preview = null;
+            await ReloadAsync();
+            return;
+        }
+
+        Snackbar.Add(L["Charges.Completed", BookingFormat.Amount(result.Value.ChargesTotal), BookingFormat.Amount(result.Value.Balance)], Severity.Success);
+        _preview = null;
+        await SavedAsync("charges");
+    }
+
+    private async Task ReviseAsync()
+    {
+        if (_preview is not { } preview || _editor is not { } editor)
+        {
+            return;
+        }
+
+        if (!editor.IsValid)
+        {
+            Snackbar.Add(L["Charges.Invalid"], Severity.Error);
+            return;
+        }
+
+        var id = BookingId;
+        var inputs = editor.Inputs;
+        var total = preview.ProposalTotal;
+        if (await RunAsync<ReturnService>((service, ct) => service.ReviseChargesAsync(id, inputs, total, ct), L["Charges.Revised"]))
+        {
+            _revising = false;
+        }
+    }
+
+    // ----- Payment and deposit -----------------------------------------------------------------------------------
+
+    private RenderFragment Payment(ReturnContext context) => __builder =>
+    {
+        var balance = context.Balance;
+        var held = context.Deposits.Where(d => d.Status == DepositStatusInfo.Held).ToList();
+        <dl class="handover-facts mb-3" data-testid="return-money">
+            <dt>@L["Money.Total"]</dt>
+            <dd>@BookingFormat.Amount(balance.QuoteTotalInclVat)</dd>
+            <dt>@L["Money.Charges"]</dt>
+            <dd>@BookingFormat.Amount(balance.ChargesInclVat)</dd>
+            <dt>@L["Money.NetPaid"]</dt>
+            <dd>@BookingFormat.Amount(balance.NetPaid)</dd>
+            @if (balance.DepositsRetained.IsPositive)
+            {
+                <dt>@L["Money.Retained"]</dt>
+                <dd>@BookingFormat.Amount(balance.DepositsRetained)</dd>
+            }
+            <dt>@L["Money.Balance"]</dt>
+            <dd data-testid="return-balance"><strong>@BookingFormat.Amount(balance.Balance)</strong> @BalanceHint(balance)</dd>
+            <dt>@L["Money.DepositsHeld"]</dt>
+            <dd data-testid="return-deposit">@BookingFormat.Amount(balance.DepositsHeld) (@balance.DepositsHeldCount)</dd>
+        </dl>
+        if (context.Can.ManagePayments && held.Count == 1)
+        {
+            var deposit = held[0];
+            var retain = balance.Balance.IsPositive ? (balance.Balance < deposit.Amount ? balance.Balance : deposit.Amount) : Money.Zero;
+            <MudPaper Outlined="true" Class="pa-3 mb-3" data-testid="deposit-decision">
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3">@L["Deposit.Decision"]</MudText>
+                @if (retain.IsPositive)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">@L["Deposit.RetainSuggestion", BookingFormat.Amount(retain), BookingFormat.Amount(deposit.Amount - retain)]</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="handover-touch" OnClick="@(() => RetainAsync(deposit.Id, retain))" Disabled="_busy"
+                               data-testid="deposit-retain">@L["Deposit.Retain", BookingFormat.Amount(retain)]</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">@L["Deposit.ReleaseSuggestion", BookingFormat.Amount(deposit.Amount)]</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="handover-touch" OnClick="@(() => ReleaseAsync(deposit.Id))" Disabled="_busy"
+                               data-testid="deposit-release">@L["Deposit.Release"]</MudButton>
+                }
+            </MudPaper>
+        }
+        <BookingPaymentsPanel BookingId="context.Booking.Id" AgencyId="context.Booking.AgencyId"
+                              AmountDue="@(balance.Balance.IsPositive ? balance.Balance.Amount : null)" ReadOnly="context.IsClosed" OnChanged="ReloadAsync" />
+    };
+
+    private string BalanceHint(BookingBalanceInfo balance) =>
+        balance.Balance.IsPositive ? L["Money.BalanceDue"] : balance.Balance.IsNegative ? L["Money.BalanceRefund"] : L["Money.BalanceSettled"];
+
+    private async Task RetainAsync(Guid depositId, Money amount)
+    {
+        var request = new DepositRetentionRequest(amount.Amount, L["Deposit.Justification", _context?.Booking.Number ?? string.Empty]);
+        await RunAsync<IDeposits>((deposits, ct) => deposits.RetainAsync(depositId, request, ct), L["Deposit.Retained", BookingFormat.Amount(amount)]);
+    }
+
+    private async Task ReleaseAsync(Guid depositId) =>
+        await RunAsync<IDeposits>((deposits, ct) => deposits.ReleaseAsync(depositId, ct), L["Deposit.Released"]);
+
+    // ----- Close -------------------------------------------------------------------------------------------------
+
+    private RenderFragment Close(ReturnContext context) => __builder =>
+    {
+        var settled = context.Balance.Balance.IsZero;
+        var noDeposit = context.Balance.DepositsHeldCount == 0;
+        if (context.IsClosed)
+        {
+            <HandoverSummaryPanel BookingId="context.Booking.Id" Status="context.Booking.Status" />
+            return;
+        }
+
+        <ul class="handover-checklist mb-3" data-testid="close-checks">
+            <li class="handover-check">
+                <MudIcon Icon="@(settled ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)" Size="Size.Small" aria-hidden="true" />
+                <span>@(settled ? L["Close.Settled"] : L["Close.BalanceDue", BookingFormat.Amount(context.Balance.Balance)])</span>
+            </li>
+            <li class="handover-check">
+                <MudIcon Icon="@(noDeposit ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)" Size="Size.Small" aria-hidden="true" />
+                <span>@(noDeposit ? L["Close.NoDeposit"] : L["Close.DepositHeld", context.Balance.DepositsHeldCount])</span>
+            </li>
+        </ul>
+        if (context.Can.Close)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" StartIcon="@Icons.Material.Filled.Lock" Class="handover-touch"
+                       OnClick="CloseAsync" Disabled="@(_busy || !settled || !noDeposit)" data-testid="return-close">@L["Close.Submit"]</MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">@L["Close.NotAllowed"]</MudText>
+        }
+    };
+
+    private async Task CloseAsync()
+    {
+        var id = BookingId;
+        await RunAsync<ReturnService>((service, ct) => service.CloseAsync(id, ct), L["Close.Done"]);
+    }
+}

@@ -1,0 +1,78 @@
+@* The rental contract as it will be printed (same document as the PDF, without the signatures), to read with the
+   customer before signing; scrollable region reachable with the keyboard. *@
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<QuoteResources> Quotes
+@inject IStringLocalizer<BookingsResources> Bookings
+
+<div class="handover-contract" tabindex="0" role="region" aria-label="@L["Contract.PreviewLabel", Document.Number]" data-testid="contract-preview">
+    <MudText Typo="Typo.h6" HtmlTag="h3">@L["Contract.Title"] — @L["Contract.Number", Document.Number, Document.Version]</MudText>
+    <MudText Typo="Typo.body2">@Document.Agency.Name · @Document.Agency.City</MudText>
+
+    <h3>@L["Contract.Rental"]</h3>
+    <dl class="handover-facts">
+        <dt>@L["Contract.Pickup"]</dt>
+        <dd>@BookingFormat.Instant(Document.Rental.PickupAt) · @Document.Rental.PickupLocation</dd>
+        <dt>@L["Contract.Return"]</dt>
+        <dd>@BookingFormat.Instant(Document.Rental.ReturnAt) · @Document.Rental.ReturnLocation</dd>
+        <dt>@L["Contract.Duration"]</dt>
+        <dd>@L["Contract.Days", Document.Rental.Days]</dd>
+    </dl>
+
+    <h3>@L["Contract.Drivers"]</h3>
+    @foreach (var driver in Document.Drivers)
+    {
+        <p class="ma-0"><strong>@driver.FullName</strong> — @L[$"Contract.Role.{driver.Role}"]</p>
+        <ul class="ma-0">
+            @foreach (var piece in driver.Documents)
+            {
+                <li>@(piece.ExpiresOn is { } expiry
+                        ? L["Contract.Document", L[$"Contract.DocumentType.{piece.Type}"], piece.MaskedNumber, piece.IssuingCountry, BookingFormat.Date(expiry)]
+                        : L["Contract.DocumentNoExpiry", L[$"Contract.DocumentType.{piece.Type}"], piece.MaskedNumber, piece.IssuingCountry])</li>
+            }
+        </ul>
+    }
+
+    <h3>@L["Contract.Vehicle"]</h3>
+    <p class="ma-0">@L["Contract.VehicleLine", Document.Vehicle.PlateNumber, Document.Vehicle.Make, Document.Vehicle.Model, Document.Vehicle.Year, Document.Vehicle.CategoryCode, Document.Vehicle.CategoryName]</p>
+    <p class="ma-0">@L["Contract.Mileage", Document.Inspection.Mileage.ToString("N0", CultureInfo.CurrentCulture)] · @L["Contract.Fuel", HandoverText.Fuel(Document.Inspection.FuelEighths)]</p>
+    <p class="ma-0">@L["Contract.DamageCount", Document.Inspection.Damages.Count]</p>
+
+    <h3>@L["Contract.Price"]</h3>
+    <div class="handover-scroll">
+        <table class="handover-lines">
+            <caption class="visually-hidden">@L["Contract.Price"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["Contract.Column.Label"]</th>
+                    <th scope="col" class="handover-number">@L["Contract.Column.Quantity"]</th>
+                    <th scope="col" class="handover-number">@L["Contract.Column.InclVat"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in Document.Price.Lines)
+                {
+                    <tr>
+                        <td>@BookingFormat.LineLabel(Quotes, Bookings, line)</td>
+                        <td class="handover-number">@line.Quantity</td>
+                        <td class="handover-number">@BookingFormat.Amount(line.InclVat)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row" colspan="2">@L["Contract.Column.TotalInclVat"]</th>
+                    <td class="handover-number" data-testid="contract-total">@BookingFormat.Amount(Document.Price.TotalInclVat)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="ma-0">@L["Contract.DepositRequired", BookingFormat.Amount(Document.Deposit.Required)] · @L["Contract.Franchise", BookingFormat.Amount(Document.Deposit.Franchise)]</p>
+
+    <h3>@L["Contract.Terms"]</h3>
+    <p class="ma-0">@L["Contract.TermsText", Document.TermsReference]</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RentalContractDocument Document { get; set; } = default!;
+}

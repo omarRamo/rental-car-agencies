@@ -1,0 +1,204 @@
+@* One view of the photos of an inspection: the camera of the tablet (accept image/*, capture environment), the photo
+   reduced in the browser to about 1 600 px with a thumbnail (js/admin/handover-photos.js), then uploaded; the
+   thumbnail is shown and the view can be retaken. The server checks the real type and the size again. *@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<div class="@($"handover-photo{(Photo is null && Required ? " handover-photo--missing" : string.Empty)}")" data-slot="@Slot" data-has-photo="@(Photo is null ? "false" : "true")">
+    <div class="@(Comparison is null ? null : "handover-photo__pair")">
+        @if (Comparison is { } before)
+        {
+            <figure class="ma-0">
+                <div class="handover-photo__frame">
+                    <img src="@HandoverMedia.PhotoUrl(before.Id, before.HasThumbnail)" alt="@L["Photo.AltDeparture", Title]" loading="lazy" />
+                </div>
+                <figcaption class="handover-photo__caption">@L["Photo.AtDeparture"]</figcaption>
+            </figure>
+        }
+        <figure class="ma-0">
+            <div class="handover-photo__frame">
+                @if (Photo is { } photo)
+                {
+                    <img src="@HandoverMedia.PhotoUrl(photo.Id, photo.HasThumbnail)" alt="@L["Photo.Alt", Title]" loading="lazy" />
+                }
+                else
+                {
+                    <span class="d-flex flex-column align-center"><MudIcon Icon="@Icons.Material.Outlined.PhotoCamera" aria-hidden="true" />@L["Photo.Missing"]</span>
+                }
+            </div>
+            @if (Comparison is not null)
+            {
+                <figcaption class="handover-photo__caption">@L["Photo.Now"]</figcaption>
+            }
+        </figure>
+    </div>
+    <div>
+        <strong>@Title</strong>
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <div class="handover-photo__caption">@Hint</div>
+        }
+    </div>
+    @if (!ReadOnly)
+    {
+        <input id="@_inputId" type="file" accept="image/*" capture="environment" class="visually-hidden" @ref="_input" @onchange="UploadAsync"
+               disabled="@_busy" data-testid="@($"photo-input-{Slot}")" />
+        <div class="d-flex flex-wrap gap-2">
+            <MudButton HtmlTag="label" for="@_inputId" Variant="@(Photo is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PhotoCamera" Class="handover-touch">
+                @(Photo is null ? L["Photo.Take"] : L["Photo.Retake"])
+            </MudButton>
+            @if (Photo is { } existing && CanRemove)
+            {
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Delete" Class="handover-touch" OnClick="@(() => RemoveAsync(existing.Id))" Disabled="_busy">
+                    @L["Photo.Remove"]
+                </MudButton>
+            }
+        </div>
+        @if (_busy)
+        {
+            <MudProgressLinear Indeterminate="true" aria-label="@L["Photo.Uploading", Title]" />
+        }
+    }
+</div>
+
+@code {
+    private const int MaxSide = 1600;
+    private const int ThumbnailSide = 320;
+
+    private readonly string _inputId = $"photo-{Guid.NewGuid():N}";
+    private ElementReference _input;
+    private IJSObjectReference? _module;
+    private bool _busy;
+
+    [Parameter, EditorRequired]
+    public Guid InspectionId { get; set; }
+
+    [Parameter, EditorRequired]
+    public PhotoSlot Slot { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>The photo of this view, if any.</summary>
+    [Parameter]
+    public InspectionPhotoView? Photo { get; set; }
+
+    /// <summary>The photo of the same view at the departure, shown beside it (return).</summary>
+    [Parameter]
+    public InspectionPhotoView? Comparison { get; set; }
+
+    /// <summary>The damage a close-up shows.</summary>
+    [Parameter]
+    public Guid? DamageMarkId { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool CanRemove { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private async Task UploadAsync(ChangeEventArgs _)
+    {
+        _busy = true;
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/admin/handover-photos.js");
+            var prepared = await _module.InvokeAsync<PreparedPhoto?>("prepare", _input, MaxSide, ThumbnailSide);
+            if (prepared is null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (prepared.Size > HandoverMedia.MaxPhotoLength)
+                {
+                    Snackbar.Add(ErrorMessages.For(Shared, HandoverErrors.ImageTooLarge), Severity.Error);
+                    return;
+                }
+
+                using var photo = await ReadAsync(prepared.Id, "photo", HandoverMedia.MaxPhotoLength);
+                using var thumbnail = prepared.HasThumbnail ? await ReadAsync(prepared.Id, "thumbnail", HandoverMedia.MaxSmallImageLength) : null;
+                var inspectionId = InspectionId;
+                var slot = Slot;
+                var damageMarkId = DamageMarkId;
+                var result = await Runner.RunAsync<HandoverInspectionService, Result<Guid>>(
+                    (service, ct) => service.UploadPhotoAsync(inspectionId, slot, photo, thumbnail, damageMarkId, ct));
+                if (result.IsFailure)
+                {
+                    Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+                    return;
+                }
+
+                Snackbar.Add(L["Photo.Done", Title], Severity.Success);
+                await OnChanged.InvokeAsync();
+            }
+            finally
+            {
+                await _module.InvokeVoidAsync("release", prepared.Id);
+            }
+        }
+        catch (JSException)
+        {
+            Snackbar.Add(L["Photo.Failed"], Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task<MemoryStream> ReadAsync(string id, string part, int maxLength)
+    {
+        await using var reference = await _module!.InvokeAsync<IJSStreamReference>("take", id, part);
+        await using var stream = await reference.OpenReadStreamAsync(maxLength);
+        var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        buffer.Position = 0;
+        return buffer;
+    }
+
+    private async Task RemoveAsync(Guid photoId)
+    {
+        _busy = true;
+        var inspectionId = InspectionId;
+        var result = await Runner.RunAsync<HandoverInspectionService, Result>((service, ct) => service.RemovePhotoAsync(inspectionId, photoId, ct));
+        _busy = false;
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        await OnChanged.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is gone: nothing to release in the browser.
+            }
+        }
+    }
+}

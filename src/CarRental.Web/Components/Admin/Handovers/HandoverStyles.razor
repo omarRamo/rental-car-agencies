@@ -1,0 +1,84 @@
+@* Styles of the departure and return screens (rendered once by each page; the back office has no CSS isolation bundle).
+   Tablet first: one step per screen, touch targets of 48 px at least, text contrast of 4.5:1 at least, a state is
+   shown by its text and an icon, never by colour alone. Logical properties for the future right-to-left layout. *@
+<style>
+    .handover-steps { margin: 0 0 1rem; }
+    .handover-steps ol { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
+    .handover-steps li { margin: 0; }
+    .handover-step { display: inline-flex; align-items: center; gap: 0.375rem; min-block-size: 48px; padding: 0.5rem 0.875rem; border: 1px solid #94a3b8; border-radius: 1.5rem; background: #ffffff; color: #1b1f24; font: inherit; font-size: 0.9375rem; cursor: pointer; }
+    .handover-step:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+    .handover-step[aria-current="step"] { border-width: 2px; border-color: #0b57d0; background: #eff6ff; font-weight: 600; }
+    .handover-step--done { border-color: #15803d; }
+    .handover-step--blocked { border-style: dashed; }
+    .handover-step__number { display: inline-grid; place-items: center; inline-size: 1.5rem; block-size: 1.5rem; border-radius: 50%; background: #e2e8f0; color: #1b1f24; font-size: 0.8125rem; font-weight: 600; }
+    .handover-step--done .handover-step__number { background: #15803d; color: #ffffff; }
+    .handover-progress { color: #4a5361; font-size: 0.875rem; }
+    .handover-heading:focus { outline: none; }
+    .handover-panel { padding: 1rem; }
+    .handover-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; margin-block-start: 1rem; }
+    .handover-actions .mud-button-root, .handover-touch.mud-button-root { min-block-size: 48px; }
+    .handover-muted { color: #4a5361; font-size: 0.875rem; }
+    .handover-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0; }
+    .handover-facts dt { color: #4a5361; font-size: 0.875rem; }
+    .handover-facts dd { margin: 0; }
+    .handover-check { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.375rem 0; list-style: none; }
+    .handover-checklist { margin: 0; padding: 0; }
+    .handover-state { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; border: 1px solid #64748b; border-radius: 1rem; font-size: 0.8125rem; color: #1b1f24; background: #ffffff; white-space: nowrap; }
+    .handover-state--ok { border-color: #15803d; background: #f0fdf4; }
+    .handover-state--todo { border-color: #b45309; background: #fffbeb; }
+    .handover-state--blocked { border-color: #b91c1c; background: #fef2f2; }
+
+    .handover-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.75rem; }
+    .handover-photo { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #ffffff; }
+    .handover-photo--missing { border-style: dashed; border-color: #b45309; }
+    .handover-photo__frame { display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 0.375rem; background: #f1f5f9; color: #4a5361; }
+    .handover-photo__frame img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+    .handover-photo__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .handover-photo__caption { font-size: 0.8125rem; color: #4a5361; }
+
+    .handover-fuel { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0.25rem 0 0; padding: 0; border: 0; }
+    .handover-fuel legend { padding: 0; margin-block-end: 0.25rem; font-weight: 500; }
+    .handover-fuel label { display: inline-grid; place-items: center; min-inline-size: 3.25rem; min-block-size: 48px; padding: 0 0.5rem; border: 1px solid #94a3b8; border-radius: 0.375rem; cursor: pointer; background: #ffffff; color: #1b1f24; }
+    .handover-fuel input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
+    .handover-fuel input:checked + span { font-weight: 700; }
+    .handover-fuel label:has(input:checked) { border-width: 2px; border-color: #0b57d0; background: #eff6ff; }
+    .handover-fuel label:has(input:focus-visible) { outline: 3px solid #0b57d0; outline-offset: 2px; }
+
+    .handover-schematics { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.75rem; }
+    .handover-schematic { margin: 0; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #ffffff; }
+    .handover-schematic figcaption { font-weight: 500; margin-block-end: 0.25rem; }
+    .handover-schematic svg { display: block; inline-size: 100%; block-size: auto; touch-action: manipulation; cursor: crosshair; }
+    .handover-schematic--readonly svg { cursor: default; }
+    .handover-schematic__body { fill: #f1f5f9; stroke: #334155; stroke-width: 1.2; }
+    .handover-schematic__detail { fill: #cbd5e1; stroke: #334155; stroke-width: 0.8; }
+    .handover-mark circle { fill: #ffffff; stroke: #1e293b; stroke-width: 1.2; }
+    .handover-mark text { fill: #1e293b; font-size: 6px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .handover-mark--new circle { fill: #b91c1c; stroke: #7f1d1d; }
+    .handover-mark--new text { fill: #ffffff; }
+    .handover-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .handover-signature { display: flex; flex-direction: column; gap: 0.5rem; }
+    .handover-signature canvas { display: block; inline-size: 100%; block-size: 11rem; border: 2px dashed #64748b; border-radius: 0.5rem; background: #ffffff; touch-action: none; cursor: crosshair; }
+    .handover-signature img { display: block; max-inline-size: 100%; block-size: 8rem; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #ffffff; }
+
+    .handover-contract { padding: 1rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: #ffffff; max-block-size: 32rem; overflow-y: auto; }
+    .handover-contract:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+    .handover-contract h3 { margin: 0.75rem 0 0.25rem; font-size: 1rem; }
+    .handover-lines { inline-size: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .handover-lines th, .handover-lines td { padding: 0.25rem 0.375rem; border-block-end: 1px solid #e2e8f0; text-align: start; vertical-align: top; }
+    .handover-lines .handover-number { text-align: end; white-space: nowrap; }
+    .handover-lines tfoot th, .handover-lines tfoot td { font-weight: 700; }
+    .handover-scroll { overflow-x: auto; }
+    .handover-scroll:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+
+    .handover-list { list-style: none; margin: 0; padding: 0; }
+    .handover-list > li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding: 0.75rem 0; border-block-end: 1px solid #e5e7eb; }
+    .handover-list > li:last-child { border-block-end: 0; }
+    .handover-ready { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+
+    @@media (max-width: 600px) {
+        .handover-compare, .handover-photo__pair { grid-template-columns: 1fr; }
+        .handover-actions { flex-direction: column-reverse; }
+        .handover-actions .mud-button-root { inline-size: 100%; }
+    }
+</style>

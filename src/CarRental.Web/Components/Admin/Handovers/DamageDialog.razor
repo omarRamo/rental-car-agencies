@@ -1,0 +1,121 @@
+@* Adds or changes a damage of the schematic: view, zone (a tap sets the exact place), type, severity, note and, at a
+   return, whether it was already there at the departure. Fully usable with the keyboard. *@
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="DamageView" Value="_view" ValueChanged="ViewChanged" Label="@L["Damage.View"]" ToStringFunc="@(v => L[$"DamageView.{v}"])">
+                    @foreach (var view in CarSchematic.Views)
+                    {
+                        <MudSelectItem T="DamageView" Value="@view">@L[$"DamageView.{view}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" Value="_zone" ValueChanged="ZoneChanged" Label="@L["Damage.Zone"]" ToStringFunc="ZoneName">
+                    @for (var zone = 0; zone < 9; zone++)
+                    {
+                        var value = zone;
+                        <MudSelectItem T="int" Value="@value">@ZoneName(value)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="DamageType" @bind-Value="_type" Label="@L["Damage.Type"]" ToStringFunc="@(t => L[$"DamageType.{t}"])">
+                    @foreach (var type in Enum.GetValues<DamageType>())
+                    {
+                        <MudSelectItem T="DamageType" Value="@type">@L[$"DamageType.{type}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="DamageSeverity" @bind-Value="_severity" Label="@L["Damage.Severity"]" ToStringFunc="@(s => L[$"DamageSeverity.{s}"])">
+                    @foreach (var severity in Enum.GetValues<DamageSeverity>())
+                    {
+                        <MudSelectItem T="DamageSeverity" Value="@severity">@L[$"DamageSeverity.{severity}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_note" Label="@L["Damage.Note"]" Lines="2" MaxLength="DamageMark.NoteMaxLength" Counter="DamageMark.NoteMaxLength" />
+            </MudItem>
+            @if (AtReturn)
+            {
+                <MudItem xs="12">
+                    <MudCheckBox T="bool" @bind-Value="_preExisting" Color="Color.Primary" Label="@L["Damage.PreExisting"]" />
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        @if (Existing is not null && CanRemove)
+        {
+            <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="Remove" Class="me-auto">@L["Damage.Remove"]</MudButton>
+        }
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">@(Existing is null ? L["Damage.Add"] : L["Damage.Save"])</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DamageView _view = DamageView.Left;
+    private int _zone = 4;
+    private decimal _x = 50m;
+    private decimal _y = 50m;
+    private DamageType _type = DamageType.Scratch;
+    private DamageSeverity _severity = DamageSeverity.Minor;
+    private string? _note;
+    private bool _preExisting;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The damage to change; a new one when <see langword="null"/>.</summary>
+    [Parameter]
+    public DamageMarkView? Existing { get; set; }
+
+    /// <summary>Where the schematic was tapped, for a new damage.</summary>
+    [Parameter]
+    public SchematicTap? Tap { get; set; }
+
+    [Parameter]
+    public bool AtReturn { get; set; }
+
+    [Parameter]
+    public bool CanRemove { get; set; } = true;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } damage)
+        {
+            (_view, _x, _y, _type, _severity, _note, _preExisting) = (damage.View, damage.X, damage.Y, damage.Type, damage.Severity, damage.Note, damage.IsPreExisting && AtReturn);
+        }
+        else if (Tap is { } tap)
+        {
+            (_view, _x, _y) = (tap.View, tap.X, tap.Y);
+        }
+
+        var (column, row) = CarSchematic.ZoneOf(_x, _y);
+        _zone = (row * 3) + column;
+    }
+
+    private string ZoneName(int zone) => L["Damage.ZoneName", L[$"Damage.Row.{zone / 3}"], L[$"Damage.Column.{zone % 3}"]];
+
+    private void ViewChanged(DamageView view) => _view = view;
+
+    private void ZoneChanged(int zone)
+    {
+        _zone = zone;
+        (_x, _y) = CarSchematic.CentreOf(zone % 3, zone / 3);
+    }
+
+    private void Submit() =>
+        Dialog.Close(DialogResult.Ok(new DamageDialogResult(new DamageInput(_view, _x, _y, _type, _severity, _note, _preExisting))));
+
+    private void Remove() => Dialog.Close(DialogResult.Ok(new DamageDialogResult(new DamageInput(_view, _x, _y, _type, _severity, _note, _preExisting), Remove: true)));
+
+    private void Cancel() => Dialog.Cancel();
+}

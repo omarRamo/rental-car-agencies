@@ -1,0 +1,252 @@
+@page "/admin/handovers"
+@attribute [HasPermission(Permissions.HandoversManage)]
+@* The hand-overs of a day (SPEC §6): the departures and returns of the agency on that Tunis day and every late return,
+   each with what is ready (documents, vehicle, payment, deposit — a state is a text and an icon, never a colour only)
+   and the button opening its departure or return screen. The day is in the address (?day=2026-10-21). *@
+@inject IOperationRunner Runner
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@inject IStringLocalizer<HandoversResources> L
+@inject IStringLocalizer<BookingsResources> B
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Day.Title"]</PageTitle>
+<HandoverStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(_day is null ? "false" : "true")">@L["Day.Title"]</MudText>
+
+<MudPaper Elevation="1" Class="pa-3 mb-4">
+    <form class="d-flex flex-wrap align-end gap-3" role="search" aria-label="@L["Day.Filter"]" @onsubmit="ShowAsync" @onsubmit:preventDefault="true">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ChevronLeft" Class="handover-touch" OnClick="@(() => MoveAsync(-1))"
+                   aria-label="@L["Day.PreviousLabel"]">@L["Day.Previous"]</MudButton>
+        <MudTextField T="string" @bind-Value="_dayText" Label="@L["Day.Date"]" InputType="InputType.Date" ShrinkLabel="true" InputId="handover-day"
+                      Style="max-inline-size:13rem" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="handover-touch">@L["Day.Show"]</MudButton>
+        <MudButton Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ChevronRight" Class="handover-touch" OnClick="@(() => MoveAsync(1))"
+                   aria-label="@L["Day.NextLabel"]">@L["Day.Next"]</MudButton>
+        <MudButton Variant="Variant.Text" Class="handover-touch" OnClick="TodayAsync">@L["Day.Today"]</MudButton>
+        @if (_agencies.Count > 1)
+        {
+            <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Day.Agency"]" Style="min-inline-size:14rem"
+                       ToStringFunc="@(id => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty)">
+                @foreach (var agency in _agencies)
+                {
+                    <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </form>
+</MudPaper>
+
+@if (_error is not null)
+{
+    <Notice Kind="NoticeKind.Error" Role="alert">@_error</Notice>
+}
+else if (_day is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Day.Loading"]" />
+}
+else
+{
+    <MudText Typo="Typo.subtitle1" Class="mb-3" role="status">@L["Day.Of", BookingFormat.Date(_day.Date)]</MudText>
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="6">
+            <MudPaper Elevation="1" Class="pa-4" data-testid="handover-departures">
+                <MudText Typo="Typo.h6" HtmlTag="h2">@L["Day.Departures", _day.Departures.Count]</MudText>
+                @List(_day.Departures, InspectionKind.Departure, L["Day.NoDeparture"])
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Elevation="1" Class="pa-4" data-testid="handover-returns">
+                <MudText Typo="Typo.h6" HtmlTag="h2">@L["Day.Returns", _day.Returns.Count]</MudText>
+                @List(_day.Returns, InspectionKind.Return, L["Day.NoReturn"])
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Elevation="1" Class="pa-4" data-testid="handover-late">
+                <MudText Typo="Typo.h6" HtmlTag="h2">@L["Day.LateReturns", _day.LateReturns.Count]</MudText>
+                @List(_day.LateReturns, InspectionKind.Return, L["Day.NoLateReturn"])
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private IReadOnlyList<AgencyChoice> _agencies = [];
+    private Guid _agencyId;
+    private HandoverDay? _day;
+    private string? _dayText;
+    private string? _error;
+
+    [SupplyParameterFromQuery(Name = "day")]
+    public string? Day { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _dayText = DateOnly.TryParseExact(Day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+            ? Day
+            : TunisTime.Today(Clock).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        // Loaded once interactive: the prerendered pass would read the day a second time for nothing.
+        if (RendererInfo.IsInteractive)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private DateOnly SelectedDay => DateOnly.TryParseExact(_dayText, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+        ? day
+        : TunisTime.Today(Clock);
+
+    private async Task LoadAsync()
+    {
+        if (_agencies.Count == 0)
+        {
+            var agencies = await Runner.RunAsync<HandoverQueries, Result<IReadOnlyList<AgencyChoice>>>(async (queries, ct) =>
+            {
+                var found = await queries.GetAgenciesAsync(ct);
+                return found.IsSuccess ? Result.Success<IReadOnlyList<AgencyChoice>>([.. found.Value.Select(a => new AgencyChoice(a.Id, a.Name))]) : found.Error;
+            });
+            if (agencies.IsFailure)
+            {
+                _error = ErrorMessages.For(Shared, agencies.Error);
+                return;
+            }
+
+            _agencies = agencies.Value;
+            if (_agencies.Count == 0)
+            {
+                _error = ErrorMessages.For(Shared, BookingErrors.AgencyRequired);
+                return;
+            }
+
+            _agencyId = _agencies[0].Id;
+        }
+
+        var agencyId = _agencyId;
+        var date = SelectedDay;
+        var result = await Runner.RunAsync<HandoverQueries, Result<HandoverDay>>((queries, ct) => queries.GetDayAsync(agencyId, date, ct));
+        if (result.IsSuccess)
+        {
+            _day = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _day = null;
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Go(DateOnly day) =>
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameter("day", day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+
+    private Task ShowAsync()
+    {
+        Go(SelectedDay);
+        return Task.CompletedTask;
+    }
+
+    private Task MoveAsync(int days)
+    {
+        Go(SelectedDay.AddDays(days));
+        return Task.CompletedTask;
+    }
+
+    private Task TodayAsync()
+    {
+        Go(TunisTime.Today(Clock));
+        return Task.CompletedTask;
+    }
+
+    private async Task AgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        _day = null;
+        await LoadAsync();
+    }
+
+    private static string Screen(HandoverDayItem item, InspectionKind kind) =>
+        $"/admin/handovers/{item.BookingId}/{(kind == InspectionKind.Departure ? "departure" : "return")}";
+
+    private string ActionText(HandoverDayItem item, InspectionKind kind) => kind == InspectionKind.Departure
+        ? item.Status != BookingStatus.Confirmed ? L["Day.ViewDeparture"] : item.Inspection == InspectionStatus.Draft ? L["Day.ResumeDeparture"] : L["Day.StartDeparture"]
+        : item.Status switch
+        {
+            BookingStatus.Closed => L["Day.ViewReturn"],
+            BookingStatus.Returned => L["Day.SettleReturn"],
+            _ => item.Inspection == InspectionStatus.Draft ? L["Day.ResumeReturn"] : L["Day.StartReturn"],
+        };
+
+    private RenderFragment List(IReadOnlyList<HandoverDayItem> items, InspectionKind kind, string empty) => __builder =>
+    {
+        if (items.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">@empty</MudText>
+            return;
+        }
+
+        <ul class="handover-list mt-1">
+            @foreach (var item in items)
+            {
+                <li data-handover="@item.Number" data-kind="@kind">
+                    <span class="d-flex flex-column" style="min-inline-size:5.5rem">
+                        <strong>@(kind == InspectionKind.Return && item.IsLate && TunisTime.DateOf(item.At) != SelectedDay ? BookingFormat.Instant(item.At) : BookingFormat.Time(item.At))</strong>
+                        <MudLink Underline="Underline.Always" Href="@($"/admin/bookings/{item.BookingId}")">@item.Number</MudLink>
+                    </span>
+                    <span class="d-flex flex-column">
+                        <span>@item.CustomerName</span>
+                        <span class="handover-muted">
+                            @item.CategoryCode · @(item.PlateNumber ?? L["Day.NoVehicle"].Value)
+                            @if (!string.IsNullOrEmpty(item.Phone))
+                            {
+                                @(" · ")<a href="@($"tel:{item.Phone}")">@item.Phone</a>
+                            }
+                        </span>
+                    </span>
+                    <span class="handover-ready" role="list" aria-label="@L["Day.Readiness", item.Number]">
+                        @if (kind == InspectionKind.Departure && item.Status == BookingStatus.Confirmed)
+                        {
+                            @State(item.Readiness.Documents == DocumentsStateInfo.Complete, B[$"Documents.{item.Readiness.Documents}"])
+                            @State(item.Readiness.VehicleAssigned && item.Readiness.VehicleCompliant,
+                                !item.Readiness.VehicleAssigned ? L["Ready.NoVehicle"] : item.Readiness.VehicleCompliant ? L["Ready.Vehicle"] : L["Ready.VehicleNotCompliant"])
+                            @State(item.Readiness.Paid || item.Readiness.Deferred,
+                                item.Readiness.Paid ? L["Ready.Paid"] : item.Readiness.Deferred ? L["Ready.Deferred"] : L["Ready.Due", BookingFormat.Amount(item.Readiness.AmountDue)])
+                            @State(item.Readiness.DepositHeld || item.Readiness.Deferred,
+                                item.Readiness.DepositHeld ? L["Ready.DepositHeld"] : item.Readiness.Deferred ? L["Ready.DepositWaived"] : L["Ready.DepositMissing"])
+                        }
+                        else
+                        {
+                            @if (item.IsLate && item.Status == BookingStatus.InProgress)
+                            {
+                                @State(false, L["Ready.Late"], blocked: true)
+                            }
+                            @if (item.Status is BookingStatus.Returned)
+                            {
+                                @State(!item.Readiness.AmountDue.IsPositive && !item.Readiness.DepositHeld,
+                                    item.Readiness.AmountDue.IsPositive ? L["Ready.Due", BookingFormat.Amount(item.Readiness.AmountDue)] : item.Readiness.DepositHeld ? L["Ready.DepositToRelease"] : L["Ready.Settled"])
+                            }
+                            else if (item.Inspection == InspectionStatus.Draft)
+                            {
+                                @State(false, L["Ready.Inspecting"])
+                            }
+                            <span role="listitem" class="handover-state">@B[$"Status.{item.Status}"]</span>
+                        }
+                    </span>
+                    <MudButton Href="@Screen(item, kind)" Variant="@(item.IsDone ? Variant.Outlined : Variant.Filled)" Color="Color.Primary" Class="handover-touch ms-auto"
+                               aria-label="@L["Day.OpenLabel", ActionText(item, kind), item.Number]">@ActionText(item, kind)</MudButton>
+                </li>
+            }
+        </ul>
+    };
+
+    private static RenderFragment State(bool ok, string text, bool blocked = false) => __builder =>
+    {
+        <span role="listitem" class="@($"handover-state {(ok ? "handover-state--ok" : blocked ? "handover-state--blocked" : "handover-state--todo")}")">
+            <MudIcon Icon="@(ok ? Icons.Material.Filled.CheckCircle : blocked ? Icons.Material.Filled.Error : Icons.Material.Filled.Schedule)" Size="Size.Small" aria-hidden="true" />
+            @text
+        </span>
+    };
+
+    private sealed record AgencyChoice(Guid Id, string Name);
+}

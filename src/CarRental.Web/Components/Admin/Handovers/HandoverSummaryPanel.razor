@@ -1,0 +1,98 @@
+@* The hand-overs of a rental file, on its page (bookings.read): the departure and return inspections (when, by whom,
+   readings, damages), the rental contract (PDF) and the return charges with the balance of the file. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<HandoversResources> L
+
+<MudPaper Elevation="1" Class="pa-4" data-testid="handover-summary">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Summary.Title"]</MudText>
+    @if (_summary is null)
+    {
+        <MudProgressLinear Indeterminate="true" aria-label="@L["Summary.Loading"]" />
+    }
+    else if (_summary.Departure is null && _summary.Return is null && _summary.Contracts.Count == 0)
+    {
+        <MudText Typo="Typo.body2">@L["Summary.None"]</MudText>
+    }
+    else
+    {
+        <dl class="handover-facts">
+            @if (_summary.Departure is { } departure)
+            {
+                <dt>@L["Summary.Departure"]</dt>
+                <dd>@Describe(departure)</dd>
+            }
+            @foreach (var contract in _summary.Contracts)
+            {
+                <dt>@L["Summary.Contract"]</dt>
+                <dd>
+                    <MudLink Href="@HandoverMedia.ContractUrl(contract.Id)" Target="_blank" rel="noopener" Underline="Underline.Always" data-testid="contract-link">
+                        @contract.FileName
+                    </MudLink>
+                    <span class="handover-muted d-block">
+                        @(contract.SentTo is { } sentTo ? L["Summary.ContractSent", sentTo, BookingFormat.Instant(contract.SentAtUtc)] : L["Summary.ContractNotSent"])
+                    </span>
+                </dd>
+            }
+            @if (_summary.Return is { } back)
+            {
+                <dt>@L["Summary.Return"]</dt>
+                <dd>@Describe(back)</dd>
+                @if (back.Status == InspectionStatus.Completed)
+                {
+                    <dt>@L["Summary.Charges"]</dt>
+                    <dd>
+                        @if (back.Charges.Count == 0)
+                        {
+                            @L["Summary.NoCharge"]
+                        }
+                        else
+                        {
+                            <ul class="ma-0 pa-0" style="list-style:none">
+                                @foreach (var charge in back.Charges)
+                                {
+                                    <li>@HandoverText.Charge(L, charge) — @BookingFormat.Amount(charge.InclVat)</li>
+                                }
+                            </ul>
+                            <strong>@L["Summary.ChargesTotal", BookingFormat.Amount(back.ChargesTotal)]</strong>
+                        }
+                    </dd>
+                }
+            }
+            @if (_summary.Balance is { } balance && Status is BookingStatus.Returned or BookingStatus.InProgress or BookingStatus.Closed)
+            {
+                <dt>@L["Summary.Balance"]</dt>
+                <dd data-testid="handover-balance">@BookingFormat.Amount(balance.Balance)</dd>
+            }
+        </dl>
+    }
+</MudPaper>
+
+@code {
+    private HandoverSummary? _summary;
+    private Guid? _loaded;
+
+    [Parameter, EditorRequired]
+    public Guid BookingId { get; set; }
+
+    [Parameter]
+    public BookingStatus Status { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!RendererInfo.IsInteractive || _loaded == BookingId)
+        {
+            return;
+        }
+
+        var bookingId = BookingId;
+        var result = await Runner.RunAsync<HandoverQueries, Result<HandoverSummary>>((queries, ct) => queries.GetSummaryAsync(bookingId, ct));
+        _summary = result.IsSuccess ? result.Value : new HandoverSummary(bookingId, null, null, [], null);
+        _loaded = bookingId;
+    }
+
+    private string Describe(InspectionView inspection) => inspection.Status == InspectionStatus.Completed
+        ? L["Summary.Done", BookingFormat.Instant(inspection.HandedOverAtUtc ?? inspection.CompletedAtUtc ?? inspection.StartedAtUtc), inspection.CompletedBy ?? string.Empty,
+            HandoverText.Kilometres(inspection.Mileage, CultureInfo.CurrentCulture), HandoverText.Fuel(inspection.FuelEighths), inspection.Damages.Count,
+            inspection.Damages.Count(d => !d.IsPreExisting)]
+        : L["Summary.Draft", BookingFormat.Instant(inspection.StartedAtUtc), inspection.StartedBy];
+}
