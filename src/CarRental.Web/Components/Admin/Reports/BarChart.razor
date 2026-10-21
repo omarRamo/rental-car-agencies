@@ -1,0 +1,22 @@
+@* Horizontal bars of one series over a few categories (channels, funnel steps): the category on the start side, the
+   bar from a common baseline, its value at the tip (every bar is labelled: few categories). Placed in a ChartFrame,
+   which makes it one image for assistive technologies and gives its data table. *@
+
+<div class="rb">
+    @foreach (var point in Points)
+    {
+        <span class="rb__label">@point.Label</span>
+        <span class="rb__track">
+            <span class="rb__bar" style="@($"--rb-share:{Scale.Fraction(point.Value ?? 0m)}")"></span>
+            <span class="rb__value">@point.ValueText</span>
+        </span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartPoint> Points { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ChartScale Scale { get; set; } = default!;
+}

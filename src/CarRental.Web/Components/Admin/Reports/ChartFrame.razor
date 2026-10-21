@@ -1,0 +1,69 @@
+@* A chart and its accessible twin (WCAG 1.1.1, 1.4.1): a figure with its title and caption, the chart itself (one image
+   for assistive technologies, named by a summary of what it shows) and a button that shows or hides the equivalent
+   data table, which holds every value of the chart. *@
+@inject IStringLocalizer<ReportsResources> L
+
+<figure class="report-chart" aria-labelledby="@TitleId" data-testid="@TestId">
+    <figcaption>
+        <div class="report-chart__head">
+            <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="@TitleId">@Title</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@(_showTable ? Icons.Material.Filled.BarChart : Icons.Material.Filled.TableChart)"
+                       aria-expanded="@(_showTable ? "true" : "false")" aria-controls="@TableId"
+                       aria-label="@(_showTable ? L["Chart.HideTable.Label", Title].Value : L["Chart.ShowTable.Label", Title].Value)"
+                       OnClick="Toggle">
+                @(_showTable ? L["Chart.HideTable"] : L["Chart.ShowTable"])
+            </MudButton>
+        </div>
+        @if (!string.IsNullOrEmpty(Caption))
+        {
+            <p class="report-muted" style="margin:0">@Caption</p>
+        }
+    </figcaption>
+    @Legend
+    <div class="report-chart__plot" role="img" aria-label="@Summary">
+        @ChildContent
+    </div>
+    <div id="@TableId" class="report-chart__table report-scroll" hidden="@(!_showTable)"
+         role="region" aria-label="@L["Chart.Table.Label", Title]" tabindex="@(_showTable ? "0" : "-1")">
+        @Table
+    </div>
+</figure>
+
+@code {
+    private bool _showTable;
+
+    /// <summary>Unique within the page: prefix of the ids of the title and of the table.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    /// <summary>What the chart shows, for the readers who cannot see it (the data table holds the values).</summary>
+    [Parameter, EditorRequired]
+    public string Summary { get; set; } = default!;
+
+    [Parameter]
+    public string? Caption { get; set; }
+
+    [Parameter]
+    public string? TestId { get; set; }
+
+    /// <summary>Legend of a chart of several series (outside the image: read by assistive technologies).</summary>
+    [Parameter]
+    public RenderFragment? Legend { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>The data table equivalent to the chart.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment Table { get; set; } = default!;
+
+    private string TitleId => $"{Id}-title";
+
+    private string TableId => $"{Id}-table";
+
+    private void Toggle() => _showTable = !_showTable;
+}

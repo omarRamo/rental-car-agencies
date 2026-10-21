@@ -1,0 +1,89 @@
+@* Computes the daily snapshots of a period again (ADR-0045): past days only (up to yesterday, Tunis time), a year at
+   most. The stored days are replaced by what the files, the fleet and the costs say now, and the recomputation is
+   written to the audit log. Closes with the SnapshotRun. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<ReportsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">@L["Recompute.Intro", AgencyName]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="@L["Recompute.From"]" @bind-Date="_from" MaxDate="@Yesterday.ToDateTime(TimeOnly.MinValue)"
+                               Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="@L["Recompute.To"]" @bind-Date="_to" MaxDate="@Yesterday.ToDateTime(TimeOnly.MinValue)"
+                               Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-3">@L["Recompute.Help"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || _from is null || _to is null)">
+            @L["Recompute.Submit"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DateTime? _from;
+    private DateTime? _to;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string AgencyName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DateOnly From { get; set; }
+
+    [Parameter, EditorRequired]
+    public DateOnly To { get; set; }
+
+    /// <summary>The last day that can be computed (yesterday in Tunis).</summary>
+    [Parameter, EditorRequired]
+    public DateOnly Yesterday { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _from = From.ToDateTime(TimeOnly.MinValue);
+        _to = (To > Yesterday ? Yesterday : To).ToDateTime(TimeOnly.MinValue);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_from is not { } from || _to is not { } to)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var (agencyId, start, end) = (AgencyId, DateOnly.FromDateTime(from), DateOnly.FromDateTime(to));
+        var result = await Runner.RunAsync<SnapshotService, Result<SnapshotRun>>((service, ct) => service.RecomputeAsync(agencyId, start, end, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

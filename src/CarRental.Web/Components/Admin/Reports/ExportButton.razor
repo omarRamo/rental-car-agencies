@@ -1,0 +1,28 @@
+@* Download of the Excel export of a table of the reports: a link with the download attribute (the browser stays on the
+   page and the interactive router leaves it alone), named after the table it exports. *@
+@inject IStringLocalizer<ReportsResources> L
+
+<MudButton Variant="@Variant" Color="Color.Primary" Size="@Size" StartIcon="@Icons.Material.Filled.Download"
+           Href="@Href" download="@true" aria-label="@L["Export.Table.Label", Label, Table].Value">
+    @Label
+</MudButton>
+
+@code {
+    /// <summary>The export address (<see cref="ReportExport.Url"/>).</summary>
+    [Parameter, EditorRequired]
+    public string Href { get; set; } = default!;
+
+    /// <summary>The name of the exported table, completing the accessible name of the link.</summary>
+    [Parameter, EditorRequired]
+    public string Table { get; set; } = default!;
+
+    /// <summary>The visible text (start of the accessible name).</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter]
+    public Variant Variant { get; set; } = Variant.Text;
+
+    [Parameter]
+    public Size Size { get; set; } = Size.Small;
+}

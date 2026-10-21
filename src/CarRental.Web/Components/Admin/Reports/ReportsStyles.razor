@@ -1,0 +1,90 @@
+@* Styles of the reports screen, its charts and its dashboard tile (rendered once by each page: the back office has no
+   CSS isolation bundle). Text keeps a contrast of at least 4.5:1 (#1b1f24 and #4a5361 on white); the marks use the
+   validated blues of the charts (single series #2a78d6; ordinal ramp #86b6ef, #2a78d6, #104281), which never carry
+   information alone: every chart has its data table, its labels and a legend for several series. Thin bars (24 px at
+   most) with a 4 px rounded data end, square on the baseline, 2 px apart; hairline grid. Logical properties for the
+   future right-to-left layout. *@
+<style>
+    .report-muted { color: #4a5361; font-size: 0.875rem; }
+    .report-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; }
+    .report-toolbar__field { min-inline-size: 14rem; flex: 0 1 18rem; }
+    .report-toolbar__date { min-inline-size: 11rem; flex: 0 1 12rem; }
+    .report-notes { margin: 0; padding-inline-start: 1.25rem; }
+    .report-notes li { margin-block: 0.125rem; }
+    .report-section { margin-block-start: 2rem; }
+    .report-section__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-block-end: 0.5rem; }
+    .report-section__intro { margin-block: 0 0.75rem; max-inline-size: 60rem; }
+    .report-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    .report-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; margin: 0; }
+    .report-kpi { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; background: #ffffff; border: 1px solid #d8dee6; border-radius: 0.5rem; }
+    .report-kpi dt { order: 0; color: #4a5361; font-size: 0.875rem; font-weight: 500; }
+    .report-kpi dd { margin: 0; }
+    .report-kpi__value { color: #1b1f24; font-size: 1.5rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+    .report-kpi__delta { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem; color: #1b1f24; font-size: 0.875rem; }
+    .report-kpi__note { color: #4a5361; font-size: 0.8125rem; }
+    .report-kpi--hero { border-color: #2a78d6; border-inline-start-width: 4px; }
+    .report-kpi--hero .report-kpi__value { font-size: 3rem; line-height: 1.1; }
+    @@media (min-width: 60rem) { .report-kpi--hero { grid-column: span 2; } }
+
+    .report-scroll { overflow-x: auto; }
+    .report-scroll .mud-table-container { overflow: visible; }
+    .report-scroll:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; }
+    .report-table th, .report-table td { white-space: nowrap; }
+    .report-table thead th { min-inline-size: 5.5rem; max-inline-size: 11rem; white-space: normal; vertical-align: bottom; }
+    .report-table .report-num { text-align: end; font-variant-numeric: tabular-nums; }
+    .report-table tfoot th, .report-table tfoot td, .report-table tr.report-total th, .report-table tr.report-total td { font-weight: 700; }
+    .report-table tr.report-subtotal th, .report-table tr.report-subtotal td { font-weight: 600; background: #f8fafc; }
+    .report-sort { all: unset; display: inline-flex; align-items: center; gap: 0.125rem; cursor: pointer; font-weight: 600; white-space: normal; text-align: start; }
+    .report-num .report-sort { text-align: end; }
+    .report-sort:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; border-radius: 2px; }
+    .report-sort__icon { inline-size: 1rem; block-size: 1rem; }
+    .report-flag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0 0.375rem; border: 1px solid #b91c1c; border-radius: 0.25rem; background: #fff1f2; color: #1b1f24; font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
+    .report-cell-note { display: block; color: #4a5361; font-size: 0.75rem; }
+    .report-num-inline { display: block; font-variant-numeric: tabular-nums; }
+
+    .report-chart { margin: 0; padding: 1rem; background: #ffffff; border: 1px solid #d8dee6; border-radius: 0.5rem; }
+    .report-chart__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1rem; }
+    .report-chart figcaption { margin-block: 0.125rem 0.75rem; }
+    .report-chart__plot { padding-block-start: 1.5rem; }
+    .report-chart__table { margin-block-start: 0.75rem; }
+    .report-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: 1rem; }
+    .report-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0 0 0.5rem; padding: 0; list-style: none; color: #1b1f24; font-size: 0.875rem; }
+    .report-legend__swatch { display: inline-block; inline-size: 0.875rem; block-size: 0.875rem; margin-inline-end: 0.375rem; border-radius: 2px; vertical-align: -0.125rem; forced-color-adjust: none; }
+
+    .rc { --rc-height: 12rem; display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 0.5rem; }
+    .rc__y { position: relative; block-size: var(--rc-height); min-inline-size: 2rem; }
+    .rc__y span { position: absolute; inset-inline-end: 0; transform: translateY(50%); color: #4a5361; font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .rc__plot { position: relative; block-size: var(--rc-height); border-block-end: 1px solid #8a94a3; }
+    .rc__grid { position: absolute; inset: 0; pointer-events: none; }
+    .rc__grid span { position: absolute; inset-inline: 0; border-block-start: 1px solid #e5e7eb; }
+    .rc__cols { position: absolute; inset: 0; display: flex; }
+    .rc__col { position: relative; display: flex; flex: 1 1 0; align-items: flex-end; justify-content: center; gap: 2px; min-inline-size: 0; }
+    .rc__slot { position: relative; display: flex; align-items: flex-end; justify-content: center; block-size: 100%; inline-size: min(24px, calc(100% - 2px)); }
+    .rc__col--grouped .rc__slot { inline-size: min(24px, calc((100% - 0.5rem) / var(--rc-series, 1) - 2px)); }
+    .rc__bar { display: block; inline-size: 100%; background: var(--rc-color, #2a78d6); border-start-start-radius: 4px; border-start-end-radius: 4px; forced-color-adjust: none; }
+    .rc__slot:hover .rc__bar { outline: 2px solid #1b1f24; outline-offset: 1px; }
+    .rc__value { position: absolute; inset-inline-start: 50%; transform: translateX(-50%); padding-block-end: 2px; color: #1b1f24; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .rc__tip { position: absolute; inset-block-end: calc(100% + 0.25rem); inset-inline-start: 50%; z-index: 3; display: none; padding: 0.25rem 0.5rem; transform: translateX(-50%); background: #ffffff; border: 1px solid #cbd5e1; border-radius: 0.25rem; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15); color: #4a5361; font-size: 0.75rem; white-space: nowrap; pointer-events: none; }
+    .rc__tip strong { display: block; color: #1b1f24; font-size: 0.8125rem; }
+    .rc__col--start .rc__tip { inset-inline-start: 0; transform: none; }
+    .rc__col--end .rc__tip { inset-inline-start: auto; inset-inline-end: 0; transform: none; }
+    .rc__slot:hover .rc__tip { display: block; }
+    .rc__x { display: flex; grid-column: 2; padding-block-start: 0.25rem; }
+    .rc__x span { flex: 1 1 0; min-inline-size: 0; color: #4a5361; font-size: 0.75rem; text-align: center; white-space: nowrap; }
+    .report-chart__plot { container-type: inline-size; }
+    @@container (max-width: 30rem) { .rc__x .rc__tick--minor { visibility: hidden; } }
+
+    .rb { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 0.5rem 0.75rem; margin: 0; }
+    .rb__label { color: #1b1f24; font-size: 0.875rem; }
+    .rb__track { position: relative; display: flex; align-items: center; gap: 0.5rem; min-inline-size: 0; }
+    .rb__bar { display: block; flex: none; block-size: 1.25rem; inline-size: calc((100% - 10rem) * var(--rb-share, 0)); background: #2a78d6; border-start-end-radius: 4px; border-end-end-radius: 4px; forced-color-adjust: none; }
+    .rb__value { color: #1b1f24; font-size: 0.875rem; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .rb__note { color: #4a5361; font-weight: 400; }
+
+    .report-widget-figures { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; margin: 0.5rem 0 0; }
+    .report-widget-figures div { display: flex; flex-direction: column; }
+    .report-widget-figures dt { color: #4a5361; font-size: 0.875rem; }
+    .report-widget-figures dd { margin: 0; color: #1b1f24; font-size: 1.25rem; font-weight: 600; }
+    .report-widget-figures .report-widget-hero dd { font-size: 2rem; }
+</style>
