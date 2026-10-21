@@ -129,4 +129,7 @@
   <data name="Permission.bookings.compliance.waive" xml:space="preserve">
     <value>Déroger aux documents d'un véhicule lors d'une affectation</value>
   </data>
+  <data name="Permission.handovers.payment.defer" xml:space="preserve">
+    <value>Départ avec solde reporté ou sans caution (motif)</value>
+  </data>
 </root>

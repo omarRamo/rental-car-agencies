@@ -98,6 +98,12 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.BookingsComplianceWaive, false },
         { Roles.Preparer, Permissions.BookingsComplianceWaive, false },
 
+        // A departure with the amount due deferred or without a deposit: manager only (grantable per user, ADR-0041).
+        { Roles.Manager, Permissions.HandoversPaymentDefer, true },
+        { Roles.Agent, Permissions.HandoversPaymentDefer, false },
+        { Roles.Accountant, Permissions.HandoversPaymentDefer, false },
+        { Roles.Preparer, Permissions.HandoversPaymentDefer, false },
+
         // Data subject rights (export, anonymization): manager only.
         { Roles.Manager, Permissions.CustomersPrivacy, true },
         { Roles.Agent, Permissions.CustomersPrivacy, false },

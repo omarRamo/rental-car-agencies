@@ -1041,4 +1041,136 @@
   <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
     <value>A documents waiver applies to an assigned vehicle.</value>
   </data>
+  <data name="Error.handover.inspection.not_found" xml:space="preserve">
+    <value>This inspection does not exist.</value>
+  </data>
+  <data name="Error.handover.inspection.concurrent_update" xml:space="preserve">
+    <value>The inspection was changed by someone else in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.handover.inspection.completed" xml:space="preserve">
+    <value>This inspection is completed: it can no longer be changed.</value>
+  </data>
+  <data name="Error.handover.inspection.kind_mismatch" xml:space="preserve">
+    <value>This step does not belong to this kind of inspection.</value>
+  </data>
+  <data name="Error.handover.inspection.vehicle_required" xml:space="preserve">
+    <value>A vehicle must be assigned to the rental file, then confirmed.</value>
+  </data>
+  <data name="Error.handover.inspection.vehicle_changed" xml:space="preserve">
+    <value>The vehicle of the rental file changed since the inspection started: confirm the new vehicle.</value>
+  </data>
+  <data name="Error.handover.inspection.mileage_invalid" xml:space="preserve">
+    <value>The mileage is between 0 and 2,000,000 km.</value>
+  </data>
+  <data name="Error.handover.inspection.mileage_below_reference" xml:space="preserve">
+    <value>The mileage cannot be below the last known mileage of the vehicle (or the mileage at the departure).</value>
+  </data>
+  <data name="Error.handover.inspection.fuel_invalid" xml:space="preserve">
+    <value>The fuel level is given in eighths, from 0 to 8.</value>
+  </data>
+  <data name="Error.handover.inspection.accessories_invalid" xml:space="preserve">
+    <value>Keys are counted from 0 to 5 and child seats from 0 to 4.</value>
+  </data>
+  <data name="Error.handover.inspection.readings_missing" xml:space="preserve">
+    <value>The mileage, the fuel level and the accessories are required.</value>
+  </data>
+  <data name="Error.handover.inspection.originals_incomplete" xml:space="preserve">
+    <value>The original identity document and driving licence of every driver must have been seen.</value>
+  </data>
+  <data name="Error.handover.inspection.originals_unknown_driver" xml:space="preserve">
+    <value>The originals were ticked for a person who is not a driver of the rental file.</value>
+  </data>
+  <data name="Error.handover.inspection.photos_missing" xml:space="preserve">
+    <value>The 8 guided photos are required at the departure.</value>
+  </data>
+  <data name="Error.handover.inspection.too_many_photos" xml:space="preserve">
+    <value>An inspection has 40 photos at most.</value>
+  </data>
+  <data name="Error.handover.inspection.photo_not_found" xml:space="preserve">
+    <value>This photo does not exist.</value>
+  </data>
+  <data name="Error.handover.inspection.photo_slot_invalid" xml:space="preserve">
+    <value>The view of the photo is not known.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_not_found" xml:space="preserve">
+    <value>This damage does not exist.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_invalid" xml:space="preserve">
+    <value>A damage has a known view, type and severity, and a position between 0 and 100% of the schematic.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_note_too_long" xml:space="preserve">
+    <value>A damage note has 500 characters at most.</value>
+  </data>
+  <data name="Error.handover.inspection.too_many_damages" xml:space="preserve">
+    <value>An inspection has 60 damages at most.</value>
+  </data>
+  <data name="Error.handover.inspection.signatures_missing" xml:space="preserve">
+    <value>The customer and the agent must sign, or the signature on paper must be recorded with its reason.</value>
+  </data>
+  <data name="Error.handover.inspection.signer_name_required" xml:space="preserve">
+    <value>The name of the signer is required (120 characters at most).</value>
+  </data>
+  <data name="Error.handover.inspection.paper_reason_required" xml:space="preserve">
+    <value>Signing on paper needs a reason (3 to 500 characters).</value>
+  </data>
+  <data name="Error.handover.inspection.notes_too_long" xml:space="preserve">
+    <value>The notes have 1,000 characters at most.</value>
+  </data>
+  <data name="Error.handover.image.empty" xml:space="preserve">
+    <value>The file is empty.</value>
+  </data>
+  <data name="Error.handover.image.too_large" xml:space="preserve">
+    <value>The file is too large: 10 MB at most for a photo, 1 MB for a thumbnail or a signature.</value>
+  </data>
+  <data name="Error.handover.image.unsupported" xml:space="preserve">
+    <value>The file is not a JPEG, PNG or WebP image (a signature is a PNG image).</value>
+  </data>
+  <data name="Error.handover.departure.balance_due" xml:space="preserve">
+    <value>The amount due must be paid before the departure, unless a manager deferred it.</value>
+  </data>
+  <data name="Error.handover.departure.deposit_missing" xml:space="preserve">
+    <value>The deposit must be taken before the departure, unless a manager waived it.</value>
+  </data>
+  <data name="Error.handover.reason_required" xml:space="preserve">
+    <value>A reason is required (3 to 500 characters).</value>
+  </data>
+  <data name="Error.handover.departure.nothing_to_defer" xml:space="preserve">
+    <value>Choose to defer the balance, to waive the deposit, or both.</value>
+  </data>
+  <data name="Error.handover.charges.invalid" xml:space="preserve">
+    <value>A charge has a known kind, and a quantity and a unit price of zero or more, in millimes.</value>
+  </data>
+  <data name="Error.handover.charges.reason_required" xml:space="preserve">
+    <value>A reason is required to change or waive a proposed charge, and for any other charge.</value>
+  </data>
+  <data name="Error.handover.charges.description_required" xml:space="preserve">
+    <value>A damage or another charge needs a description (200 characters at most).</value>
+  </data>
+  <data name="Error.handover.charges.damage_invalid" xml:space="preserve">
+    <value>A damage charge refers to a new damage of this return.</value>
+  </data>
+  <data name="Error.handover.charges.not_editable" xml:space="preserve">
+    <value>This charge is computed by the platform: it cannot be entered.</value>
+  </data>
+  <data name="Error.handover.charges.too_many" xml:space="preserve">
+    <value>A return has 30 charges at most.</value>
+  </data>
+  <data name="Error.handover.charges.proposal_changed" xml:space="preserve">
+    <value>The proposed charges changed meanwhile (time, prices or readings): review them again.</value>
+  </data>
+  <data name="Error.handover.charges.not_revisable" xml:space="preserve">
+    <value>The return charges can only be changed while the rental file is returned and not closed.</value>
+  </data>
+  <data name="Error.handover.close.balance_due" xml:space="preserve">
+    <value>The balance of the rental file must be zero to close it: collect it or pay it back.</value>
+  </data>
+  <data name="Error.handover.close.deposit_held" xml:space="preserve">
+    <value>A deposit is still held: release or retain it before closing the rental file.</value>
+  </data>
+  <data name="Error.handover.contract.not_found" xml:space="preserve">
+    <value>This rental contract does not exist.</value>
+  </data>
+  <data name="Error.handover.contract.language_invalid" xml:space="preserve">
+    <value>The contract is written in French or in English.</value>
+  </data>
 </root>

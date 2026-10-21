@@ -1041,4 +1041,136 @@
   <data name="Error.booking.vehicle.waiver_without_vehicle" xml:space="preserve">
     <value>Une dérogation documents s'applique à un véhicule attribué.</value>
   </data>
+  <data name="Error.handover.inspection.not_found" xml:space="preserve">
+    <value>Cet état des lieux n'existe pas.</value>
+  </data>
+  <data name="Error.handover.inspection.concurrent_update" xml:space="preserve">
+    <value>L'état des lieux a été modifié entre-temps par quelqu'un d'autre : rechargez la page et recommencez.</value>
+  </data>
+  <data name="Error.handover.inspection.completed" xml:space="preserve">
+    <value>Cet état des lieux est terminé : il ne peut plus être modifié.</value>
+  </data>
+  <data name="Error.handover.inspection.kind_mismatch" xml:space="preserve">
+    <value>Cette étape n'appartient pas à ce type d'état des lieux.</value>
+  </data>
+  <data name="Error.handover.inspection.vehicle_required" xml:space="preserve">
+    <value>Un véhicule doit être attribué au dossier, puis confirmé.</value>
+  </data>
+  <data name="Error.handover.inspection.vehicle_changed" xml:space="preserve">
+    <value>Le véhicule du dossier a changé depuis le début de l'état des lieux : confirmez le nouveau véhicule.</value>
+  </data>
+  <data name="Error.handover.inspection.mileage_invalid" xml:space="preserve">
+    <value>Le kilométrage est compris entre 0 et 2 000 000 km.</value>
+  </data>
+  <data name="Error.handover.inspection.mileage_below_reference" xml:space="preserve">
+    <value>Le kilométrage ne peut pas être inférieur au dernier kilométrage connu du véhicule (ou à celui du départ).</value>
+  </data>
+  <data name="Error.handover.inspection.fuel_invalid" xml:space="preserve">
+    <value>Le niveau de carburant s'indique en huitièmes, de 0 à 8.</value>
+  </data>
+  <data name="Error.handover.inspection.accessories_invalid" xml:space="preserve">
+    <value>Les clés se comptent de 0 à 5 et les sièges enfant de 0 à 4.</value>
+  </data>
+  <data name="Error.handover.inspection.readings_missing" xml:space="preserve">
+    <value>Le kilométrage, le carburant et les accessoires sont obligatoires.</value>
+  </data>
+  <data name="Error.handover.inspection.originals_incomplete" xml:space="preserve">
+    <value>La pièce d'identité et le permis originaux de chaque conducteur doivent avoir été vus.</value>
+  </data>
+  <data name="Error.handover.inspection.originals_unknown_driver" xml:space="preserve">
+    <value>Les originaux ont été cochés pour une personne qui n'est pas conducteur du dossier.</value>
+  </data>
+  <data name="Error.handover.inspection.photos_missing" xml:space="preserve">
+    <value>Les 8 photos guidées sont obligatoires au départ.</value>
+  </data>
+  <data name="Error.handover.inspection.too_many_photos" xml:space="preserve">
+    <value>Un état des lieux compte 40 photos au plus.</value>
+  </data>
+  <data name="Error.handover.inspection.photo_not_found" xml:space="preserve">
+    <value>Cette photo n'existe pas.</value>
+  </data>
+  <data name="Error.handover.inspection.photo_slot_invalid" xml:space="preserve">
+    <value>La vue de la photo n'est pas connue.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_not_found" xml:space="preserve">
+    <value>Ce dommage n'existe pas.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_invalid" xml:space="preserve">
+    <value>Un dommage a une vue, un type et une gravité connus, et une position comprise entre 0 et 100 % du schéma.</value>
+  </data>
+  <data name="Error.handover.inspection.damage_note_too_long" xml:space="preserve">
+    <value>La note d'un dommage compte 500 caractères au plus.</value>
+  </data>
+  <data name="Error.handover.inspection.too_many_damages" xml:space="preserve">
+    <value>Un état des lieux compte 60 dommages au plus.</value>
+  </data>
+  <data name="Error.handover.inspection.signatures_missing" xml:space="preserve">
+    <value>Le client et l'agent doivent signer, ou la signature sur papier doit être enregistrée avec son motif.</value>
+  </data>
+  <data name="Error.handover.inspection.signer_name_required" xml:space="preserve">
+    <value>Le nom du signataire est obligatoire (120 caractères au plus).</value>
+  </data>
+  <data name="Error.handover.inspection.paper_reason_required" xml:space="preserve">
+    <value>La signature sur papier demande un motif (3 à 500 caractères).</value>
+  </data>
+  <data name="Error.handover.inspection.notes_too_long" xml:space="preserve">
+    <value>Les notes comptent 1 000 caractères au plus.</value>
+  </data>
+  <data name="Error.handover.image.empty" xml:space="preserve">
+    <value>Le fichier est vide.</value>
+  </data>
+  <data name="Error.handover.image.too_large" xml:space="preserve">
+    <value>Le fichier est trop volumineux : 10 Mo au plus pour une photo, 1 Mo pour une miniature ou une signature.</value>
+  </data>
+  <data name="Error.handover.image.unsupported" xml:space="preserve">
+    <value>Le fichier n'est pas une image JPEG, PNG ou WebP (une signature est une image PNG).</value>
+  </data>
+  <data name="Error.handover.departure.balance_due" xml:space="preserve">
+    <value>Le montant dû doit être réglé avant le départ, sauf report décidé par un gérant.</value>
+  </data>
+  <data name="Error.handover.departure.deposit_missing" xml:space="preserve">
+    <value>La caution doit être prise avant le départ, sauf dispense accordée par un gérant.</value>
+  </data>
+  <data name="Error.handover.reason_required" xml:space="preserve">
+    <value>Un motif est obligatoire (3 à 500 caractères).</value>
+  </data>
+  <data name="Error.handover.departure.nothing_to_defer" xml:space="preserve">
+    <value>Choisissez de reporter le solde, de dispenser de caution, ou les deux.</value>
+  </data>
+  <data name="Error.handover.charges.invalid" xml:space="preserve">
+    <value>Un frais a un type connu, une quantité et un prix unitaire positifs ou nuls, au millime près.</value>
+  </data>
+  <data name="Error.handover.charges.reason_required" xml:space="preserve">
+    <value>Un motif est obligatoire pour modifier ou offrir un frais proposé, et pour tout autre frais.</value>
+  </data>
+  <data name="Error.handover.charges.description_required" xml:space="preserve">
+    <value>Un dommage ou un autre frais demande une description (200 caractères au plus).</value>
+  </data>
+  <data name="Error.handover.charges.damage_invalid" xml:space="preserve">
+    <value>Un frais de dommage se rapporte à un nouveau dommage de ce retour.</value>
+  </data>
+  <data name="Error.handover.charges.not_editable" xml:space="preserve">
+    <value>Ce frais est calculé par la plateforme : il ne se saisit pas.</value>
+  </data>
+  <data name="Error.handover.charges.too_many" xml:space="preserve">
+    <value>Un retour compte 30 frais au plus.</value>
+  </data>
+  <data name="Error.handover.charges.proposal_changed" xml:space="preserve">
+    <value>Les frais proposés ont changé entre-temps (heure, tarifs ou relevés) : vérifiez-les à nouveau.</value>
+  </data>
+  <data name="Error.handover.charges.not_revisable" xml:space="preserve">
+    <value>Les frais de retour ne se modifient que tant que le dossier est restitué et non clôturé.</value>
+  </data>
+  <data name="Error.handover.close.balance_due" xml:space="preserve">
+    <value>Le solde du dossier doit être nul pour le clôturer : encaissez-le ou remboursez-le.</value>
+  </data>
+  <data name="Error.handover.close.deposit_held" xml:space="preserve">
+    <value>Une caution est encore bloquée : restituez-la ou retenez-la avant de clôturer le dossier.</value>
+  </data>
+  <data name="Error.handover.contract.not_found" xml:space="preserve">
+    <value>Ce contrat de location n'existe pas.</value>
+  </data>
+  <data name="Error.handover.contract.language_invalid" xml:space="preserve">
+    <value>Le contrat est rédigé en français ou en anglais.</value>
+  </data>
 </root>

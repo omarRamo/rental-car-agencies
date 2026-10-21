@@ -195,4 +195,28 @@
   <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
     <value>"Capture at validation": the validated request is confirmed (Clic to Pay capture, phase 2). "Payment link after validation" (fallback): it waits for its payment through a link.</value>
   </data>
+  <data name="Setting.bookings.mileage_included_per_day_km.Label" xml:space="preserve">
+    <value>Kilometres included per day</value>
+  </data>
+  <data name="Setting.bookings.mileage_included_per_day_km.Help" xml:space="preserve">
+    <value>Mileage included in each charged day; beyond it, each kilometre is charged at the extra kilometre price. 0 = unlimited mileage.</value>
+  </data>
+  <data name="Setting.bookings.extra_km_price.Label" xml:space="preserve">
+    <value>Extra kilometre price</value>
+  </data>
+  <data name="Setting.bookings.extra_km_price.Help" xml:space="preserve">
+    <value>Price, VAT included, of a kilometre beyond the included mileage, proposed at the return.</value>
+  </data>
+  <data name="Setting.bookings.refuel_fee_per_eighth.Label" xml:space="preserve">
+    <value>Refuel fee (per eighth)</value>
+  </data>
+  <data name="Setting.bookings.refuel_fee_per_eighth.Help" xml:space="preserve">
+    <value>Full-to-full policy: price, VAT included, of each eighth of tank missing at the return compared with the departure (fuel and service).</value>
+  </data>
+  <data name="Setting.bookings.cleaning_fee.Label" xml:space="preserve">
+    <value>Cleaning fee</value>
+  </data>
+  <data name="Setting.bookings.cleaning_fee.Help" xml:space="preserve">
+    <value>Price, VAT included, proposed when the vehicle comes back dirty (reported by the agent at the return).</value>
+  </data>
 </root>

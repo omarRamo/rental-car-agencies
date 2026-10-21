@@ -15,6 +15,10 @@ public static class HandoverErrors
         "handover.inspection.completed",
         "The inspection is completed: it can no longer be changed.");
 
+    public static readonly Error ConcurrentUpdate = Error.Conflict(
+        "handover.inspection.concurrent_update",
+        "The inspection was changed by someone else in the meantime; reload and try again.");
+
     public static readonly Error InspectionKindMismatch = Error.Validation(
         "handover.inspection.kind_mismatch",
         "This step does not belong to this kind of inspection.");
@@ -169,4 +173,8 @@ public static class HandoverErrors
 
     // Contract
     public static readonly Error ContractNotFound = Error.NotFound("handover.contract.not_found", "The rental contract does not exist.");
+
+    public static readonly Error ContractLanguageInvalid = Error.Validation(
+        "handover.contract.language_invalid",
+        "The contract is written in French or in English.");
 }

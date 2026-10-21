@@ -195,4 +195,28 @@
   <data name="Setting.bookings.validation_payment_mode.Help" xml:space="preserve">
     <value>« Capture à la validation » : la demande validée est confirmée (capture Clic to Pay, phase 2). « Lien de paiement après validation » (repli) : elle attend son paiement par lien.</value>
   </data>
+  <data name="Setting.bookings.mileage_included_per_day_km.Label" xml:space="preserve">
+    <value>Kilomètres inclus par jour</value>
+  </data>
+  <data name="Setting.bookings.mileage_included_per_day_km.Help" xml:space="preserve">
+    <value>Kilométrage compris dans chaque jour facturé ; au-delà, chaque kilomètre est facturé au prix du kilomètre supplémentaire. 0 = kilométrage illimité.</value>
+  </data>
+  <data name="Setting.bookings.extra_km_price.Label" xml:space="preserve">
+    <value>Prix du kilomètre supplémentaire</value>
+  </data>
+  <data name="Setting.bookings.extra_km_price.Help" xml:space="preserve">
+    <value>Prix TTC d'un kilomètre au-delà du kilométrage inclus, proposé au retour.</value>
+  </data>
+  <data name="Setting.bookings.refuel_fee_per_eighth.Label" xml:space="preserve">
+    <value>Remise à niveau du carburant (par huitième)</value>
+  </data>
+  <data name="Setting.bookings.refuel_fee_per_eighth.Help" xml:space="preserve">
+    <value>Politique plein/plein : prix TTC de chaque huitième de réservoir manquant au retour par rapport au départ (carburant et service).</value>
+  </data>
+  <data name="Setting.bookings.cleaning_fee.Label" xml:space="preserve">
+    <value>Frais de nettoyage</value>
+  </data>
+  <data name="Setting.bookings.cleaning_fee.Help" xml:space="preserve">
+    <value>Prix TTC proposé quand le véhicule revient sale (l'agent le signale au retour).</value>
+  </data>
 </root>

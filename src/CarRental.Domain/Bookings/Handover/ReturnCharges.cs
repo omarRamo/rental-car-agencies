@@ -343,7 +343,7 @@ public static class ReturnCharges
                 }
 
                 return IsReason(reason)
-                    ? ReturnChargeLine.FromInclVat(input.Kind, input.Quantity, unitPrice, vatRate, [Int(input.Quantity)], description, reason)
+                    ? ReturnChargeLine.FromInclVat(input.Kind, input.Quantity, unitPrice, vatRate, [], description, reason)
                     : HandoverErrors.ChargeReasonRequired;
         }
     }
