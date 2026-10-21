@@ -87,7 +87,9 @@ public sealed class PricingEnginePropertyTests
             var longQuote = Calculate(longer);
             return longQuote.IsFailure
                 ? longQuote.Error == PricingErrors.RentalTooLong
-                : longQuote.Value.Days > shortQuote.Value.Days && longQuote.Value.RentalSubtotal >= shortQuote.Value.RentalSubtotal;
+                // At least as many days, not strictly more: a 35-minute rental counts one day (minimum) and so does the same
+                // rental extended by 24 h (24 h 35 min stays within the 59-minute late tolerance); found by FsCheck.
+                : longQuote.Value.Days >= shortQuote.Value.Days && longQuote.Value.RentalSubtotal >= shortQuote.Value.RentalSubtotal;
         });
     }
 
