@@ -91,3 +91,4 @@
 | `Turnstile:SiteKey`, `Turnstile:SecretKey` (`Turnstile--SecretKey` dans le Key Vault) | Cloudflare Turnstile, vérifié côté serveur en échec fermé ; clés de test officielles en développement et en test |
 | `RateLimiting:{Search,Submit,Upload}:{PermitLimit,Window,SegmentsPerWindow}` | Politiques `public-search`, `public-submit`, `public-upload` (par adresse client, `CF-Connecting-IP`) |
 | `ReverseProxy:TrustCloudflareHeader` | Lit l'adresse client dans `CF-Connecting-IP` (à n'activer que si l'origine n'accepte que Cloudflare) |
+| `ClicToPay:{Enabled,UseFake,BaseUrl,UserName,Password,AmountMultiplier,…}` (`ClicToPay--Password` dans le Key Vault) | Passerelle Clic to Pay ; passerelle simulée (`/dev/clictopay`) en développement et en test seulement ; recette : `docs/recette-clictopay.md` |

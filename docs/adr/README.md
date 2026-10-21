@@ -43,6 +43,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0035](0035-sessions-de-caisse.md) | Sessions de caisse : une par agent et par jour, espèces de recette et cautions comptées à part, verrouillage définitif | Acceptée |
 | [0036](0036-vitrine-rendu-statique-cache-et-referencement.md) | Vitrine : rendu statique sans script Blazor, pages publiques cachables, référencement et budget Lighthouse | Acceptée |
 | [0037](0037-vitrine-anti-abus-et-mesure-entonnoir.md) | Vitrine : limitation de débit, Turnstile en échec fermé, mesure anonyme de l'entonnoir | Acceptée |
+| [0038](0038-passerelle-clic-to-pay-isolee-et-simulee.md) | Passerelle Clic to Pay : port isolé, client REST défensif, journal des appels et passerelle simulée | Acceptée |
+| [0039](0039-paiement-en-ligne-confirmation-idempotence-rattrapage.md) | Paiement en ligne : confirmation serveur à serveur, idempotence par commande, rattrapage et remboursements validés | Acceptée |
 | [0040](0040-outbox-messages-sans-gestionnaire.md) | Outbox : messages sans gestionnaire terminés en bloc | Acceptée |
 | [0043](0043-outbox-pompe-en-processus.md) | Outbox : déclenchement immédiat par une pompe en processus | Acceptée |
 | [0044](0044-caches-parametres-et-plans-publies.md) | Caches des paramètres et des plans publiés, vidés après chaque validation | Acceptée |
