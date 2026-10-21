@@ -12,7 +12,7 @@ namespace CarRental.E2E.Tests.Bookings.Handover;
 /// <summary>
 /// The departure and return screens on a 10-inch tablet (1280 × 800): the eight photos taken (real images reduced by
 /// the browser), a damage tapped on the schematic, the contract read and signed with the mouse, the keys handed over
-/// and the contract opened; a return with a new damage, a charge, the deposit retention and the closing. Each test
+/// and the contract opened; a return with a new damage and a charge, paid at the counter, and the closing. Each test
 /// signs in with its own account and works on its own agency; no serious or critical accessibility violation.
 /// </summary>
 public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
@@ -118,7 +118,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
     }
 
     [Fact]
-    public async Task An_agent_takes_a_vehicle_back_with_a_new_damage_retains_the_charge_and_closes_the_file()
+    public async Task An_agent_takes_a_vehicle_back_with_a_new_damage_and_a_charge_and_closes_the_file_once_paid()
     {
         WatchConsole();
         var file = await HandoverE2EData.ConfirmedAsync(Host);
@@ -158,13 +158,16 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         await AssertAccessibleAsync();
         await Page.Locator("[data-testid=return-complete]").ClickAsync();
 
-        // Returned: the deposit settles the charge, the rest goes back to the customer, then the file is closed.
+        // Returned: the charge is due; once it is paid at the counter (payments panel), the file is closed.
         await Expect(Page.Locator("[data-step-panel=payment]")).ToBeVisibleAsync(Slow);
         (await HandoverE2EData.StatusAsync(Host, file.BookingId)).ShouldBe(BookingStatus.Returned);
-        await Page.Locator("[data-testid=deposit-retain]").ClickAsync();
-        await Expect(Page.Locator("[data-testid=deposit-decision]")).ToHaveCountAsync(0, SlowCount);
-        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
+        await Expect(Page.Locator("[data-testid=return-balance]")).ToContainTextAsync("120,000", SlowContains);
+        await Expect(Page.Locator("[data-testid=booking-payments][data-ready=true]")).ToBeVisibleAsync(Slow);
         await AssertAccessibleAsync();
+        await HandoverE2EData.PayAsync(Host, file, 120m);
+        await Page.GotoAsync($"/admin/handovers/{file.BookingId}/return?step=payment");
+        await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
+        await Expect(Page.Locator("[data-testid=return-balance]")).ToContainTextAsync("(soldé)", SlowContains);
         await NextAsync("close");
 
         await Page.Locator("[data-testid=return-close]").ClickAsync();

@@ -37,7 +37,11 @@ internal static class HandoverE2EData
     public static UserContextSnapshot Actor(string role) =>
         UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"{role.ToLowerInvariant()}-arrange-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(role));
 
-    /// <summary>A confirmed file picked up now for one day: agency, ECMR category (deposit 600), a vehicle at 15 000 km, a plan at 100 a day.</summary>
+    /// <summary>
+    /// A confirmed file picked up now for one day: agency, ECMR category, a vehicle at 15 000 km, a plan at 100 a day. The
+    /// category asks for no security deposit: the browser tests share one database, and the deposits list of the payments
+    /// screen is checked elsewhere as the only deposits of the day.
+    /// </summary>
     public static async Task<HandoverE2EFile> ConfirmedAsync(E2EHost host)
     {
         ArgumentNullException.ThrowIfNull(host);
@@ -61,7 +65,7 @@ internal static class HandoverE2EData
         await using (var scope = Scope(host, manager))
         {
             categoryId = Ok(await scope.ServiceProvider.GetRequiredService<VehicleCategoryService>().CreateAsync(
-                new CategoryForm("ECMR", "Catégorie ECMR", "Peugeot 208", 5, 5, 1, 2, FuelType.Petrol, 600m, 300m, 1, agencyId)));
+                new CategoryForm("ECMR", "Catégorie ECMR", "Peugeot 208", 5, 5, 1, 2, FuelType.Petrol, 0m, 0m, 1, agencyId)));
             var vehicles = scope.ServiceProvider.GetRequiredService<VehicleService>();
             vehicleId = Ok(await vehicles.RegisterAsync(
                 new VehicleForm(categoryId, Plate(), "Renault", "Clio", 2025, "Gris", Transmission.Manual, FuelType.Petrol, 5, 1, 2, new DateOnly(2025, 1, 15), new DateOnly(2025, 1, 10), null),
@@ -115,15 +119,26 @@ internal static class HandoverE2EData
         return new HandoverE2EFile(agencyId, bookingId, booking.Number, driverId, $"Sami {lastName}", vehicleId, booking.TotalInclVat, booking.Deposit);
     }
 
-    /// <summary>Pays the file at the card terminal and takes its deposit as a card imprint; returns the deposit id.</summary>
-    public static async Task<Guid> SettleAsync(E2EHost host, HandoverE2EFile file)
+    /// <summary>Pays the file at the card terminal (its deposit too, when the category asks for one).</summary>
+    public static async Task SettleAsync(E2EHost host, HandoverE2EFile file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        await PayAsync(host, file, file.Total.Amount);
+        if (file.Deposit.IsPositive)
+        {
+            await using var scope = Scope(host, Actor(Roles.Agent));
+            Ok(await scope.ServiceProvider.GetRequiredService<IDeposits>().TakeAsync(
+                new DepositRequest(file.BookingId, file.AgencyId, DepositModeInfo.CardImprint, file.Deposit.Amount, "AUT-E2E")));
+        }
+    }
+
+    /// <summary>Money received at the card terminal for the file, as the payments panel records it.</summary>
+    public static async Task PayAsync(E2EHost host, HandoverE2EFile file, decimal amount)
     {
         ArgumentNullException.ThrowIfNull(file);
         await using var scope = Scope(host, Actor(Roles.Agent));
         Ok(await scope.ServiceProvider.GetRequiredService<ICounterPayments>().RecordPaymentAsync(
-            new CounterPaymentRequest(file.BookingId, file.AgencyId, PaymentMethodInfo.CardTerminal, file.Total.Amount, "TPE-E2E")));
-        return Ok(await scope.ServiceProvider.GetRequiredService<IDeposits>().TakeAsync(
-            new DepositRequest(file.BookingId, file.AgencyId, DepositModeInfo.CardImprint, file.Deposit.Amount, "AUT-E2E")));
+            new CounterPaymentRequest(file.BookingId, file.AgencyId, PaymentMethodInfo.CardTerminal, amount, "TPE-E2E")));
     }
 
     /// <summary>A departure done through the services (15 100 km, full tank, the eight photos, both signatures), the file paid.</summary>
