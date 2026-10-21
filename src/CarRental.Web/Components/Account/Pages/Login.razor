@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authentication
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IPasswordHasher<ApplicationUser> PasswordHasher
 @inject SignInRecorder Recorder
 @inject IdentityRedirectManager RedirectManager
 @inject IStringLocalizer<AccountResources> L
@@ -36,9 +37,16 @@
 </div>
 
 @code {
+    /// <summary>A user that exists nowhere, and the hash of a random password computed once with the configured hasher.</summary>
+    private static readonly ApplicationUser UnknownAccount = new();
+    private static string? _unknownAccountHash;
+
     private string? _message;
     private string? _emailError;
     private string? _passwordError;
+
+    private static string UnknownAccountHash(IPasswordHasher<ApplicationUser> hasher) =>
+        _unknownAccountHash ??= hasher.HashPassword(UnknownAccount, Guid.NewGuid().ToString("N"));
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -76,6 +84,9 @@
         var user = await UserManager.FindByEmailAsync(email);
         if (user is null)
         {
+            // The same password hashing as for a real account, so that the answer time does not tell whether the account
+            // exists (ADR-0062).
+            _ = PasswordHasher.VerifyHashedPassword(UnknownAccount, UnknownAccountHash(PasswordHasher), Input.Password);
             await Recorder.FailedAsync(null, "unknown account", email);
             _message = L["Login.Invalid"];
             return;
