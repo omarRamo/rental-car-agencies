@@ -37,6 +37,7 @@ Le détail et la justification de chaque décision sont dans les [ADR](docs/adr/
 | [Conception de la phase 1](docs/conception/phase-1-exploitation.md) | Machine à états du dossier, occupation et capacité, sémantique du moteur de prix, découpage en lots |
 | [Conception de la phase 2](docs/conception/phase-2-vitrine-paiement.md) | Parcours public et liens profonds, brouillons de tunnel, flux Clic to Pay, Ma réservation, sécurité et performance du site |
 | [Conception de la phase 3](docs/conception/phase-3-finance.md) | Factures et avoirs, facture électronique, amendes et sinistres, dépenses, rapprochements, pré-comptabilité, indicateurs |
+| [Conception de la phase 4](docs/conception/phase-4-whatsapp.md) | WhatsApp Cloud API, agent IA (Claude Haiku 5.5) avec outils et garde-fous, boîte partagée, notifications, jeu d'évaluation |
 | [Règles du projet](CLAUDE.md) | Commandes, architecture, invariants, conventions et recettes de développement |
 | [Infrastructure Azure](infra/README.md) | Ressources, sécurité, coûts, premier déploiement, CI/CD, exploitation |
 
