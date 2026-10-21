@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Testcontainers.Azurite" />
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
   <!-- Shared test infrastructure (containers, host factory, TOTP), also linked into the E2E tests. -->
