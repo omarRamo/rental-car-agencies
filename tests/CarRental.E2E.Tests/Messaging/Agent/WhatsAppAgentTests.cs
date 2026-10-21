@@ -110,6 +110,5 @@ public sealed class WhatsAppAgentTests(E2EHost host) : BrowserTest(host)
     private static string Letters(int count) => new([.. Enumerable.Range(0, count).Select(_ => (char)('a' + RandomNumberGenerator.GetInt32(26)))]);
 
     /// <summary>The snackbars of the actions fade out before axe measures the page.</summary>
-    private Task WaitForSnackbarsAsync() =>
-        Expect(Page.Locator(".mud-snackbar")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 20_000 });
+    private Task WaitForSnackbarsAsync() => BackOfficeSession.CloseSnackbarsAsync(Page);
 }

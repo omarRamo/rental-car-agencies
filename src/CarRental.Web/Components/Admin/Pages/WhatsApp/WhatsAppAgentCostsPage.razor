@@ -5,12 +5,14 @@
    cost in USD, hand-overs and replies stopped by a guardrail. The cost of one conversation is in the inbox. *@
 @using CarRental.Application.Common.Paging
 @using CarRental.Application.Messaging.Agent.Costs
+@using CarRental.Web.Components.Admin.WhatsApp
 @using CarRental.Web.Resources.Admin.WhatsApp
 @inject IOperationRunner Runner
 @inject IStringLocalizer<AgentResources> L
 @inject IStringLocalizer<SharedResources> Shared
 
 <PageTitle>@L["Costs.Title"]</PageTitle>
+<WhatsAppStyles />
 
 <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Costs.Title"]</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">@L["Costs.Help"]</MudText>
@@ -33,8 +35,8 @@
 
 @if (_summaries is { } summaries)
 {
-    <MudPaper Elevation="1" Class="pa-2" data-testid="agent-costs">
-        <MudSimpleTable Dense="true" Elevation="0" Style="overflow-x: auto">
+    <MudPaper Elevation="1" Class="pa-2 whatsapp-scroll" data-testid="agent-costs" tabindex="0" role="region" aria-label="@L["Costs.Table"]">
+        <MudSimpleTable Dense="true" Elevation="0">
             <caption class="visually-hidden">@L["Costs.Table"]</caption>
             <thead>
                 <tr>
@@ -82,6 +84,7 @@ else if (_error is null)
 
 <MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-1">@L["Costs.Bookings.Title"]</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">@L["Costs.Bookings.Help"]</MudText>
+<div class="whatsapp-scroll" tabindex="0" role="region" aria-label="@L["Costs.Bookings.Title"]">
 <MudTable T="AgentBookingCost" ServerData="LoadBookingsAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
           TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Costs.Bookings.Title"].Value })" data-testid="agent-costs-bookings">
     <HeaderContent>
@@ -109,6 +112,7 @@ else if (_error is null)
         <AdminTablePager />
     </PagerContent>
 </MudTable>
+</div>
 
 @code {
     private static readonly int[] MonthChoices = [3, 6, 12, 24];

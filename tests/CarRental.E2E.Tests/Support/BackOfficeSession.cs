@@ -88,4 +88,26 @@ internal static class BackOfficeSession
             .ToList();
         blocking.ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// Closes the snackbars shown and waits until none is left. Waiting alone is not enough: a snackbar under the mouse
+    /// pointer keeps itself open (MudBlazor pauses its timer while hovered).
+    /// </summary>
+    public static async Task CloseSnackbarsAsync(IPage page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        foreach (var close in await page.Locator(".mud-snackbar button").AllAsync())
+        {
+            try
+            {
+                await close.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+            }
+            catch (PlaywrightException)
+            {
+                // Gone by itself meanwhile (TimeoutException derives from PlaywrightException).
+            }
+        }
+
+        await Expect(page.Locator(".mud-snackbar")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 20_000 });
+    }
 }
