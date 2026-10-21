@@ -10,7 +10,7 @@
 <BillingStyles />
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
-    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Invoices.Title"]</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Invoices.Title"]</MudText>
     @if (_agencies.Count > 1)
     {
         <MudSelect T="Guid?" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" Style="min-inline-size:14rem">
@@ -279,10 +279,15 @@
     private bool _onlyRemaining;
     private int _tab;
     private bool _busy;
+    private bool _loaded;
 
     /// <summary>The tab to open: <c>to-invoice</c> or <c>einvoice</c> (links of the dashboard and of the booking page).</summary>
     [SupplyParameterFromQuery(Name = "tab")]
     public string? TabQuery { get; set; }
+
+    /// <summary>The agency to show first (its id), otherwise the first one by name.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -297,10 +302,11 @@
         if (agencies.IsSuccess)
         {
             _agencies = agencies.Value;
-            _agencyId = _agencies.FirstOrDefault()?.Id;
+            _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id;
         }
 
         await LoadListsAsync();
+        _loaded = true;
     }
 
     private async Task LoadListsAsync()

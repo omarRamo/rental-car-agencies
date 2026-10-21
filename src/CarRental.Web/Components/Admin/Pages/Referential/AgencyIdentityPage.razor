@@ -12,7 +12,7 @@
 
 <PageTitle>@L["Agency.Title"]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Agency.Title"]</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _agencies is not null ? "true" : "false")">@L["Agency.Title"]</MudText>
 <MudText Typo="Typo.body1" Class="mb-4">@L["Agency.Intro"]</MudText>
 
 @if (_agencies is null)

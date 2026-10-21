@@ -11,7 +11,7 @@
 <BillingStyles />
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
-    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Claims.Title"]</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && _agencyId is not null ? "true" : "false")">@L["Claims.Title"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAsync" Disabled="@(_agencyId is null)"
                data-testid="claim-new">@L["Claims.Open"]</MudButton>
 </MudStack>
@@ -82,11 +82,15 @@
     private Guid? _agencyId;
     private ClaimStatus? _status;
 
+    /// <summary>The agency to show first (its id), otherwise the first one by name.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
         _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = _agencies.FirstOrDefault()?.Id;
+        _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id;
         if (_table is not null)
         {
             await _table.ReloadServerData();

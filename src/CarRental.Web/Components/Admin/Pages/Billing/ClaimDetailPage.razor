@@ -30,7 +30,7 @@ else
 {
     var open = claim.Status != ClaimStatus.Closed;
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
-        <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@Title</MudText>
         <ClaimStatusChip Status="claim.Status" />
     </MudStack>
     <MudText Typo="Typo.body2" Class="mb-3">@L["Claim.OpenedBy", BillingFormat.Instant(claim.OpenedAtUtc), claim.OpenedBy]</MudText>

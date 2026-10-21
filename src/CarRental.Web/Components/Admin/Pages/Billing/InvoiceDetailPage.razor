@@ -1,5 +1,6 @@
 @page "/admin/invoices/{Id:guid}"
 @attribute [HasPermission(Permissions.InvoicesRead)]
+@implements IDisposable
 @using CarRental.Web.Resources.Admin.Payments
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
@@ -30,7 +31,7 @@
 else
 {
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-1">
-        <MudText Typo="Typo.h4" HtmlTag="h1" data-testid="invoice-number">@Title</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1" data-testid="invoice-number" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@Title</MudText>
         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Category">@L[$"Kind.{invoice.Kind}"]</MudChip>
         <EInvoiceStatusChip Status="invoice.EInvoiceStatus" />
     </MudStack>
@@ -367,16 +368,39 @@ else
 }
 
 @code {
+    /// <summary>How often the page reads the invoice again while its documents are being prepared, and for how long.</summary>
+    private static readonly TimeSpan PendingRefresh = TimeSpan.FromSeconds(2);
+
+    private const int MaxPendingRefreshes = 60;
+
     private InvoiceDetail? _invoice;
     private string? _error;
     private bool _busy;
+    private Timer? _timer;
+    private int _ticks;
+    private bool _refreshing;
+    private bool _disposed;
 
     [Parameter]
     public Guid Id { get; set; }
 
     private string Title => _invoice is { } invoice ? L["Invoice.Title", invoice.Number] : L["Invoice.Title.Loading"];
 
-    protected override Task OnParametersSetAsync() => ReloadAsync();
+    /// <summary>The PDF of the invoice or of a credit note is being prepared, or TTN has not answered yet (outbox steps).</summary>
+    private bool Pending => _invoice is { } invoice
+        && (!invoice.HasPdf || invoice.CreditNotes.Any(n => !n.HasPdf) || invoice.EInvoiceStatus == EInvoiceStatus.Pending);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadAsync();
+        WatchPending();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        StopWatching();
+    }
 
     private async Task ReloadAsync()
     {
@@ -392,6 +416,49 @@ else
             _invoice = null;
             _error = ErrorMessages.For(Shared, result.Error);
         }
+    }
+
+    /// <summary>Reads the invoice again every few seconds while its documents are prepared by the outbox, then stops.</summary>
+    private void WatchPending()
+    {
+        if (_disposed || !RendererInfo.IsInteractive || _timer is not null || !Pending)
+        {
+            return;
+        }
+
+        _ticks = 0;
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshPendingAsync), null, PendingRefresh, PendingRefresh);
+    }
+
+    private async Task RefreshPendingAsync()
+    {
+        if (_disposed || _refreshing)
+        {
+            return;
+        }
+
+        _refreshing = true;
+        try
+        {
+            _ticks++;
+            await ReloadAsync();
+            if (!Pending || _ticks >= MaxPendingRefreshes)
+            {
+                StopWatching();
+            }
+
+            StateHasChanged();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private void StopWatching()
+    {
+        _timer?.Dispose();
+        _timer = null;
     }
 
     private async Task CreditAsync()
@@ -423,6 +490,7 @@ else
             }
 
             await ReloadAsync();
+            WatchPending();
         }
         finally
         {
@@ -444,6 +512,7 @@ else
             var retried = await Runner.RunAsync<BillingAdministrationQueries, Result>((queries, ct) => queries.RetryTransmissionAsync(BillingDocumentType.Invoice, id, ct));
             Snackbar.Add(retried.IsSuccess ? L["EInvoice.Retried", invoice.Number] : ErrorMessages.For(Shared, retried.Error), retried.IsSuccess ? Severity.Success : Severity.Error);
             await ReloadAsync();
+            WatchPending();
         }
         finally
         {
