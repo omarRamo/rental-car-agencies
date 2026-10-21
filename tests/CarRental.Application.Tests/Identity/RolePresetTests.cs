@@ -44,6 +44,12 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.PaymentsManage, true },
         { Roles.Preparer, Permissions.PaymentsRead, false },
 
+        // Remboursement en ligne au-delà d'un seuil : validation du gérant (SPEC §9)
+        { Roles.Manager, Permissions.PaymentsRefundsApprove, true },
+        { Roles.Agent, Permissions.PaymentsRefundsApprove, false },
+        { Roles.Accountant, Permissions.PaymentsRefundsApprove, false },
+        { Roles.Preparer, Permissions.PaymentsRefundsApprove, false },
+
         // Factures et avoirs: Agent émettre, Comptable gérer
         { Roles.Agent, Permissions.InvoicesIssue, true },
         { Roles.Agent, Permissions.InvoicesManage, false },
