@@ -23,7 +23,7 @@
                     <span>— @L[$"Kind.{invoice.Kind}"] · @BillingFormat.Date(invoice.IssueDate) · @BillingFormat.Amount(invoice.TotalDue)</span>
                     @if (!invoice.Credited.IsZero)
                     {
-                        <span class="billing-muted"> · @L["BookingInvoices.Credited", BillingFormat.Amount(invoice.Credited)]</span>
+                        <span class="billing-muted"> · @L["BookingInvoices.Credited", BillingFormat.Amount(invoice.Credited.Abs())]</span>
                     }
                     @if (invoice.HasPdf)
                     {

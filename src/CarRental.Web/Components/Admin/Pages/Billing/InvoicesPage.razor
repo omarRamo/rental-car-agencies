@@ -87,7 +87,7 @@
                     }
                 </MudTd>
                 <MudTd DataLabel="@L["Column.TotalDue"]" Class="billing-number">@BillingFormat.Amount(context.TotalDue)</MudTd>
-                <MudTd DataLabel="@L["Column.Credited"]" Class="billing-number">@(context.Credited.IsZero ? "—" : BillingFormat.Amount(context.Credited))</MudTd>
+                <MudTd DataLabel="@L["Column.Credited"]" Class="billing-number">@(context.Credited.IsZero ? "—" : BillingFormat.Amount(context.Credited.Abs()))</MudTd>
                 <MudTd DataLabel="@L["Column.EInvoice"]"><EInvoiceStatusChip Status="context.EInvoiceStatus" /></MudTd>
                 <MudTd DataLabel="@L["Column.Pdf"]">
                     @if (context.HasPdf)
