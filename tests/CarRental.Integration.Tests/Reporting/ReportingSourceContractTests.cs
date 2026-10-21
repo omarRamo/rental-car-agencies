@@ -203,7 +203,8 @@ public sealed class ReportingSourceContractTests(IntegrationHost host)
         var location = Guid.CreateVersion7();
         var content = new QuoteContent(agency.AgencyId, agency.CategoryId, SalesChannel.Web, location, location, pickupAt, pickupAt.AddDays(3), Guid.CreateVersion7(), 1, 3, lines, Money.Tnd(300m), Money.Tnd(57m), Money.Tnd(357m), Money.Tnd(357m), Money.Tnd(600m), false, QuotePromoCodeOutcome.None, null, "[]", "{}", "[]");
         var quote = Quote.CreateVersion(id, 1, QuoteOrigin.Initial, content, QuoteCode.Generate(), "tests", createdAt).Value;
-        var number = DocumentNumber.Create(DocumentType.Booking, Random.Shared.Next(2001, 2100), Random.Shared.NextInt64(1, 999_999)).Value;
+        // A synthetic year far from today: the gapless numbering test reads every booking number of the current year.
+        var number = DocumentNumber.Create(DocumentType.Booking, Random.Shared.Next(5000, 9000), Random.Shared.NextInt64(1, 999_999)).Value;
         var customer = new BookingActor(null, "client", SalesChannel.Web);
         var details = new BookingDetails(
             agency.AgencyId,
