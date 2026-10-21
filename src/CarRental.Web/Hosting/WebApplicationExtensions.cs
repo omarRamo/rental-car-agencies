@@ -2,6 +2,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Infrastructure;
 using CarRental.Web.Components;
 using CarRental.Web.Components.Account;
+using CarRental.Web.Components.Admin.Billing;
 using CarRental.Web.Components.Admin.Handovers;
 using CarRental.Web.Components.Admin.Reports;
 using CarRental.Web.Endpoints;
@@ -59,6 +60,7 @@ internal static class WebApplicationExtensions
         app.MapReportExportEndpoints();
         app.MapWhatsAppWebhook();
         app.MapHandoverEndpoints();
+        app.MapBillingEndpoints();
         app.MapPublicSite();
         app.MapClicToPayEndpoints(app.Environment);
         app.MapChannelEndpoints();

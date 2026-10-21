@@ -193,7 +193,7 @@ public sealed class InvoicingServiceTests
 
         var invoice = harness.Db.Rows<Invoice>().ShouldHaveSingleItem();
         invoice.ChannelReference.ShouldBe("BDC-998877");
-        invoice.Mentions.ShouldContain("Billing.Mention.ChannelBooking(BookingCom,BDC-998877)@fr");
+        invoice.Mentions.ShouldContain("Billing.Mention.ChannelBooking(Billing.Channel.BookingCom()@fr,BDC-998877)@fr");
         invoice.Buyer.CustomerId.ShouldBe(harness.Payer.Id);
     }
 

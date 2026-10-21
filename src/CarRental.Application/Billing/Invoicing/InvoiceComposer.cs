@@ -29,8 +29,11 @@ internal sealed class InvoiceComposer(IBillingTexts texts)
     /// <summary>{0} notice number.</summary>
     public const string ManagementFeeLabel = "Billing.Line.FineManagementFee";
 
-    /// <summary>{0} channel reference.</summary>
+    /// <summary>{0} name of the channel (<see cref="ChannelNamePrefix"/>), {1} its reference of the booking.</summary>
     public const string ChannelBookingMention = "Billing.Mention.ChannelBooking";
+
+    /// <summary>Prefix of the display names of the sales channels (<c>Billing.Channel.BookingCom</c>…).</summary>
+    public const string ChannelNamePrefix = "Billing.Channel.";
 
     /// <summary>The accounting nature of a quote line.</summary>
     public static InvoiceLineNature NatureOf(BookingQuoteLineKindInfo kind) => kind switch
@@ -156,7 +159,7 @@ internal sealed class InvoiceComposer(IBillingTexts texts)
 
     /// <summary>The mention of a booking received from a sales channel (its reference), in the language of the invoice.</summary>
     public string ChannelMention(SalesChannel channel, string reference) =>
-        texts.Text(ChannelBookingMention, Language, channel.ToString(), reference);
+        texts.Text(ChannelBookingMention, Language, texts.Text($"{ChannelNamePrefix}{channel}", Language), reference);
 
     private string Describe(string labelKey, IReadOnlyList<string> arguments, string? detail)
     {

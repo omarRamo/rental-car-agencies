@@ -1,0 +1,1206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement…</value>
+  </data>
+  <data name="Dialog.Back" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Field.TunisTime" xml:space="preserve">
+    <value>Heure de Tunis</value>
+  </data>
+  <data name="Field.LegalName" xml:space="preserve">
+    <value>Raison sociale</value>
+  </data>
+  <data name="Field.TaxIdentifier" xml:space="preserve">
+    <value>Matricule fiscal</value>
+  </data>
+  <data name="Field.TradeRegister" xml:space="preserve">
+    <value>Registre national des entreprises (RNE)</value>
+  </data>
+  <data name="Field.Address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="Field.LegalAddress" xml:space="preserve">
+    <value>Adresse du siège</value>
+  </data>
+  <data name="Field.InvoiceFooter" xml:space="preserve">
+    <value>Pied de page des factures</value>
+  </data>
+  <data name="Field.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Field.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Filter.All" xml:space="preserve">
+    <value>Tous</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Customer" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="Filter.Number" xml:space="preserve">
+    <value>Numéro</value>
+  </data>
+  <data name="Filter.Number.Help" xml:space="preserve">
+    <value>Numéro de facture ou de dossier</value>
+  </data>
+  <data name="Filter.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Filter.EInvoice" xml:space="preserve">
+    <value>Facturation électronique</value>
+  </data>
+  <data name="Filter.OnlyRemaining" xml:space="preserve">
+    <value>Seulement les factures non entièrement créditées</value>
+  </data>
+  <data name="Filter.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Kind.Rental" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Kind.CancellationFee" xml:space="preserve">
+    <value>Frais d'annulation</value>
+  </data>
+  <data name="Kind.FineReinvoicing" xml:space="preserve">
+    <value>Refacturation d'amende</value>
+  </data>
+  <data name="Scope.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Scope.Partial" xml:space="preserve">
+    <value>Partiel</value>
+  </data>
+  <data name="EInvoiceStatus.NotRequired" xml:space="preserve">
+    <value>Papier (régime transitoire)</value>
+  </data>
+  <data name="EInvoiceStatus.Pending" xml:space="preserve">
+    <value>En attente TTN</value>
+  </data>
+  <data name="EInvoiceStatus.Transmitted" xml:space="preserve">
+    <value>Transmise à TTN</value>
+  </data>
+  <data name="EInvoiceStatus.Failed" xml:space="preserve">
+    <value>Échec de transmission</value>
+  </data>
+  <data name="EInvoiceMode.PaperTransitional" xml:space="preserve">
+    <value>Papier, régime transitoire</value>
+  </data>
+  <data name="EInvoiceMode.Ttn" xml:space="preserve">
+    <value>Électronique (TTN)</value>
+  </data>
+  <data name="FineStatus.Recorded" xml:space="preserve">
+    <value>Enregistrée</value>
+  </data>
+  <data name="FineStatus.Designated" xml:space="preserve">
+    <value>Conducteur désigné</value>
+  </data>
+  <data name="FineStatus.Reinvoiced" xml:space="preserve">
+    <value>Refacturée</value>
+  </data>
+  <data name="FineStatus.Paid" xml:space="preserve">
+    <value>Payée</value>
+  </data>
+  <data name="FineStatus.Closed" xml:space="preserve">
+    <value>Clôturée</value>
+  </data>
+  <data name="FineMatch.Matched" xml:space="preserve">
+    <value>Location trouvée</value>
+  </data>
+  <data name="FineMatch.Ambiguous" xml:space="preserve">
+    <value>Plusieurs locations possibles</value>
+  </data>
+  <data name="FineMatch.NoRental" xml:space="preserve">
+    <value>Aucune location à cet instant</value>
+  </data>
+  <data name="FineMatch.UnknownVehicle" xml:space="preserve">
+    <value>Immatriculation inconnue</value>
+  </data>
+  <data name="FineMatch.Manual" xml:space="preserve">
+    <value>Attribuée par un agent</value>
+  </data>
+  <data name="FineMatch.Matched.Help" xml:space="preserve">
+    <value>La location qui avait le véhicule à cet instant a été trouvée.</value>
+  </data>
+  <data name="FineMatch.Ambiguous.Help" xml:space="preserve">
+    <value>Plusieurs locations avaient le véhicule autour de cet instant : choisissez le dossier et le conducteur ci-dessous.</value>
+  </data>
+  <data name="FineMatch.NoRental.Help" xml:space="preserve">
+    <value>Le véhicule n'était loué à personne à cet instant : vérifiez la date et l'heure de l'avis, ou clôturez l'amende avec une note.</value>
+  </data>
+  <data name="FineMatch.UnknownVehicle.Help" xml:space="preserve">
+    <value>Aucun véhicule de l'agence ne porte cette immatriculation : vérifiez l'avis, ou clôturez l'amende avec une note.</value>
+  </data>
+  <data name="FineMatch.Manual.Help" xml:space="preserve">
+    <value>Le dossier et le conducteur ont été choisis par un agent.</value>
+  </data>
+  <data name="ClaimStatus.Open" xml:space="preserve">
+    <value>Ouvert</value>
+  </data>
+  <data name="ClaimStatus.AtInsurer" xml:space="preserve">
+    <value>Chez l'assureur</value>
+  </data>
+  <data name="ClaimStatus.Closed" xml:space="preserve">
+    <value>Clos</value>
+  </data>
+  <data name="ClaimDocumentKind.AccidentReport" xml:space="preserve">
+    <value>Constat amiable</value>
+  </data>
+  <data name="ClaimDocumentKind.Photo" xml:space="preserve">
+    <value>Photo</value>
+  </data>
+  <data name="ClaimDocumentKind.Other" xml:space="preserve">
+    <value>Autre pièce</value>
+  </data>
+  <data name="Column.Number" xml:space="preserve">
+    <value>Numéro</value>
+  </data>
+  <data name="Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Customer" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="Column.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Column.TotalDue" xml:space="preserve">
+    <value>Net à payer</value>
+  </data>
+  <data name="Column.Total" xml:space="preserve">
+    <value>Montant TTC</value>
+  </data>
+  <data name="Column.Credited" xml:space="preserve">
+    <value>Crédité</value>
+  </data>
+  <data name="Column.EInvoice" xml:space="preserve">
+    <value>Facturation électronique</value>
+  </data>
+  <data name="Column.Pdf" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="Column.Invoice" xml:space="preserve">
+    <value>Facture</value>
+  </data>
+  <data name="Column.Scope" xml:space="preserve">
+    <value>Portée</value>
+  </data>
+  <data name="Column.Reason" xml:space="preserve">
+    <value>Motif</value>
+  </data>
+  <data name="Column.StatusChanged" xml:space="preserve">
+    <value>Clôturé ou annulé le</value>
+  </data>
+  <data name="Column.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Column.Attempts" xml:space="preserve">
+    <value>Tentatives</value>
+  </data>
+  <data name="Column.LastError" xml:space="preserve">
+    <value>Dernière erreur</value>
+  </data>
+  <data name="Column.Label" xml:space="preserve">
+    <value>Désignation</value>
+  </data>
+  <data name="Column.Quantity" xml:space="preserve">
+    <value>Qté</value>
+  </data>
+  <data name="Column.UnitPrice" xml:space="preserve">
+    <value>P.U. HT</value>
+  </data>
+  <data name="Column.ExclVat" xml:space="preserve">
+    <value>Montant HT</value>
+  </data>
+  <data name="Column.Rate" xml:space="preserve">
+    <value>Taux de TVA</value>
+  </data>
+  <data name="Column.Vat" xml:space="preserve">
+    <value>TVA</value>
+  </data>
+  <data name="Column.InclVat" xml:space="preserve">
+    <value>Montant TTC</value>
+  </data>
+  <data name="Column.Remaining" xml:space="preserve">
+    <value>Restant créditable</value>
+  </data>
+  <data name="Column.Base" xml:space="preserve">
+    <value>Base HT</value>
+  </data>
+  <data name="Column.Direction" xml:space="preserve">
+    <value>Sens</value>
+  </data>
+  <data name="Column.Method" xml:space="preserve">
+    <value>Moyen</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Column.OffenceAt" xml:space="preserve">
+    <value>Date de l'infraction</value>
+  </data>
+  <data name="Column.Ticket" xml:space="preserve">
+    <value>N° d'avis</value>
+  </data>
+  <data name="Column.Authority" xml:space="preserve">
+    <value>Autorité</value>
+  </data>
+  <data name="Column.Plate" xml:space="preserve">
+    <value>Immatriculation</value>
+  </data>
+  <data name="Column.AccidentAt" xml:space="preserve">
+    <value>Date de l'accident</value>
+  </data>
+  <data name="Column.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Column.Insurer" xml:space="preserve">
+    <value>Assureur</value>
+  </data>
+  <data name="Column.Costs" xml:space="preserve">
+    <value>Coûts</value>
+  </data>
+  <data name="Column.Reimbursements" xml:space="preserve">
+    <value>Remboursements</value>
+  </data>
+  <data name="Column.NetCost" xml:space="preserve">
+    <value>Coût net</value>
+  </data>
+  <data name="Column.RecordedBy" xml:space="preserve">
+    <value>Saisi par</value>
+  </data>
+  <data name="Invoices.Title" xml:space="preserve">
+    <value>Factures et avoirs</value>
+  </data>
+  <data name="Invoices.Intro" xml:space="preserve">
+    <value>Les factures sont émises à la clôture des dossiers (et à l'annulation avec frais), numérotées sans trou par année fiscale et figées dès leur émission : une correction passe par un avoir.</value>
+  </data>
+  <data name="Invoices.Tabs" xml:space="preserve">
+    <value>Factures, avoirs, dossiers à facturer et facturation électronique</value>
+  </data>
+  <data name="Tab.Invoices" xml:space="preserve">
+    <value>Factures</value>
+  </data>
+  <data name="Tab.CreditNotes" xml:space="preserve">
+    <value>Avoirs</value>
+  </data>
+  <data name="Tab.ToInvoice" xml:space="preserve">
+    <value>À facturer</value>
+  </data>
+  <data name="Tab.EInvoice" xml:space="preserve">
+    <value>Facturation électronique</value>
+  </data>
+  <data name="Invoices.Empty" xml:space="preserve">
+    <value>Aucune facture ne correspond à ces filtres.</value>
+  </data>
+  <data name="CreditNotes.Empty" xml:space="preserve">
+    <value>Aucun avoir sur cette période.</value>
+  </data>
+  <data name="ToInvoice.Intro" xml:space="preserve">
+    <value>Dossiers clôturés (ou annulés avec frais) encore sans facture : l'émission automatique a été refusée, ou elle est désactivée (réglage billing.issue_automatically).</value>
+  </data>
+  <data name="ToInvoice.CompleteIdentity" xml:space="preserve">
+    <value>Compléter l'identité de l'agence</value>
+  </data>
+  <data name="ToInvoice.Empty" xml:space="preserve">
+    <value>Tous les dossiers clôturés ont leur facture.</value>
+  </data>
+  <data name="ToInvoice.Issue" xml:space="preserve">
+    <value>Émettre maintenant</value>
+  </data>
+  <data name="ToInvoice.Issue.Label" xml:space="preserve">
+    <value>Émettre la facture du dossier {0}</value>
+  </data>
+  <data name="ToInvoice.Issued" xml:space="preserve">
+    <value>Facture {0} émise.</value>
+  </data>
+  <data name="EInvoice.Intro" xml:space="preserve">
+    <value>Documents dont la version électronique n'est pas encore acceptée par TTN. Les échecs sont réessayés automatiquement ; un document en échec peut aussi être relancé ici.</value>
+  </data>
+  <data name="EInvoice.Empty" xml:space="preserve">
+    <value>Aucun document en attente de TTN.</value>
+  </data>
+  <data name="EInvoice.Retry" xml:space="preserve">
+    <value>Réessayer la transmission</value>
+  </data>
+  <data name="EInvoice.Retry.Label" xml:space="preserve">
+    <value>Réessayer la transmission de {0}</value>
+  </data>
+  <data name="EInvoice.Retried" xml:space="preserve">
+    <value>Nouvelle tentative demandée pour {0}.</value>
+  </data>
+  <data name="Pdf.Download" xml:space="preserve">
+    <value>Télécharger le PDF</value>
+  </data>
+  <data name="Pdf.DownloadEnglish" xml:space="preserve">
+    <value>Traduction anglaise (courtoisie)</value>
+  </data>
+  <data name="Pdf.Download.Short" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="Pdf.Download.Of" xml:space="preserve">
+    <value>PDF de {0}</value>
+  </data>
+  <data name="Pdf.Pending" xml:space="preserve">
+    <value>En préparation</value>
+  </data>
+  <data name="Pdf.PendingLong" xml:space="preserve">
+    <value>Le PDF est en préparation : il sera disponible dans quelques instants.</value>
+  </data>
+  <data name="Invoice.Title" xml:space="preserve">
+    <value>Facture {0}</value>
+  </data>
+  <data name="Invoice.Title.Loading" xml:space="preserve">
+    <value>Facture</value>
+  </data>
+  <data name="Invoice.BackToList" xml:space="preserve">
+    <value>Factures et avoirs</value>
+  </data>
+  <data name="Invoice.IssuedBy" xml:space="preserve">
+    <value>Émise le {0} par {1}</value>
+  </data>
+  <data name="Invoice.Seller" xml:space="preserve">
+    <value>Vendeur</value>
+  </data>
+  <data name="Invoice.Buyer" xml:space="preserve">
+    <value>Client facturé</value>
+  </data>
+  <data name="Invoice.References" xml:space="preserve">
+    <value>Références</value>
+  </data>
+  <data name="Invoice.Fine" xml:space="preserve">
+    <value>Amende</value>
+  </data>
+  <data name="Invoice.Fine.Open" xml:space="preserve">
+    <value>Voir l'amende</value>
+  </data>
+  <data name="Invoice.Fine.Linked" xml:space="preserve">
+    <value>Refacturation d'une amende</value>
+  </data>
+  <data name="Invoice.Period" xml:space="preserve">
+    <value>Période de location</value>
+  </data>
+  <data name="Invoice.Period.Value" xml:space="preserve">
+    <value>du {0} au {1}</value>
+  </data>
+  <data name="Invoice.EInvoiceMode" xml:space="preserve">
+    <value>Régime</value>
+  </data>
+  <data name="Invoice.TtnReference" xml:space="preserve">
+    <value>Référence TTN</value>
+  </data>
+  <data name="Invoice.Emailed" xml:space="preserve">
+    <value>Envoi par e-mail</value>
+  </data>
+  <data name="Invoice.Emailed.Value" xml:space="preserve">
+    <value>à {0} le {1}</value>
+  </data>
+  <data name="Invoice.Emailed.Not" xml:space="preserve">
+    <value>Pas encore envoyée</value>
+  </data>
+  <data name="Invoice.Lines" xml:space="preserve">
+    <value>Lignes</value>
+  </data>
+  <data name="Invoice.VatTotals" xml:space="preserve">
+    <value>TVA par taux</value>
+  </data>
+  <data name="Invoice.Totals" xml:space="preserve">
+    <value>Totaux</value>
+  </data>
+  <data name="Invoice.Mentions" xml:space="preserve">
+    <value>Mentions</value>
+  </data>
+  <data name="Invoice.CreditNotes" xml:space="preserve">
+    <value>Avoirs</value>
+  </data>
+  <data name="Invoice.CreditNotes.None" xml:space="preserve">
+    <value>Aucun avoir sur cette facture.</value>
+  </data>
+  <data name="Invoice.Payments" xml:space="preserve">
+    <value>Paiements du dossier</value>
+  </data>
+  <data name="Invoice.Payments.Intro" xml:space="preserve">
+    <value>Situation actuelle des paiements du dossier ; les montants de la facture restent ceux de son émission.</value>
+  </data>
+  <data name="Invoice.Payments.None" xml:space="preserve">
+    <value>Aucun paiement sur ce dossier.</value>
+  </data>
+  <data name="Total.ExclVat" xml:space="preserve">
+    <value>Total HT</value>
+  </data>
+  <data name="Total.Vat" xml:space="preserve">
+    <value>Total TVA</value>
+  </data>
+  <data name="Total.InclVat" xml:space="preserve">
+    <value>Total TTC</value>
+  </data>
+  <data name="Total.StampDuty" xml:space="preserve">
+    <value>Droit de timbre</value>
+  </data>
+  <data name="Total.Due" xml:space="preserve">
+    <value>Net à payer</value>
+  </data>
+  <data name="Total.PaidAtIssue" xml:space="preserve">
+    <value>Déjà payé à l'émission</value>
+  </data>
+  <data name="Total.DepositApplied" xml:space="preserve">
+    <value>Caution imputée</value>
+  </data>
+  <data name="Total.BalanceAtIssue" xml:space="preserve">
+    <value>Reste à payer à l'émission</value>
+  </data>
+  <data name="Total.OverpaidAtIssue" xml:space="preserve">
+    <value>Trop-perçu à l'émission</value>
+  </data>
+  <data name="Total.Remaining" xml:space="preserve">
+    <value>Restant créditable</value>
+  </data>
+  <data name="Total.NetPaid" xml:space="preserve">
+    <value>Encaissé net</value>
+  </data>
+  <data name="Total.DepositRetained" xml:space="preserve">
+    <value>Cautions retenues</value>
+  </data>
+  <data name="Credit.Open" xml:space="preserve">
+    <value>Établir un avoir</value>
+  </data>
+  <data name="Credit.Title" xml:space="preserve">
+    <value>Avoir sur la facture {0}</value>
+  </data>
+  <data name="Credit.Remaining" xml:space="preserve">
+    <value>Restant créditable sur cette facture : {0}.</value>
+  </data>
+  <data name="Credit.Scope.Total" xml:space="preserve">
+    <value>Avoir total (tout ce qui reste)</value>
+  </data>
+  <data name="Credit.Scope.Partial" xml:space="preserve">
+    <value>Avoir partiel (montants par ligne)</value>
+  </data>
+  <data name="Credit.Lines" xml:space="preserve">
+    <value>Lignes à créditer</value>
+  </data>
+  <data name="Credit.Amount" xml:space="preserve">
+    <value>Montant TTC à créditer</value>
+  </data>
+  <data name="Credit.Amount.Of" xml:space="preserve">
+    <value>Montant TTC à créditer pour {0}</value>
+  </data>
+  <data name="Credit.Sum" xml:space="preserve">
+    <value>Total de l'avoir : {0}</value>
+  </data>
+  <data name="Credit.Reason" xml:space="preserve">
+    <value>Motif de l'avoir</value>
+  </data>
+  <data name="Credit.Submit" xml:space="preserve">
+    <value>Émettre l'avoir</value>
+  </data>
+  <data name="Credit.Issued" xml:space="preserve">
+    <value>Avoir {0} émis.</value>
+  </data>
+  <data name="BookingInvoices.Title" xml:space="preserve">
+    <value>Factures</value>
+  </data>
+  <data name="BookingInvoices.None" xml:space="preserve">
+    <value>Aucune facture pour ce dossier.</value>
+  </data>
+  <data name="BookingInvoices.NoneYet" xml:space="preserve">
+    <value>La facture de ce dossier n'est pas encore émise.</value>
+  </data>
+  <data name="BookingInvoices.Credited" xml:space="preserve">
+    <value>crédité {0}</value>
+  </data>
+  <data name="Fines.Title" xml:space="preserve">
+    <value>Amendes</value>
+  </data>
+  <data name="Fines.Intro" xml:space="preserve">
+    <value>Avis de contravention reçus pour les véhicules de l'agence : la location et le conducteur sont retrouvés à l'instant de l'infraction, le conducteur est désigné à l'autorité et l'amende peut être refacturée.</value>
+  </data>
+  <data name="Fines.Record" xml:space="preserve">
+    <value>Enregistrer une amende</value>
+  </data>
+  <data name="Fines.Recorded" xml:space="preserve">
+    <value>Amende enregistrée.</value>
+  </data>
+  <data name="Fines.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Fines.Search.Help" xml:space="preserve">
+    <value>N° d'avis, immatriculation ou dossier</value>
+  </data>
+  <data name="Fines.OnlyToAssign" xml:space="preserve">
+    <value>Seulement les amendes à attribuer</value>
+  </data>
+  <data name="Fines.Empty" xml:space="preserve">
+    <value>Aucune amende ne correspond à ces filtres.</value>
+  </data>
+  <data name="Fine.Title" xml:space="preserve">
+    <value>Amende {0}</value>
+  </data>
+  <data name="Fine.Title.Loading" xml:space="preserve">
+    <value>Amende</value>
+  </data>
+  <data name="Fine.BackToList" xml:space="preserve">
+    <value>Amendes</value>
+  </data>
+  <data name="Fine.RecordedBy" xml:space="preserve">
+    <value>Enregistrée le {0} par {1}</value>
+  </data>
+  <data name="Fine.By" xml:space="preserve">
+    <value>le {0} par {1}</value>
+  </data>
+  <data name="Fine.Notice" xml:space="preserve">
+    <value>Avis de contravention</value>
+  </data>
+  <data name="Fine.Rental" xml:space="preserve">
+    <value>Location et conducteur</value>
+  </data>
+  <data name="Fine.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Fine.Vehicle.Unknown" xml:space="preserve">
+    <value>Inconnu dans la flotte</value>
+  </data>
+  <data name="Fine.Match" xml:space="preserve">
+    <value>Recherche de la location</value>
+  </data>
+  <data name="Fine.Driver" xml:space="preserve">
+    <value>Conducteur</value>
+  </data>
+  <data name="Fine.Driver.Main" xml:space="preserve">
+    <value>conducteur principal</value>
+  </data>
+  <data name="Fine.Driver.Secondary" xml:space="preserve">
+    <value>conducteur additionnel</value>
+  </data>
+  <data name="Fine.Driver.Anonymized" xml:space="preserve">
+    <value>Personne anonymisée</value>
+  </data>
+  <data name="Fine.DesignatedAt" xml:space="preserve">
+    <value>Désignation envoyée</value>
+  </data>
+  <data name="Fine.PaidAt" xml:space="preserve">
+    <value>Payée le</value>
+  </data>
+  <data name="Fine.ClosedAt" xml:space="preserve">
+    <value>Clôturée le</value>
+  </data>
+  <data name="Fine.Field.Ticket" xml:space="preserve">
+    <value>N° de l'avis</value>
+  </data>
+  <data name="Fine.Field.Authority" xml:space="preserve">
+    <value>Autorité</value>
+  </data>
+  <data name="Fine.Field.Authority.Help" xml:space="preserve">
+    <value>Service émetteur de l'avis (police, garde nationale, municipalité…)</value>
+  </data>
+  <data name="Fine.Field.OffenceAt" xml:space="preserve">
+    <value>Date et heure de l'infraction</value>
+  </data>
+  <data name="Fine.Field.Plate" xml:space="preserve">
+    <value>Immatriculation</value>
+  </data>
+  <data name="Fine.Field.Plate.Help" xml:space="preserve">
+    <value>Telle qu'elle figure sur l'avis</value>
+  </data>
+  <data name="Fine.Field.Place" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="Fine.Field.Amount" xml:space="preserve">
+    <value>Montant (TND)</value>
+  </data>
+  <data name="Fine.Field.Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Fine.Record.Submit" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Fine.Designation" xml:space="preserve">
+    <value>Formulaire de désignation (PDF)</value>
+  </data>
+  <data name="Fine.Designation.NeedsDocuments" xml:space="preserve">
+    <value>Le formulaire de désignation imprime les pièces d'identité du conducteur : il faut aussi la permission de lire les documents des clients.</value>
+  </data>
+  <data name="Fine.MarkDesignated" xml:space="preserve">
+    <value>Marquer le conducteur désigné</value>
+  </data>
+  <data name="Fine.MarkDesignated.Message" xml:space="preserve">
+    <value>Confirmez que le formulaire de désignation a été envoyé à l'autorité.</value>
+  </data>
+  <data name="Fine.MarkDesignated.Done" xml:space="preserve">
+    <value>Désignation enregistrée.</value>
+  </data>
+  <data name="Fine.Reinvoice" xml:space="preserve">
+    <value>Refacturer au client</value>
+  </data>
+  <data name="Fine.Reinvoice.Message" xml:space="preserve">
+    <value>Une facture de {0} sera émise au payeur du dossier.</value>
+  </data>
+  <data name="Fine.Reinvoice.Message.Fee" xml:space="preserve">
+    <value>Une facture de {0}, plus {1} de frais de gestion, sera émise au payeur du dossier.</value>
+  </data>
+  <data name="Fine.Reinvoice.Done" xml:space="preserve">
+    <value>Facture {0} émise.</value>
+  </data>
+  <data name="Fine.MarkPaid" xml:space="preserve">
+    <value>Marquer payée</value>
+  </data>
+  <data name="Fine.MarkPaid.Message" xml:space="preserve">
+    <value>Confirmez que l'amende a été payée à l'autorité.</value>
+  </data>
+  <data name="Fine.MarkPaid.Done" xml:space="preserve">
+    <value>Amende marquée payée.</value>
+  </data>
+  <data name="Fine.Close" xml:space="preserve">
+    <value>Clôturer</value>
+  </data>
+  <data name="Fine.Close.Message" xml:space="preserve">
+    <value>Plus rien à faire pour cette amende ? Une note peut expliquer pourquoi.</value>
+  </data>
+  <data name="Fine.Close.Note" xml:space="preserve">
+    <value>Note (facultative)</value>
+  </data>
+  <data name="Fine.Close.Done" xml:space="preserve">
+    <value>Amende clôturée.</value>
+  </data>
+  <data name="Fine.Assign.Title" xml:space="preserve">
+    <value>Attribuer à une location</value>
+  </data>
+  <data name="Fine.Assign.Intro" xml:space="preserve">
+    <value>Locations qui avaient le véhicule à l'instant de l'infraction : choisissez le conducteur.</value>
+  </data>
+  <data name="Fine.Assign.Rental" xml:space="preserve">
+    <value>Dossier {0} — du {1} au {2}</value>
+  </data>
+  <data name="Fine.Assign.InProgress" xml:space="preserve">
+    <value>en cours</value>
+  </data>
+  <data name="Fine.Assign.NoDriver" xml:space="preserve">
+    <value>Aucun conducteur enregistré sur ce dossier.</value>
+  </data>
+  <data name="Fine.Assign.Submit" xml:space="preserve">
+    <value>Attribuer</value>
+  </data>
+  <data name="Fine.Assign.Done" xml:space="preserve">
+    <value>Amende attribuée.</value>
+  </data>
+  <data name="Claims.Title" xml:space="preserve">
+    <value>Sinistres</value>
+  </data>
+  <data name="Claims.Intro" xml:space="preserve">
+    <value>Accidents des véhicules de l'agence : constat, photos, assureur, franchise, coûts et remboursements. Le coût net alimente la rentabilité des véhicules dans les rapports.</value>
+  </data>
+  <data name="Claims.Open" xml:space="preserve">
+    <value>Ouvrir un sinistre</value>
+  </data>
+  <data name="Claims.Opened" xml:space="preserve">
+    <value>Sinistre ouvert.</value>
+  </data>
+  <data name="Claims.Empty" xml:space="preserve">
+    <value>Aucun sinistre ne correspond à ces filtres.</value>
+  </data>
+  <data name="Claim.Title" xml:space="preserve">
+    <value>Sinistre du {0} — {1}</value>
+  </data>
+  <data name="Claim.Title.Loading" xml:space="preserve">
+    <value>Sinistre</value>
+  </data>
+  <data name="Claim.BackToList" xml:space="preserve">
+    <value>Sinistres</value>
+  </data>
+  <data name="Claim.OpenedBy" xml:space="preserve">
+    <value>Ouvert le {0} par {1}</value>
+  </data>
+  <data name="Claim.InsurerNumber" xml:space="preserve">
+    <value>Dossier assureur {0}</value>
+  </data>
+  <data name="Claim.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Claim.Edit.Submit" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Claim.Open.Submit" xml:space="preserve">
+    <value>Ouvrir le sinistre</value>
+  </data>
+  <data name="Claim.Saved" xml:space="preserve">
+    <value>Sinistre mis à jour.</value>
+  </data>
+  <data name="Claim.SendToInsurer" xml:space="preserve">
+    <value>Transmis à l'assureur</value>
+  </data>
+  <data name="Claim.SendToInsurer.Done" xml:space="preserve">
+    <value>Sinistre chez l'assureur.</value>
+  </data>
+  <data name="Claim.Reopen" xml:space="preserve">
+    <value>Revenir à « ouvert »</value>
+  </data>
+  <data name="Claim.Reopen.Done" xml:space="preserve">
+    <value>Sinistre rouvert.</value>
+  </data>
+  <data name="Claim.Close" xml:space="preserve">
+    <value>Clore le sinistre</value>
+  </data>
+  <data name="Claim.Close.Message" xml:space="preserve">
+    <value>Une fois clos, le sinistre ne peut plus être modifié (coûts, remboursements, pièces).</value>
+  </data>
+  <data name="Claim.Close.Done" xml:space="preserve">
+    <value>Sinistre clos.</value>
+  </data>
+  <data name="Claim.ClosedAt" xml:space="preserve">
+    <value>Clos le</value>
+  </data>
+  <data name="Claim.Accident" xml:space="preserve">
+    <value>Accident</value>
+  </data>
+  <data name="Claim.Money" xml:space="preserve">
+    <value>Coûts</value>
+  </data>
+  <data name="Claim.Money.Help" xml:space="preserve">
+    <value>Coût net = coûts − remboursements.</value>
+  </data>
+  <data name="Claim.Field.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Claim.Field.Booking" xml:space="preserve">
+    <value>N° de dossier (facultatif)</value>
+  </data>
+  <data name="Claim.Field.Booking.Help" xml:space="preserve">
+    <value>Le dossier de location pendant lequel l'accident a eu lieu</value>
+  </data>
+  <data name="Claim.Field.AccidentAt" xml:space="preserve">
+    <value>Date et heure de l'accident</value>
+  </data>
+  <data name="Claim.Field.Place" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="Claim.Field.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Claim.Field.Insurer" xml:space="preserve">
+    <value>Assureur</value>
+  </data>
+  <data name="Claim.Field.InsurerClaimNumber" xml:space="preserve">
+    <value>N° de sinistre de l'assureur</value>
+  </data>
+  <data name="Claim.Field.Franchise" xml:space="preserve">
+    <value>Franchise (TND)</value>
+  </data>
+  <data name="Claim.Costs" xml:space="preserve">
+    <value>Coûts</value>
+  </data>
+  <data name="Claim.Costs.None" xml:space="preserve">
+    <value>Aucun coût enregistré.</value>
+  </data>
+  <data name="Claim.Cost.Add" xml:space="preserve">
+    <value>Ajouter un coût</value>
+  </data>
+  <data name="Claim.Reimbursements" xml:space="preserve">
+    <value>Remboursements</value>
+  </data>
+  <data name="Claim.Reimbursements.None" xml:space="preserve">
+    <value>Aucun remboursement enregistré.</value>
+  </data>
+  <data name="Claim.Reimbursement.Add" xml:space="preserve">
+    <value>Ajouter un remboursement</value>
+  </data>
+  <data name="Claim.Entry.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Claim.Entry.Amount" xml:space="preserve">
+    <value>Montant (TND)</value>
+  </data>
+  <data name="Claim.Entry.Label" xml:space="preserve">
+    <value>Libellé</value>
+  </data>
+  <data name="Claim.Entry.Label.Cost.Help" xml:space="preserve">
+    <value>Réparation, remorquage, expertise…</value>
+  </data>
+  <data name="Claim.Entry.Label.Reimbursement.Help" xml:space="preserve">
+    <value>Assureur, tiers responsable, franchise payée par le client…</value>
+  </data>
+  <data name="Claim.Entry.Reference" xml:space="preserve">
+    <value>Référence</value>
+  </data>
+  <data name="Claim.Entry.Submit" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Claim.Entry.Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Claim.Entry.Remove.Label" xml:space="preserve">
+    <value>Supprimer {0}</value>
+  </data>
+  <data name="Claim.Entry.Remove.Message" xml:space="preserve">
+    <value>Supprimer « {0} » ({1}) ?</value>
+  </data>
+  <data name="Claim.Documents" xml:space="preserve">
+    <value>Pièces</value>
+  </data>
+  <data name="Claim.Documents.Help" xml:space="preserve">
+    <value>Constat amiable, photos et autres pièces : JPEG, PNG, WebP ou PDF, {0} Mo au plus.</value>
+  </data>
+  <data name="Claim.Documents.None" xml:space="preserve">
+    <value>Aucune pièce.</value>
+  </data>
+  <data name="Claim.Document.Kind" xml:space="preserve">
+    <value>Type de pièce</value>
+  </data>
+  <data name="Claim.Document.Upload" xml:space="preserve">
+    <value>Ajouter une pièce</value>
+  </data>
+  <data name="Claim.Document.Uploaded" xml:space="preserve">
+    <value>Pièce ajoutée.</value>
+  </data>
+  <data name="Claim.Document.Name" xml:space="preserve">
+    <value>Fichier</value>
+  </data>
+  <data name="Claim.Document.Size" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="Claim.Document.UploadedAt" xml:space="preserve">
+    <value>Ajoutée</value>
+  </data>
+  <data name="Claim.Document.Remove.Label" xml:space="preserve">
+    <value>Supprimer {0}</value>
+  </data>
+  <data name="Claim.Document.Remove.Message" xml:space="preserve">
+    <value>Supprimer la pièce « {0} » ?</value>
+  </data>
+  <data name="Size.Megabytes" xml:space="preserve">
+    <value>{0} Mo</value>
+  </data>
+  <data name="Size.Kilobytes" xml:space="preserve">
+    <value>{0} ko</value>
+  </data>
+  <data name="Size.Bytes" xml:space="preserve">
+    <value>{0} o</value>
+  </data>
+  <data name="Agency.Title" xml:space="preserve">
+    <value>Identité de l'agence</value>
+  </data>
+  <data name="Agency.Intro" xml:space="preserve">
+    <value>Identité légale de chaque agence, imprimée comme vendeur sur ses factures et avoirs. Une facture n'est émise que si la raison sociale, le matricule fiscal et une adresse sont renseignés ; les factures déjà émises gardent l'identité de leur émission.</value>
+  </data>
+  <data name="Agency.None" xml:space="preserve">
+    <value>Aucune agence.</value>
+  </data>
+  <data name="Agency.Incomplete" xml:space="preserve">
+    <value>Identité incomplète : les factures de cette agence ne peuvent pas être émises (raison sociale, matricule fiscal et adresse obligatoires).</value>
+  </data>
+  <data name="Agency.Seller" xml:space="preserve">
+    <value>Vendeur : {0}</value>
+  </data>
+  <data name="Agency.LegalName.Help" xml:space="preserve">
+    <value>Telle qu'inscrite au registre national des entreprises</value>
+  </data>
+  <data name="Agency.TaxIdentifier.Help" xml:space="preserve">
+    <value>Tel qu'il figure sur la carte d'identification fiscale</value>
+  </data>
+  <data name="Agency.TradeRegister.Help" xml:space="preserve">
+    <value>Facultatif</value>
+  </data>
+  <data name="Agency.LegalAddress.Help" xml:space="preserve">
+    <value>Adresse du siège social</value>
+  </data>
+  <data name="Agency.LegalAddress.Office" xml:space="preserve">
+    <value>Laissée vide, l'adresse de l'agence est imprimée : {0}</value>
+  </data>
+  <data name="Agency.Footer.Help" xml:space="preserve">
+    <value>Imprimé en bas des factures : capital, coordonnées bancaires…</value>
+  </data>
+  <data name="Agency.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Agency.Saved" xml:space="preserve">
+    <value>Identité de l'agence enregistrée.</value>
+  </data>
+  <data name="Pdf.Title.Invoice" xml:space="preserve">
+    <value>FACTURE</value>
+  </data>
+  <data name="Pdf.Title.CreditNote" xml:space="preserve">
+    <value>AVOIR</value>
+  </data>
+  <data name="Pdf.Number" xml:space="preserve">
+    <value>N° {0}</value>
+  </data>
+  <data name="Pdf.IssueDate" xml:space="preserve">
+    <value>Date : {0}</value>
+  </data>
+  <data name="Pdf.Courtesy" xml:space="preserve">
+    <value>Traduction de courtoisie — seul l'original en français fait foi</value>
+  </data>
+  <data name="Pdf.Seller.TaxIdentifier" xml:space="preserve">
+    <value>Matricule fiscal : {0}</value>
+  </data>
+  <data name="Pdf.Seller.TradeRegister" xml:space="preserve">
+    <value>RNE : {0}</value>
+  </data>
+  <data name="Pdf.Buyer" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="Pdf.Buyer.TaxIdentifier" xml:space="preserve">
+    <value>Matricule fiscal : {0}</value>
+  </data>
+  <data name="Pdf.References" xml:space="preserve">
+    <value>Références</value>
+  </data>
+  <data name="Pdf.CorrectedInvoice" xml:space="preserve">
+    <value>Facture corrigée</value>
+  </data>
+  <data name="Pdf.CorrectedInvoice.Value" xml:space="preserve">
+    <value>{0} du {1}</value>
+  </data>
+  <data name="Pdf.Reason" xml:space="preserve">
+    <value>Motif</value>
+  </data>
+  <data name="Pdf.Kind" xml:space="preserve">
+    <value>Objet</value>
+  </data>
+  <data name="Pdf.Booking" xml:space="preserve">
+    <value>Dossier de location</value>
+  </data>
+  <data name="Pdf.Period" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Pdf.Period.Value" xml:space="preserve">
+    <value>du {0} au {1}</value>
+  </data>
+  <data name="Pdf.ChannelReference" xml:space="preserve">
+    <value>Référence du canal</value>
+  </data>
+  <data name="Pdf.Lines" xml:space="preserve">
+    <value>Détail</value>
+  </data>
+  <data name="Pdf.Column.Label" xml:space="preserve">
+    <value>Désignation</value>
+  </data>
+  <data name="Pdf.Column.Quantity" xml:space="preserve">
+    <value>Qté</value>
+  </data>
+  <data name="Pdf.Column.UnitPrice" xml:space="preserve">
+    <value>P.U. HT</value>
+  </data>
+  <data name="Pdf.Column.ExclVat" xml:space="preserve">
+    <value>Montant HT</value>
+  </data>
+  <data name="Pdf.Column.Rate" xml:space="preserve">
+    <value>TVA %</value>
+  </data>
+  <data name="Pdf.Column.Vat" xml:space="preserve">
+    <value>TVA</value>
+  </data>
+  <data name="Pdf.Column.InclVat" xml:space="preserve">
+    <value>Montant TTC</value>
+  </data>
+  <data name="Pdf.Column.Base" xml:space="preserve">
+    <value>Base HT</value>
+  </data>
+  <data name="Pdf.VatTotals" xml:space="preserve">
+    <value>Récapitulatif de la TVA</value>
+  </data>
+  <data name="Pdf.TotalExclVat" xml:space="preserve">
+    <value>Total HT</value>
+  </data>
+  <data name="Pdf.TotalVat" xml:space="preserve">
+    <value>Total TVA</value>
+  </data>
+  <data name="Pdf.TotalInclVat" xml:space="preserve">
+    <value>Total TTC</value>
+  </data>
+  <data name="Pdf.StampDuty" xml:space="preserve">
+    <value>Droit de timbre</value>
+  </data>
+  <data name="Pdf.TotalDue" xml:space="preserve">
+    <value>Net à payer</value>
+  </data>
+  <data name="Pdf.TotalCredited" xml:space="preserve">
+    <value>Total de l'avoir</value>
+  </data>
+  <data name="Pdf.Payments" xml:space="preserve">
+    <value>Règlements</value>
+  </data>
+  <data name="Pdf.Paid" xml:space="preserve">
+    <value>Déjà réglé</value>
+  </data>
+  <data name="Pdf.DepositApplied" xml:space="preserve">
+    <value>Caution imputée</value>
+  </data>
+  <data name="Pdf.Balance" xml:space="preserve">
+    <value>Reste à payer</value>
+  </data>
+  <data name="Pdf.Overpaid" xml:space="preserve">
+    <value>Trop-perçu à rembourser</value>
+  </data>
+  <data name="Pdf.TtnReference" xml:space="preserve">
+    <value>Référence TTN : {0}</value>
+  </data>
+  <data name="Pdf.TransmittedAt" xml:space="preserve">
+    <value>transmise le {0}</value>
+  </data>
+  <data name="Pdf.PaperRegime" xml:space="preserve">
+    <value>Document établi sur papier (régime transitoire de la facturation électronique).</value>
+  </data>
+  <data name="Pdf.TtnPending" xml:space="preserve">
+    <value>Version électronique en cours de transmission à TTN.</value>
+  </data>
+  <data name="Pdf.Mentions" xml:space="preserve">
+    <value>Mentions</value>
+  </data>
+  <data name="Pdf.IssuedBy" xml:space="preserve">
+    <value>Émis le {0} par {1}</value>
+  </data>
+  <data name="Pdf.Footer" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Designation.To" xml:space="preserve">
+    <value>À l'attention de</value>
+  </data>
+  <data name="Designation.Title" xml:space="preserve">
+    <value>Désignation du conducteur — avis n° {0}</value>
+  </data>
+  <data name="Designation.Body" xml:space="preserve">
+    <value>Le véhicule immatriculé {0} ({1}), propriété de {2}, a fait l'objet de l'infraction du {3} à {4}. À cette date, il était loué dans le cadre du contrat {5}, du {6} au {7}, au conducteur désigné ci-dessous.</value>
+  </data>
+  <data name="Designation.InProgress" xml:space="preserve">
+    <value>ce jour (location en cours)</value>
+  </data>
+  <data name="Designation.Notice" xml:space="preserve">
+    <value>Avis de contravention</value>
+  </data>
+  <data name="Designation.Ticket" xml:space="preserve">
+    <value>N° de l'avis</value>
+  </data>
+  <data name="Designation.Authority" xml:space="preserve">
+    <value>Autorité</value>
+  </data>
+  <data name="Designation.OffenceAt" xml:space="preserve">
+    <value>Date et heure</value>
+  </data>
+  <data name="Designation.Place" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="Designation.Amount" xml:space="preserve">
+    <value>Montant</value>
+  </data>
+  <data name="Designation.Driver" xml:space="preserve">
+    <value>Conducteur désigné</value>
+  </data>
+  <data name="Designation.FullName" xml:space="preserve">
+    <value>Nom et prénom</value>
+  </data>
+  <data name="Designation.BirthDate" xml:space="preserve">
+    <value>Date de naissance</value>
+  </data>
+  <data name="Designation.Nationality" xml:space="preserve">
+    <value>Nationalité</value>
+  </data>
+  <data name="Designation.Address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="Designation.IssuedOn" xml:space="preserve">
+    <value>délivré le {0}</value>
+  </data>
+  <data name="Designation.ExpiresOn" xml:space="preserve">
+    <value>valable jusqu'au {0}</value>
+  </data>
+  <data name="Designation.Document.NationalId" xml:space="preserve">
+    <value>Carte d'identité</value>
+  </data>
+  <data name="Designation.Document.Passport" xml:space="preserve">
+    <value>Passeport</value>
+  </data>
+  <data name="Designation.Document.DrivingLicense" xml:space="preserve">
+    <value>Permis de conduire</value>
+  </data>
+  <data name="Designation.Document.InternationalDrivingPermit" xml:space="preserve">
+    <value>Permis international</value>
+  </data>
+  <data name="Designation.Closing" xml:space="preserve">
+    <value>Nous certifions l'exactitude de ces informations, issues du contrat de location et des pièces présentées par le conducteur.</value>
+  </data>
+  <data name="Designation.Done" xml:space="preserve">
+    <value>Fait le {0}</value>
+  </data>
+  <data name="Designation.ForTheAgency" xml:space="preserve">
+    <value>Pour l'agence, cachet et signature</value>
+  </data>
+  <data name="Designation.Footer" xml:space="preserve">
+    <value>Document produit le {0} par {1} — données personnelles : ne pas conserver au-delà de l'usage prévu.</value>
+  </data>
+  <data name="Email.Greeting" xml:space="preserve">
+    <value>Bonjour {0},</value>
+  </data>
+  <data name="Email.Invoice.Subject" xml:space="preserve">
+    <value>Facture {0} — {1}</value>
+  </data>
+  <data name="Email.Invoice.Body" xml:space="preserve">
+    <value>Veuillez trouver ci-joint votre facture {0} du {1}, d'un montant de {2}.</value>
+  </data>
+  <data name="Email.CreditNote.Subject" xml:space="preserve">
+    <value>Avoir {0} — {1}</value>
+  </data>
+  <data name="Email.CreditNote.Body" xml:space="preserve">
+    <value>Veuillez trouver ci-joint votre avoir {0} du {1}, d'un montant de {2}.</value>
+  </data>
+  <data name="Email.Closing" xml:space="preserve">
+    <value>Nous restons à votre disposition pour toute question.</value>
+  </data>
+  <data name="Email.Signature" xml:space="preserve">
+    <value>L'équipe {0}</value>
+  </data>
+  <data name="Billing.Line.CancellationFee" xml:space="preserve">
+    <value>Frais d'annulation du dossier {0}</value>
+  </data>
+  <data name="Billing.Line.Fine" xml:space="preserve">
+    <value>Amende, avis n° {0} du {1} ({2})</value>
+  </data>
+  <data name="Billing.Line.FineManagementFee" xml:space="preserve">
+    <value>Frais de gestion de l'amende n° {0}</value>
+  </data>
+  <data name="Billing.Mention.ChannelBooking" xml:space="preserve">
+    <value>Réservation reçue via {0}, référence {1}.</value>
+  </data>
+  <data name="Billing.Channel.Web" xml:space="preserve">
+    <value>le site web</value>
+  </data>
+  <data name="Billing.Channel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Billing.Channel.Phone" xml:space="preserve">
+    <value>téléphone</value>
+  </data>
+  <data name="Billing.Channel.Counter" xml:space="preserve">
+    <value>le comptoir</value>
+  </data>
+  <data name="Billing.Channel.BookingCom" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+</root>
