@@ -554,7 +554,7 @@ public sealed class HighSeasonDayTests(HighSeasonHost host)
         handovers.LateReturns.ShouldBeEmpty();
     }
 
-    /// <summary>The LOC numbers of the year form 1…n although 148 attempts of the rush were rolled back (ADR-0016).</summary>
+    /// <summary>The LOC numbers of the year form 1…n although 145 attempts of the rush were rolled back (ADR-0016).</summary>
     private async Task TheReadableNumbersStayGaplessAsync()
     {
         var prefix = string.Create(CultureInfo.InvariantCulture, $"LOC-{_w.Day.Year}-");
