@@ -55,6 +55,18 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | S15–S17 | Lot 4 — WhatsApp IA : bot, boîte partagée, modèles Meta, jeu de tests | Bot WhatsApp en ligne |
 | S18–S20 | Lot 5 — Booking.com : module Canaux, connecteur XML/API, certification | Vente sur Booking.com |
 
+### État d'avancement (21 octobre 2026)
+
+| Lot | Livré | En cours ou à venir |
+|---|---|---|
+| 0 — Socle | CI (format, build, tests, intégration sur conteneurs, E2E, couverture, secrets, Bicep, Lighthouse), Bicep, identité avec double authentification, permissions, audit, santé, Data Protection, localisation FR/EN, données de démonstration | Déploiement Azure (non lancé : attend les accès de l'agence) |
+| 1 — Exploitation | Flotte et échéances, moteur de prix (test de référence vert), disponibilité sans surréservation, clients et pièces, dossiers, planning, création rapide, paiements, cautions et caisse, départs et retours (état des lieux, signatures, contrat PDF, frais de retour, clôture) | Scénario E2E « journée type de haute saison » |
+| 2 — Vitrine et paiement | Vitrine (pages, recherche, liens profonds, SEO, Turnstile, limitation de débit), passerelle Clic to Pay isolée avec simulateur | Tunnel en 3 étapes et « Ma réservation » ; recette Clic to Pay avec la banque |
+| 3 — Finance et pilotage | Instantané quotidien, indicateurs, exports Excel | Factures, avoirs et facture électronique ; dépenses, rapprochements, journaux et clôture mensuelle |
+| 4 — WhatsApp IA | Webhook signé, conversations, fenêtre de 24 h, boîte partagée avec reprise humaine, notifications par modèles approuvés | Agent IA (Claude Haiku 5.5, outils, garde-fous, coûts, 30 conversations d'évaluation) |
+| 5 — Canaux | Module Canaux : correspondances, quotas et arrêts de vente dans le moteur, adaptateur manuel, point d'entrée authentifié, synchronisation et rejeu, commissions, banc de contrat | Connecteur Booking.com (attend le cahier des charges du fournisseur) |
+| Durcissement | En-têtes de sécurité, sauvegardes SQL et Blob | Alertes, rétention longue, restriction de l'origine à Cloudflare, revue OWASP, `docs/runbook.md` |
+
 
 ## Structure du dépôt
 
