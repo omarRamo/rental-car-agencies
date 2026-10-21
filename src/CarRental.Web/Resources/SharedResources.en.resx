@@ -1119,4 +1119,199 @@
   <data name="Error.payments.gateway.amount_not_representable" xml:space="preserve">
     <value>This amount cannot be expressed in the unit configured for the payment gateway.</value>
   </data>
+  <data name="Error.channels.forbidden" xml:space="preserve">
+    <value>You are not allowed to manage the sales channels.</value>
+  </data>
+  <data name="Error.channels.not_found" xml:space="preserve">
+    <value>This channel does not exist.</value>
+  </data>
+  <data name="Error.channels.concurrent_update" xml:space="preserve">
+    <value>Someone else changed this data in the meantime: reload the page and try again.</value>
+  </data>
+  <data name="Error.channels.agency_required" xml:space="preserve">
+    <value>Choose an agency.</value>
+  </data>
+  <data name="Error.channels.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.channels.code_invalid" xml:space="preserve">
+    <value>A channel code has 2 to 32 characters: lower-case letters, digits and inner dashes (e.g. booking-com).</value>
+  </data>
+  <data name="Error.channels.code_taken" xml:space="preserve">
+    <value>Another channel already uses this code.</value>
+  </data>
+  <data name="Error.channels.name_invalid" xml:space="preserve">
+    <value>A channel name has 1 to 80 characters.</value>
+  </data>
+  <data name="Error.channels.sales_channel_invalid" xml:space="preserve">
+    <value>A channel carries the bookings of a comparator (Booking.com).</value>
+  </data>
+  <data name="Error.channels.sales_channel_taken" xml:space="preserve">
+    <value>The agency already has a channel for this comparator.</value>
+  </data>
+  <data name="Error.channels.adapter_invalid" xml:space="preserve">
+    <value>Unknown channel adapter.</value>
+  </data>
+  <data name="Error.channels.payment_mode_invalid" xml:space="preserve">
+    <value>Unknown payment mode.</value>
+  </data>
+  <data name="Error.channels.commission_rate_invalid" xml:space="preserve">
+    <value>The commission is between 0% and 100%, with at most two decimals.</value>
+  </data>
+  <data name="Error.channels.state_invalid" xml:space="preserve">
+    <value>Unknown channel state.</value>
+  </data>
+  <data name="Error.channels.state_requires_adapter" xml:space="preserve">
+    <value>A connected channel needs a network adapter: choose it before connecting, or switch the channel to manual entry first.</value>
+  </data>
+  <data name="Error.channels.adapter_not_configured" xml:space="preserve">
+    <value>The adapter of this channel is not configured yet: its exchange format is only delivered once the supplier application is accepted. Use the manual entry meanwhile.</value>
+  </data>
+  <data name="Error.channels.adapter_unavailable" xml:space="preserve">
+    <value>This adapter does not exist in this environment (the test channel only exists in development and tests).</value>
+  </data>
+  <data name="Error.channels.ip_range_invalid" xml:space="preserve">
+    <value>An allowed address is an IPv4 or IPv6 address, optionally followed by a prefix length (CIDR, e.g. 203.0.113.0/24).</value>
+  </data>
+  <data name="Error.channels.ip_ranges_too_many" xml:space="preserve">
+    <value>At most 50 allowed address ranges.</value>
+  </data>
+  <data name="Error.channels.certificate_thumbprint_invalid" xml:space="preserve">
+    <value>A certificate thumbprint has 40 (SHA-1) or 64 (SHA-256) hexadecimal digits.</value>
+  </data>
+  <data name="Error.channels.mapping.kind_invalid" xml:space="preserve">
+    <value>Unknown kind of mapping.</value>
+  </data>
+  <data name="Error.channels.mapping.target_required" xml:space="preserve">
+    <value>Choose what this code corresponds to.</value>
+  </data>
+  <data name="Error.channels.mapping.code_invalid" xml:space="preserve">
+    <value>A channel code has 1 to 32 characters: letters, digits, '.', '_', '-' or '/'.</value>
+  </data>
+  <data name="Error.channels.mapping.internal_code_invalid" xml:space="preserve">
+    <value>An extra code has 2 to 32 characters: upper-case letters, digits and underscores, starting with a letter.</value>
+  </data>
+  <data name="Error.channels.mapping.acriss_invalid" xml:space="preserve">
+    <value>This ACRISS code is not valid.</value>
+  </data>
+  <data name="Error.channels.mapping.code_taken" xml:space="preserve">
+    <value>This channel code is already mapped to another item of the same kind.</value>
+  </data>
+  <data name="Error.channels.mapping.not_found" xml:space="preserve">
+    <value>This mapping does not exist.</value>
+  </data>
+  <data name="Error.channels.mapping.category_not_found" xml:space="preserve">
+    <value>This category does not exist in the agency of the channel.</value>
+  </data>
+  <data name="Error.channels.mapping.location_not_found" xml:space="preserve">
+    <value>This location does not exist in the agency of the channel.</value>
+  </data>
+  <data name="Error.channels.mapping.category_unmapped" xml:space="preserve">
+    <value>The category code of the channel is not mapped.</value>
+  </data>
+  <data name="Error.channels.mapping.location_unmapped" xml:space="preserve">
+    <value>The location code of the channel is not mapped.</value>
+  </data>
+  <data name="Error.channels.mapping.extra_unmapped" xml:space="preserve">
+    <value>An extra, insurance or fee code of the channel is not mapped.</value>
+  </data>
+  <data name="Error.channels.restriction.not_found" xml:space="preserve">
+    <value>This quota or stop-sell does not exist.</value>
+  </data>
+  <data name="Error.channels.restriction.category_required" xml:space="preserve">
+    <value>Choose a category.</value>
+  </data>
+  <data name="Error.channels.restriction.category_not_found" xml:space="preserve">
+    <value>This category does not exist in the agency of the channel.</value>
+  </data>
+  <data name="Error.channels.restriction.location_not_found" xml:space="preserve">
+    <value>This location does not exist in the agency of the channel.</value>
+  </data>
+  <data name="Error.channels.restriction.period_invalid" xml:space="preserve">
+    <value>The last day comes after the first one, 731 days at most.</value>
+  </data>
+  <data name="Error.channels.restriction.ended" xml:space="preserve">
+    <value>The restriction must not end before today.</value>
+  </data>
+  <data name="Error.channels.restriction.vehicles_invalid" xml:space="preserve">
+    <value>Keep 1 to 999 vehicles for the other channels.</value>
+  </data>
+  <data name="Error.channels.restriction.location_not_allowed" xml:space="preserve">
+    <value>Only a stop-sell can be limited to one pick-up location; vehicles are kept for the whole category.</value>
+  </data>
+  <data name="Error.channels.restriction.note_too_long" xml:space="preserve">
+    <value>A note has 300 characters at most.</value>
+  </data>
+  <data name="Error.channels.booking.reference_invalid" xml:space="preserve">
+    <value>A channel reference has 1 to 64 characters: letters, digits, '.', '_', '-' or '/'.</value>
+  </data>
+  <data name="Error.channels.booking.reference_conflict" xml:space="preserve">
+    <value>This channel reference already created a booking with other details: this is a modification.</value>
+  </data>
+  <data name="Error.channels.booking.not_found" xml:space="preserve">
+    <value>No booking of this channel carries this reference.</value>
+  </data>
+  <data name="Error.channels.booking.cancelled" xml:space="preserve">
+    <value>This booking is cancelled.</value>
+  </data>
+  <data name="Error.channels.booking.amount_invalid" xml:space="preserve">
+    <value>Gross price, commission and net are amounts in dinars; the commission is between zero and the gross price.</value>
+  </data>
+  <data name="Error.channels.booking.amounts_inconsistent" xml:space="preserve">
+    <value>The net must equal the gross price minus the commission.</value>
+  </data>
+  <data name="Error.channels.booking.currency_not_supported" xml:space="preserve">
+    <value>Amounts must be in Tunisian dinars (TND).</value>
+  </data>
+  <data name="Error.channels.booking.driver_invalid" xml:space="preserve">
+    <value>The main driver needs a first name and a last name.</value>
+  </data>
+  <data name="Error.channels.booking.period_invalid" xml:space="preserve">
+    <value>The return must come after the pick-up.</value>
+  </data>
+  <data name="Error.channels.booking.stop_sell" xml:space="preserve">
+    <value>Sales on this channel are stopped at this pick-up location.</value>
+  </data>
+  <data name="Error.channels.booking.channel_inactive" xml:space="preserve">
+    <value>This channel is inactive: it does not sell.</value>
+  </data>
+  <data name="Error.channels.inbound.unknown_channel" xml:space="preserve">
+    <value>No channel has this code.</value>
+  </data>
+  <data name="Error.channels.inbound.not_connected" xml:space="preserve">
+    <value>The channel is not connected.</value>
+  </data>
+  <data name="Error.channels.inbound.address_not_allowed" xml:space="preserve">
+    <value>The calling address is not one of the allowed addresses of the channel.</value>
+  </data>
+  <data name="Error.channels.inbound.unauthorized" xml:space="preserve">
+    <value>The message does not carry the credentials of the channel (API key or client certificate).</value>
+  </data>
+  <data name="Error.channels.inbound.malformed" xml:space="preserve">
+    <value>The message cannot be read in the format of the channel.</value>
+  </data>
+  <data name="Error.channels.inbound.unsupported_operation" xml:space="preserve">
+    <value>The channel does not offer this operation at this address.</value>
+  </data>
+  <data name="Error.channels.inbound.payload_too_large" xml:space="preserve">
+    <value>The message is too large.</value>
+  </data>
+  <data name="Error.channels.sync.not_found" xml:space="preserve">
+    <value>This update does not exist.</value>
+  </data>
+  <data name="Error.channels.sync.push_failed" xml:space="preserve">
+    <value>The channel did not accept the update.</value>
+  </data>
+  <data name="Error.channels.replication.not_found" xml:space="preserve">
+    <value>This change to replicate does not exist.</value>
+  </data>
+  <data name="Error.channels.payout.month_invalid" xml:space="preserve">
+    <value>Choose a month between 2000 and 2100.</value>
+  </data>
+  <data name="Error.channels.payout.amount_invalid" xml:space="preserve">
+    <value>A payout is a zero or positive amount in dinars, to the millime.</value>
+  </data>
+  <data name="Error.channels.payout.text_too_long" xml:space="preserve">
+    <value>The reference has 64 characters at most and the note 300.</value>
+  </data>
 </root>
