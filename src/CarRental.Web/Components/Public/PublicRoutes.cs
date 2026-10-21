@@ -54,6 +54,18 @@ public static class PublicRoutes
         return slug.Length == 0 ? $"/{normalized}" : $"/{normalized}/{slug}";
     }
 
+    /// <summary>
+    /// A link to an element of the current page (<c>/fr/reserver?…#main</c>). The pages declare <c>&lt;base href="/"&gt;</c>,
+    /// against which a bare <c>#main</c> would resolve to the root and leave the page.
+    /// </summary>
+    public static string InPage(Microsoft.AspNetCore.Components.NavigationManager navigation, string elementId)
+    {
+        ArgumentNullException.ThrowIfNull(navigation);
+        var current = "/" + navigation.ToBaseRelativePath(navigation.Uri);
+        var fragmentStart = current.IndexOf('#', StringComparison.Ordinal);
+        return $"{(fragmentStart < 0 ? current : current[..fragmentStart])}#{elementId}";
+    }
+
     /// <summary>Address of the "Choose" action for <paramref name="culture"/>.</summary>
     public static string SelectionPath(string culture) => $"/{Normalize(culture)}/reserver/selection";
 

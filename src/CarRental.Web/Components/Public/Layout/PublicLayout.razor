@@ -1,8 +1,10 @@
 @inherits LayoutComponentBase
 @inject IStringLocalizer<PublicResources> L
 @inject IOptions<PublicSiteOptions> Site
+@inject NavigationManager Navigation
 
-<a class="skip-link" href="#main">@L["SkipToContent"]</a>
+@* In-page links carry the page address: with <base href="/"> a bare "#main" would lead to the root. *@
+<a class="skip-link" href="@PublicRoutes.InPage(Navigation, "main")">@L["SkipToContent"]</a>
 
 <header class="site-header">
     <div class="container site-header__inner">
