@@ -162,6 +162,7 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Expect(full).ToContainTextAsync("Complet", SlowContains);
         await Expect(full.Locator("input[type=radio]")).ToBeDisabledAsync();
         await second.EvaluateAsync("() => document.activeElement?.blur()");
+        await SettledAsync(second);
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(second);
         await second.CloseAsync();
         return number;
@@ -391,13 +392,30 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Expect(Page.Locator($"[data-testid=signature-{role}][data-signed=true]")).ToBeVisibleAsync(Slow);
     }
 
-    private async Task AccessibleAsync() => await HandoverAccessibility.AssertAsync(Page);
+    private async Task AccessibleAsync()
+    {
+        await HandoverAccessibility.CloseToastsAsync(Page);
+        await SettledAsync(Page);
+        await HandoverAccessibility.AssertAsync(Page);
+    }
 
     private async Task AccessibleOnAPhoneAsync()
     {
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > window.innerWidth")).ShouldBeFalse($"{Page.Url} scrolls horizontally at 390 px.");
+        await SettledAsync(Page);
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
     }
+
+    /// <summary>
+    /// Waits until the transitions under way have run: a button enabled when its data arrive (the proposals of the
+    /// planning) turns from grey to its colour in 250 ms, and axe would compute the contrast of the blend. Endless
+    /// animations (a progress bar) are not waited for.
+    /// </summary>
+    private static async Task SettledAsync(IPage page) =>
+        await page.WaitForFunctionAsync(
+            "() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity)",
+            null,
+            new PageWaitForFunctionOptions { Timeout = Patience });
 }
 
 /// <summary>

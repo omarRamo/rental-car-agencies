@@ -150,11 +150,12 @@ avant de commencer, toutes les MCMR de ces dates sont vendues sauf deux.
    retour clôturé et plus aucun retard.
 
 Chaque écran visité passe axe sans violation sérieuse ou critique (la page de la banque simulée, page de développement,
-exceptée). Le scénario se joue sur un seul jour de Tunis : lancé dans les dix dernières minutes d'une journée, il attend
-la suivante. Il écrit beaucoup en quelques secondes (dossiers, photos, paiements, une caution et les lignes d'audit de
-tout cela) et lit les écrans partagés du jour : il tourne **seul, après les autres tests de navigateur** (collection
-xUnit sans parallélisme), pour ne pas pousser leurs lignes hors de la première page du journal d'audit ou de la liste
-des cautions.
+exceptée), une fois ses transitions terminées : un bouton activé à l'arrivée de ses données passe du gris à sa couleur
+en 250 ms, et axe mesurerait le contraste du mélange. Le scénario se joue sur un seul jour de Tunis : lancé dans les dix
+dernières minutes d'une journée, il attend la suivante. Il écrit beaucoup en quelques secondes (dossiers, photos,
+paiements, une caution et les lignes d'audit de tout cela) et lit les écrans partagés du jour : il tourne **seul, après
+les autres tests de navigateur** (collection xUnit sans parallélisme), pour ne pas pousser leurs lignes hors de la
+première page du journal d'audit ou de la liste des cautions.
 
 ## 3. Ce que cela prouve
 
