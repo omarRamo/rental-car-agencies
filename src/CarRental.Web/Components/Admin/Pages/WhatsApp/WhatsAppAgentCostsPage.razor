@@ -3,6 +3,7 @@
 @* What the WhatsApp assistant costs, month by month (Tunis calendar, ADR-0055): turns, model and tool calls, tokens and
    the share of the prompt read from the cache, AI cost from the price grid of the platform settings and estimated Meta
    cost in USD, hand-overs and replies stopped by a guardrail. The cost of one conversation is in the inbox. *@
+@using CarRental.Application.Common.Paging
 @using CarRental.Application.Messaging.Agent.Costs
 @using CarRental.Web.Resources.Admin.WhatsApp
 @inject IOperationRunner Runner
@@ -79,6 +80,36 @@ else if (_error is null)
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@L["Costs.Table"]" />
 }
 
+<MudText Typo="Typo.h6" HtmlTag="h2" Class="mt-6 mb-1">@L["Costs.Bookings.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">@L["Costs.Bookings.Help"]</MudText>
+<MudTable T="AgentBookingCost" ServerData="LoadBookingsAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Costs.Bookings.Title"].Value })" data-testid="agent-costs-bookings">
+    <HeaderContent>
+        <MudTh>@L["Costs.Bookings.Column.Booking"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Bookings.Column.Conversations"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.Turns"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.AiCost"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.MetaCost"]</MudTh>
+        <MudTh Class="text-right">@L["Costs.Column.TotalCost"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Costs.Bookings.Column.Booking"]">
+            <MudLink Href="@($"/admin/bookings/{context.BookingId}")">@(context.BookingNumber ?? L["Costs.Bookings.Unknown"].Value)</MudLink>
+        </MudTd>
+        <MudTd DataLabel="@L["Costs.Bookings.Column.Conversations"]" Class="text-right">@Count(context.Conversations)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.Turns"]" Class="text-right">@Count(context.BotTurns)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.AiCost"]" Class="text-right">@Usd(context.AiCostUsd)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.MetaCost"]" Class="text-right">@Usd(context.MetaCostUsd)</MudTd>
+        <MudTd DataLabel="@L["Costs.Column.TotalCost"]" Class="text-right"><strong>@Usd(context.TotalCostUsd)</strong></MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">@L["Costs.Bookings.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
 @code {
     private static readonly int[] MonthChoices = [3, 6, 12, 24];
 
@@ -105,6 +136,20 @@ else if (_error is null)
         var result = await Runner.RunAsync<AgentCostQueries, Result<IReadOnlyList<AgentMonthSummary>>>((queries, ct) => queries.MonthlyAsync(_months, ct));
         _summaries = result.IsSuccess ? result.Value : null;
         _error = result.IsSuccess ? null : ErrorMessages.For(Shared, result.Error);
+    }
+
+    private async Task<TableData<AgentBookingCost>> LoadBookingsAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return new TableData<AgentBookingCost> { Items = [], TotalItems = 0 };
+        }
+
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAsync<AgentCostQueries, Result<PagedResult<AgentBookingCost>>>((queries, ct) => queries.ByBookingAsync(page, ct), cancellationToken);
+        return result.IsSuccess
+            ? new TableData<AgentBookingCost> { Items = result.Value.Items, TotalItems = result.Value.TotalCount }
+            : new TableData<AgentBookingCost> { Items = [], TotalItems = 0 };
     }
 
     private RenderFragment Cells(AgentMonthSummary month) => __builder =>

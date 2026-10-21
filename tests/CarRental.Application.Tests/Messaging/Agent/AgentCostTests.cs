@@ -1,3 +1,5 @@
+using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Agent;
@@ -85,6 +87,31 @@ public sealed class AgentCostTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_costs_are_cumulated_by_rental_file_the_most_expensive_first()
+    {
+        var now = _harness.Clock.GetUtcNow();
+        var pickupAt = now.AddDays(10);
+        var cheap = _harness.Bookings.Add(_harness.World.Agency.Id, _harness.World.Carthage.Id, BookingStatusInfo.Confirmed, pickupAt, pickupAt.AddDays(3), null);
+        var expensive = _harness.Bookings.Add(_harness.World.Agency.Id, _harness.World.Carthage.Id, BookingStatusInfo.Confirmed, pickupAt, pickupAt.AddDays(3), null);
+        Conversation("+21698000011", cheap.Id, (0.001m, 0.005m));
+        Conversation("+21698000012", expensive.Id, (0.004m, 0.01m), (0.002m, 0.01m));
+        Conversation("+21698000013", expensive.Id, (0.003m, 0m));
+        Conversation("+21698000014", bookingId: null, (0.5m, 0m));
+        Conversation("+21698000015", Guid.CreateVersion7());
+
+        var page = (await _harness.RunAsync<AgentCostQueries, Result<PagedResult<AgentBookingCost>>>(q => q.ByBookingAsync(new PageRequest(), Ct), Reader())).Value;
+
+        page.TotalCount.ShouldBe(2, "a conversation without a file, or without a bot turn, counts for no file");
+        page.Items.Select(i => i.BookingNumber).ShouldBe([expensive.Number, cheap.Number]);
+        var first = page.Items[0];
+        first.Conversations.ShouldBe(2);
+        first.BotTurns.ShouldBe(3);
+        first.AiCostUsd.ShouldBe(0.009m);
+        first.MetaCostUsd.ShouldBe(0.02m);
+        first.TotalCostUsd.ShouldBe(0.029m);
+    }
+
+    [Fact]
     public async Task The_cost_reports_need_the_reports_permission()
     {
         var agent = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent@demo.local", [Permissions.WhatsAppInbox]);
@@ -92,6 +119,19 @@ public sealed class AgentCostTests : IAsyncDisposable
         var result = await _harness.RunAsync<AgentCostQueries, Result<IReadOnlyList<AgentMonthSummary>>>(q => q.MonthlyAsync(12, Ct), agent);
 
         result.Error.ShouldBe(MessagingErrors.Forbidden);
+    }
+
+    /// <summary>A conversation linked to <paramref name="bookingId"/> with one bot turn per (AI, Meta) cost.</summary>
+    private void Conversation(string number, Guid? bookingId, params (decimal Ai, decimal Meta)[] turns)
+    {
+        var conversation = Domain.Messaging.Conversation.Start(number, null, _harness.Clock.GetUtcNow()).Value;
+        conversation.LinkBooking(bookingId);
+        foreach (var (ai, meta) in turns)
+        {
+            conversation.RecordBotTurn(new BotTurnUsage(1_000, 50, aiCostUsd: ai, metaCostUsd: meta));
+        }
+
+        _harness.Db.Set<Domain.Messaging.Conversation>().Add(conversation);
     }
 
     private static UserContextSnapshot Reader() => UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", [Permissions.ReportsRead]);

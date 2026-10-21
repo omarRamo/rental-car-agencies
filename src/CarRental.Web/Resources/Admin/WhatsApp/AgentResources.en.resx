@@ -204,4 +204,22 @@
   <data name="Costs.Months.Value" xml:space="preserve">
     <value>Last {0} months</value>
   </data>
+  <data name="Costs.Bookings.Title" xml:space="preserve">
+    <value>Costs by rental file</value>
+  </data>
+  <data name="Costs.Bookings.Help" xml:space="preserve">
+    <value>The conversations linked to a rental file by the agency, cumulated by file, the most expensive first.</value>
+  </data>
+  <data name="Costs.Bookings.Column.Booking" xml:space="preserve">
+    <value>Rental file</value>
+  </data>
+  <data name="Costs.Bookings.Column.Conversations" xml:space="preserve">
+    <value>Conversations</value>
+  </data>
+  <data name="Costs.Bookings.Unknown" xml:space="preserve">
+    <value>File not found</value>
+  </data>
+  <data name="Costs.Bookings.Empty" xml:space="preserve">
+    <value>No conversation of the assistant is linked to a rental file.</value>
+  </data>
 </root>

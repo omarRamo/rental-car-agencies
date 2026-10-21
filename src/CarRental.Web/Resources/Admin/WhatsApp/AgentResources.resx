@@ -204,4 +204,22 @@
   <data name="Costs.Months.Value" xml:space="preserve">
     <value>{0} derniers mois</value>
   </data>
+  <data name="Costs.Bookings.Title" xml:space="preserve">
+    <value>Coûts par dossier</value>
+  </data>
+  <data name="Costs.Bookings.Help" xml:space="preserve">
+    <value>Les conversations rattachées à un dossier par l'agence, cumulées par dossier, le plus coûteux d'abord.</value>
+  </data>
+  <data name="Costs.Bookings.Column.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Costs.Bookings.Column.Conversations" xml:space="preserve">
+    <value>Conversations</value>
+  </data>
+  <data name="Costs.Bookings.Unknown" xml:space="preserve">
+    <value>Dossier introuvable</value>
+  </data>
+  <data name="Costs.Bookings.Empty" xml:space="preserve">
+    <value>Aucune conversation de l'assistant n'est rattachée à un dossier.</value>
+  </data>
 </root>

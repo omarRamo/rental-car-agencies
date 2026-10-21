@@ -1,3 +1,5 @@
+using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
@@ -32,8 +34,18 @@ public sealed record AgentMonthSummary(
     public decimal TotalCostUsd => AiCostUsd + MetaCostUsd;
 }
 
-/// <summary>The cost reports of the WhatsApp agent (permission <c>reports.read</c>), from its turn records.</summary>
-public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimeProvider clock)
+/// <summary>What the agent cost on the conversations linked to one rental file (by the agency), cumulated.</summary>
+public sealed record AgentBookingCost(Guid BookingId, string? BookingNumber, int Conversations, int BotTurns, decimal AiCostUsd, decimal MetaCostUsd)
+{
+    public decimal TotalCostUsd => AiCostUsd + MetaCostUsd;
+}
+
+/// <summary>
+/// The cost reports of the WhatsApp agent (permission <c>reports.read</c>): by month from its turn records, and by rental
+/// file from the usage of the conversations linked to it (conception phase 4 §2: « cumulés par conversation et par
+/// dossier attribué » — the cost of one conversation is shown in the inbox).
+/// </summary>
+public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimeProvider clock, IBookingsQueries bookings)
 {
     public const int DefaultMonths = 12;
 
@@ -97,5 +109,43 @@ public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimePr
         }
 
         return summaries;
+    }
+
+    /// <summary>The rental files whose conversations the agent answered, the most expensive first.</summary>
+    public async Task<Result<PagedResult<AgentBookingCost>>> ByBookingAsync(PageRequest page, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        if (!user.HasPermission(Permissions.ReportsRead))
+        {
+            return MessagingErrors.Forbidden;
+        }
+
+        var byBooking = db.Set<Conversation>()
+            .AsNoTracking()
+            .Where(c => c.BookingId != null && c.Usage.BotTurns > 0)
+            .GroupBy(c => c.BookingId!.Value)
+            .Select(g => new
+            {
+                BookingId = g.Key,
+                Conversations = g.Count(),
+                BotTurns = g.Sum(c => c.Usage.BotTurns),
+                AiCostUsd = g.Sum(c => c.Usage.AiCostUsd),
+                MetaCostUsd = g.Sum(c => c.Usage.MetaCostUsd),
+            });
+        var total = await byBooking.CountAsync(cancellationToken);
+        var rows = await byBooking
+            .OrderByDescending(r => r.AiCostUsd + r.MetaCostUsd)
+            .ThenBy(r => r.BookingId)
+            .Skip(page.Skip)
+            .Take(page.PageSize)
+            .ToListAsync(cancellationToken);
+        var items = new List<AgentBookingCost>(rows.Count);
+        foreach (var row in rows)
+        {
+            var booking = await bookings.GetSummaryAsync(row.BookingId, cancellationToken);
+            items.Add(new AgentBookingCost(row.BookingId, booking?.Number, row.Conversations, row.BotTurns, row.AiCostUsd, row.MetaCostUsd));
+        }
+
+        return new PagedResult<AgentBookingCost>(items, total, page.Page, page.PageSize);
     }
 }
