@@ -130,7 +130,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
         await ShouldBeAccessibleOnAPhoneAsync();
         var email = await TestEmails.WaitForAsync(
             Host.Factory.EmailDirectory,
-            e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject.Contains(request.Number, StringComparison.Ordinal),
+            e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject.EndsWith($"Votre accès à la réservation {request.Number}", StringComparison.Ordinal),
             TestContext.Current.CancellationToken);
         var link = TestEmails.Links(email).Single(l => l.Contains("/fr/ma-reservation/acces/", StringComparison.Ordinal));
         link.ShouldStartWith(Host.BaseAddress.GetLeftPart(UriPartial.Authority));
