@@ -52,6 +52,8 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0046](0046-indicateurs-de-pilotage-et-sources.md) | Indicateurs de pilotage : définitions, sources et ports vers 3A, 3B et la phase 5 | Acceptée |
 | [0047](0047-whatsapp-webhook-signe-traitement-asynchrone-et-fenetre-24-h.md) | Canal WhatsApp : webhook signé, traitement asynchrone par l'outbox, fenêtre de 24 h et faux | Acceptée |
 | [0048](0048-boite-whatsapp-partagee-et-notifications-avec-consentement.md) | Boîte WhatsApp partagée et notifications : reprise en main, modèles approuvés, consentement, idempotence | Acceptée (noms et langues des modèles à confirmer) |
+| [0052](0052-canaux-de-vente-modele-restrictions-et-adaptateurs.md) | Canaux de vente : modèle, quotas et arrêts de vente dans le moteur, format canonique et adaptateurs sans format inventé | Acceptée |
+| [0053](0053-canaux-securite-entrante-idempotence-et-synchronisation.md) | Canaux : sécurité du point d'entrée, journal, idempotence par référence et synchronisation sortante | Acceptée |
 
 ## Modèle
 

@@ -59,6 +59,7 @@ internal static class WebApplicationExtensions
         app.MapWhatsAppWebhook();
         app.MapPublicSite();
         app.MapClicToPayEndpoints(app.Environment);
+        app.MapChannelEndpoints();
         app.MapHangfireDashboardWithAuthorizationPolicy(
             PermissionPolicy.For(Permissions.JobsDashboard),
             "/admin/jobs",

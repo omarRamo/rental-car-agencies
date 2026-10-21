@@ -16,7 +16,10 @@ public static class BookingReasons
     /// <summary>A request refused by the internal customer check (never more specific: SPEC §5).</summary>
     public const string CustomerCheck = "booking.reason.customer_check";
 
-    public static IReadOnlyList<string> All { get; } = [CustomerCheck];
+    /// <summary>A booking modified or cancelled by its channel (<see cref="IChannelBookings"/>).</summary>
+    public const string Channel = ChannelBookingReasons.Channel;
+
+    public static IReadOnlyList<string> All { get; } = [CustomerCheck, Channel];
 }
 
 /// <summary>

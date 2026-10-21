@@ -1,0 +1,145 @@
+@page "/admin/channels/extranet"
+@attribute [HasPermission(Permissions.ChannelsManage)]
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Extranet.Title"]</PageTitle>
+<ChannelStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && !_loading ? "true" : "false")">@L["Extranet.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Extranet.Intro"]</MudText>
+<ChannelsSubNav Current="ChannelSection.Extranet" />
+
+<MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudSwitch T="bool" Value="_includeAcknowledged" ValueChanged="IncludeChangedAsync" Color="Color.Primary" Label="@L["Extranet.ShowAcknowledged"]" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="AcknowledgeAllAsync"
+               Disabled="@(_busy || !_reminders.Any(r => r.AcknowledgedAtUtc is null))" data-testid="acknowledge-all">@L["Extranet.AcknowledgeAll"]</MudButton>
+</MudStack>
+
+<div class="channel-scroll" tabindex="0" role="region" aria-label="@L["Extranet.Title"]">
+    <MudTable T="ReplicationView" Items="_reminders" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" Loading="_loading" RowsPerPage="25"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Extranet.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Column.Created"]</MudTh>
+            <MudTh>@L["Column.Channel"]</MudTh>
+            <MudTh>@L["Column.Change"]</MudTh>
+            <MudTh>@L["Column.Details"]</MudTh>
+            <MudTh>@L["Column.Status"]</MudTh>
+            <MudTh>@L["Column.Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Column.Created"]">@ChannelsFormat.Instant(context.CreatedAtUtc)<MudText Typo="Typo.caption" Class="d-block">@context.CreatedBy</MudText></MudTd>
+            <MudTd DataLabel="@L["Column.Channel"]">@context.ChannelName</MudTd>
+            <MudTd DataLabel="@L["Column.Change"]">@L[$"Replication.{context.Kind}"]</MudTd>
+            <MudTd DataLabel="@L["Column.Details"]">@Details(context)</MudTd>
+            <MudTd DataLabel="@L["Column.Status"]">
+                @if (context.AcknowledgedAtUtc is { } at)
+                {
+                    @L["Extranet.Acknowledged", ChannelsFormat.Instant(at), context.AcknowledgedBy ?? "—"]
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Pending">@L["Extranet.ToDo"]</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Column.Actions"]">
+                @if (context.AcknowledgedAtUtc is null)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => AcknowledgeAsync(context)" Disabled="_busy"
+                               aria-label="@L["Extranet.Acknowledge.Label", L[$"Replication.{context.Kind}"], Details(context)]">@L["Extranet.Acknowledge"]</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Extranet.Empty"]</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <AdminTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
+
+@code {
+    private IReadOnlyList<ReplicationView> _reminders = [];
+    private bool _includeAcknowledged;
+    private bool _loading = true;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var include = _includeAcknowledged;
+        var result = await Runner.RunAsync<ChannelManualEntryService, Result<IReadOnlyList<ReplicationView>>>((service, ct) => service.GetRemindersAsync(null, include, ct));
+        _loading = false;
+        if (result.IsSuccess)
+        {
+            _reminders = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+
+    private async Task IncludeChangedAsync(bool include)
+    {
+        _includeAcknowledged = include;
+        await LoadAsync();
+    }
+
+    private string Details(ReplicationView reminder)
+    {
+        var parts = new List<string>();
+        if (reminder.CategoryCode is { } category)
+        {
+            parts.Add(category);
+        }
+
+        if (reminder.Kind is ChannelReplicationKind.StopSellAdded or ChannelReplicationKind.StopSellChanged or ChannelReplicationKind.StopSellRemoved)
+        {
+            parts.Add(reminder.LocationCode is { } location ? L["Calendar.StopAt", location] : L["Restrictions.AllLocations"]);
+        }
+
+        if (reminder.StartDate is { } start && reminder.EndDate is { } end)
+        {
+            parts.Add(L["Restrictions.Period", ChannelsFormat.Date(start), ChannelsFormat.Date(end)]);
+        }
+
+        if (reminder.Vehicles is { } vehicles)
+        {
+            parts.Add(L["Extranet.Vehicles", vehicles]);
+        }
+
+        if (reminder.Detail is { } detail)
+        {
+            parts.Add(detail);
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    private Task AcknowledgeAsync(ReplicationView reminder) => RunAsync(reminder.ChannelId, [reminder.Id]);
+
+    private Task AcknowledgeAllAsync() => RunAsync(null, []);
+
+    private async Task RunAsync(Guid? channelId, IReadOnlyCollection<Guid> ids)
+    {
+        _busy = true;
+        var result = await Runner.RunAsync<ChannelManualEntryService, Result<int>>((service, ct) => service.AcknowledgeAsync(channelId, ids, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Extranet.Done", result.Value], Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

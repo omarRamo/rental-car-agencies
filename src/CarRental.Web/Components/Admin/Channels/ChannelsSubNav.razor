@@ -1,0 +1,27 @@
+@* Secondary navigation of the channels screens (the main menu has a single "Channels" entry). *@
+@inject IStringLocalizer<ChannelsResources> L
+
+<nav aria-label="@L["SubNav.Label"]" class="mb-4">
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+        @foreach (var (section, href, key, icon) in Sections)
+        {
+            <MudButton Href="@href" Variant="@(section == Current ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                       StartIcon="@icon" aria-current="@(section == Current ? "page" : null)">@L[key]</MudButton>
+        }
+    </MudStack>
+</nav>
+
+@code {
+    private static readonly (ChannelSection Section, string Href, string Key, string Icon)[] Sections =
+    [
+        (ChannelSection.Channels, "/admin/channels", "SubNav.Channels", Icons.Material.Outlined.Hub),
+        (ChannelSection.ManualEntry, "/admin/channels/manual-entry", "SubNav.ManualEntry", Icons.Material.Outlined.EditCalendar),
+        (ChannelSection.Extranet, "/admin/channels/extranet", "SubNav.Extranet", Icons.Material.Outlined.Checklist),
+        (ChannelSection.Sync, "/admin/channels/sync", "SubNav.Sync", Icons.Material.Outlined.Sync),
+        (ChannelSection.Log, "/admin/channels/log", "SubNav.Log", Icons.Material.Outlined.ReceiptLong),
+        (ChannelSection.Reconciliation, "/admin/channels/reconciliation", "SubNav.Reconciliation", Icons.Material.Outlined.CompareArrows),
+    ];
+
+    [Parameter]
+    public ChannelSection Current { get; set; }
+}

@@ -1,0 +1,103 @@
+@* Creation of a channel: agency, code (address of the inbound endpoint), name, adapter, payment mode and commission. *@
+@using CarRental.Application.Referential.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<ChannelsResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName" Required="true" RequiredError="@Shared["Validation.Required"]">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_code" Label="@L["Field.Code"]" HelperText="@L["Field.Code.Help"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="ChannelCodes.ChannelCodeMaxLength" autocomplete="off" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_name" Label="@L["Field.Name"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              MaxLength="Channel.NameMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="ChannelAdapterKind" @bind-Value="_adapter" Label="@L["Field.Adapter"]" ToStringFunc="@(a => L[$"Adapter.{a}"])" HelperText="@L["Field.Adapter.Help"]">
+                    @foreach (var adapter in Adapters)
+                    {
+                        <MudSelectItem T="ChannelAdapterKind" Value="@adapter">@L[$"Adapter.{adapter}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="ChannelPaymentMode" @bind-Value="_paymentMode" Label="@L["Field.PaymentMode"]" ToStringFunc="@(m => L[$"PaymentMode.{m}"])">
+                    @foreach (var mode in Enum.GetValues<ChannelPaymentMode>())
+                    {
+                        <MudSelectItem T="ChannelPaymentMode" Value="@mode">@L[$"PaymentMode.{mode}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_commissionPercent" Label="@L["Field.Commission"]" HelperText="@L["Field.Commission.Help"]" Min="0m" Max="100m"
+                                 Format="0.##" Adornment="Adornment.End" AdornmentText="%" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Create.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy">@L["Create.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private Guid _agencyId;
+    private string? _code = "booking-com";
+    private string? _name = "Booking.com";
+    private ChannelAdapterKind _adapter = ChannelAdapterKind.Manual;
+    private ChannelPaymentMode _paymentMode = ChannelPaymentMode.PayOnSite;
+    private decimal _commissionPercent = 15m;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The adapters available in this environment.</summary>
+    [Parameter]
+    public IReadOnlyList<ChannelAdapterKind> Adapters { get; set; } = [ChannelAdapterKind.Manual];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var request = new CreateChannelRequest(_agencyId, _code ?? string.Empty, _name ?? string.Empty, SalesChannel.BookingCom, _adapter, _paymentMode, decimal.Round(_commissionPercent / 100m, 4));
+        var result = await Runner.RunAsync<ChannelAdministrationService, Result<Guid>>((service, ct) => service.CreateAsync(request, ct));
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

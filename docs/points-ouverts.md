@@ -55,6 +55,9 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Origine réservée à Cloudflare | Avant la mise en ligne : n'accepter que les adresses de Cloudflare sur l'App Service (ou les « authenticated origin pulls »), sinon `CF-Connecting-IP` peut être falsifié (limitation de débit, journal d'audit) | Agence (infra) | 2 |
 | Clés Turnstile | Créer le widget Turnstile de l'agence et renseigner `Turnstile:SiteKey` et le secret `Turnstile--SecretKey` avant d'ouvrir le tunnel (sinon les soumissions sont refusées) | Agence (infra) | 2 |
 | Cache Cloudflare des pages | Règle de cache Cloudflare pour le HTML public (les pages envoient `Cache-Control: public, max-age=300`) | Agence (infra) | 2 |
+| Contrat Booking.com | Taux et TVA de la commission, prépayé ou payé au comptoir, formule et relevé des versements, règles de non-présentation et d'annulation, devises (seul le TND est accepté) | Agence / Booking.com | 5 |
+| Codes des canaux | Codes Booking.com des catégories et des lieux, codes OpenTravel des options, assurances et frais ; politique de quotas (ex. 2 véhicules hors Booking.com en haute saison) ; qui reporte les changements sur l'extranet | Agence | 5 |
+| Certificat client derrière Cloudflare | L'authentification par certificat client d'un canal suppose un accès direct à l'origine ou un en-tête de confiance (`Channels:Inbound:TrustArrClientCertHeader`) | Agence (infra) | 5 |
 
 ## Incohérences relevées dans la spec v1
 

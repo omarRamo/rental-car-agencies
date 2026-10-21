@@ -1,0 +1,73 @@
+@* Month calendar of the quotas and stop-sells of a channel: a row per category, a column per day. A cell reads "Arrêt"
+   (stop-sell of the category), "−2" (vehicles kept for the other channels) or "Arrêt APT" (stop-sell at one location):
+   the meaning is in the text, never in the colour alone. *@
+@inject IStringLocalizer<ChannelsResources> L
+
+<div class="channel-calendar-scroll" tabindex="0" role="region" aria-label="@L["Calendar.Label", MonthTitle]">
+    <table class="channel-calendar">
+        <caption class="visually-hidden">@L["Calendar.Caption", MonthTitle]</caption>
+        <thead>
+            <tr>
+                <th scope="col">@L["Calendar.Category"]</th>
+                @foreach (var day in Days)
+                {
+                    <th scope="col" class="@(day == Today ? "channel-calendar__today" : null)">
+                        <abbr title="@day.ToString("D", CultureInfo.CurrentCulture)">@day.Day.ToString(CultureInfo.CurrentCulture)</abbr>
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Categories)
+            {
+                <tr data-calendar-category="@category.AcrissCode">
+                    <th scope="row">@category.AcrissCode</th>
+                    @foreach (var day in Days)
+                    {
+                        var text = CellText(category.CategoryId, day);
+                        <td class="@CellClass(text)" data-day="@day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@text</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DateOnly Month { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryMappingView> Categories { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RestrictionView> Restrictions { get; set; } = [];
+
+    [Parameter]
+    public DateOnly Today { get; set; }
+
+    private IEnumerable<DateOnly> Days => Enumerable.Range(0, DateTime.DaysInMonth(Month.Year, Month.Month)).Select(Month.AddDays);
+
+    private string MonthTitle => Month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+
+    private string CellText(Guid categoryId, DateOnly day)
+    {
+        var active = Restrictions.Where(r => r.CategoryId == categoryId && r.StartDate <= day && day <= r.EndDate).ToList();
+        var parts = new List<string>();
+        if (active.Any(r => r.Kind == ChannelQuotaKind.StopSell && r.LocationId is null))
+        {
+            parts.Add(L["Calendar.Stop"]);
+        }
+
+        parts.AddRange(active.Where(r => r.Kind == ChannelQuotaKind.StopSell && r.LocationId is not null).Select(r => L["Calendar.StopAt", r.LocationCode ?? "?"].Value));
+        var reserved = active.Where(r => r.Kind == ChannelQuotaKind.Reserve).Sum(r => r.ReservedVehicles);
+        if (reserved > 0)
+        {
+            parts.Add("−" + reserved.ToString(CultureInfo.CurrentCulture));
+        }
+
+        return string.Join(' ', parts);
+    }
+
+    private static string? CellClass(string text) => string.IsNullOrEmpty(text) ? null : "channel-calendar__restricted";
+}

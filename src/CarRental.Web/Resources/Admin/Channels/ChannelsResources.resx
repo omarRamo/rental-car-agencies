@@ -1,0 +1,945 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SubNav.Label" xml:space="preserve">
+    <value>Écrans des canaux de vente</value>
+  </data>
+  <data name="SubNav.Channels" xml:space="preserve">
+    <value>Canaux</value>
+  </data>
+  <data name="SubNav.ManualEntry" xml:space="preserve">
+    <value>Saisie manuelle</value>
+  </data>
+  <data name="SubNav.Extranet" xml:space="preserve">
+    <value>À reporter sur l'extranet</value>
+  </data>
+  <data name="SubNav.Sync" xml:space="preserve">
+    <value>File d'envoi</value>
+  </data>
+  <data name="SubNav.Log" xml:space="preserve">
+    <value>Journal des messages</value>
+  </data>
+  <data name="SubNav.Reconciliation" xml:space="preserve">
+    <value>Rapprochement</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement</value>
+  </data>
+  <data name="Channels.Title" xml:space="preserve">
+    <value>Canaux de vente</value>
+  </data>
+  <data name="Channels.Intro" xml:space="preserve">
+    <value>Booking.com et les comparateurs : correspondances, quotas et arrêts de vente appliqués par le moteur de disponibilité, réservations reçues confirmées, envois et rapprochement. Heures de Tunis.</value>
+  </data>
+  <data name="Channels.Create" xml:space="preserve">
+    <value>Nouveau canal</value>
+  </data>
+  <data name="Channels.Created" xml:space="preserve">
+    <value>Canal créé, inactif : complétez ses correspondances puis activez-le.</value>
+  </data>
+  <data name="Channels.Empty" xml:space="preserve">
+    <value>Aucun canal pour l'instant.</value>
+  </data>
+  <data name="Summary.Label" xml:space="preserve">
+    <value>État des envois</value>
+  </data>
+  <data name="Summary.Failed" xml:space="preserve">
+    <value>Envois en échec définitif</value>
+  </data>
+  <data name="Summary.Pending" xml:space="preserve">
+    <value>Envois en attente</value>
+  </data>
+  <data name="Summary.Retrying" xml:space="preserve">
+    <value>Nouvelles tentatives prévues</value>
+  </data>
+  <data name="Summary.OldestDue" xml:space="preserve">
+    <value>Plus ancien envoi attendu</value>
+  </data>
+  <data name="Summary.Reminders" xml:space="preserve">
+    <value>Changements à reporter sur l'extranet</value>
+  </data>
+  <data name="Summary.SeeQueue" xml:space="preserve">
+    <value>Voir la file d'envoi</value>
+  </data>
+  <data name="Summary.SeeExtranet" xml:space="preserve">
+    <value>Voir la liste</value>
+  </data>
+  <data name="Column.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Column.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Column.State" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Column.Adapter" xml:space="preserve">
+    <value>Adaptateur</value>
+  </data>
+  <data name="Column.Commission" xml:space="preserve">
+    <value>Commission</value>
+  </data>
+  <data name="Column.Mappings" xml:space="preserve">
+    <value>Correspondances</value>
+  </data>
+  <data name="Column.Security" xml:space="preserve">
+    <value>Sécurité</value>
+  </data>
+  <data name="Column.Attention" xml:space="preserve">
+    <value>À traiter</value>
+  </data>
+  <data name="Column.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Column.ChannelCode" xml:space="preserve">
+    <value>Code du canal</value>
+  </data>
+  <data name="Column.SoldAs" xml:space="preserve">
+    <value>Vendue en (ACRISS)</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Column.Location" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Extra" xml:space="preserve">
+    <value>Option de la grille</value>
+  </data>
+  <data name="Column.Period" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Column.Vehicles" xml:space="preserve">
+    <value>Véhicules gardés</value>
+  </data>
+  <data name="Column.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Column.Created" xml:space="preserve">
+    <value>Créé le</value>
+  </data>
+  <data name="Column.Change" xml:space="preserve">
+    <value>Changement</value>
+  </data>
+  <data name="Column.Details" xml:space="preserve">
+    <value>Détails</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Column.Operation" xml:space="preserve">
+    <value>Opération</value>
+  </data>
+  <data name="Column.Attempts" xml:space="preserve">
+    <value>Tentatives</value>
+  </data>
+  <data name="Column.NextAttempt" xml:space="preserve">
+    <value>Prochaine tentative ou envoi</value>
+  </data>
+  <data name="Column.Error" xml:space="preserve">
+    <value>Dernière erreur</value>
+  </data>
+  <data name="Column.At" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Direction" xml:space="preserve">
+    <value>Sens</value>
+  </data>
+  <data name="Column.Reference" xml:space="preserve">
+    <value>Référence du canal</value>
+  </data>
+  <data name="Column.Duration" xml:space="preserve">
+    <value>Durée</value>
+  </data>
+  <data name="Column.Excerpt" xml:space="preserve">
+    <value>Extrait (sans donnée personnelle)</value>
+  </data>
+  <data name="Column.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Column.PickupAt" xml:space="preserve">
+    <value>Départ</value>
+  </data>
+  <data name="Column.PaymentMode" xml:space="preserve">
+    <value>Paiement</value>
+  </data>
+  <data name="Column.PriceDifference" xml:space="preserve">
+    <value>Écart avec le moteur</value>
+  </data>
+  <data name="State.Inactive" xml:space="preserve">
+    <value>Inactif</value>
+  </data>
+  <data name="State.Manual" xml:space="preserve">
+    <value>Manuel (extranet)</value>
+  </data>
+  <data name="State.Connected" xml:space="preserve">
+    <value>Connecté</value>
+  </data>
+  <data name="State.Inactive.Help" xml:space="preserve">
+    <value>Le canal ne vend pas : messages refusés, aucun envoi.</value>
+  </data>
+  <data name="State.Manual.Help" xml:space="preserve">
+    <value>L'agence gère le canal sur son extranet : saisie manuelle des réservations et liste des changements à reporter.</value>
+  </data>
+  <data name="State.Connected.Help" xml:space="preserve">
+    <value>L'adaptateur répond au canal et lui envoie disponibilités et prix.</value>
+  </data>
+  <data name="Adapter.Manual" xml:space="preserve">
+    <value>Manuel (sans connexion)</value>
+  </data>
+  <data name="Adapter.Fake" xml:space="preserve">
+    <value>Canal de test (JSON de test)</value>
+  </data>
+  <data name="Adapter.BookingCom" xml:space="preserve">
+    <value>Booking.com (à écrire)</value>
+  </data>
+  <data name="Adapter.Manual.Help" xml:space="preserve">
+    <value>Aucun échange réseau : tout passe par l'extranet du canal.</value>
+  </data>
+  <data name="Adapter.Fake.Help" xml:space="preserve">
+    <value>Développement et tests uniquement : un format JSON de test, sans rapport avec Booking.com.</value>
+  </data>
+  <data name="Adapter.BookingCom.Help" xml:space="preserve">
+    <value>Le format est remis avec le cahier des charges, après l'acceptation fournisseur : en attendant, l'adaptateur refuse tout échange.</value>
+  </data>
+  <data name="PaymentMode.PrepaidToChannel" xml:space="preserve">
+    <value>Prépayé au canal</value>
+  </data>
+  <data name="PaymentMode.PayOnSite" xml:space="preserve">
+    <value>Payé sur place</value>
+  </data>
+  <data name="SalesChannel.Web" xml:space="preserve">
+    <value>Site web</value>
+  </data>
+  <data name="SalesChannel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="SalesChannel.Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="SalesChannel.Counter" xml:space="preserve">
+    <value>Comptoir</value>
+  </data>
+  <data name="SalesChannel.BookingCom" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+  <data name="Mappings.Count" xml:space="preserve">
+    <value>{0} catégorie(s), {1} lieu(x)</value>
+  </data>
+  <data name="Security.Key" xml:space="preserve">
+    <value>Clé d'API</value>
+  </data>
+  <data name="Security.NoKey" xml:space="preserve">
+    <value>Sans clé</value>
+  </data>
+  <data name="Security.Certificate" xml:space="preserve">
+    <value>certificat</value>
+  </data>
+  <data name="Security.Ranges" xml:space="preserve">
+    <value>{0} plage(s) d'adresses</value>
+  </data>
+  <data name="Attention.Failed" xml:space="preserve">
+    <value>{0} envoi(s) en échec</value>
+  </data>
+  <data name="Attention.Reminders" xml:space="preserve">
+    <value>{0} à reporter</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Field.Code" xml:space="preserve">
+    <value>Code du canal</value>
+  </data>
+  <data name="Field.Code.Help" xml:space="preserve">
+    <value>Adresse d'entrée /api/channels/code/… : minuscules, chiffres et tirets.</value>
+  </data>
+  <data name="Field.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Field.Adapter" xml:space="preserve">
+    <value>Adaptateur</value>
+  </data>
+  <data name="Field.Adapter.Help" xml:space="preserve">
+    <value>Traduit le format du canal ; le manuel n'échange rien.</value>
+  </data>
+  <data name="Field.PaymentMode" xml:space="preserve">
+    <value>Mode de paiement par défaut</value>
+  </data>
+  <data name="Field.Commission" xml:space="preserve">
+    <value>Commission</value>
+  </data>
+  <data name="Field.Commission.Help" xml:space="preserve">
+    <value>Pourcentage du prix brut, sauf si le canal transmet le montant.</value>
+  </data>
+  <data name="Field.State" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Field.Thumbprint" xml:space="preserve">
+    <value>Empreinte du certificat client</value>
+  </data>
+  <data name="Field.Thumbprint.Help" xml:space="preserve">
+    <value>SHA-1 (40) ou SHA-256 (64) chiffres hexadécimaux ; vide : aucun certificat exigé.</value>
+  </data>
+  <data name="Field.IpRanges" xml:space="preserve">
+    <value>Adresses autorisées</value>
+  </data>
+  <data name="Field.IpRanges.Help" xml:space="preserve">
+    <value>Une adresse ou plage CIDR par ligne (203.0.113.0/24, 2001:db8::/32). Vide : aucun appel accepté.</value>
+  </data>
+  <data name="Field.ChannelCodeOf" xml:space="preserve">
+    <value>Code du canal pour {0}</value>
+  </data>
+  <data name="Field.SoldAsOf" xml:space="preserve">
+    <value>Vendue en ACRISS pour {0}</value>
+  </data>
+  <data name="Field.MappingKind" xml:space="preserve">
+    <value>Liste</value>
+  </data>
+  <data name="Field.ExtraCode" xml:space="preserve">
+    <value>Code de l'option de la grille</value>
+  </data>
+  <data name="Field.ExtraCode.Help" xml:space="preserve">
+    <value>Par exemple CHILD_SEAT.</value>
+  </data>
+  <data name="Field.ExtraCode.Known" xml:space="preserve">
+    <value>Codes de la grille publiée : {0}</value>
+  </data>
+  <data name="Field.OtaCode" xml:space="preserve">
+    <value>Code OpenTravel</value>
+  </data>
+  <data name="Field.OtaCode.Help" xml:space="preserve">
+    <value>Saisi par l'agence à partir des listes du canal.</value>
+  </data>
+  <data name="Field.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Field.StopLocation" xml:space="preserve">
+    <value>Lieu de départ</value>
+  </data>
+  <data name="Field.StopLocation.Help" xml:space="preserve">
+    <value>Un arrêt peut se limiter à un lieu (le canal seul l'applique).</value>
+  </data>
+  <data name="Field.StartDate" xml:space="preserve">
+    <value>Premier jour</value>
+  </data>
+  <data name="Field.EndDate" xml:space="preserve">
+    <value>Dernier jour</value>
+  </data>
+  <data name="Field.EndDate.Help" xml:space="preserve">
+    <value>Inclus, heure de Tunis.</value>
+  </data>
+  <data name="Field.ReservedVehicles" xml:space="preserve">
+    <value>Véhicules gardés pour les autres canaux</value>
+  </data>
+  <data name="Field.ReservedVehicles.Help" xml:space="preserve">
+    <value>Le canal vend au plus la flotte moins ce nombre.</value>
+  </data>
+  <data name="Field.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Field.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Field.Reference" xml:space="preserve">
+    <value>Référence de la réservation sur le canal</value>
+  </data>
+  <data name="Field.Reference.Help" xml:space="preserve">
+    <value>Clé d'idempotence : saisir deux fois la même réservation ne crée qu'un dossier.</value>
+  </data>
+  <data name="Field.PickupAt" xml:space="preserve">
+    <value>Départ</value>
+  </data>
+  <data name="Field.ReturnAt" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="Field.PickupLocation" xml:space="preserve">
+    <value>Lieu de départ</value>
+  </data>
+  <data name="Field.ReturnLocation" xml:space="preserve">
+    <value>Lieu de retour</value>
+  </data>
+  <data name="Field.FirstName" xml:space="preserve">
+    <value>Prénom du conducteur</value>
+  </data>
+  <data name="Field.LastName" xml:space="preserve">
+    <value>Nom du conducteur</value>
+  </data>
+  <data name="Field.Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="Field.Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="Field.Gross" xml:space="preserve">
+    <value>Prix brut</value>
+  </data>
+  <data name="Field.Gross.Help" xml:space="preserve">
+    <value>Payé par le client sur le canal, TVA comprise.</value>
+  </data>
+  <data name="Field.ReportedCommission" xml:space="preserve">
+    <value>Commission transmise</value>
+  </data>
+  <data name="Field.ReportedCommission.Help" xml:space="preserve">
+    <value>Vide : {0} du prix brut (règle du canal). Le montant transmis par le canal prime.</value>
+  </data>
+  <data name="Field.Notes" xml:space="preserve">
+    <value>Notes internes</value>
+  </data>
+  <data name="Field.Notes.Help" xml:space="preserve">
+    <value>Numéro de vol, livraison… (jamais transmises au canal).</value>
+  </data>
+  <data name="Field.Month" xml:space="preserve">
+    <value>Mois</value>
+  </data>
+  <data name="Field.Payout" xml:space="preserve">
+    <value>Versement reçu du canal</value>
+  </data>
+  <data name="Field.PayoutReference" xml:space="preserve">
+    <value>Référence du versement</value>
+  </data>
+  <data name="Create.Hint" xml:space="preserve">
+    <value>Le canal naît inactif : complétez ses correspondances et sa sécurité avant de l'activer.</value>
+  </data>
+  <data name="Create.Submit" xml:space="preserve">
+    <value>Créer</value>
+  </data>
+  <data name="Channel.Title" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Channel.Heading" xml:space="preserve">
+    <value>Canal {0}</value>
+  </data>
+  <data name="Channel.Summary" xml:space="preserve">
+    <value>Agence {0} · ventes {1} · code {2}</value>
+  </data>
+  <data name="Channel.UpdatedBy" xml:space="preserve">
+    <value>Modifié le {0} par {1}.</value>
+  </data>
+  <data name="Tab.Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="Tab.Security" xml:space="preserve">
+    <value>Sécurité</value>
+  </data>
+  <data name="Tab.Mappings" xml:space="preserve">
+    <value>Correspondances</value>
+  </data>
+  <data name="Tab.Restrictions" xml:space="preserve">
+    <value>Quotas et arrêts de vente</value>
+  </data>
+  <data name="Settings.Save" xml:space="preserve">
+    <value>Enregistrer les paramètres</value>
+  </data>
+  <data name="Settings.Saved" xml:space="preserve">
+    <value>Paramètres enregistrés.</value>
+  </data>
+  <data name="Security.Endpoint.Title" xml:space="preserve">
+    <value>Adresse d'entrée</value>
+  </data>
+  <data name="Security.Endpoint.Text" xml:space="preserve">
+    <value>Le canal appelle l'adresse ci-dessous, depuis une adresse autorisée, avec sa clé dans l'en-tête X-Channel-Key (et son certificat client si une empreinte est enregistrée). Code du canal : {0}.</value>
+  </data>
+  <data name="Security.Key.Title" xml:space="preserve">
+    <value>Clé d'API</value>
+  </data>
+  <data name="Security.Key.Current" xml:space="preserve">
+    <value>Clé active {0}…, créée le {1}. Seule son empreinte est conservée.</value>
+  </data>
+  <data name="Security.Key.None" xml:space="preserve">
+    <value>Aucune clé : les messages doivent présenter le certificat client.</value>
+  </data>
+  <data name="Security.Key.ShownOnce" xml:space="preserve">
+    <value>Nouvelle clé : copiez-la maintenant pour la transmettre au canal, elle ne sera plus jamais affichée. L'ancienne clé ne fonctionne plus.</value>
+  </data>
+  <data name="Security.Key.Rotate" xml:space="preserve">
+    <value>Générer une nouvelle clé</value>
+  </data>
+  <data name="Security.Key.Revoke" xml:space="preserve">
+    <value>Révoquer la clé</value>
+  </data>
+  <data name="Security.Key.Revoked" xml:space="preserve">
+    <value>Clé révoquée.</value>
+  </data>
+  <data name="Security.Access.Title" xml:space="preserve">
+    <value>Certificat et adresses autorisées</value>
+  </data>
+  <data name="Security.Save" xml:space="preserve">
+    <value>Enregistrer la sécurité</value>
+  </data>
+  <data name="Security.Saved" xml:space="preserve">
+    <value>Sécurité enregistrée.</value>
+  </data>
+  <data name="Mappings.Categories.Title" xml:space="preserve">
+    <value>Catégories</value>
+  </data>
+  <data name="Mappings.Categories.Hint" xml:space="preserve">
+    <value>Code de la catégorie chez le canal et, si besoin, l'ACRISS sous lequel elle est vendue. Une catégorie sans correspondance n'est pas vendue sur le canal.</value>
+  </data>
+  <data name="Mappings.Locations.Title" xml:space="preserve">
+    <value>Lieux</value>
+  </data>
+  <data name="Mappings.Options.Title" xml:space="preserve">
+    <value>Options, assurances et frais</value>
+  </data>
+  <data name="Mappings.Options.Hint" xml:space="preserve">
+    <value>Codes des listes OpenTravel Alliance saisis par l'agence : aucune liste n'est inventée.</value>
+  </data>
+  <data name="MappingKind.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="MappingKind.Location" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="MappingKind.Extra" xml:space="preserve">
+    <value>Option</value>
+  </data>
+  <data name="MappingKind.Insurance" xml:space="preserve">
+    <value>Assurance</value>
+  </data>
+  <data name="MappingKind.Fee" xml:space="preserve">
+    <value>Frais</value>
+  </data>
+  <data name="Mappings.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Mappings.Save.Label" xml:space="preserve">
+    <value>Enregistrer la correspondance de {0}</value>
+  </data>
+  <data name="Mappings.Remove" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="Mappings.Remove.Label" xml:space="preserve">
+    <value>Retirer la correspondance de {0}</value>
+  </data>
+  <data name="Mappings.Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Mappings.Saved" xml:space="preserve">
+    <value>Correspondances enregistrées.</value>
+  </data>
+  <data name="Restrictions.Intro" xml:space="preserve">
+    <value>Appliqués aussitôt par le moteur de disponibilité, au canal seul : le site, le téléphone et le comptoir n'en sont jamais affectés.</value>
+  </data>
+  <data name="Restrictions.ManualHint" xml:space="preserve">
+    <value>Canal manuel : chaque changement s'ajoute à la liste « À reporter sur l'extranet ».</value>
+  </data>
+  <data name="Restrictions.AddStopSell" xml:space="preserve">
+    <value>Nouvel arrêt de vente</value>
+  </data>
+  <data name="Restrictions.AddQuota" xml:space="preserve">
+    <value>Nouveau quota</value>
+  </data>
+  <data name="Restrictions.Add.StopSell" xml:space="preserve">
+    <value>Nouvel arrêt de vente</value>
+  </data>
+  <data name="Restrictions.Add.Reserve" xml:space="preserve">
+    <value>Nouveau quota</value>
+  </data>
+  <data name="Restrictions.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Restrictions.Edit.Title" xml:space="preserve">
+    <value>Modifier la restriction</value>
+  </data>
+  <data name="Restrictions.Edit.Label" xml:space="preserve">
+    <value>Modifier {0} {1} du {2}</value>
+  </data>
+  <data name="Restrictions.Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Restrictions.Remove.Label" xml:space="preserve">
+    <value>Supprimer {0} {1} du {2}</value>
+  </data>
+  <data name="Restrictions.Removed" xml:space="preserve">
+    <value>Restriction supprimée.</value>
+  </data>
+  <data name="Restrictions.Saved" xml:space="preserve">
+    <value>Restriction enregistrée.</value>
+  </data>
+  <data name="Restrictions.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Restrictions.Table" xml:space="preserve">
+    <value>Quotas et arrêts de vente en cours</value>
+  </data>
+  <data name="Restrictions.Empty" xml:space="preserve">
+    <value>Aucun quota ni arrêt de vente en cours.</value>
+  </data>
+  <data name="Restrictions.AllLocations" xml:space="preserve">
+    <value>Tous les lieux</value>
+  </data>
+  <data name="Restrictions.Period" xml:space="preserve">
+    <value>du {0} au {1}</value>
+  </data>
+  <data name="QuotaKind.Reserve" xml:space="preserve">
+    <value>Quota</value>
+  </data>
+  <data name="QuotaKind.StopSell" xml:space="preserve">
+    <value>Arrêt de vente</value>
+  </data>
+  <data name="Calendar.Label" xml:space="preserve">
+    <value>Calendrier des restrictions, {0}</value>
+  </data>
+  <data name="Calendar.Caption" xml:space="preserve">
+    <value>Quotas et arrêts de vente, {0}</value>
+  </data>
+  <data name="Calendar.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Calendar.Stop" xml:space="preserve">
+    <value>Arrêt</value>
+  </data>
+  <data name="Calendar.StopAt" xml:space="preserve">
+    <value>Arrêt {0}</value>
+  </data>
+  <data name="Calendar.Previous" xml:space="preserve">
+    <value>Mois précédent</value>
+  </data>
+  <data name="Calendar.Next" xml:space="preserve">
+    <value>Mois suivant</value>
+  </data>
+  <data name="Manual.Title" xml:space="preserve">
+    <value>Saisie d'une réservation Booking.com</value>
+  </data>
+  <data name="Manual.Intro" xml:space="preserve">
+    <value>Une réservation vendue sur l'extranet du canal devient un dossier confirmé, sous le verrou de disponibilité : seule la capacité physique compte, le canal l'a déjà vendue. Les contrôles se font au comptoir.</value>
+  </data>
+  <data name="Manual.NoChannel" xml:space="preserve">
+    <value>Aucun canal actif : activez un canal (manuel ou connecté) pour saisir ses réservations.</value>
+  </data>
+  <data name="Manual.Driver" xml:space="preserve">
+    <value>Conducteur principal</value>
+  </data>
+  <data name="Manual.Amounts" xml:space="preserve">
+    <value>Montants du canal</value>
+  </data>
+  <data name="Manual.Preview" xml:space="preserve">
+    <value>Calculer commission et net</value>
+  </data>
+  <data name="Manual.Submit" xml:space="preserve">
+    <value>Enregistrer la réservation</value>
+  </data>
+  <data name="Manual.Recorded" xml:space="preserve">
+    <value>Réservation {0} confirmée : elle apparaît au planning.</value>
+  </data>
+  <data name="Manual.Replayed" xml:space="preserve">
+    <value>Cette réservation était déjà saisie : dossier {0}.</value>
+  </data>
+  <data name="Manual.OpenBooking" xml:space="preserve">
+    <value>Ouvrir le dossier</value>
+  </data>
+  <data name="Manual.OpenPlanning" xml:space="preserve">
+    <value>Voir le planning</value>
+  </data>
+  <data name="Figure.Commission" xml:space="preserve">
+    <value>Commission</value>
+  </data>
+  <data name="Figure.Net" xml:space="preserve">
+    <value>Net</value>
+  </data>
+  <data name="Figure.Engine" xml:space="preserve">
+    <value>Prix du moteur pour le canal</value>
+  </data>
+  <data name="Figure.Bookings" xml:space="preserve">
+    <value>Réservations</value>
+  </data>
+  <data name="Figure.Cancelled" xml:space="preserve">
+    <value>{0} annulée(s)</value>
+  </data>
+  <data name="Figure.Gross" xml:space="preserve">
+    <value>Brut</value>
+  </data>
+  <data name="Figure.PrepaidNet" xml:space="preserve">
+    <value>Net prépayé à recevoir</value>
+  </data>
+  <data name="Figure.PayOnSiteCommission" xml:space="preserve">
+    <value>Commissions des réservations payées sur place</value>
+  </data>
+  <data name="Figure.Expected" xml:space="preserve">
+    <value>Versement attendu</value>
+  </data>
+  <data name="Figure.Payout" xml:space="preserve">
+    <value>Versement saisi</value>
+  </data>
+  <data name="Figure.Difference" xml:space="preserve">
+    <value>Écart</value>
+  </data>
+  <data name="CommissionSource.Rule" xml:space="preserve">
+    <value>règle du canal</value>
+  </data>
+  <data name="CommissionSource.Reported" xml:space="preserve">
+    <value>montant transmis</value>
+  </data>
+  <data name="Extranet.Title" xml:space="preserve">
+    <value>À reporter sur l'extranet</value>
+  </data>
+  <data name="Extranet.Intro" xml:space="preserve">
+    <value>Les quotas, arrêts de vente et prix changés pour un canal manuel, à reporter à la main sur son extranet, puis à marquer comme reportés.</value>
+  </data>
+  <data name="Extranet.ShowAcknowledged" xml:space="preserve">
+    <value>Afficher aussi les changements reportés (30 jours)</value>
+  </data>
+  <data name="Extranet.AcknowledgeAll" xml:space="preserve">
+    <value>Tout marquer comme reporté</value>
+  </data>
+  <data name="Extranet.Acknowledge" xml:space="preserve">
+    <value>Reporté</value>
+  </data>
+  <data name="Extranet.Acknowledge.Label" xml:space="preserve">
+    <value>Marquer « {0} — {1} » comme reporté</value>
+  </data>
+  <data name="Extranet.Acknowledged" xml:space="preserve">
+    <value>Reporté le {0} par {1}</value>
+  </data>
+  <data name="Extranet.ToDo" xml:space="preserve">
+    <value>À reporter</value>
+  </data>
+  <data name="Extranet.Done" xml:space="preserve">
+    <value>{0} changement(s) marqué(s) comme reporté(s).</value>
+  </data>
+  <data name="Extranet.Empty" xml:space="preserve">
+    <value>Rien à reporter.</value>
+  </data>
+  <data name="Extranet.Vehicles" xml:space="preserve">
+    <value>{0} véhicule(s) gardé(s)</value>
+  </data>
+  <data name="Replication.QuotaAdded" xml:space="preserve">
+    <value>Quota ajouté</value>
+  </data>
+  <data name="Replication.QuotaChanged" xml:space="preserve">
+    <value>Quota modifié</value>
+  </data>
+  <data name="Replication.QuotaRemoved" xml:space="preserve">
+    <value>Quota supprimé</value>
+  </data>
+  <data name="Replication.StopSellAdded" xml:space="preserve">
+    <value>Arrêt de vente ajouté</value>
+  </data>
+  <data name="Replication.StopSellChanged" xml:space="preserve">
+    <value>Arrêt de vente modifié</value>
+  </data>
+  <data name="Replication.StopSellRemoved" xml:space="preserve">
+    <value>Arrêt de vente supprimé</value>
+  </data>
+  <data name="Replication.RatesPublished" xml:space="preserve">
+    <value>Nouveaux prix publiés</value>
+  </data>
+  <data name="Sync.Title" xml:space="preserve">
+    <value>File d'envoi vers les canaux</value>
+  </data>
+  <data name="Sync.Intro" xml:space="preserve">
+    <value>Disponibilités et prix envoyés aux canaux connectés après chaque changement (regroupés quelques secondes), et chaque nuit en entier. Un échec est retenté avec des délais croissants, puis reste ici jusqu'à son renvoi.</value>
+  </data>
+  <data name="Sync.RunNow" xml:space="preserve">
+    <value>Synchroniser maintenant</value>
+  </data>
+  <data name="Sync.RunDone" xml:space="preserve">
+    <value>Synchronisation : {0} envoi(s), {1} échec(s).</value>
+  </data>
+  <data name="Sync.Filter" xml:space="preserve">
+    <value>Afficher</value>
+  </data>
+  <data name="Sync.Filter.All" xml:space="preserve">
+    <value>Tout</value>
+  </data>
+  <data name="Sync.Filter.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Sync.Filter.Failed" xml:space="preserve">
+    <value>En échec définitif</value>
+  </data>
+  <data name="Sync.Filter.Sent" xml:space="preserve">
+    <value>Envoyés ou abandonnés</value>
+  </data>
+  <data name="Sync.Reason" xml:space="preserve">
+    <value>Origine : {0}</value>
+  </data>
+  <data name="Sync.Replay" xml:space="preserve">
+    <value>Renvoyer</value>
+  </data>
+  <data name="Sync.Replay.Label" xml:space="preserve">
+    <value>Renvoyer « {0} » vers {1} du {2}</value>
+  </data>
+  <data name="Sync.Replayed" xml:space="preserve">
+    <value>Envoi programmé tout de suite.</value>
+  </data>
+  <data name="Sync.ShowPayload" xml:space="preserve">
+    <value>Afficher le message envoyé</value>
+  </data>
+  <data name="Sync.Empty" xml:space="preserve">
+    <value>Aucun envoi.</value>
+  </data>
+  <data name="SyncOperation.PushAvailability" xml:space="preserve">
+    <value>Disponibilités</value>
+  </data>
+  <data name="SyncOperation.PushRates" xml:space="preserve">
+    <value>Prix</value>
+  </data>
+  <data name="SyncOperation.FullResync" xml:space="preserve">
+    <value>Resynchronisation complète</value>
+  </data>
+  <data name="SyncStatus.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="SyncStatus.Sent" xml:space="preserve">
+    <value>Envoyé</value>
+  </data>
+  <data name="SyncStatus.Failed" xml:space="preserve">
+    <value>Échec définitif</value>
+  </data>
+  <data name="SyncStatus.Skipped" xml:space="preserve">
+    <value>Abandonné</value>
+  </data>
+  <data name="Log.Title" xml:space="preserve">
+    <value>Journal des messages des canaux</value>
+  </data>
+  <data name="Log.Intro" xml:space="preserve">
+    <value>Chaque message reçu ou envoyé : sens, opération, référence, statut, durée et un extrait sans donnée personnelle (codes, dates, montants).</value>
+  </data>
+  <data name="Log.Empty" xml:space="preserve">
+    <value>Aucun message.</value>
+  </data>
+  <data name="Log.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Log.Duration" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Log.From" xml:space="preserve">
+    <value>depuis {0}</value>
+  </data>
+  <data name="Filter.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Filter.Direction" xml:space="preserve">
+    <value>Sens</value>
+  </data>
+  <data name="Filter.Operation" xml:space="preserve">
+    <value>Opération</value>
+  </data>
+  <data name="Filter.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Filter.Reference" xml:space="preserve">
+    <value>Référence du canal</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Réinitialiser</value>
+  </data>
+  <data name="Direction.Inbound" xml:space="preserve">
+    <value>Reçu</value>
+  </data>
+  <data name="Direction.Outbound" xml:space="preserve">
+    <value>Envoyé</value>
+  </data>
+  <data name="Operation.Unknown" xml:space="preserve">
+    <value>Illisible</value>
+  </data>
+  <data name="Operation.Availability" xml:space="preserve">
+    <value>Disponibilité</value>
+  </data>
+  <data name="Operation.Create" xml:space="preserve">
+    <value>Création</value>
+  </data>
+  <data name="Operation.Modify" xml:space="preserve">
+    <value>Modification</value>
+  </data>
+  <data name="Operation.Cancel" xml:space="preserve">
+    <value>Annulation</value>
+  </data>
+  <data name="Operation.Read" xml:space="preserve">
+    <value>Consultation</value>
+  </data>
+  <data name="Operation.ManualEntry" xml:space="preserve">
+    <value>Saisie manuelle</value>
+  </data>
+  <data name="Operation.PushAvailability" xml:space="preserve">
+    <value>Envoi des disponibilités</value>
+  </data>
+  <data name="Operation.PushRates" xml:space="preserve">
+    <value>Envoi des prix</value>
+  </data>
+  <data name="MessageStatus.Accepted" xml:space="preserve">
+    <value>Accepté</value>
+  </data>
+  <data name="MessageStatus.Refused" xml:space="preserve">
+    <value>Refusé</value>
+  </data>
+  <data name="MessageStatus.Rejected" xml:space="preserve">
+    <value>Rejeté (sécurité)</value>
+  </data>
+  <data name="MessageStatus.Failed" xml:space="preserve">
+    <value>En erreur</value>
+  </data>
+  <data name="Reconciliation.Title" xml:space="preserve">
+    <value>Rapprochement des canaux</value>
+  </data>
+  <data name="Reconciliation.Intro" xml:space="preserve">
+    <value>Chaque mois, réservations, commissions et versement du canal (réservations du mois de départ, heure de Tunis). Le relevé du canal se saisira par import quand son format sera connu ; en attendant, saisissez le total versé.</value>
+  </data>
+  <data name="Reconciliation.Figures" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Reconciliation.Assumption" xml:space="preserve">
+    <value>Versement attendu = net des réservations prépayées − commissions des réservations payées sur place (à confirmer par le contrat du canal).</value>
+  </data>
+  <data name="Reconciliation.Payout.Title" xml:space="preserve">
+    <value>Versement du mois</value>
+  </data>
+  <data name="Reconciliation.Payout.Save" xml:space="preserve">
+    <value>Enregistrer le versement</value>
+  </data>
+  <data name="Reconciliation.Payout.Saved" xml:space="preserve">
+    <value>Versement enregistré.</value>
+  </data>
+  <data name="Reconciliation.Payout.Recorded" xml:space="preserve">
+    <value>Saisi le {0} par {1}</value>
+  </data>
+  <data name="Reconciliation.Bookings" xml:space="preserve">
+    <value>Réservations du mois</value>
+  </data>
+  <data name="Reconciliation.Empty" xml:space="preserve">
+    <value>Aucune réservation du canal ce mois-ci.</value>
+  </data>
+  <data name="BookingState.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="BookingState.Cancelled" xml:space="preserve">
+    <value>Annulée</value>
+  </data>
+  <data name="BookingState.NoShow" xml:space="preserve">
+    <value>Non présenté</value>
+  </data>
+  <data name="Source.Inbound" xml:space="preserve">
+    <value>reçue du canal</value>
+  </data>
+  <data name="Source.Manual" xml:space="preserve">
+    <value>saisie à la main</value>
+  </data>
+  <data name="Field.BookingPaymentMode" xml:space="preserve">
+    <value>Mode de paiement</value>
+  </data>
+</root>
