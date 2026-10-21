@@ -69,7 +69,7 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         }
 
         // The PDF in the private container, by year and number.
-        invoice.PdfPath.ShouldBe(BillingDocument.PdfPathOf(year, invoice.Number));
+        invoice.PdfPath.ShouldBe(BillingDocument.PdfPathOf(year, invoice.Number, invoice.Id));
         var pdf = await ReadAsync(host, FileContainers.Invoices, invoice.PdfPath!, Ct);
         var text = TextOf(pdf);
         text.ShouldContain(invoice.Number);

@@ -164,8 +164,12 @@ public abstract class BillingDocument : AggregateRoot
     /// </summary>
     public bool IsReadyForPdf => EInvoiceMode == EInvoiceMode.PaperTransitional || EInvoiceStatus == EInvoiceStatus.Transmitted;
 
-    /// <summary>The path of the PDF of a document: <c>{year}/{number}.pdf</c>.</summary>
-    public static string PdfPathOf(int fiscalYear, string number) => string.Create(CultureInfo.InvariantCulture, $"{fiscalYear:D4}/{number}.pdf");
+    /// <summary>
+    /// The path of the PDF of a document: <c>{year}/{number}-{id}.pdf</c>. The id keeps the path unique even where the
+    /// numbering starts over on a storage that is kept (a recette database reset, test runs sharing one emulator).
+    /// </summary>
+    public static string PdfPathOf(int fiscalYear, string number, Guid documentId) =>
+        string.Create(CultureInfo.InvariantCulture, $"{fiscalYear:D4}/{number}-{documentId:N}.pdf");
 
     /// <summary>TTN accepted the document: its unique reference is kept (once; the same reference again is a no-op).</summary>
     public Result RecordTransmission(string? reference, DateTimeOffset at)

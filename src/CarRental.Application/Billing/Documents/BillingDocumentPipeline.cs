@@ -131,12 +131,15 @@ public sealed class BillingDocumentPipeline
 
     private async Task<Result> StorePdfAsync(BillingDocument document, CancellationToken cancellationToken)
     {
-        var pdf = _renderer.Render(BillingDocumentViews.Pdf(document, _texts));
-        var path = BillingDocument.PdfPathOf(document.FiscalYear, document.Number);
+        var path = BillingDocument.PdfPathOf(document.FiscalYear, document.Number, document.Id);
 
-        // The path is the number: a replay after a failure between the upload and the record writes the same file again.
-        await using (var content = new MemoryStream(pdf, writable: false))
+        // The path is the number. A replay after a failure between the upload and the record keeps the file already
+        // stored: the invoices container is immutable in production (ADR-0061), where writing it again would fail.
+        var pdf = await ReadStoredAsync(path, cancellationToken);
+        if (pdf is null)
         {
+            pdf = _renderer.Render(BillingDocumentViews.Pdf(document, _texts));
+            await using var content = new MemoryStream(pdf, writable: false);
             await _storage.UploadAsync(FileContainers.Invoices, path, content, PdfContentType, cancellationToken);
         }
 
@@ -153,6 +156,20 @@ public sealed class BillingDocumentPipeline
                 return tracked.AttachPdf(path, hash, pdf.LongLength, _clock.GetUtcNow());
             },
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>The PDF already stored at <paramref name="path"/>, or <see langword="null"/> when there is none yet.</summary>
+    private async Task<byte[]?> ReadStoredAsync(string path, CancellationToken cancellationToken)
+    {
+        await using var stored = await _storage.OpenReadAsync(FileContainers.Invoices, path, cancellationToken);
+        if (stored is null)
+        {
+            return null;
+        }
+
+        using var buffer = new MemoryStream();
+        await stored.Content.CopyToAsync(buffer, cancellationToken);
+        return buffer.ToArray();
     }
 
     private async Task<Result> EmailAsync(BillingDocumentType type, Guid documentId, CancellationToken cancellationToken)

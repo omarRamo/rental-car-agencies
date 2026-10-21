@@ -31,7 +31,7 @@ public sealed class InvoiceTests
             l => l.UnitPriceExclVat.ShouldBe(Money.Tnd(2m)));
         invoice.Mentions.ShouldHaveSingleItem().ShouldContain("transitoire");
         invoice.PdfFileName.ShouldBe("FAC-2026-000045.pdf");
-        BillingDocument.PdfPathOf(invoice.FiscalYear, invoice.Number).ShouldBe("2026/FAC-2026-000045.pdf");
+        BillingDocument.PdfPathOf(invoice.FiscalYear, invoice.Number, invoice.Id).ShouldBe($"2026/FAC-2026-000045-{invoice.Id:N}.pdf");
         invoice.DomainEvents.OfType<InvoiceIssued>().ShouldHaveSingleItem().ShouldSatisfyAllConditions(
             e => e.Number.ShouldBe(invoice.Number),
             e => e.TotalDue.ShouldBe(Money.Tnd(682.4m)),
