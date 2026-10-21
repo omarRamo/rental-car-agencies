@@ -20,6 +20,8 @@ Description de l'infrastructure Azure de la plateforme : un groupe de ressources
 12. [Supprimer et recréer la recette](#12-supprimer-et-recréer-la-recette)
 13. [Dépannage](#13-dépannage)
 14. [Durcissement ultérieur](#14-durcissement-ultérieur)
+15. [Alertes](#15-alertes)
+16. [Sauvegardes, rétention et immuabilité](#16-sauvegardes-rétention-et-immuabilité)
 
 ## 1. Contenu du dossier
 
@@ -34,6 +36,7 @@ Description de l'infrastructure Azure de la plateforme : un groupe de ressources
 | `modules/appservice.bicep` | Plan Linux, Web App, journaux, authentification de base désactivée |
 | `modules/rbac.bicep` | Rôles de l'identité managée de la Web App et du groupe d'administration, rôle personnalisé d'envoi d'e-mails |
 | `modules/budget.bicep` | Budget mensuel optionnel avec alertes |
+| `modules/alerts.bicep` | Groupe d'actions (e-mails, SMS facultatifs) et règles d'alerte à faible coût : métriques de la plateforme et télémétrie de l'application ([section 15](#15-alertes), [ADR-0060](../docs/adr/0060-alertes-et-telemetrie-de-sante.md)) |
 | `main.prod.bicepparam`, `main.recette.bicepparam` | Paramètres par environnement (identifiants du tenant lus dans des variables d'environnement) |
 | `sql/create-database-users.sql` | T-SQL à exécuter une fois : utilisateurs de base des identités Entra |
 | `bicepconfig.json` | Règles du linter Bicep (les règles de sécurité sont en erreur) |
@@ -72,14 +75,15 @@ flowchart LR
 | Ressource | Production | Recette | Points clés |
 |---|---|---|---|
 | Plan App Service (Linux) | B1 | F1 (gratuit) | Une instance ; B1 sans emplacement de déploiement, d'où le déploiement nocturne |
-| Web App | `DOTNETCORE\|10.0` | idem | Identité managée système, HTTPS seul, TLS 1.2 minimum, FTPS désactivé, HTTP/2, WebSockets, affinité ARR, Always On (sauf F1), contrôle de santé `/health/ready` (sauf F1), authentification de base FTP et SCM désactivée, commande de démarrage `dotnet CarRental.Web.dll` |
+| Web App | `DOTNETCORE\|10.0` | idem | Identité managée système, HTTPS seul, TLS 1.2 minimum, FTPS désactivé, HTTP/2, WebSockets, affinité ARR, Always On (sauf F1), contrôle de santé `/health/ready` (sauf F1), authentification de base FTP et SCM désactivée, commande de démarrage `dotnet CarRental.Web.dll` ; avec `restrictToCloudflare`, site principal réservé aux plages IP de Cloudflare ([section 8](#8-cloudflare-devant-lapp-service)) |
 | Serveur Azure SQL | Entra uniquement | idem | Administrateur = groupe Entra (paramètre), TLS 1.2, règle « Autoriser les services Azure » |
-| Base Azure SQL | Basic (5 DTU, 2 Go) | Offre gratuite (serverless, 32 Go) | Restauration à un instant 7 jours ; rétention longue hebdomadaire (5 semaines) et mensuelle (12 mois) en prod ; sauvegardes géo-redondantes en prod, locales en recette |
-| Stockage | StorageV2, GRS | StorageV2, LRS | Aucun accès public, accès par clé partagée désactivé, TLS 1.2, versions, suppression réversible des blobs et des conteneurs (30 j prod, 7 j recette), restauration à un instant (14 j, prod), suppression des anciennes versions après 90 j (30 j recette) |
+| Base Azure SQL | Basic (5 DTU, 2 Go) | Offre gratuite (serverless, 32 Go) | Restauration à un instant 7 jours ; rétention longue hebdomadaire (5 semaines), mensuelle (12 mois) et **annuelle (10 ans)** en prod ; sauvegardes géo-redondantes en prod, locales en recette ([section 16](#16-sauvegardes-rétention-et-immuabilité)) |
+| Stockage | StorageV2, GRS | StorageV2, LRS | Aucun accès public, accès par clé partagée désactivé, TLS 1.2, versions, suppression réversible des blobs et des conteneurs (30 j prod, 7 j recette), suppression des anciennes versions après 90 j (30 j recette) ; en prod, conteneur `invoices` **immuable 10 ans** (rétention temporelle non verrouillée), donc sans restauration à un instant (incompatible avec l'immuabilité) |
 | Key Vault | standard, RBAC | idem | Suppression réversible (90 j prod, 7 j recette), protection contre la purge (prod), clé RSA 3072 `dataprotection` tournée chaque année, journaux d'audit vers Log Analytics |
 | Log Analytics + Application Insights | plafond 0,15 Go/jour | 0,1 Go/jour | Rétention 30 jours ; le plafond de l'espace de travail s'applique aussi aux données d'Application Insights (ingestion arrêtée jusqu'à la remise à zéro quotidienne) |
 | Communication Services + Email | domaine géré Azure | idem | Données au repos en France (`dataLocation`), suivi des ouvertures désactivé |
 | Budget | 40 (devise de facturation) | 10 | Alertes à 80 % du réel et 100 % de la prévision, seulement si `BUDGET_ALERT_EMAIL` est défini |
+| Alertes | groupe d'actions + 8 règles | 4 règles | Seulement si `ALERT_EMAILS` est défini ([section 15](#15-alertes)) ; test de disponibilité facultatif (`availabilityTestUrl`) |
 
 Conteneurs privés : `documents` (pièces d'identité et permis), `inspections` (photos d'états des lieux), `contracts` (PDF), `invoices` (factures et avoirs, PDF et XML TEIF), `exports`, `fleet` (photos des catégories, servies sans authentification par l'application, et des véhicules), `dataprotection` (trousseau de clés ASP.NET Core).
 
@@ -115,6 +119,7 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `Seed__Demo` | `true` en recette, `false` en prod |
 | `Identity__InitialManagerEmail` | paramètre `initialManagerEmail` : si aucun gérant n'existe, ce compte est créé au démarrage sans mot de passe ; le gérant le définit par « mot de passe oublié », puis enrôle sa double authentification |
 | `HostFiltering__CustomDomains` | paramètre `customDomains` (`www.agence.tn;agence.tn`) : l'application n'accepte que `*.azurewebsites.net`, `localhost` et ces domaines (réponse 400 sinon, sauf `/health*`) |
+| `ReverseProxy__TrustCloudflareHeader` | `true` seulement avec `restrictToCloudflare` : l'adresse du client (limitation de débit, journal d'audit) est alors lue dans `CF-Connecting-IP`, qu'aucun client ne peut plus forger ; `false` sinon, adresse de connexion ([section 8](#8-cloudflare-devant-lapp-service)) |
 | `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
 | `PublicSite__AgencyName`, `PublicSite__WhatsAppNumber` | paramètres `publicSiteAgencyName` et `publicSiteWhatsAppNumber` (bouton WhatsApp masqué si vide) |
 | `WhatsApp__Mode`, `WhatsApp__PhoneNumberId`, `WhatsApp__BusinessAccountId` | `Graph` une fois le numéro WhatsApp Business validé (sinon le canal reste désactivé) ; identifiants lus dans le gestionnaire WhatsApp de Meta ; webhook à déclarer chez Meta sur `https://<domaine>/webhooks/whatsapp` avec le jeton `WhatsApp--VerifyToken` |
@@ -147,6 +152,7 @@ Les secrets (Clic to Pay, WhatsApp, Anthropic, Turnstile…) vont dans le Key Va
   - en local, Azurite garde sa clé de développement publique : rien ne change pour les tests.
 - **Key Vault en mode RBAC**, suppression réversible, protection contre la purge en prod (irréversible ; absente en recette pour pouvoir recréer l'environnement), journaux d'audit dans Log Analytics. Le point de terminaison reste public (pas de point de terminaison privé à ce budget) ; seuls les principaux Entra autorisés y accèdent.
 - **App Service** : authentification de base FTP et SCM désactivée (le déploiement zip utilise un jeton Entra), FTPS désactivé, TLS 1.2, HTTPS seul. Les en-têtes de sécurité (HSTS, CSP…) restent du ressort de l'application.
+- **Origine réservée à Cloudflare** (paramètre `restrictToCloudflare`, désactivé par défaut, [ADR-0062](../docs/adr/0062-origine-cloudflare-et-revue-de-securite.md)) : tant qu'il est désactivé, n'importe qui peut joindre `*.azurewebsites.net` ; l'application ne croit donc pas l'en-tête `CF-Connecting-IP` (`ReverseProxy__TrustCloudflareHeader=false`) et compte chaque client par son adresse de connexion. Une fois le domaine derrière Cloudflare, l'activer ferme l'origine à tout le reste et rend l'en-tête fiable ([section 8](#8-cloudflare-devant-lapp-service)).
 - **Application Insights** accepte la chaîne de connexion (authentification locale) : c'est ce que reçoit l'application. Passer à l'ingestion Entra uniquement est un durcissement possible ([section 14](#14-durcissement-ultérieur)).
 - **Données hors de Tunisie.** Toutes les ressources régionales sont en France Central ; les sauvegardes géo-redondantes et le stockage GRS répliquent en France South ; Communication Services stocke ses données en France. L'autorisation de l'INPDP doit couvrir ce transfert avant la production ([ADR-0010](../docs/adr/0010-conformite-ttn-inpdp.md)).
 
@@ -158,13 +164,15 @@ Ordres de grandeur en USD par mois, hors usage variable, à vérifier dans la [c
 |---|---|---|
 | App Service Linux | B1 ≈ 13 | F1 : 0 |
 | Azure SQL | Basic ≈ 5 (S0 ≈ 15) | Offre gratuite : 0 |
-| Sauvegardes SQL (rétention longue, géo-redondance) | < 0,5 | 0 |
-| Stockage (GRS, versions, flux de modifications) | ≈ 0,5 à 1,5 | < 0,2 |
+| Sauvegardes SQL (rétention longue, géo-redondance) | < 0,5 la première année, < 1 au bout de 10 ans (une sauvegarde annuelle de plus chaque année) | 0 |
+| Stockage (GRS, versions) | ≈ 0,5 à 1,5 | < 0,2 |
 | Key Vault (opérations, rotation annuelle à environ 1 USD) | < 0,2 | < 0,1 |
 | Log Analytics + Application Insights | 0 dans les 5 Go gratuits par mois et par compte de facturation ; pire cas plafonné à environ 8 USD pour les deux environnements | 0 |
+| Alertes ([section 15](#15-alertes)) | ≈ 2 à 3 : 4 règles de recherche dans les journaux toutes les 15 minutes (fréquence la moins chère) et leurs séries de dimension, 4 alertes de métriques (dans les 10 séries gratuites), e-mails gratuits jusqu'à 1 000 par mois ; SMS facturés dès le premier hors des États-Unis | 0 (aucune règle sans `ALERT_EMAILS`) |
+| Test de disponibilité standard (facultatif) | ≈ 3 à 4 par emplacement (une exécution toutes les 15 minutes, facturée à l'exécution) ; 0 avec une surveillance externe gratuite | 0 |
 | E-mail (ACS) | ≈ 0,25 USD pour 1 000 e-mails | ≈ 0 |
 | Budget, Cloudflare Free | 0 | 0 |
-| **Total** | **≈ 19 à 21** (Basic), **≈ 29 à 31** (S0) | **≈ 0 à 1** |
+| **Total** | **≈ 21 à 24** (Basic), **≈ 31 à 34** (S0), sans test de disponibilité | **≈ 0 à 1** |
 
 S'y ajoutent les coûts variables de la spécification : WhatsApp au-delà du quota gratuit, IA, commissions Clic to Pay et Booking.com. Le budget Azure (paramètre `budgetAmount`) alerte en cas de dérive.
 
@@ -215,6 +223,7 @@ Ses membres administrent les serveurs SQL des deux environnements et, par défau
 export SQL_ADMIN_GROUP_OBJECT_ID="$(az ad group show --group "CarRental SQL Admins" --query id -o tsv)"
 export SQL_ADMIN_GROUP_NAME="CarRental SQL Admins"
 export BUDGET_ALERT_EMAIL="<adresse qui reçoit les alertes de budget>"   # facultatif
+export ALERT_EMAILS="<adresse>;<autre adresse>"                         # facultatif : règles d'alerte (section 15)
 
 az deployment group what-if --resource-group rg-carrental-recette --parameters infra/main.recette.bicepparam
 az deployment group create --resource-group rg-carrental-recette --name main \
@@ -336,7 +345,7 @@ GitHub > Actions > **Deploy** > Run workflow > `recette`. Le flux publie l'appli
 
 ### 5.9 Production
 
-Mêmes étapes avec `rg-carrental-prod`, `infra/main.prod.bicepparam`, l'identité `github-carrental-deploy-prod` et l'environnement GitHub `prod`. La production n'ouvre au public qu'après l'autorisation de l'INPDP, le contrat Clic to Pay et le domaine de l'agence (sections 7 et 8).
+Mêmes étapes avec `rg-carrental-prod`, `infra/main.prod.bicepparam`, l'identité `github-carrental-deploy-prod` et l'environnement GitHub `prod`, en définissant `ALERT_EMAILS` (au moins l'adresse du prestataire informatique) : sans elle, aucune alerte n'est créée. La production n'ouvre au public qu'après l'autorisation de l'INPDP, le contrat Clic to Pay, le domaine de l'agence derrière Cloudflare et l'origine réservée à Cloudflare (sections 7 et 8) ; la liste complète est dans le [runbook](../docs/runbook.md#avant-la-mise-en-production).
 
 ## 6. Intégration et déploiement continus
 
@@ -388,8 +397,18 @@ Le plan F1 n'accepte pas de domaine personnalisé : la recette reste sur `*.azur
      --certificate-thumbprint <empreinte> --ssl-type SNI
    ```
 4. **Réglages Cloudflare** : SSL/TLS « Full (strict) », « Always Use HTTPS », TLS 1.2 minimum ; WebSockets activés (indispensables au back office Blazor sur `/_blazor`) ; Rocket Loader et Email Address Obfuscation désactivés (ils réécrivent le HTML et les scripts) ; aucune règle « Cache Everything » (seuls les fichiers statiques sont mis en cache par défaut ; le HTML, `/admin`, `/api`, `/webhooks`, `/payments` et `/health` ne doivent pas l'être) ; Turnstile, dont la clé secrète va dans le Key Vault.
-5. **Adresse du client** : derrière Cloudflare, l'application lit l'en-tête `CF-Connecting-IP` (journal d'audit, limitation de débit).
-6. **Réserver l'App Service à Cloudflare** (durcissement) : restrictions d'accès limitées aux [plages IP de Cloudflare](https://www.cloudflare.com/ips/) (`az webapp config access-restriction add … --ip-address <plages>`), le site SCM gardant ses propres règles (déjà configuré ainsi) pour que le déploiement continue de fonctionner. Renseigner alors `HEALTHCHECK_BASE_URL` dans l'environnement GitHub `prod`, sinon la vérification après déploiement, faite sur `*.azurewebsites.net`, recevrait un 403.
+5. **Adresse du client** : derrière Cloudflare, l'adresse réelle du client est dans l'en-tête `CF-Connecting-IP` (journal d'audit, limitation de débit). L'application ne le lit que si `ReverseProxy__TrustCloudflareHeader` vaut `true`, ce que fait l'étape suivante : tant que l'origine accepte tout le monde, n'importe quel client pourrait choisir cet en-tête, donc son adresse.
+6. **Réserver l'App Service à Cloudflare** (paramètre Bicep `restrictToCloudflare`, [ADR-0062](../docs/adr/0062-origine-cloudflare-et-revue-de-securite.md)), une fois `https://www.<domaine>` servi par Cloudflare :
+   - dans GitHub, environnement `prod` : variable `HEALTHCHECK_BASE_URL` = `https://www.<domaine>` (sinon la vérification après déploiement, faite sur `*.azurewebsites.net`, recevrait un 403) ;
+   - dans `main.prod.bicepparam` : `restrictToCloudflare = true`, puis redéployer l'infrastructure (étape 5.3). Le site principal n'accepte plus que les plages de `cloudflareIpRanges` (une règle d'autorisation par plage, refus implicite de tout le reste, réponse 403) et `ReverseProxy__TrustCloudflareHeader` passe à `true` (l'application redémarre) ;
+   - le site SCM garde ses propres règles, ouvertes (`scmIpSecurityRestrictionsUseMain = false`) : le déploiement zip depuis GitHub, authentifié par Entra, continue de fonctionner ; le contrôle de santé d'App Service est interne à la plateforme et n'est pas soumis aux restrictions ;
+   - vérifier : `curl -sI https://<webAppHostName>/` répond 403, `curl -sI https://www.<domaine>/fr` répond 200, `https://www.<domaine>/health/ready` répond 200.
+
+   **Plages de Cloudflare.** Le paramètre `cloudflareIpRanges` reprend les listes publiées sur <https://www.cloudflare.com/ips-v4> et <https://www.cloudflare.com/ips-v6> (aussi `https://api.cloudflare.com/client/v4/ips`), relevées le 21/10/2026 : 15 plages IPv4 et 7 IPv6. Cloudflare annonce ses changements à l'avance ; comparer une fois par trimestre (`curl -s https://www.cloudflare.com/ips-v4; curl -s https://www.cloudflare.com/ips-v6`), mettre à jour le paramètre et redéployer. Une plage manquante se voit par des 403 pour une partie des visiteurs (runbook, « Cloudflare et DNS »).
+
+   **Alternative : « Authenticated Origin Pulls »** (mTLS de Cloudflare vers l'origine). Avec le certificat client partagé de Cloudflare, n'importe quel compte Cloudflare peut le présenter : il faut un certificat propre à la zone (« zone-level », disponible sur l'offre gratuite), activer les certificats clients sur l'App Service (`clientCertEnabled`, mode facultatif pour garder `/health` au contrôle de santé) et vérifier dans l'application l'empreinte de `X-ARR-ClientCert` à chaque requête. Plus fort que les plages d'adresses (il distingue notre zone de celles des autres clients de Cloudflare), mais du code et une rotation de certificat en plus : non retenu pour l'instant, la restriction par adresses suffit à rendre `CF-Connecting-IP` fiable.
+
+   **Durcissement complémentaire** : une fois le domaine en service, ajouter le paramètre d'application `HostFiltering__AllowedHosts` = `localhost` (il remplace la valeur `*.azurewebsites.net;localhost;127.0.0.1` d'`appsettings.json`) : l'application ne répondra plus qu'aux domaines de `customDomains` (les sondes `/health*` et le préchauffage d'App Service restent exemptés).
 
 ## 9. Passer la base de Basic à S0
 
@@ -412,6 +431,8 @@ En dépannage immédiat : `az sql db update --resource-group rg-carrental-prod -
 
 ## 11. Restauration
 
+Les procédures pas à pas (choix de l'instant, vérifications, échange de bases, communication) sont dans le [runbook](../docs/runbook.md#restaurations) ; les commandes de référence restent ici.
+
 **Azure SQL**
 
 - Restauration à un instant (7 jours) vers une nouvelle base, vérification, puis échange des noms :
@@ -422,7 +443,7 @@ En dépannage immédiat : `az sql db update --resource-group rg-carrental-prod -
   az sql db rename --resource-group rg-carrental-prod --server <sqlServerName> --name carrental-restore --new-name carrental
   ```
   Redéployer ensuite le Bicep : les politiques de sauvegarde s'appliquent par nom de base. Les utilisateurs Entra sont dans la base restaurée.
-- Rétention longue :
+- Rétention longue (sauvegardes hebdomadaires 5 semaines, mensuelles 12 mois, annuelles 10 ans : celle de la deuxième semaine de janvier) :
   ```bash
   az sql db ltr-backup list --location francecentral --server <sqlServerName> --database carrental
   az sql db ltr-backup restore --backup-id "<id>" --dest-database carrental-ltr \
@@ -435,7 +456,8 @@ En dépannage immédiat : `az sql db update --resource-group rg-carrental-prod -
 - Blob supprimé : `az storage blob undelete --account-name <stockage> --container-name documents --name <chemin> --auth-mode login`.
 - Version précédente : `az storage blob list … --include v` pour trouver la version, puis `az storage blob copy start` avec `--source-uri "https://<stockage>.blob.core.windows.net/documents/<chemin>?versionid=<version>"` vers le même blob.
 - Conteneur supprimé : `az storage container list --account-name <stockage> --include-deleted --auth-mode login`, puis `az storage container restore --account-name <stockage> --name <conteneur> --deleted-version <version> --auth-mode login`.
-- Restauration à un instant (prod, 14 jours) : `az storage blob restore --account-name <stockage> --resource-group rg-carrental-prod --time-to-restore "2026-11-02T08:00:00Z"` (tout le compte, ou des plages avec `--blob-range`).
+- Restauration à un instant : **indisponible en production**, incompatible avec le conteneur immuable `invoices` ([section 16](#16-sauvegardes-rétention-et-immuabilité)) ; les versions (90 jours) et la suppression réversible (30 jours) la remplacent, blob par blob (script dans le runbook). Sur un compte sans immuabilité (`blobPointInTimeRestoreDays` > 0) : `az storage blob restore --account-name <stockage> --resource-group <rg> --time-to-restore "2026-11-02T08:00:00Z"` (tout le compte, ou des plages avec `--blob-range`).
+- Conteneur `invoices` (prod) : aucun blob de moins de 10 ans ne peut être supprimé ni écrasé, par personne ; il n'y a rien à restaurer, et une suppression ou un écrasement par erreur échoue (409 `BlobImmutableDueToPolicy`).
 
 **Key Vault** : `az keyvault secret list-deleted` puis `az keyvault secret recover`, `az keyvault key recover`, coffre supprimé : `az keyvault recover --name <coffre>`.
 
@@ -466,12 +488,94 @@ Un redéploiement dans un groupe de ressources du même nom redonne les mêmes n
 | Application : 403 sur le stockage ou le Key Vault juste après le premier déploiement | Propagation des rôles (jusqu'à une dizaine de minutes) : redémarrer la Web App |
 | Envoi d'e-mails : 403 | Vérifier le rôle « CarRental ACS Email Sender » ; à défaut, attribuer Contributor sur la seule ressource Communication Services |
 | Vérification de santé : 403 | App Service réservé à Cloudflare : renseigner `HEALTHCHECK_BASE_URL` |
+| Vérification de santé ou sonde : 429 | Plus de 60 appels par minute de la même adresse sur `/health*` (`RateLimiting:Health`) : une sonde externe trop fréquente, ou une attaque ; attendre une minute |
+| Déploiement : la ressource `immutabilityPolicies` du conteneur `invoices` est refusée (politique verrouillée) | La politique a été verrouillée dans le portail : passer `invoiceImmutabilityDays = 0` dans le fichier de paramètres (la politique verrouillée reste en place, le modèle ne la touche plus), garder `blobPointInTimeRestoreDays = 0` et noter la date du verrouillage en commentaire |
+| Déploiement : restauration à un instant refusée avec l'immuabilité | Les deux sont incompatibles ; le modèle désactive la restauration à un instant dès qu'un conteneur est immuable : vérifier `blobPointInTimeRestoreDays` et redéployer le module de stockage |
+| Alerte `telemetry-missing` alors que le site répond | Plafond journalier de Log Analytics atteint (`logDailyCapGb`) : la télémétrie reprend à la remise à zéro ; voir le runbook, alerte « telemetry-missing » |
 
 ## 14. Durcissement ultérieur
 
+Fait au durcissement (passe 1, ADR-0060 à 0062) : alertes ([section 15](#15-alertes)), rétention longue annuelle de 10 ans et factures immuables ([section 16](#16-sauvegardes-rétention-et-immuabilité)), paramètre de réservation de l'origine à Cloudflare ([section 8](#8-cloudflare-devant-lapp-service)). Reste possible :
+
 - Audit Azure SQL vers Log Analytics, limité aux groupes d'actions d'authentification et de modification des droits et du schéma (Hangfire interroge la base en continu : auditer chaque lot ferait exploser le volume) ; Microsoft Defender for SQL (environ 15 USD par mois) et analyse antimalware des blobs (option de la spécification, section 14).
-- App Service réservé à Cloudflare ([section 8](#8-cloudflare-devant-lapp-service)).
 - Ingestion Application Insights par Entra uniquement : `DisableLocalAuth: true`, rôle Monitoring Metrics Publisher pour l'identité managée et `Credential` dans l'exportateur OpenTelemetry.
-- Alertes (phase « Durcissement ») : disponibilité, erreurs 5xx, paiements en échec, file WhatsApp bloquée, via un groupe d'actions.
-- Rétention longue annuelle (`sqlLtrYearlyRetention = 'P10Y'`) une fois la durée de conservation comptable validée par l'expert-comptable.
+- Verrouillage des politiques d'immuabilité (factures, sauvegardes longues de la base) une fois la durée de conservation confirmée par l'expert-comptable : irréversible, décision de l'agence ([section 16](#16-sauvegardes-rétention-et-immuabilité)).
+- « Authenticated Origin Pulls » avec un certificat propre à la zone, en plus des plages d'adresses ([section 8](#8-cloudflare-devant-lapp-service)).
 - Points de terminaison privés et intégration au réseau virtuel, si le budget le permet un jour.
+
+## 15. Alertes
+
+Un groupe d'actions `ag-carrental-<env>` (e-mails de `ALERT_EMAILS`, schéma d'alerte commun ; SMS facultatifs par `alertSmsNumbers`, facturés dès le premier hors des États-Unis) et des règles qui coûtent peu ([ADR-0060](../docs/adr/0060-alertes-et-telemetrie-de-sante.md)) : alertes de métriques de la plateforme et quatre recherches dans les journaux d'Application Insights toutes les 15 minutes. **Rien n'est créé tant que `ALERT_EMAILS` est vide** (recette par défaut). Chaque alerte se résout seule quand la condition disparaît (un second e-mail l'annonce).
+
+L'application publie chaque minute l'état de **chaque entrée de santé** dans la métrique `carrental.health.status` (2 saine, 1 dégradée, 0 en échec, dimension `entry`) : une seule règle couvre toutes les entrées, y compris celles qu'un module ajoutera (par exemple `whatsapp` au lot 4B).
+
+| Règle (`alert-<base>-<env>-…`) | Signal | Seuil, fenêtre | Gravité | Premières actions |
+|---|---|---|---|---|
+| `site-down` | Métrique App Service `HealthCheckStatus` (contrôle de santé sur `/health/ready`) | moyenne < 100 % sur 15 min, évaluée toutes les 5 min (l'instance est déclarée en échec après 10 sondes ratées) ; pas en F1 | 1 | [runbook](../docs/runbook.md#alerte-site-down) |
+| `http-5xx` | Métrique `Http5xx` de la Web App | plus de 10 en 15 min | 2 | [runbook](../docs/runbook.md#alerte-http-5xx) |
+| `exceptions` | Table `exceptions` d'Application Insights | plus de 20 en 15 min | 2 | [runbook](../docs/runbook.md#alerte-exceptions) |
+| `health-degraded` | `carrental.health.status` par entrée | une entrée jamais saine pendant 15 min (une alerte par entrée) | 2 | [runbook](../docs/runbook.md#alerte-health-degraded), section de l'entrée |
+| `payments-gateway` | Compteur `carrental.clictopay.calls`, résultat autre que `Succeeded` (pas de réponse, réponse illisible, requête refusée par la passerelle ; jamais un refus de carte) | au moins 3 en 15 min | 1 | [runbook](../docs/runbook.md#alerte-payments-gateway) |
+| `telemetry-missing` | Absence de `carrental.health.status` | aucune mesure pendant 30 min ; pas en F1 (l'application s'y endort) | 2 | [runbook](../docs/runbook.md#alerte-telemetry-missing) |
+| `sql-dtu` | Métrique `dtu_consumption_percent` de la base | moyenne > 90 % sur 30 min ; DTU seulement (pas l'offre gratuite) | 3 | [runbook](../docs/runbook.md#alerte-sql-capacity) |
+| `sql-storage` | Métrique `storage_percent` de la base | > 80 % de la taille maximale (2 Go en Basic) | 2 | [runbook](../docs/runbook.md#alerte-sql-capacity) |
+| `availability` (facultative) | Test de disponibilité standard `GET <availabilityTestUrl>` toutes les 15 min | un emplacement en échec | 1 | [runbook](../docs/runbook.md#alerte-availability) |
+
+Couverture des alertes demandées par la spécification (§14) :
+
+| Demande | Règle |
+|---|---|
+| Erreurs | `http-5xx`, `exceptions`, `site-down` |
+| Paiements en échec | `payments-gateway` (appels en échec technique) et entrée `payments` de `health-degraded` (paiement signalé à vérifier, capture, annulation ou remboursement non confirmé depuis plus d'une heure) |
+| Synchronisation de canal en échec | entrée `channels` (envoi en échec définitif, ou plus ancien envoi dû en retard de plus de 30 min) |
+| File WhatsApp bloquée | entrée `outbox` (message en échec définitif, ou plus ancien message en attente depuis plus de 30 min : réception, envoi et tours du bot passent par l'outbox) ; entrée `whatsapp` du lot 4B quand elle existera |
+| Échéances de flotte | entrée `jobs` : la tâche `fleet.deadline_alerts` (e-mail quotidien des échéances, 07:00 à Tunis) a échoué, n'est plus planifiée ou ne se déclenche plus ; de même pour toutes les tâches récurrentes |
+| Messages de fond en échec | entrée `outbox` |
+
+**Disponibilité vue d'Internet.** `site-down` vient de l'intérieur d'App Service ; il ne voit ni le DNS, ni Cloudflare, ni le certificat. Deux options :
+
+- **surveillance externe gratuite** (recommandée à ce budget) : un service de surveillance d'URL à offre gratuite (par exemple UptimeRobot ou Better Stack ; vérifier leurs conditions d'usage commercial) qui interroge `https://www.<domaine>/health` toutes les 5 minutes et prévient par e-mail ; `/health` ne lit pas la base et reste sous la limite de 60 appels par minute et par adresse. Cloudflare n'offre pas de contrôle de santé dans l'offre gratuite ;
+- **test standard d'Application Insights** : `availabilityTestUrl = 'https://www.<domaine>/health'` dans `main.prod.bicepparam` (environ 3 à 4 USD par mois et par emplacement, `availabilityTestLocations`), avec l'alerte `availability`.
+
+**Réglages.** Les seuils sont les paramètres du module (`http5xxThreshold`, `exceptionsThreshold`, `paymentFailuresThreshold`, `sqlDtuPercentThreshold`, `sqlStoragePercentThreshold`) : les passer dans l'appel du module `alerts` de `main.bicep`. L'état publié se lit dans Application Insights > Journaux :
+
+```kusto
+customMetrics
+| where name == "carrental.health.status"
+| summarize arg_max(timestamp, value) by entry = tostring(customDimensions["entry"])
+```
+
+**Vérifier le groupe d'actions** après le premier déploiement : portail > Monitor > Alertes > Groupes d'actions > `ag-carrental-prod` > « Tester » (un e-mail par destinataire). Une alerte de recherche dépend de l'ingestion : si le plafond journalier de Log Analytics est atteint, les règles de télémétrie se taisent jusqu'à la remise à zéro et `telemetry-missing` se déclenche.
+
+## 16. Sauvegardes, rétention et immuabilité
+
+Décisions et raisons : [ADR-0061](../docs/adr/0061-sauvegardes-retention-et-immuabilite.md) ; restaurations : [runbook](../docs/runbook.md#restaurations).
+
+| Données | Protection en production | Recette |
+|---|---|---|
+| Base Azure SQL | Restauration à un instant 7 jours (maximum en Basic) ; rétention longue : chaque sauvegarde hebdomadaire 5 semaines, la première de chaque mois 12 mois, **celle de la deuxième semaine de janvier 10 ans** (année close complète) ; sauvegardes géo-redondantes (restauration en France South) ; une base ou un serveur supprimé garde ses sauvegardes longues | 7 jours, locales, pas de rétention longue |
+| Blobs (pièces, photos, contrats, factures, exports) | Versions (anciennes versions supprimées après 90 jours), suppression réversible des blobs et des conteneurs 30 jours, stockage GRS ; pas de restauration à un instant (incompatible avec l'immuabilité) | Versions 30 jours, suppression réversible 7 jours, LRS |
+| Conteneur `invoices` (factures, avoirs, XML TEIF) | **Rétention temporelle 3 650 jours (10 ans), non verrouillée** : un blob peut être créé, jamais écrasé ni supprimé avant 10 ans, par personne ; l'application n'y écrit qu'une fois par document | Aucune |
+| Key Vault | Suppression réversible 90 jours, protection contre la purge | 7 jours, sans protection contre la purge |
+| Journal d'audit, historique des tables | Dans la base (ajout seul, déclencheurs), donc dans ses sauvegardes | idem |
+
+**Durées de conservation** (SPEC §14, points ouverts). Les pièces comptables (factures, avoirs, et le contrat s'il tient lieu de facture) se conservent **10 ans** selon les règles comptables tunisiennes, **à confirmer avec l'expert-comptable** : c'est la durée de la sauvegarde annuelle et de l'immuabilité des factures. Les contrats de location, états des lieux et photos ne sont jamais supprimés par la plateforme une fois le départ enregistré (seules les photos remplacées pendant la saisie et un contrat dont le départ a échoué le sont) : leur durée de conservation est à fixer avec l'avocat (point ouvert « Départ et retour »), après quoi une purge comme celle des pièces d'identité pourra être ajoutée. Les images des pièces d'identité ont leur propre purge, désactivée par défaut ([ADR-0026](../docs/adr/0026-pieces-identite-stockage-et-acces-journalise.md)).
+
+**Verrouiller une politique d'immuabilité** (décision de l'agence, jamais faite par le modèle) : une fois la durée confirmée, le verrouillage rend la protection conforme aux exigences les plus strictes (SEC 17a-4), mais il est **irréversible** : la durée ne peut plus qu'être allongée, et le conteneur comme le compte de stockage ne peuvent plus être supprimés tant qu'un blob est sous rétention.
+
+```bash
+# Factures : verrouiller la politique du conteneur (rôle Storage Account Contributor)
+etag=$(az storage container immutability-policy show --resource-group rg-carrental-prod \
+  --account-name <stockage> --container-name invoices --query etag -o tsv)
+az storage container immutability-policy lock --resource-group rg-carrental-prod \
+  --account-name <stockage> --container-name invoices --if-match "$etag"
+# Puis invoiceImmutabilityDays = 0 dans main.prod.bicepparam (section 13, Dépannage).
+
+# Sauvegardes longues de la base : immuabilité temporelle des sauvegardes à venir, verrouillée
+# (le serveur SQL ne peut alors plus être supprimé tant qu'une sauvegarde immuable existe).
+az sql db ltr-policy set --resource-group rg-carrental-prod --server <sqlServerName> --name carrental \
+  --weekly-retention P5W --monthly-retention P12M --yearly-retention P10Y --week-of-year 2 \
+  --tb-immutability Enabled --tb-immutability-mode Locked
+```
+
+Un redéploiement du modèle réécrit la politique de rétention longue sans l'immuabilité : après ce verrouillage, l'immuabilité de la base se gère dans le portail (ADR-0061, à reprendre dans le modèle si l'agence le décide).

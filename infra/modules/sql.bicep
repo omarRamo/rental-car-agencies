@@ -185,3 +185,4 @@ resource longTermRetention 'Microsoft.Sql/servers/databases/backupLongTermRetent
 output serverName string = sqlServer.name
 output serverFqdn string = sqlServer.properties.fullyQualifiedDomainName
 output databaseName string = database.name
+output databaseId string = database.id

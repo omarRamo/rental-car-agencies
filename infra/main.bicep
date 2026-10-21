@@ -63,6 +63,41 @@ param publicSiteAgencyName string = 'CarRental'
 param publicSiteWhatsAppNumber string = ''
 
 // ---------------------------------------------------------------------------------------------
+// Origin reserved to Cloudflare (ADR-0062)
+// ---------------------------------------------------------------------------------------------
+
+@description('Reserve the main site to the Cloudflare IP ranges below (App Service access restrictions, everything else gets 403) and trust CF-Connecting-IP (ReverseProxy__TrustCloudflareHeader). Turn on once the custom domain is proxied by Cloudflare; the SCM site keeps its own open rules for the deployment, and the App Service health check is internal (never blocked). Set HEALTHCHECK_BASE_URL in GitHub then (infra/README.md, section 8).')
+param restrictToCloudflare bool = false
+
+// Source: https://www.cloudflare.com/ips-v4 and https://www.cloudflare.com/ips-v6 (also https://api.cloudflare.com/client/v4/ips),
+// read on 2026-10-21. Cloudflare announces changes in advance; compare once a quarter and redeploy (docs/runbook.md, "Cloudflare").
+@description('IP ranges (CIDR) of Cloudflare allowed on the main site when restrictToCloudflare is true.')
+param cloudflareIpRanges array = [
+  '173.245.48.0/20'
+  '103.21.244.0/22'
+  '103.22.200.0/22'
+  '103.31.4.0/22'
+  '141.101.64.0/18'
+  '108.162.192.0/18'
+  '190.93.240.0/20'
+  '188.114.96.0/20'
+  '197.234.240.0/22'
+  '198.41.128.0/17'
+  '162.158.0.0/15'
+  '104.16.0.0/13'
+  '104.24.0.0/14'
+  '172.64.0.0/13'
+  '131.0.72.0/22'
+  '2400:cb00::/32'
+  '2606:4700::/32'
+  '2803:f800::/32'
+  '2405:b500::/32'
+  '2405:8100::/32'
+  '2a06:98c0::/29'
+  '2c0f:f248::/32'
+]
+
+// ---------------------------------------------------------------------------------------------
 // Azure SQL
 // ---------------------------------------------------------------------------------------------
 
@@ -107,13 +142,13 @@ param sqlLtrWeeklyRetention string = 'P5W'
 @description('LTR: keep the first backup of each month for this ISO 8601 duration.')
 param sqlLtrMonthlyRetention string = 'P12M'
 
-@description('LTR: keep one backup per year for this ISO 8601 duration (PT0S = disabled; for example P10Y once agreed with the accountant).')
+@description('LTR: keep one backup per year for this ISO 8601 duration (PT0S = disabled; P10Y = 10 years, the accounting retention to confirm with the accountant, ADR-0061).')
 param sqlLtrYearlyRetention string = 'PT0S'
 
-@description('LTR: week of the year whose backup becomes the yearly backup.')
+@description('LTR: week of the year whose backup becomes the yearly backup (2 = the second week of January: the closed year is complete, whatever the calendar).')
 @minValue(1)
 @maxValue(52)
-param sqlLtrWeekOfYear int = 1
+param sqlLtrWeekOfYear int = 2
 
 // ---------------------------------------------------------------------------------------------
 // Storage
@@ -138,7 +173,7 @@ param blobSoftDeleteDays int = 30
 @maxValue(365)
 param containerSoftDeleteDays int = 30
 
-@description('Point-in-time restore window for blobs, in days (0 = disabled; must stay below blobSoftDeleteDays).')
+@description('Point-in-time restore window for blobs, in days (0 = disabled; must stay below blobSoftDeleteDays). Incompatible with immutable storage: ignored when invoiceImmutabilityDays is set (ADR-0061).')
 @minValue(0)
 @maxValue(364)
 param blobPointInTimeRestoreDays int = 0
@@ -146,6 +181,11 @@ param blobPointInTimeRestoreDays int = 0
 @description('Delete previous blob versions older than this many days (0 = keep forever).')
 @minValue(0)
 param blobVersionRetentionDays int = 90
+
+@description('Time-based retention (WORM) of the invoices container, in days: invoices and credit notes can be added but neither overwritten nor deleted during this period (0 = none; 3650 = 10 years, to confirm with the accountant). The policy stays unlocked: only an administrator can shorten or remove it, never the application (ADR-0061).')
+@minValue(0)
+@maxValue(146000)
+param invoiceImmutabilityDays int = 0
 
 // ---------------------------------------------------------------------------------------------
 // Key Vault
@@ -173,6 +213,15 @@ param logDailyCapGb string = '0.15'
 @minValue(30)
 @maxValue(730)
 param logRetentionDays int = 30
+
+@description('E-mail addresses notified by the alert rules (empty = no action group and no alert rule). See infra/README.md, "Alertes".')
+param alertEmails array = []
+
+@description('Optional SMS receivers of the alerts, e.g. [{ countryCode: \'216\', phoneNumber: \'20123456\' }] (billed from the first SMS outside the United States).')
+param alertSmsNumbers array = []
+
+@description('Public URL of /health watched by an Application Insights standard availability test, billed per execution (empty = none; a free external monitor can do it, infra/README.md).')
+param availabilityTestUrl string = ''
 
 // ---------------------------------------------------------------------------------------------
 // E-mail (Azure Communication Services)
@@ -223,6 +272,8 @@ var names = {
   emailService: 'ecs-${baseName}-${environmentName}-${suffix}'
   communication: 'acs-${baseName}-${environmentName}-${suffix}'
   budget: 'budget-${baseName}-${environmentName}'
+  actionGroup: 'ag-${baseName}-${environmentName}'
+  alertPrefix: 'alert-${baseName}-${environmentName}'
 }
 
 var defaultTags = {
@@ -245,6 +296,10 @@ var containerNames = [
 ]
 
 var aspNetCoreEnvironment = environmentName == 'prod' ? 'Production' : 'Staging'
+
+// The Free plan has neither Always On nor a useful health check (a probe every minute would also keep the free
+// serverless database awake and use up its monthly allowance).
+var isFreePlan = appServicePlanSku == 'F1'
 
 // ---------------------------------------------------------------------------------------------
 // Modules
@@ -274,6 +329,14 @@ module storage 'modules/storage.bicep' = {
     containerSoftDeleteDays: containerSoftDeleteDays
     pointInTimeRestoreDays: blobPointInTimeRestoreDays
     versionRetentionDays: blobVersionRetentionDays
+    immutableContainers: invoiceImmutabilityDays > 0
+      ? [
+          {
+            name: 'invoices'
+            days: invoiceImmutabilityDays
+          }
+        ]
+      : []
   }
 }
 
@@ -334,11 +397,15 @@ module web 'modules/appservice.bicep' = {
     appInsightsName: monitoring.outputs.appInsightsName
     healthCheckPath: '/health/ready'
     startupCommand: 'dotnet CarRental.Web.dll'
+    restrictToCloudflare: restrictToCloudflare
+    cloudflareIpRanges: cloudflareIpRanges
     // Configuration contract with the application (double underscore = configuration section).
     // No secret here: secrets live in Key Vault (configuration provider on KeyVault__Uri).
     appSettings: {
       ASPNETCORE_ENVIRONMENT: aspNetCoreEnvironment
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: 'true'
+      // CF-Connecting-IP can only be trusted when nothing but Cloudflare reaches the origin (ADR-0062).
+      ReverseProxy__TrustCloudflareHeader: restrictToCloudflare ? 'true' : 'false'
       SCM_DO_BUILD_DURING_DEPLOYMENT: 'false'
       ConnectionStrings__Sql: 'Server=tcp:${sql.outputs.serverFqdn},1433;Database=${sql.outputs.databaseName};Authentication=Active Directory Default;Encrypt=True;'
       Storage__BlobServiceUri: storage.outputs.blobEndpoint
@@ -379,6 +446,27 @@ module budget 'modules/budget.bicep' = if (budgetAmount > 0 && !empty(budgetCont
   }
 }
 
+// Alert rules and their action group (ADR-0060), only when someone receives them.
+module alerts 'modules/alerts.bicep' = if (!empty(alertEmails)) {
+  name: 'alerts'
+  params: {
+    location: location
+    tags: allTags
+    namePrefix: names.alertPrefix
+    actionGroupName: names.actionGroup
+    actionGroupShortName: take('${baseName}${envShort}', 12)
+    alertEmails: alertEmails
+    alertSmsNumbers: alertSmsNumbers
+    webAppId: web.outputs.id
+    appInsightsId: monitoring.outputs.appInsightsId
+    sqlDatabaseId: sql.outputs.databaseId
+    healthCheckEnabled: !isFreePlan
+    alwaysOn: !isFreePlan
+    sqlDtuBased: sqlDatabaseSku != 'Free'
+    availabilityTestUrl: availabilityTestUrl
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Outputs (copy them into the GitHub environment variables, see infra/README.md)
 // ---------------------------------------------------------------------------------------------
@@ -396,3 +484,4 @@ output keyVaultName string = keyVault.outputs.name
 output keyVaultUri string = keyVault.outputs.uri
 output communicationServiceName string = communication.outputs.name
 output emailSenderAddress string = communication.outputs.senderAddress
+output alertRuleNames array = empty(alertEmails) ? [] : alerts!.outputs.alertNames

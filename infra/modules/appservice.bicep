@@ -37,6 +37,12 @@ param healthCheckPath string
 @description('Startup command. The host project is src/CarRental.Web, published as CarRental.Web.dll.')
 param startupCommand string
 
+@description('Reserve the main site to cloudflareIpRanges (403 for any other address). The SCM site keeps its own rules (open: the deployment authenticates with Microsoft Entra), and the App Service health check is internal.')
+param restrictToCloudflare bool
+
+@description('IP ranges (CIDR, IPv4 and IPv6) allowed on the main site when restrictToCloudflare is true.')
+param cloudflareIpRanges array
+
 var skuTiers = {
   F1: 'Free'
   B1: 'Basic'
@@ -54,6 +60,18 @@ var appSettingsList = [
   for setting in items(appSettings): {
     name: setting.key
     value: setting.value
+  }
+]
+
+// One allow rule per Cloudflare range; the implicit "deny all" of App Service applies after the last rule.
+var cloudflareRules = [
+  for (range, i) in cloudflareIpRanges: {
+    name: 'cloudflare-${i + 1}'
+    description: 'Cloudflare ${range}'
+    ipAddress: range
+    action: 'Allow'
+    tag: 'Default'
+    priority: 100 + i
   }
 ]
 
@@ -104,7 +122,10 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
       remoteDebuggingEnabled: false
       healthCheckPath: isFreeTier ? null : healthCheckPath
       numberOfWorkers: 1
-      ipSecurityRestrictionsDefaultAction: 'Allow'
+      // Origin reserved to Cloudflare (ADR-0062): an empty list and "Allow" when the restriction is off.
+      ipSecurityRestrictions: restrictToCloudflare ? cloudflareRules : []
+      ipSecurityRestrictionsDefaultAction: restrictToCloudflare ? 'Deny' : 'Allow'
+      // The SCM site (zip deployment from GitHub runners, whose addresses change) never inherits the main rules.
       scmIpSecurityRestrictionsDefaultAction: 'Allow'
       scmIpSecurityRestrictionsUseMain: false
       // The connection string is read from the component here so it never appears in outputs.
@@ -163,6 +184,7 @@ resource scmBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@20
 }
 
 output name string = webApp.name
+output id string = webApp.id
 output defaultHostName string = webApp.properties.defaultHostName
 output principalId string = webApp.identity.principalId
 output customDomainVerificationId string = webApp.properties.customDomainVerificationId
