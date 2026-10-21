@@ -55,6 +55,13 @@
     <PackageVersion Include="QRCoder" Version="1.8.1" />
   </ItemGroup>
 
+  <!-- Excel exports of the reports (ClosedXML: MIT; its dependencies DocumentFormat.OpenXml, ExcelNumberFormat, RBush: MIT). -->
+  <ItemGroup>
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
+    <!-- Kept on the last 1.x release (Apache-2.0): SixLabors.Fonts 2.0 and later are under the Six Labors Split License. -->
+    <PackageVersion Include="SixLabors.Fonts" Version="1.0.1" />
+  </ItemGroup>
+
   <!--
     Security pins for vulnerable transitive dependencies (NuGet audit fails the build otherwise).
     Remove a pin once every direct dependency requires a patched version.

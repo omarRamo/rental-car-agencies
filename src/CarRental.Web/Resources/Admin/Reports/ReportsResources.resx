@@ -1,0 +1,852 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Reports.Title" xml:space="preserve">
+    <value>Rapports</value>
+  </data>
+  <data name="Reports.Intro" xml:space="preserve">
+    <value>Indicateurs de pilotage d'une agence sur une période (le mois en cours par défaut), comparés à la période précédente. Chaque graphique a son tableau de données, chaque tableau son export Excel.</value>
+  </data>
+  <data name="Reports.Heading" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="Reports.NoAgency" xml:space="preserve">
+    <value>Aucune agence n'est encore enregistrée : les rapports apparaîtront avec la première agence.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Calcul des indicateurs en cours</value>
+  </data>
+  <data name="Period.Range" xml:space="preserve">
+    <value>du {0} au {1}</value>
+  </data>
+  <data name="Filter.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Filter.Agency.Inactive" xml:space="preserve">
+    <value>{0} (inactive)</value>
+  </data>
+  <data name="Filter.Period" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Filter.Period.Custom" xml:space="preserve">
+    <value>Période personnalisée…</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>Au</value>
+  </data>
+  <data name="Filter.Apply" xml:space="preserve">
+    <value>Afficher</value>
+  </data>
+  <data name="Notes.NoElapsedDay" xml:space="preserve">
+    <value>Aucun jour de la période n'est encore écoulé : seul le rythme des réservations est calculé.</value>
+  </data>
+  <data name="Notes.Covered" xml:space="preserve">
+    <value>Période en cours : les indicateurs couvrent les jours écoulés, jusqu'au {0} inclus (un jour compte une fois terminé).</value>
+  </data>
+  <data name="Notes.Compared" xml:space="preserve">
+    <value>Comparaison avec la période précédente, {0}.</value>
+  </data>
+  <data name="Notes.Computed" xml:space="preserve">
+    <value>Instantanés quotidiens calculés pour la dernière fois le {0}.</value>
+  </data>
+  <data name="Notes.PreviousPartial" xml:space="preserve">
+    <value>Période de comparaison incomplète : instantanés calculés pour {0} jour(s) sur {1}.</value>
+  </data>
+  <data name="Notes.PreviousMissing" xml:space="preserve">
+    <value>Aucun instantané pour la période de comparaison : les indicateurs de la flotte ne sont pas comparés.</value>
+  </data>
+  <data name="Summary.InTnd" xml:space="preserve">
+    <value>{0} (TND)</value>
+  </data>
+  <data name="Coverage.Incomplete" xml:space="preserve">
+    <value>Instantanés calculés pour {0} jour(s) sur {1} : les indicateurs de la flotte sont incomplets. Recalculez la période pour les compléter.</value>
+  </data>
+  <data name="Source.Commissions" xml:space="preserve">
+    <value>Les commissions des canaux ne sont pas encore branchées (phase 5) : elles comptent pour zéro.</value>
+  </data>
+  <data name="Source.Invoicing" xml:space="preserve">
+    <value>La facturation n'est pas encore branchée (lot 3A) : le montant facturé n'est pas disponible.</value>
+  </data>
+  <data name="Source.Charges" xml:space="preserve">
+    <value>Les frais de retour ne sont pas encore branchés (lot 1F-b) : les impayés se calculent sur le devis en vigueur.</value>
+  </data>
+  <data name="Source.Costs" xml:space="preserve">
+    <value>Coûts directs : {0}.</value>
+  </data>
+  <data name="Source.Cost.fleet" xml:space="preserve">
+    <value>frais saisis sur les véhicules (flotte, montants TTC)</value>
+  </data>
+  <data name="Source.Revenue" xml:space="preserve">
+    <value>Chiffre d'affaires de location : devis en vigueur, hors taxes, hors contribution journalière et hors caution, réparti uniformément sur les jours loués (le reste au dernier jour).</value>
+  </data>
+  <data name="Source.Deposits" xml:space="preserve">
+    <value>Les cautions sont une dette envers les clients : elles ne comptent jamais dans le chiffre d'affaires ni dans l'encaissé.</value>
+  </data>
+  <data name="Delta.Points" xml:space="preserve">
+    <value>{0} pts</value>
+  </data>
+  <data name="Kpi.Title" xml:space="preserve">
+    <value>Indicateurs clés</value>
+  </data>
+  <data name="Kpi.Intro" xml:space="preserve">
+    <value>Les indicateurs de la flotte viennent des instantanés quotidiens : un véhicule-jour est disponible quand le véhicule pouvait être loué ce jour-là, loué quand un dossier confirmé, en cours, rendu ou clôturé le portait.</value>
+  </data>
+  <data name="Kpi.Versus" xml:space="preserve">
+    <value>par rapport à la période précédente</value>
+  </data>
+  <data name="Kpi.NoComparison" xml:space="preserve">
+    <value>Comparaison impossible : rien sur la période précédente</value>
+  </data>
+  <data name="Kpi.RevPav" xml:space="preserve">
+    <value>Revenu par véhicule disponible et par jour</value>
+  </data>
+  <data name="Kpi.RevPav.Note" xml:space="preserve">
+    <value>Chiffre d'affaires de location ÷ véhicules-jours disponibles, soit le taux d'utilisation × le prix moyen par jour loué.</value>
+  </data>
+  <data name="Kpi.Utilization" xml:space="preserve">
+    <value>Taux d'utilisation</value>
+  </data>
+  <data name="Kpi.Utilization.Note" xml:space="preserve">
+    <value>{0} jours loués sur {1} véhicules-jours disponibles.</value>
+  </data>
+  <data name="Kpi.AverageRentedDayPrice" xml:space="preserve">
+    <value>Prix moyen par jour loué</value>
+  </data>
+  <data name="Kpi.Revenue" xml:space="preserve">
+    <value>Chiffre d'affaires de location (HT)</value>
+  </data>
+  <data name="Kpi.Revenue.Note" xml:space="preserve">
+    <value>Hors contribution journalière et hors caution.</value>
+  </data>
+  <data name="Kpi.Commission" xml:space="preserve">
+    <value>Commissions des canaux</value>
+  </data>
+  <data name="Kpi.DirectCosts" xml:space="preserve">
+    <value>Coûts directs</value>
+  </data>
+  <data name="Kpi.Depreciation" xml:space="preserve">
+    <value>Amortissement</value>
+  </data>
+  <data name="Kpi.Margin" xml:space="preserve">
+    <value>Marge de la flotte</value>
+  </data>
+  <data name="Kpi.Margin.Note" xml:space="preserve">
+    <value>Après commissions ({0}), coûts directs ({1}) et amortissement ({2}).</value>
+  </data>
+  <data name="Kpi.MarginPerAvailableDay" xml:space="preserve">
+    <value>Marge par véhicule disponible et par jour</value>
+  </data>
+  <data name="Kpi.AvailableDays" xml:space="preserve">
+    <value>Véhicules-jours disponibles</value>
+  </data>
+  <data name="Kpi.RentedDays" xml:space="preserve">
+    <value>Jours loués</value>
+  </data>
+  <data name="Kpi.CollectedNet" xml:space="preserve">
+    <value>Encaissé net</value>
+  </data>
+  <data name="Kpi.Invoiced" xml:space="preserve">
+    <value>Facturé (HT)</value>
+  </data>
+  <data name="Kpi.Invoiced.Note" xml:space="preserve">
+    <value>{0} facture(s), {1} avoir(s).</value>
+  </data>
+  <data name="Kpi.NotConnected" xml:space="preserve">
+    <value>La facturation n'est pas encore branchée (lot 3A).</value>
+  </data>
+  <data name="Kpi.Unpaid" xml:space="preserve">
+    <value>Impayés des dossiers rendus</value>
+  </data>
+  <data name="Kpi.Unpaid.Note" xml:space="preserve">
+    <value>{0} dossier(s) rendu(s) sur la période doivent encore de l'argent.</value>
+  </data>
+  <data name="Kpi.OpenDeposits" xml:space="preserve">
+    <value>Cautions en cours</value>
+  </data>
+  <data name="Kpi.OpenDeposits.Note" xml:space="preserve">
+    <value>{0} caution(s) détenue(s) aujourd'hui : une dette envers les clients, jamais un revenu.</value>
+  </data>
+  <data name="Kpi.Conversion" xml:space="preserve">
+    <value>Conversion recherches → confirmées (site et bot)</value>
+  </data>
+  <data name="Kpi.ConversionOf" xml:space="preserve">
+    <value>Conversion {0}</value>
+  </data>
+  <data name="Kpi.Conversion.Note" xml:space="preserve">
+    <value>{0} demande(s) confirmée(s) pour {1} recherche(s).</value>
+  </data>
+  <data name="Kpi.MedianBusinessDelay" xml:space="preserve">
+    <value>Délai médian de validation</value>
+  </data>
+  <data name="Kpi.MedianBusinessDelay.Note" xml:space="preserve">
+    <value>En heures ouvrées de l'agence ; {0} en heures d'horloge.</value>
+  </data>
+  <data name="Kpi.RefusalRate" xml:space="preserve">
+    <value>Taux de refus</value>
+  </data>
+  <data name="Kpi.RefusalRate.Note" xml:space="preserve">
+    <value>{0} demande(s) refusée(s) sur {1} décidée(s).</value>
+  </data>
+  <data name="Kpi.WithinTarget" xml:space="preserve">
+    <value>Décidées en {0} ouvrées au plus</value>
+  </data>
+  <data name="Kpi.CancellationRate" xml:space="preserve">
+    <value>Taux d'annulation</value>
+  </data>
+  <data name="Kpi.CancellationRate.Note" xml:space="preserve">
+    <value>{0} dossier(s) annulé(s) sur {1} dossier(s) ferme(s).</value>
+  </data>
+  <data name="Kpi.NoShowRate" xml:space="preserve">
+    <value>Taux de non-présentation</value>
+  </data>
+  <data name="Kpi.NoShowRate.Note" xml:space="preserve">
+    <value>{0} client(s) non présenté(s) sur {1} dossier(s) ferme(s).</value>
+  </data>
+  <data name="Kpi.CancellationFees" xml:space="preserve">
+    <value>Frais d'annulation</value>
+  </data>
+  <data name="Chart.ShowTable" xml:space="preserve">
+    <value>Afficher le tableau</value>
+  </data>
+  <data name="Chart.HideTable" xml:space="preserve">
+    <value>Masquer le tableau</value>
+  </data>
+  <data name="Chart.ShowTable.Label" xml:space="preserve">
+    <value>Afficher le tableau : {0}</value>
+  </data>
+  <data name="Chart.HideTable.Label" xml:space="preserve">
+    <value>Masquer le tableau : {0}</value>
+  </data>
+  <data name="Chart.Table.Label" xml:space="preserve">
+    <value>Tableau des données : {0}</value>
+  </data>
+  <data name="Chart.Pair" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="Chart.Separator" xml:space="preserve">
+    <value> ; </value>
+  </data>
+  <data name="Table.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Daily.Title" xml:space="preserve">
+    <value>Évolution jour par jour</value>
+  </data>
+  <data name="Daily.Intro" xml:space="preserve">
+    <value>Une colonne par jour écoulé de la période ; survolez une colonne pour sa valeur, ou affichez le tableau des données.</value>
+  </data>
+  <data name="Daily.RevPav.Title" xml:space="preserve">
+    <value>Revenu par véhicule disponible, par jour</value>
+  </data>
+  <data name="Daily.RevPav.Caption" xml:space="preserve">
+    <value>En dinars hors taxes ; la colonne la plus haute porte sa valeur.</value>
+  </data>
+  <data name="Daily.RevPav.Summary" xml:space="preserve">
+    <value>Graphique en colonnes du revenu par véhicule disponible pour chacun des {0} jours : {1} sur la période, au plus {2} le {3}. Toutes les valeurs sont dans le tableau des données.</value>
+  </data>
+  <data name="Daily.Utilization.Title" xml:space="preserve">
+    <value>Taux d'utilisation, par jour</value>
+  </data>
+  <data name="Daily.Utilization.Caption" xml:space="preserve">
+    <value>Jours loués ÷ véhicules disponibles ce jour-là ; la colonne la plus haute porte sa valeur.</value>
+  </data>
+  <data name="Daily.Utilization.Summary" xml:space="preserve">
+    <value>Graphique en colonnes du taux d'utilisation pour chacun des {0} jours : {1} sur la période, au plus {2} le {3}. Toutes les valeurs sont dans le tableau des données.</value>
+  </data>
+  <data name="Vehicles.Title" xml:space="preserve">
+    <value>Rentabilité par véhicule</value>
+  </data>
+  <data name="Vehicles.Intro" xml:space="preserve">
+    <value>Marge = chiffre d'affaires − commissions − coûts directs − amortissement, sur les jours de la période. Un véhicule dont la marge est négative sur les {0} derniers mois est signalé « à vendre ou à remplacer ? ». Triez avec les boutons des en-têtes.</value>
+  </data>
+  <data name="Vehicles.Hint" xml:space="preserve">
+    <value>À vendre ou à remplacer ?</value>
+  </data>
+  <data name="Vehicles.HintDays" xml:space="preserve">
+    <value>{0} jour(s) calculé(s)</value>
+  </data>
+  <data name="Vehicles.Empty" xml:space="preserve">
+    <value>Aucun instantané de véhicule sur la période.</value>
+  </data>
+  <data name="Channels.Title" xml:space="preserve">
+    <value>Canaux de vente</value>
+  </data>
+  <data name="Channels.Intro" xml:space="preserve">
+    <value>Chiffre d'affaires et marge de chaque canal après ses commissions. Les coûts directs et l'amortissement d'un véhicule-jour vont au canal du dossier qui l'occupait ; ceux des jours sans location ne vont à aucun canal.</value>
+  </data>
+  <data name="Channels.Chart.Title" xml:space="preserve">
+    <value>Chiffre d'affaires de location par canal</value>
+  </data>
+  <data name="Channels.Chart.Caption" xml:space="preserve">
+    <value>En dinars hors taxes, avec la part du total.</value>
+  </data>
+  <data name="Channels.Chart.Summary" xml:space="preserve">
+    <value>Graphique en barres du chiffre d'affaires de {0} canal(aux) : {1}.</value>
+  </data>
+  <data name="Channels.Chart.Value" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Channels.Empty" xml:space="preserve">
+    <value>Aucune location sur la période.</value>
+  </data>
+  <data name="Channels.Idle" xml:space="preserve">
+    <value>Jours sans location</value>
+  </data>
+  <data name="Channels.Unattributed" xml:space="preserve">
+    <value>Chiffre d'affaires de jours loués sans véhicule affecté, compté dans aucun véhicule ni canal : {0}.</value>
+  </data>
+  <data name="Pace.Title" xml:space="preserve">
+    <value>Rythme des réservations</value>
+  </data>
+  <data name="Pace.Intro" xml:space="preserve">
+    <value>Jours déjà vendus dans les 30, 60 et 90 prochains jours à partir du {0} : dossiers fermes, puis en attente (demandes, options, paiements attendus), rapportés aux véhicules-jours louables, et comparés aux jours vendus un an plus tôt au même délai.</value>
+  </data>
+  <data name="Pace.Chart.Title" xml:space="preserve">
+    <value>Remplissage ferme par horizon</value>
+  </data>
+  <data name="Pace.Chart.Caption" xml:space="preserve">
+    <value>Jours vendus ÷ véhicules-jours louables, pour toute la flotte puis par catégorie.</value>
+  </data>
+  <data name="Pace.Chart.Summary" xml:space="preserve">
+    <value>Graphique en colonnes du remplissage ferme à 30, 60 et 90 jours, pour toute la flotte et par catégorie. Toute la flotte : {0}. Toutes les valeurs sont dans le tableau des données.</value>
+  </data>
+  <data name="Pace.Chart.Value" xml:space="preserve">
+    <value>{0} ({1} jours vendus sur {2})</value>
+  </data>
+  <data name="Pace.HorizonValue" xml:space="preserve">
+    <value>{0} jours</value>
+  </data>
+  <data name="Pace.Total" xml:space="preserve">
+    <value>Toutes catégories</value>
+  </data>
+  <data name="Pace.AsOf" xml:space="preserve">
+    <value>Carnet au {0}.</value>
+  </data>
+  <data name="Funnel.Title" xml:space="preserve">
+    <value>Conversion du site et du bot</value>
+  </data>
+  <data name="Funnel.Intro" xml:space="preserve">
+    <value>Visites qui ont cherché puis vu des résultats (mesure anonyme du parcours), demandes envoyées sur la période et celles confirmées depuis, par canal et par source (paramètre src des liens) ; le bot WhatsApp correspond aux lignes WhatsApp. Les recherches ne sont rattachées à aucune agence.</value>
+  </data>
+  <data name="Funnel.Chart.Title" xml:space="preserve">
+    <value>Parcours de réservation, toutes sources</value>
+  </data>
+  <data name="Funnel.Chart.Caption" xml:space="preserve">
+    <value>Visites ou demandes à chaque étape, avec la part des recherches.</value>
+  </data>
+  <data name="Funnel.Chart.Summary" xml:space="preserve">
+    <value>Graphique en barres du parcours de réservation : {0}.</value>
+  </data>
+  <data name="Funnel.Chart.Value" xml:space="preserve">
+    <value>{0} ({1} des recherches)</value>
+  </data>
+  <data name="Funnel.Step" xml:space="preserve">
+    <value>Étape</value>
+  </data>
+  <data name="Funnel.Visits" xml:space="preserve">
+    <value>Visites ou demandes</value>
+  </data>
+  <data name="Funnel.Empty" xml:space="preserve">
+    <value>Aucune recherche ni demande sur la période.</value>
+  </data>
+  <data name="Funnel.Direct" xml:space="preserve">
+    <value>(accès direct)</value>
+  </data>
+  <data name="Funnel.ChannelTotal" xml:space="preserve">
+    <value>Total {0}</value>
+  </data>
+  <data name="Requests.Title" xml:space="preserve">
+    <value>Traitement des demandes</value>
+  </data>
+  <data name="Requests.Intro" xml:space="preserve">
+    <value>Demandes envoyées sur la période : leur issue, le délai médian avant la décision de l'agent (le temps passé à attendre un agent, hors attente du client), en heures ouvrées et en heures d'horloge, et la part décidée en {0} ouvrées au plus.</value>
+  </data>
+  <data name="Requests.Empty" xml:space="preserve">
+    <value>Aucune demande envoyée sur la période.</value>
+  </data>
+  <data name="Cancellations.Title" xml:space="preserve">
+    <value>Annulations et non-présentations</value>
+  </data>
+  <data name="Cancellations.Intro" xml:space="preserve">
+    <value>Parmi les dossiers confirmés dont le départ tombait dans la période : ceux annulés et ceux dont le client ne s'est pas présenté, avec les frais retenus. Les demandes et options annulées avant toute confirmation sont comptées à part.</value>
+  </data>
+  <data name="Cancellations.Empty" xml:space="preserve">
+    <value>Aucun départ prévu sur la période.</value>
+  </data>
+  <data name="Cash.Title" xml:space="preserve">
+    <value>Trésorerie</value>
+  </data>
+  <data name="Cash.Intro" xml:space="preserve">
+    <value>Encaissé net par moyen de paiement sur la période, cautions détenues aujourd'hui et impayés des dossiers rendus sur la période.</value>
+  </data>
+  <data name="Cash.Collected" xml:space="preserve">
+    <value>Encaissements par moyen de paiement</value>
+  </data>
+  <data name="Cash.Empty" xml:space="preserve">
+    <value>Aucun encaissement sur la période.</value>
+  </data>
+  <data name="Cash.PreviousNet" xml:space="preserve">
+    <value>Encaissé net de la période précédente</value>
+  </data>
+  <data name="Cash.Invoiced" xml:space="preserve">
+    <value>Facturé sur la période</value>
+  </data>
+  <data name="Cash.Deposits" xml:space="preserve">
+    <value>Cautions en cours (aujourd'hui)</value>
+  </data>
+  <data name="Cash.Unpaid" xml:space="preserve">
+    <value>Impayés des dossiers rendus</value>
+  </data>
+  <data name="Cash.Unpaid.Intro" xml:space="preserve">
+    <value>Reste dû = total TTC du devis en vigueur (et frais de retour quand ils seront branchés) − payé net (paiements moins remboursements).</value>
+  </data>
+  <data name="Cash.Unpaid.Empty" xml:space="preserve">
+    <value>Aucun impayé : les dossiers rendus sur la période sont réglés.</value>
+  </data>
+  <data name="Column.Day" xml:space="preserve">
+    <value>Jour</value>
+  </data>
+  <data name="Column.VehicleDays" xml:space="preserve">
+    <value>Véhicules-jours</value>
+  </data>
+  <data name="Column.AvailableDays" xml:space="preserve">
+    <value>Jours disponibles</value>
+  </data>
+  <data name="Column.RentedDays" xml:space="preserve">
+    <value>Jours loués</value>
+  </data>
+  <data name="Column.Utilization" xml:space="preserve">
+    <value>Taux d'utilisation</value>
+  </data>
+  <data name="Column.Revenue" xml:space="preserve">
+    <value>CA location HT (TND)</value>
+  </data>
+  <data name="Column.Commission" xml:space="preserve">
+    <value>Commissions (TND)</value>
+  </data>
+  <data name="Column.DirectCosts" xml:space="preserve">
+    <value>Coûts directs (TND)</value>
+  </data>
+  <data name="Column.Depreciation" xml:space="preserve">
+    <value>Amortissement (TND)</value>
+  </data>
+  <data name="Column.Margin" xml:space="preserve">
+    <value>Marge (TND)</value>
+  </data>
+  <data name="Column.RevPav" xml:space="preserve">
+    <value>Revenu par véhicule-jour disponible (TND)</value>
+  </data>
+  <data name="Column.AverageRentedDayPrice" xml:space="preserve">
+    <value>Prix moyen par jour loué (TND)</value>
+  </data>
+  <data name="Column.Plate" xml:space="preserve">
+    <value>Immatriculation</value>
+  </data>
+  <data name="Column.Vehicle" xml:space="preserve">
+    <value>Véhicule</value>
+  </data>
+  <data name="Column.Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="Column.HintMargin" xml:space="preserve">
+    <value>Marge sur {0} mois (TND)</value>
+  </data>
+  <data name="Column.HintDays" xml:space="preserve">
+    <value>Jours calculés sur ces mois</value>
+  </data>
+  <data name="Column.Hint" xml:space="preserve">
+    <value>Indication</value>
+  </data>
+  <data name="Column.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Column.Bookings" xml:space="preserve">
+    <value>Dossiers</value>
+  </data>
+  <data name="Column.RevenueShare" xml:space="preserve">
+    <value>Part du CA</value>
+  </data>
+  <data name="Column.NetRevenue" xml:space="preserve">
+    <value>CA après commissions (TND)</value>
+  </data>
+  <data name="Column.AllocatedCosts" xml:space="preserve">
+    <value>Coûts imputés (TND)</value>
+  </data>
+  <data name="Column.Horizon" xml:space="preserve">
+    <value>Horizon</value>
+  </data>
+  <data name="Column.SoldDays" xml:space="preserve">
+    <value>Jours vendus</value>
+  </data>
+  <data name="Column.TentativeDays" xml:space="preserve">
+    <value>Jours en attente</value>
+  </data>
+  <data name="Column.CapacityDays" xml:space="preserve">
+    <value>Véhicules-jours louables</value>
+  </data>
+  <data name="Column.Occupancy" xml:space="preserve">
+    <value>Remplissage</value>
+  </data>
+  <data name="Column.OccupancyWithTentative" xml:space="preserve">
+    <value>Remplissage avec l'attente</value>
+  </data>
+  <data name="Column.LastYearSoldDays" xml:space="preserve">
+    <value>Jours vendus un an plus tôt</value>
+  </data>
+  <data name="Column.ChangeOnLastYear" xml:space="preserve">
+    <value>Évolution sur un an</value>
+  </data>
+  <data name="Column.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Column.Searches" xml:space="preserve">
+    <value>Recherches</value>
+  </data>
+  <data name="Column.Results" xml:space="preserve">
+    <value>Avec résultats</value>
+  </data>
+  <data name="Column.Requests" xml:space="preserve">
+    <value>Demandes</value>
+  </data>
+  <data name="Column.Confirmed" xml:space="preserve">
+    <value>Confirmées</value>
+  </data>
+  <data name="Column.SearchToRequest" xml:space="preserve">
+    <value>Recherches → demandes</value>
+  </data>
+  <data name="Column.RequestToConfirmed" xml:space="preserve">
+    <value>Demandes → confirmées</value>
+  </data>
+  <data name="Column.SearchToConfirmed" xml:space="preserve">
+    <value>Recherches → confirmées</value>
+  </data>
+  <data name="Column.Submitted" xml:space="preserve">
+    <value>Envoyées</value>
+  </data>
+  <data name="Column.Validated" xml:space="preserve">
+    <value>Validées</value>
+  </data>
+  <data name="Column.Refused" xml:space="preserve">
+    <value>Refusées</value>
+  </data>
+  <data name="Column.Expired" xml:space="preserve">
+    <value>Expirées</value>
+  </data>
+  <data name="Column.Cancelled" xml:space="preserve">
+    <value>Annulées</value>
+  </data>
+  <data name="Column.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Column.RefusalRate" xml:space="preserve">
+    <value>Taux de refus</value>
+  </data>
+  <data name="Column.ExpiryRate" xml:space="preserve">
+    <value>Taux d'expiration</value>
+  </data>
+  <data name="Column.MedianBusinessDelay" xml:space="preserve">
+    <value>Délai médian (heures ouvrées)</value>
+  </data>
+  <data name="Column.MedianDelay" xml:space="preserve">
+    <value>Délai médian (heures d'horloge)</value>
+  </data>
+  <data name="Column.WithinTarget" xml:space="preserve">
+    <value>Décidées en {0} ouvrées au plus</value>
+  </data>
+  <data name="Column.WithinTargetRate" xml:space="preserve">
+    <value>Part dans l'objectif</value>
+  </data>
+  <data name="Column.FirmBookings" xml:space="preserve">
+    <value>Dossiers fermes</value>
+  </data>
+  <data name="Column.CancelledFirm" xml:space="preserve">
+    <value>Annulés</value>
+  </data>
+  <data name="Column.CancellationRate" xml:space="preserve">
+    <value>Taux d'annulation</value>
+  </data>
+  <data name="Column.NoShows" xml:space="preserve">
+    <value>Non-présentations</value>
+  </data>
+  <data name="Column.NoShowRate" xml:space="preserve">
+    <value>Taux de non-présentation</value>
+  </data>
+  <data name="Column.CancelledBeforeConfirmation" xml:space="preserve">
+    <value>Annulés avant confirmation</value>
+  </data>
+  <data name="Column.Fees" xml:space="preserve">
+    <value>Frais retenus (TND)</value>
+  </data>
+  <data name="Column.Method" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="Column.Received" xml:space="preserve">
+    <value>Reçu (TND)</value>
+  </data>
+  <data name="Column.Refunded" xml:space="preserve">
+    <value>Remboursé (TND)</value>
+  </data>
+  <data name="Column.Net" xml:space="preserve">
+    <value>Net (TND)</value>
+  </data>
+  <data name="Column.Payments" xml:space="preserve">
+    <value>Paiements</value>
+  </data>
+  <data name="Column.Refunds" xml:space="preserve">
+    <value>Remboursements</value>
+  </data>
+  <data name="Column.InvoicedExclVat" xml:space="preserve">
+    <value>Facturé HT (TND)</value>
+  </data>
+  <data name="Column.InvoicedVat" xml:space="preserve">
+    <value>TVA (TND)</value>
+  </data>
+  <data name="Column.InvoicedInclVat" xml:space="preserve">
+    <value>Facturé TTC (TND)</value>
+  </data>
+  <data name="Column.Invoices" xml:space="preserve">
+    <value>Factures</value>
+  </data>
+  <data name="Column.CreditNotes" xml:space="preserve">
+    <value>Avoirs</value>
+  </data>
+  <data name="Column.DepositMode" xml:space="preserve">
+    <value>Mode de caution</value>
+  </data>
+  <data name="Column.Amount" xml:space="preserve">
+    <value>Montant (TND)</value>
+  </data>
+  <data name="Column.Count" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Column.Booking" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Column.ReturnedOn" xml:space="preserve">
+    <value>Rendu le</value>
+  </data>
+  <data name="Column.Due" xml:space="preserve">
+    <value>Dû TTC (TND)</value>
+  </data>
+  <data name="Column.NetPaid" xml:space="preserve">
+    <value>Payé net (TND)</value>
+  </data>
+  <data name="Column.Balance" xml:space="preserve">
+    <value>Reste dû (TND)</value>
+  </data>
+  <data name="Channel.Web" xml:space="preserve">
+    <value>Site web</value>
+  </data>
+  <data name="Channel.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Channel.Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="Channel.Counter" xml:space="preserve">
+    <value>Comptoir</value>
+  </data>
+  <data name="Channel.BookingCom" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+  <data name="Method.Cash" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="Method.CardTerminal" xml:space="preserve">
+    <value>Carte (TPE)</value>
+  </data>
+  <data name="Method.Cheque" xml:space="preserve">
+    <value>Chèque</value>
+  </data>
+  <data name="Method.BankTransfer" xml:space="preserve">
+    <value>Virement</value>
+  </data>
+  <data name="Method.ChannelPrepaid" xml:space="preserve">
+    <value>Prépayé au canal (Booking.com…)</value>
+  </data>
+  <data name="Method.ClicToPay" xml:space="preserve">
+    <value>Clic to Pay (en ligne)</value>
+  </data>
+  <data name="DepositMode.CardImprint" xml:space="preserve">
+    <value>Empreinte de carte (TPE)</value>
+  </data>
+  <data name="DepositMode.Cash" xml:space="preserve">
+    <value>Espèces</value>
+  </data>
+  <data name="DepositMode.Cheque" xml:space="preserve">
+    <value>Chèque</value>
+  </data>
+  <data name="Recompute.Open" xml:space="preserve">
+    <value>Recalculer les instantanés…</value>
+  </data>
+  <data name="Recompute.Title" xml:space="preserve">
+    <value>Recalculer les instantanés quotidiens</value>
+  </data>
+  <data name="Recompute.Intro" xml:space="preserve">
+    <value>Les instantanés de l'agence {0} sont recalculés pour les jours choisis, à partir des dossiers, de la flotte et des coûts tels qu'ils sont maintenant. Les jours déjà calculés sont remplacés ; l'opération est inscrite au journal d'audit.</value>
+  </data>
+  <data name="Recompute.From" xml:space="preserve">
+    <value>Du</value>
+  </data>
+  <data name="Recompute.To" xml:space="preserve">
+    <value>Au (hier au plus tard)</value>
+  </data>
+  <data name="Recompute.Help" xml:space="preserve">
+    <value>Jours écoulés seulement, un an au plus. Chaque nuit à 3 h, les derniers jours sont recalculés automatiquement (paramètre « Jours recalculés chaque nuit »).</value>
+  </data>
+  <data name="Recompute.Submit" xml:space="preserve">
+    <value>Recalculer</value>
+  </data>
+  <data name="Recompute.Done" xml:space="preserve">
+    <value>{0} jour(s) recalculé(s) ({1} ligne(s) véhicule-jour).</value>
+  </data>
+  <data name="Export.Table" xml:space="preserve">
+    <value>Exporter (Excel)</value>
+  </data>
+  <data name="Export.Table.Label" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="Export.All" xml:space="preserve">
+    <value>Tout exporter (Excel)</value>
+  </data>
+  <data name="Export.AllTables" xml:space="preserve">
+    <value>tous les tableaux des rapports</value>
+  </data>
+  <data name="Export.Unpaid" xml:space="preserve">
+    <value>Exporter les impayés (Excel)</value>
+  </data>
+  <data name="Export.Title" xml:space="preserve">
+    <value>Rapports de {0}, du {1} au {2}</value>
+  </data>
+  <data name="Export.FilePrefix" xml:space="preserve">
+    <value>rapport</value>
+  </data>
+  <data name="Export.File.All" xml:space="preserve">
+    <value>complet</value>
+  </data>
+  <data name="Export.File.Daily" xml:space="preserve">
+    <value>jours</value>
+  </data>
+  <data name="Export.File.Vehicles" xml:space="preserve">
+    <value>vehicules</value>
+  </data>
+  <data name="Export.File.Channels" xml:space="preserve">
+    <value>canaux</value>
+  </data>
+  <data name="Export.File.Pace" xml:space="preserve">
+    <value>rythme</value>
+  </data>
+  <data name="Export.File.Funnel" xml:space="preserve">
+    <value>conversion</value>
+  </data>
+  <data name="Export.File.Requests" xml:space="preserve">
+    <value>demandes</value>
+  </data>
+  <data name="Export.File.Cancellations" xml:space="preserve">
+    <value>annulations</value>
+  </data>
+  <data name="Export.File.Cash" xml:space="preserve">
+    <value>tresorerie</value>
+  </data>
+  <data name="Export.File.Unpaid" xml:space="preserve">
+    <value>impayes</value>
+  </data>
+  <data name="Sheet.All" xml:space="preserve">
+    <value>Synthèse</value>
+  </data>
+  <data name="Sheet.Daily" xml:space="preserve">
+    <value>Jours</value>
+  </data>
+  <data name="Sheet.Vehicles" xml:space="preserve">
+    <value>Véhicules</value>
+  </data>
+  <data name="Sheet.Channels" xml:space="preserve">
+    <value>Canaux</value>
+  </data>
+  <data name="Sheet.Pace" xml:space="preserve">
+    <value>Rythme</value>
+  </data>
+  <data name="Sheet.Funnel" xml:space="preserve">
+    <value>Conversion</value>
+  </data>
+  <data name="Sheet.Requests" xml:space="preserve">
+    <value>Demandes</value>
+  </data>
+  <data name="Sheet.Cancellations" xml:space="preserve">
+    <value>Annulations</value>
+  </data>
+  <data name="Sheet.Cash" xml:space="preserve">
+    <value>Trésorerie</value>
+  </data>
+  <data name="Sheet.Unpaid" xml:space="preserve">
+    <value>Impayés</value>
+  </data>
+  <data name="Summary.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Summary.Period" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Summary.Covered" xml:space="preserve">
+    <value>Jours couverts</value>
+  </data>
+  <data name="Summary.Compared" xml:space="preserve">
+    <value>Comparée à</value>
+  </data>
+  <data name="Summary.Snapshots" xml:space="preserve">
+    <value>Instantanés calculés</value>
+  </data>
+  <data name="Summary.PreviousSnapshots" xml:space="preserve">
+    <value>Instantanés de la période de comparaison</value>
+  </data>
+  <data name="Summary.Snapshots.Value" xml:space="preserve">
+    <value>{0} jour(s) sur {1}</value>
+  </data>
+  <data name="Summary.Generated" xml:space="preserve">
+    <value>Généré le (heure de Tunis)</value>
+  </data>
+  <data name="Summary.NoElapsedDay" xml:space="preserve">
+    <value>Aucun jour écoulé</value>
+  </data>
+  <data name="Summary.Indicator" xml:space="preserve">
+    <value>Indicateur</value>
+  </data>
+  <data name="Summary.Current" xml:space="preserve">
+    <value>Période</value>
+  </data>
+  <data name="Summary.Previous" xml:space="preserve">
+    <value>Période précédente</value>
+  </data>
+  <data name="Summary.Change" xml:space="preserve">
+    <value>Évolution</value>
+  </data>
+  <data name="Summary.Notes" xml:space="preserve">
+    <value>Notes sur les chiffres</value>
+  </data>
+  <data name="Widget.Title" xml:space="preserve">
+    <value>Rapports du mois</value>
+  </data>
+  <data name="Widget.Open" xml:space="preserve">
+    <value>Ouvrir les rapports</value>
+  </data>
+  <data name="Widget.Period" xml:space="preserve">
+    <value>{0}, du {1} au {2}</value>
+  </data>
+  <data name="Widget.Error" xml:space="preserve">
+    <value>Les indicateurs ne sont pas disponibles pour le moment.</value>
+  </data>
+</root>
