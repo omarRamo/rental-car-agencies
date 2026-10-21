@@ -73,3 +73,14 @@ silence — tout en gardant la règle préparer → répondre → appliquer.
   agent pendant l'appel au modèle.
 - Options : `BotTurns:MaxParallelism` (1 à 32), `BotTurns:QuietPeriod` (0 à 1 min), `BotTurns:SweepInterval` (1 s à
   10 min), `BotTurns:RetryDelays` (dix délais au plus), validées au démarrage.
+
+## Alternatives écartées
+
+- **Garder le tour dans le gestionnaire d'outbox** (lot 4A) : un appel au modèle de plusieurs secondes bloquerait toute
+  l'outbox, et une panne du modèle ferait retenter tout le message.
+- **Une tâche Hangfire par tour** : les travailleurs Hangfire se disputent déjà le verrou de l'outbox
+  ([ADR-0043](0043-outbox-pompe-en-processus.md)) ; il faudrait de toute façon un verrou par conversation.
+- **Une file de messages externe** (Service Bus) : une ressource et un coût de plus, alors que la base porte déjà l'état
+  (messages en attente, tentatives).
+- **Un bail en colonne** (conversation « prise jusqu'à ») : schéma, expiration et reprise à gérer ; le verrou applicatif
+  de session est libéré par SQL Server à la mort de la connexion.

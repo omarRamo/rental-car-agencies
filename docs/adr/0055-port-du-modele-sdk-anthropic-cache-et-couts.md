@@ -100,3 +100,13 @@ Le fournisseur est l'API Anthropic ou Microsoft Foundry. Les coûts doivent êtr
   n'est évalué qu'à la demande ([ADR-0056](0056-garde-fous-outils-minimisation-et-evaluation.md)).
 - Une mise à jour du SDK qui changerait la sérialisation (cache, message système, `is_error`) casse ces tests avant la
   production.
+
+## Alternatives écartées
+
+- **Invocation automatique des fonctions** (`FunctionInvokingChatClient`) : les plafonds par tour, la validation des
+  arguments, le relevé de l'usage de chaque appel et les garde-fous sur le texte final échapperaient au code.
+- **Appeler l'API Messages sans `IChatClient`** : l'application dépendrait du fournisseur, alors que l'adaptateur du SDK
+  couvre le cache, les jetons de cache, le refus, l'effort et le message système en cours de conversation (vérifié).
+- **Laisser la date dans le prompt système** : le préfixe changerait à chaque tour et ne serait jamais relu du cache.
+- **Toujours mettre le contexte dans le message du client** : gardé comme repli ; un message système évite d'attribuer
+  au client les consignes de la plateforme.

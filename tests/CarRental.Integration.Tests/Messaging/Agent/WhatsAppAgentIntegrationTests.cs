@@ -43,12 +43,13 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
     private FakeWhatsApp WhatsApp => host.Factory.WhatsApp;
 
     [Fact]
-    public async Task A_customer_message_is_answered_by_the_executor_with_the_reply_of_the_model()
+    public async Task A_signed_webhook_message_is_answered_by_the_executor_with_the_reply_of_the_model()
     {
         var waId = NewWaId();
         Model.Script(waId, ScriptedResponse.Reply("Bonjour ! Pour quelles dates et quel lieu de prise en charge ?"));
+        using var client = host.CreateClient();
 
-        await WhatsApp.SimulateIncomingTextAsync(waId, "Client test", "Bonjour, je cherche une voiture", Ct);
+        (await PostAsync(client, Text(waId, "Bonjour, je cherche une voiture"), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var sent = await SentAsync(waId, 1);
         sent[0].Content.ShouldBeOfType<TextContent>().Body.ShouldBe("Bonjour ! Pour quelles dates et quel lieu de prise en charge ?");

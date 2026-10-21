@@ -104,3 +104,14 @@ sous-traitant hors de Tunisie.
 - Le bot n'en sait pas plus que ce que les outils lui rendent ; ce qui n'est ni dans un outil ni dans une réponse validée
   (kilométrage, assurance, carburant…) ne peut être dit qu'une fois saisi et validé dans la base de connaissances.
 - Les détecteurs sont des heuristiques : un faux positif fait un transfert de trop (accepté), pas une réponse fausse.
+
+## Alternatives écartées
+
+- **Garde-fous par le seul prompt** : un modèle se trompe ou se laisse manipuler ; la règle « jamais de prix inventé »
+  doit être vérifiée sur le message qui part.
+- **Réponse structurée du modèle** (montants dans des champs) : la conversation reste du texte libre, qu'il faut de toute
+  façon vérifier.
+- **Grille de prix dans le prompt** : un prix calculé hors du moteur de prix est interdit ; les montants ne viennent que
+  des outils.
+- **Lire les pièces jointes** (reconnaissance de texte d'une pièce d'identité) : interdit ; les documents se déposent sur
+  le lien sécurisé du tunnel.
