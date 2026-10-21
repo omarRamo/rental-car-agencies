@@ -140,7 +140,10 @@ public sealed class ReportExportTests(IntegrationHost host)
         var summary = workbook.Worksheet("Synthèse");
         var revPav = summary.RowsUsed().Single(r => r.Cell(1).GetString() == "Revenu par véhicule disponible et par jour (TND)");
         Number(revPav.Cell(2)).ShouldBe(35m);
-        summary.RowsUsed().ShouldContain(r => r.Cell(1).GetString().Contains("commissions des canaux", StringComparison.Ordinal));
+        // The channel commissions (phase 5) and the return charges (1F-b) are connected: only invoicing (3A) is noted.
+        summary.RowsUsed().ShouldNotContain(r => r.Cell(1).GetString().Contains("commissions des canaux", StringComparison.Ordinal));
+        summary.RowsUsed().ShouldNotContain(r => r.Cell(1).GetString().Contains("frais de retour ne sont pas", StringComparison.Ordinal));
+        summary.RowsUsed().ShouldContain(r => r.Cell(1).GetString().Contains("facturation n'est pas encore", StringComparison.Ordinal));
 
         // The unpaid files: the returned one owes its whole quote, the closed one too (nothing paid in this world).
         var unpaid = workbook.Worksheet("Impayés");
