@@ -96,7 +96,8 @@
         <section aria-labelledby="whatsapp-conversation-title" data-testid="conversation">
             @if (_details is { } details)
             {
-                <MudPaper Elevation="1" Class="pa-4">
+                @* Keyed by conversation: a draft (text, template, parameters, booking number) never follows the agent to another customer. *@
+                <MudPaper @key="details.Id" Elevation="1" Class="pa-4">
                     <div class="d-flex flex-wrap justify-space-between align-start gap-2">
                         <div>
                             <MudText Typo="Typo.h6" HtmlTag="h2" id="whatsapp-conversation-title">
@@ -145,7 +146,8 @@
 
                     <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4 mb-1">@L["Thread.Title"]</MudText>
                     <ConversationThread Messages="details.Messages" HasEarlier="details.HasEarlierMessages" />
-                    <ReplyComposer Details="details" Templates="@(_overview?.Templates ?? [])" Enabled="@(_overview?.IsEnabled ?? false)" Sent="ReloadSelectedAsync" />
+                    <ReplyComposer Details="details" Templates="@(_overview?.Templates ?? [])" Enabled="@(_overview?.IsEnabled ?? false)"
+                                   TakenOverByMe="@(details.Mode == ConversationModeInfo.Human && details.HumanAgentId == _userId)" Sent="ReloadSelectedAsync" />
                 </MudPaper>
             }
             else
@@ -199,6 +201,12 @@
         if (ConversationId is { } conversationId)
         {
             await SelectAsync(conversationId);
+        }
+
+        if (_disposed)
+        {
+            // The agent left while the page was loading: no subscription nor timer would ever be released.
+            return;
         }
 
         Activity.Changed += OnActivity;

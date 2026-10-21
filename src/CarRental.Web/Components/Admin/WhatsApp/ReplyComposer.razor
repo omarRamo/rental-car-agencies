@@ -1,6 +1,7 @@
-@* Answering the customer once the conversation is taken over: a free-form text within the 24-hour window, an approved
-   template (with its parameters) at any time — the only message possible once the window is closed. In bot mode the
-   agent is told to take over first. *@
+@* Answering the customer once the current agent took the conversation over: a free-form text within the 24-hour
+   window, an approved template (with its parameters) at any time — the only message possible once the window is closed.
+   Otherwise (bot mode, a colleague's conversation, a hand-over by the bot waiting for an agent) the agent is told to take
+   over first. *@
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<WhatsAppResources> L
@@ -15,6 +16,10 @@
     else if (Details.Mode != ConversationModeInfo.Human)
     {
         <MudAlert Severity="Severity.Info" Dense="true">@L["Reply.TakeOverFirst"]</MudAlert>
+    }
+    else if (!TakenOverByMe)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">@(Details.HumanAgentId is null ? L["Reply.TakeOverAwaiting"] : L["Reply.TakeOverFromColleague"])</MudAlert>
     }
     else
     {
@@ -86,6 +91,10 @@
 
     [Parameter]
     public bool Enabled { get; set; }
+
+    /// <summary>Whether the current agent holds the conversation (only that agent answers).</summary>
+    [Parameter]
+    public bool TakenOverByMe { get; set; }
 
     /// <summary>Raised after a message was queued (the page reloads the conversation).</summary>
     [Parameter]

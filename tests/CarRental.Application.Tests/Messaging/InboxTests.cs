@@ -59,6 +59,23 @@ public sealed class InboxTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_colleague_takes_the_conversation_over_before_answering()
+    {
+        var conversationId = await ConversationAsync();
+        var colleague = MessagingHarness.Agent();
+        (await Inbox(s => s.TakeOverAsync(conversationId, TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+
+        (await Inbox(s => s.SendTextAsync(conversationId, "Je réponds aussi", TestContext.Current.CancellationToken), colleague)).Error.ShouldBe(MessagingErrors.NotTakenOver);
+        (await Inbox(s => s.TakeOverAsync(conversationId, TestContext.Current.CancellationToken), colleague)).IsSuccess.ShouldBeTrue();
+        (await Inbox(s => s.SendTextAsync(conversationId, "Bonjour, je prends le relais.", TestContext.Current.CancellationToken), colleague)).IsSuccess.ShouldBeTrue();
+        (await Inbox(s => s.SendTextAsync(conversationId, "Et moi ?", TestContext.Current.CancellationToken))).Error.ShouldBe(MessagingErrors.NotTakenOver);
+        await _harness.DrainAsync();
+
+        _harness.WhatsApp.Sent.ShouldHaveSingleItem().Content.ShouldBeOfType<TextContent>().Body.ShouldBe("Bonjour, je prends le relais.");
+        _harness.Conversations.ShouldHaveSingleItem().HumanAgentId.ShouldBe(colleague.UserId);
+    }
+
+    [Fact]
     public async Task Outside_the_window_the_agent_sends_an_approved_template()
     {
         var conversationId = await ConversationAsync();

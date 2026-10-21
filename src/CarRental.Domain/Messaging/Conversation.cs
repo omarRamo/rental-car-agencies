@@ -180,14 +180,15 @@ public sealed class Conversation : AggregateRoot
     }
 
     /// <summary>
-    /// An agent's message from the shared inbox, once the conversation is taken over: free-form within the window, an
-    /// approved template at any time. The customer's messages count as read.
+    /// An agent's message from the shared inbox, by the agent who took the conversation over (a colleague takes it over
+    /// in turn; after a hand-over by the bot, an agent takes it first): free-form within the window, an approved template
+    /// at any time. The customer's messages count as read.
     /// </summary>
     public Result<Message> ReplyAsAgent(MessageContent content, AuditActor agent, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(agent);
-        if (Mode != ConversationMode.Human)
+        if (Mode != ConversationMode.Human || agent.UserId is not { } agentId || HumanAgentId != agentId)
         {
             return MessagingErrors.NotTakenOver;
         }

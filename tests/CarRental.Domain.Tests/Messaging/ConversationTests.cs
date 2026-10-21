@@ -152,6 +152,27 @@ public sealed class ConversationTests
     }
 
     [Fact]
+    public void Only_the_agent_holding_the_conversation_answers_it()
+    {
+        var conversation = NewConversation();
+        Receive(conversation);
+        var colleague = new AuditActor(Guid.CreateVersion7(), "colleague@demo.local", null, null);
+        conversation.HandOverToHuman("Réclamation", Now).IsSuccess.ShouldBeTrue();
+
+        // Handed over by the bot, nobody took it yet.
+        conversation.ReplyAsAgent(TextContent.Create("Bonjour").Value, Agent, Now).Error.ShouldBe(MessagingErrors.NotTakenOver);
+
+        conversation.TakeOver(Agent, Now).IsSuccess.ShouldBeTrue();
+        conversation.ReplyAsAgent(TextContent.Create("Bonjour").Value, colleague, Now).Error.ShouldBe(MessagingErrors.NotTakenOver);
+        conversation.ReplyAsAgent(TextContent.Create("Bonjour").Value, AuditActor.System("system:tests"), Now).Error.ShouldBe(MessagingErrors.NotTakenOver);
+        conversation.ReplyAsAgent(TextContent.Create("Bonjour").Value, Agent, Now).IsSuccess.ShouldBeTrue();
+
+        conversation.TakeOver(colleague, Now.AddMinutes(1)).IsSuccess.ShouldBeTrue();
+        conversation.ReplyAsAgent(TextContent.Create("Re-bonjour").Value, Agent, Now.AddMinutes(2)).Error.ShouldBe(MessagingErrors.NotTakenOver);
+        conversation.ReplyAsAgent(TextContent.Create("Re-bonjour").Value, colleague, Now.AddMinutes(2)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Outside_the_window_an_agent_sends_an_approved_template_only()
     {
         var conversation = NewConversation();
