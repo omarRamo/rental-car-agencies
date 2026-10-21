@@ -11,6 +11,8 @@ public sealed class AgentDomainTests
     [Theory]
     [InlineData("Bonjour, je voudrais louer une voiture pour 5 jours à l'aéroport.", AgentLanguage.French)]
     [InlineData("Combien pour une citadine ?", AgentLanguage.French)]
+    [InlineData("Quels documents ?", AgentLanguage.French)]
+    [InlineData("Which documents do I need?", AgentLanguage.English)]
     [InlineData("Hello, I need a car from the airport for a week please.", AgentLanguage.English)]
     [InlineData("How much is the deposit?", AgentLanguage.English)]
     [InlineData("السلام عليكم، أريد كراء سيارة من المطار", AgentLanguage.Arabic)]

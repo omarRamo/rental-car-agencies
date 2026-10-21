@@ -1,7 +1,7 @@
 using CarRental.Application.Common.Outbox;
+using CarRental.Application.Messaging.Agent.Turns;
 using CarRental.Application.Messaging.Contracts;
 using CarRental.Domain.Messaging;
-using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Messaging.Responder;
 
@@ -16,38 +16,18 @@ internal sealed class NoReplyResponder : IConversationResponder
 }
 
 /// <summary>
-/// One bot turn per customer message received in bot mode (<see cref="CustomerMessageReceived"/>, through the outbox):
-/// prepares the turn, calls the responder in a scope of its own, then applies its reply on fresh data. At-least-once
-/// delivery is harmless: a message already answered (or superseded, or silenced) produces no turn.
+/// One bot turn per customer message received in bot mode (<see cref="CustomerMessageReceived"/>, through the outbox),
+/// handed to the <see cref="IBotTurnDispatcher"/>: in production the bot turn executor runs it in the background, outside
+/// the outbox (model calls take seconds and must not hold up the other side effects, ADR-0054); without the executor the
+/// turn runs here (prepare, respond, apply). At-least-once delivery is harmless: a message already answered (or
+/// superseded, or silenced) produces no turn.
 /// </summary>
-internal sealed partial class ConversationTurnHandler(MessagingScopes scopes, ILogger<ConversationTurnHandler> logger)
-    : IOutboxHandler<CustomerMessageReceived>
+internal sealed class ConversationTurnHandler(IBotTurnDispatcher dispatcher) : IOutboxHandler<CustomerMessageReceived>
 {
-    public async Task HandleAsync(CustomerMessageReceived message, OutboxMessageContext context, CancellationToken cancellationToken)
+    public Task HandleAsync(CustomerMessageReceived message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
-        var turn = await scopes.RunAsync<ConversationTurns, ConversationTurn?>(
-            (turns, ct) => turns.PrepareAsync(message.ConversationId, message.MessageId, ct),
-            context.CorrelationId,
-            cancellationToken);
-        if (turn is null)
-        {
-            return;
-        }
-
-        var reply = await scopes.RunOnceAsync<IConversationResponder, ConversationReply>(
-            (responder, ct) => responder.RespondAsync(turn, ct),
-            context.CorrelationId,
-            cancellationToken) ?? ConversationReply.None;
-
-        var replied = await scopes.RunAsync<ConversationTurns, bool>(
-            (turns, ct) => turns.ApplyAsync(turn, reply, ct),
-            context.CorrelationId,
-            cancellationToken);
-        LogTurn(turn.NewMessages.Count, replied, reply.HandOverReason is not null);
+        return dispatcher.DispatchAsync(message.ConversationId, message.MessageId, context.CorrelationId, cancellationToken);
     }
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "WhatsApp bot turn of {Messages} customer message(s): replied {Replied}, hand-over {HandOver}.")]
-    private partial void LogTurn(int messages, bool replied, bool handOver);
 }

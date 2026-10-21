@@ -89,6 +89,12 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.OutboxManage, false },
         { Roles.Preparer, Permissions.OutboxManage, false },
         { Roles.Agent, Permissions.WhatsAppInbox, true },
+
+        // Knowledge base of the WhatsApp bot (answers the bot may give): the manager validates them; grantable per user.
+        { Roles.Manager, Permissions.WhatsAppKnowledge, true },
+        { Roles.Agent, Permissions.WhatsAppKnowledge, false },
+        { Roles.Accountant, Permissions.WhatsAppKnowledge, false },
+        { Roles.Preparer, Permissions.WhatsAppKnowledge, false },
         { Roles.Agent, Permissions.ChannelsManage, false },
         { Roles.Agent, Permissions.CustomersManage, true },
         { Roles.Accountant, Permissions.CustomersRead, true },

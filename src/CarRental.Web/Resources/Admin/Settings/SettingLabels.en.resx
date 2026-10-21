@@ -285,4 +285,85 @@
   <data name="Setting.messaging.review_link.Help" xml:space="preserve">
     <value>Address of the agency's review page (Google), sent with the review request. Empty: no review request.</value>
   </data>
+  <data name="Group.ai" xml:space="preserve">
+    <value>WhatsApp assistant (AI)</value>
+  </data>
+  <data name="Setting.ai.enabled.Label" xml:space="preserve">
+    <value>WhatsApp assistant on</value>
+  </data>
+  <data name="Setting.ai.enabled.Help" xml:space="preserve">
+    <value>The bot answers the customers on WhatsApp when an AI model is configured (Ai:Mode). Off: messages wait for an agent in the shared inbox.</value>
+  </data>
+  <data name="Setting.ai.max_bot_turns.Label" xml:space="preserve">
+    <value>Bot turns per conversation</value>
+  </data>
+  <data name="Setting.ai.max_bot_turns.Help" xml:space="preserve">
+    <value>Beyond this number of bot replies in a conversation, it goes to an agent with a polite message (30 by default).</value>
+  </data>
+  <data name="Setting.ai.max_tokens.Label" xml:space="preserve">
+    <value>Tokens per conversation</value>
+  </data>
+  <data name="Setting.ai.max_tokens.Help" xml:space="preserve">
+    <value>Tokens used (input, output and cache) beyond which the conversation goes to an agent (300,000 by default).</value>
+  </data>
+  <data name="Setting.ai.max_cost_usd.Label" xml:space="preserve">
+    <value>Highest cost of a conversation (USD)</value>
+  </data>
+  <data name="Setting.ai.max_cost_usd.Help" xml:space="preserve">
+    <value>AI cost and estimated Meta cost of a conversation beyond which it goes to an agent (USD 0.50 by default).</value>
+  </data>
+  <data name="Setting.ai.max_model_calls_per_turn.Label" xml:space="preserve">
+    <value>Model calls per turn</value>
+  </data>
+  <data name="Setting.ai.max_model_calls_per_turn.Help" xml:space="preserve">
+    <value>Model calls to answer a single customer message; beyond, the conversation goes to an agent (4 by default).</value>
+  </data>
+  <data name="Setting.ai.max_tool_calls_per_turn.Label" xml:space="preserve">
+    <value>Tool calls per turn</value>
+  </data>
+  <data name="Setting.ai.max_tool_calls_per_turn.Help" xml:space="preserve">
+    <value>Tool calls (search, quote, information, status, transfer) for a single customer message; beyond, the conversation goes to an agent (6 by default).</value>
+  </data>
+  <data name="Setting.ai.max_status_lookups.Label" xml:space="preserve">
+    <value>Booking lookups per conversation</value>
+  </data>
+  <data name="Setting.ai.max_status_lookups.Help" xml:space="preserve">
+    <value>Booking status lookups allowed in a conversation (3 by default), against guessing numbers.</value>
+  </data>
+  <data name="Setting.ai.max_turns_without_progress.Label" xml:space="preserve">
+    <value>Turns without progress before transfer</value>
+  </data>
+  <data name="Setting.ai.max_turns_without_progress.Help" xml:space="preserve">
+    <value>Consecutive turns without a useful result (no option, no link, no information, need unchanged) beyond which the conversation goes to an agent (6 by default).</value>
+  </data>
+  <data name="Setting.ai.price_input_usd_per_mtok.Label" xml:space="preserve">
+    <value>Input token price (USD per million)</value>
+  </data>
+  <data name="Setting.ai.price_input_usd_per_mtok.Help" xml:space="preserve">
+    <value>Price of a million input tokens of the model (USD 0.10 for Claude Haiku 5.5 up to 100,000 prompt tokens); check it on the pricing page.</value>
+  </data>
+  <data name="Setting.ai.price_output_usd_per_mtok.Label" xml:space="preserve">
+    <value>Output token price (USD per million)</value>
+  </data>
+  <data name="Setting.ai.price_output_usd_per_mtok.Help" xml:space="preserve">
+    <value>Price of a million output tokens, thinking included (USD 0.50 for Claude Haiku 5.5); check it on the pricing page.</value>
+  </data>
+  <data name="Setting.ai.price_cache_read_ratio.Label" xml:space="preserve">
+    <value>Cache read (share of the input price)</value>
+  </data>
+  <data name="Setting.ai.price_cache_read_ratio.Help" xml:space="preserve">
+    <value>Price of a token read from the prompt cache, as a share of the input price (0.1); check it on the pricing page.</value>
+  </data>
+  <data name="Setting.ai.price_cache_write_ratio.Label" xml:space="preserve">
+    <value>Cache write (share of the input price)</value>
+  </data>
+  <data name="Setting.ai.price_cache_write_ratio.Help" xml:space="preserve">
+    <value>Price of a token written to the prompt cache, as a share of the input price (1.25 for a 5-minute cache, 2 for one hour); check it on the pricing page.</value>
+  </data>
+  <data name="Setting.ai.meta_usd_per_message.Label" xml:space="preserve">
+    <value>Estimated Meta cost of a reply (USD)</value>
+  </data>
+  <data name="Setting.ai.meta_usd_per_message.Help" xml:space="preserve">
+    <value>Estimated cost of a billable bot reply (service message beyond the 1,000 free ones per month). Enter the agency's Meta rate for Tunisia ("Rest of Africa" zone); 0 by default.</value>
+  </data>
 </root>

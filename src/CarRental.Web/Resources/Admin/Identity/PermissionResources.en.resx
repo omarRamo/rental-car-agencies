@@ -132,4 +132,7 @@
   <data name="Permission.payments.refunds.approve" xml:space="preserve">
     <value>Approve online refunds above the threshold</value>
   </data>
+  <data name="Permission.whatsapp.knowledge" xml:space="preserve">
+    <value>Manage the knowledge base of the WhatsApp bot (validated answers)</value>
+  </data>
 </root>

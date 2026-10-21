@@ -60,7 +60,8 @@ internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory,
         }
     }
 
-    private AsyncServiceScope CreateScope(string? correlationId)
+    /// <summary>A new scope acting as <see cref="ActorName"/> (the caller disposes it).</summary>
+    public AsyncServiceScope CreateScope(string? correlationId)
     {
         var scope = scopeFactory.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName, correlationId));

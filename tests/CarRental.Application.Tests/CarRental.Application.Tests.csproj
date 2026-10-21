@@ -6,6 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <!-- The real-model evaluation of the WhatsApp agent (skipped without AI_EVAL_API_KEY or ANTHROPIC_API_KEY). -->
+    <PackageReference Include="Anthropic" />
+  </ItemGroup>
+
+  <!-- The real system prompt of the agent and the scenarios of its evaluation (docs/conception/phase-4-whatsapp.md §4). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CarRental.Infrastructure\Messaging\Prompts\*.md" LogicalName="CarRental.Tests.Prompts.%(Filename)%(Extension)" />
+    <None Include="Messaging\Agent\Evaluation\Scenarios\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

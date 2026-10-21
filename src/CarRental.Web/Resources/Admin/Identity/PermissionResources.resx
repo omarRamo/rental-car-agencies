@@ -132,4 +132,7 @@
   <data name="Permission.payments.refunds.approve" xml:space="preserve">
     <value>Valider les remboursements en ligne au-delà du seuil</value>
   </data>
+  <data name="Permission.whatsapp.knowledge" xml:space="preserve">
+    <value>Gérer la base de connaissances du bot WhatsApp (réponses validées)</value>
+  </data>
 </root>

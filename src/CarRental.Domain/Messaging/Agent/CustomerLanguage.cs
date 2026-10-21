@@ -28,7 +28,8 @@ public static class CustomerLanguageDetector
         "merci", "louer", "location", "aeroport", "combien", "disponible", "du", "au", "des", "et", "avec", "mon", "ma", "mes",
         "nous", "quel", "quelle", "prix", "reserver", "reservation", "demain", "jours", "semaine", "boite", "automatique", "manuelle",
         "personnes", "places", "oui", "non", "svp", "s'il", "plait", "c'est", "il", "y", "pas", "besoin", "veux", "voudrais",
-        "souhaite", "qui", "que", "quoi", "comment", "est-ce", "depart", "retour", "agence", "caution", "papiers", "permis",
+        "souhaite", "qui", "que", "quoi", "comment", "est-ce", "depart", "retour", "agence", "caution", "papiers", "permis", "quels",
+        "quelles", "faut", "faut-il", "votre", "vos", "notre", "ou",
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly FrozenSet<string> EnglishWords = new[]
@@ -36,7 +37,7 @@ public static class CustomerLanguageDetector
         "the", "please", "car", "cars", "rent", "rental", "hello", "hi", "hey", "i", "i'm", "i'd", "want", "need", "how", "much",
         "available", "airport", "thanks", "thank", "what", "is", "are", "do", "you", "your", "for", "from", "to", "and", "price",
         "book", "booking", "pick", "up", "return", "days", "week", "can", "would", "like", "automatic", "manual", "there", "we",
-        "my", "me", "have", "get", "when", "where", "which", "deposit", "documents", "licence", "license", "tomorrow", "people",
+        "my", "me", "have", "get", "when", "where", "which", "deposit", "licence", "license", "tomorrow", "people", "papers",
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly FrozenSet<string> DarijaWords = new[]

@@ -1215,4 +1215,25 @@
   <data name="Error.messaging.send.no_consent" xml:space="preserve">
     <value>Le client ne consent plus aux notifications WhatsApp (ou a été anonymisé) : la notification n'est pas partie.</value>
   </data>
+  <data name="Error.messaging.knowledge.not_found" xml:space="preserve">
+    <value>Cette réponse de la base de connaissances n'existe pas.</value>
+  </data>
+  <data name="Error.messaging.knowledge.topic_invalid" xml:space="preserve">
+    <value>Le sujet s'écrit en minuscules, chiffres et soulignés (2 à 50 caractères), et commence par une lettre : par exemple documents ou aller_simple.</value>
+  </data>
+  <data name="Error.messaging.knowledge.topic_taken" xml:space="preserve">
+    <value>Une autre réponse porte déjà ce sujet.</value>
+  </data>
+  <data name="Error.messaging.knowledge.content_invalid" xml:space="preserve">
+    <value>Une réponse a un titre (150 caractères au plus) et un texte en français et en anglais (2 000 caractères au plus chacun).</value>
+  </data>
+  <data name="Error.messaging.knowledge.confirmation_promise" xml:space="preserve">
+    <value>Cette réponse promet la confirmation d'une réservation : le bot ne le fait jamais (un agent valide la demande). Reformulez-la avant de la valider.</value>
+  </data>
+  <data name="Error.messaging.knowledge.forbidden" xml:space="preserve">
+    <value>Vous n'avez pas le droit de gérer la base de connaissances du bot WhatsApp.</value>
+  </data>
+  <data name="Error.messaging.knowledge.concurrent_update" xml:space="preserve">
+    <value>La réponse a été modifiée entre-temps : rechargez-la puis réessayez.</value>
+  </data>
 </root>
