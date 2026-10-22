@@ -1,5 +1,7 @@
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CarRental.Application.Messaging.Webhooks;
@@ -15,10 +17,13 @@ public sealed class WhatsAppRoutingOptions
 {
     public const string SectionName = "WhatsApp";
 
-    /// <summary>The id of the agency served by the number.</summary>
+    /// <summary>The id of the agency served by the number (recommended: it never changes).</summary>
     public Guid? AgencyId { get; set; }
 
-    /// <summary>The address of the public site (slug) of the agency served by the number, instead of its id.</summary>
+    /// <summary>
+    /// The address of the public site (slug) of the agency served by the number, instead of its id. Resolved at each
+    /// delivery: it follows a change of address, and a freed address may be taken by another agency.
+    /// </summary>
     public string? AgencySlug { get; set; }
 }
 
@@ -53,9 +58,12 @@ public sealed record WhatsAppRoute(Guid? AgencyId, WhatsAppRouteStatus Status)
 /// Resolves the agency of the inbound WhatsApp messages from <see cref="WhatsAppRoutingOptions"/> and the agency
 /// directory, at each webhook delivery (a module switched on or off applies at once). A configured agency that is
 /// suspended or has the module off serves nobody: its messages are recorded nowhere, as if the number did not exist.
+/// The same resolution decides for which agency WhatsApp is open (<see cref="IWhatsAppNumber"/>).
 /// </summary>
-public sealed class WhatsAppAgencyRouting(IAgencyDirectory agencies, IOptions<WhatsAppRoutingOptions> options)
+public sealed partial class WhatsAppAgencyRouting(IAgencyDirectory agencies, IOptions<WhatsAppRoutingOptions> options, ILogger<WhatsAppAgencyRouting> logger)
 {
+    private int _slugWarned;
+
     public async Task<WhatsAppRoute> ResolveAsync(CancellationToken cancellationToken)
     {
         var configured = options.Value;
@@ -67,6 +75,7 @@ public sealed class WhatsAppAgencyRouting(IAgencyDirectory agencies, IOptions<Wh
         else if (!string.IsNullOrWhiteSpace(configured.AgencySlug))
         {
             agency = await agencies.FindBySlugAsync(configured.AgencySlug, cancellationToken);
+            WarnSlugOnce(agency);
         }
         else
         {
@@ -87,5 +96,45 @@ public sealed class WhatsAppAgencyRouting(IAgencyDirectory agencies, IOptions<Wh
         };
     }
 
+    /// <inheritdoc cref="IWhatsAppNumber.OutlookAsync"/>
+    public async Task<WhatsAppNumberOutlook> OutlookAsync(Guid agencyId, CancellationToken cancellationToken)
+    {
+        var configured = options.Value;
+        Guid? designated;
+        if (configured.AgencyId is { } id)
+        {
+            designated = id;
+        }
+        else if (!string.IsNullOrWhiteSpace(configured.AgencySlug))
+        {
+            designated = (await agencies.FindBySlugAsync(configured.AgencySlug, cancellationToken))?.Id;
+        }
+        else
+        {
+            return (await agencies.ListAsync(cancellationToken)).Any(a => a.Id != agencyId && Serves(a))
+                ? WhatsAppNumberOutlook.WouldBeAmbiguous
+                : WhatsAppNumberOutlook.Serves;
+        }
+
+        return designated == agencyId ? WhatsAppNumberOutlook.Serves : WhatsAppNumberOutlook.ServesAnotherAgency;
+    }
+
     private static bool Serves(AgencySummary agency) => agency.IsActive && agency.HasModule(AgencyModules.WhatsApp);
+
+    /// <summary>
+    /// The address of a public site can change, and a freed one be taken by another agency: the number would follow it
+    /// silently. Said once per run of the application, with the id to configure instead.
+    /// </summary>
+    private void WarnSlugOnce(AgencySummary? agency)
+    {
+        if (Interlocked.Exchange(ref _slugWarned, 1) == 0)
+        {
+            LogDesignatedBySlug(agency?.Id.ToString() ?? "none (no agency has this address)");
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The platform's WhatsApp number designates its agency by the address of its public site (WhatsApp:AgencySlug): it follows a change of address, and a freed address may be taken by another agency. Set WhatsApp:AgencyId instead (it never changes); the address designates the agency {AgencyId} now.")]
+    private partial void LogDesignatedBySlug(string agencyId);
 }

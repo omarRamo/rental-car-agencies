@@ -2,6 +2,7 @@
 @attribute [HasPermission(Permissions.PlatformAgencies)]
 @using CarRental.Application.Common.Paging
 @using CarRental.Application.Identity.Users
+@using CarRental.Application.Messaging.Contracts
 @using CarRental.Application.Referential.Platform
 @using CarRental.Domain.Referential
 @using CarRental.Web.Resources.Admin.Identity
@@ -120,6 +121,18 @@ else
                             <MudSwitch T="bool" Value="@((_modules & current) == current)" ValueChanged="@(on => ToggleModule(current, on))" Color="Color.Primary"
                                        Label="@L[$"Module.{current}"]" data-module="@current" />
                             <MudText Typo="Typo.body2" Class="ms-14">@L[$"Module.{current}.Description"]</MudText>
+                            @if (current == AgencyModules.WhatsApp && _whatsAppNumber is { } number)
+                            {
+                                @* One platform number for all the agencies (ADR-0067): which one it serves, and what switching the module on does here. *@
+                                <MudText Typo="Typo.body2" Class="ms-14 mt-1" data-testid="agency-whatsapp-number">@WhatsAppNumberText(number, agency)</MudText>
+                                @if ((_modules & AgencyModules.WhatsApp) == AgencyModules.WhatsApp && number.Outlook != WhatsAppNumberOutlook.Serves)
+                                {
+                                    <MudAlert Severity="Severity.Warning" Dense="true" Class="ms-14 mt-2" data-testid="agency-whatsapp-warning">
+                                        @(L[number.Outlook == WhatsAppNumberOutlook.WouldBeAmbiguous ? "Platform.Agency.WhatsAppNumber.Ambiguous" : "Platform.Agency.WhatsAppNumber.Elsewhere"])
+                                        <code class="setting-value">WhatsApp__AgencyId=@(agency.Id.ToString("D"))</code>
+                                    </MudAlert>
+                                }
+                            }
                         </div>
                     }
                     <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-2">
@@ -182,6 +195,7 @@ else
     private string? _slug;
     private string? _slugError;
     private AgencyModules _modules;
+    private PlatformWhatsAppNumber? _whatsAppNumber;
 
     [Parameter]
     public Guid AgencyId { get; set; }
@@ -216,7 +230,14 @@ else
         _slug = agency.Slug;
         _slugError = null;
         _modules = agency.Modules;
+        var number = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<PlatformWhatsAppNumber>>((service, ct) => service.GetWhatsAppNumberAsync(agencyId, ct));
+        _whatsAppNumber = number.IsSuccess ? number.Value : null;
     }
+
+    private string WhatsAppNumberText(PlatformWhatsAppNumber number, PlatformAgencyItem agency) =>
+        number.ServedAgencyId == agency.Id ? L["Platform.Agency.WhatsAppNumber.ServesThis"]
+        : number.ServedAgencyName is { } served ? L["Platform.Agency.WhatsAppNumber.ServesOther", served]
+        : L["Platform.Agency.WhatsAppNumber.ServesNone"];
 
     private void SlugChanged(string? slug)
     {

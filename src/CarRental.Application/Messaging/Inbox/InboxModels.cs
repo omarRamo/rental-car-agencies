@@ -149,8 +149,12 @@ public sealed record InboxMessage(
     string? PricingCategory,
     bool? IsBillable);
 
-/// <summary>State of the inbox: whether messages can be sent (WhatsApp configured) and the templates an agent can send.</summary>
-public sealed record InboxOverview(bool IsEnabled, IReadOnlyList<InboxTemplate> Templates);
+/// <summary>
+/// State of the inbox: whether messages can be sent (WhatsApp configured), whether the platform's number serves the
+/// agency (<c>IsServed</c>: it sends nothing otherwise, its history stays readable) and the templates an agent
+/// can send.
+/// </summary>
+public sealed record InboxOverview(bool IsEnabled, bool IsServed, IReadOnlyList<InboxTemplate> Templates);
 
 /// <summary>An approved template an agent can send, with the number of its body parameters.</summary>
 public sealed record InboxTemplate(InboxTemplateKind Kind, string Name, string Language, int ParameterCount);

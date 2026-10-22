@@ -1,8 +1,7 @@
 using System.Globalization;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Messaging.Agent.Turns;
-using CarRental.Application.Referential.Contracts;
-using CarRental.Domain.Common;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Domain.Messaging;
 using CarRental.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,10 +20,10 @@ namespace CarRental.Infrastructure.Messaging.Agent;
 /// answered or handed over (the conversations wait in <c>/admin/whatsapp</c> meanwhile).
 /// </summary>
 /// <remarks>
-/// Read across agencies in a scope of its own (the platform's entry, ADR-0067), for the agencies whose WhatsApp module
-/// is on: the messages of the others wait for the module on purpose.
+/// Read across agencies in a scope of its own (the platform's entry, ADR-0067), for the agency served by the platform's
+/// WhatsApp number: the messages of the others wait on purpose (module off, suspended, or not served by the number).
 /// </remarks>
-internal sealed class WhatsAppHealthCheck(IServiceScopeFactory scopes, IAgencyDirectory agencies, IOptions<BotTurnOptions> options, TimeProvider timeProvider) : IHealthCheck
+internal sealed class WhatsAppHealthCheck(IServiceScopeFactory scopes, IWhatsAppNumber whatsAppNumber, IOptions<BotTurnOptions> options, TimeProvider timeProvider) : IHealthCheck
 {
     internal const string ActorName = "system:health";
 
@@ -51,7 +50,7 @@ internal sealed class WhatsAppHealthCheck(IServiceScopeFactory scopes, IAgencyDi
         var now = timeProvider.GetUtcNow();
         var staleAfter = StaleAfter(options.Value);
         var cutoff = now - staleAfter;
-        var open = (await agencies.ListAsync(cancellationToken)).Where(a => a.IsActive && a.HasModule(AgencyModules.WhatsApp)).Select(a => a.Id).ToList();
+        List<Guid> open = await whatsAppNumber.ServedAgencyAsync(cancellationToken) is { } served ? [served] : [];
 
         int stale;
         DateTimeOffset? oldest;

@@ -4,6 +4,7 @@ using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,12 @@ public sealed record RegisterAgencyRequest(
 /// <summary>A registered agency: its id, the address of its public site and its first manager.</summary>
 public sealed record AgencyRegistration(Guid AgencyId, string Slug, Guid ManagerId);
 
+/// <summary>
+/// The platform's single WhatsApp number seen from the page of an agency (ADR-0067): the agency it serves now
+/// (<see langword="null"/> when none), and what it would do for this agency with its WhatsApp module on.
+/// </summary>
+public sealed record PlatformWhatsAppNumber(Guid? ServedAgencyId, string? ServedAgencyName, WhatsAppNumberOutlook Outlook);
+
 /// <summary>The identity of an agency as the support edits it: name, city and contact details (blank ones are cleared).</summary>
 public sealed record AgencyDetailsRequest(string Name, string City, string? Address, string? Phone, string? Email);
 
@@ -47,7 +54,9 @@ public sealed record AgencyDetailsRequest(string Name, string City, string? Addr
 /// The agencies of the platform, for the support (permission <c>platform.agencies</c>, from the platform pages: the
 /// operation works across agencies, ADR-0067): list them, register one with its first manager, change its name and
 /// contact details or the address of its public site, switch its modules, suspend it or lift the suspension, invite
-/// another manager. Every change is audited in the journal of the agency concerned (row diff plus a readable event).
+/// another manager. Every change is audited in the journal of the agency concerned (row diff plus a readable event). The
+/// platform's single WhatsApp number is read from the Messaging module (<see cref="IWhatsAppNumber"/>): which agency it
+/// serves, and whether switching WhatsApp on for an agency would serve it.
 /// </summary>
 public sealed class AgencyPlatformService(
     IAppDbContext db,
@@ -55,6 +64,7 @@ public sealed class AgencyPlatformService(
     IUserContext userContext,
     AgencyProvisioning provisioning,
     IAgencyManagerInvitations managers,
+    IWhatsAppNumber whatsAppNumber,
     IAuditTrail auditTrail)
 {
     /// <summary>Every agency (active or suspended), by name.</summary>
@@ -87,6 +97,24 @@ public sealed class AgencyPlatformService(
             .Select(a => new PlatformAgencyItem(a.Id, a.Name, a.City, a.Slug, a.IsActive, a.Modules, a.Phone, a.Email, a.Address))
             .FirstOrDefaultAsync(cancellationToken);
         return agency is null ? PlatformErrors.AgencyNotFound : agency;
+    }
+
+    /// <summary>
+    /// The platform's WhatsApp number as the page of an agency shows it: the agency it serves now (by name) and what it
+    /// does for this agency with its WhatsApp module on.
+    /// </summary>
+    public async Task<Result<PlatformWhatsAppNumber>> GetWhatsAppNumberAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        if (Denied() is { } denied)
+        {
+            return denied;
+        }
+
+        var served = await whatsAppNumber.ServedAgencyAsync(cancellationToken);
+        var servedName = served is { } servedId
+            ? await db.Set<Agency>().AsNoTracking().Where(a => a.Id == servedId).Select(a => a.Name).FirstOrDefaultAsync(cancellationToken)
+            : null;
+        return new PlatformWhatsAppNumber(served, servedName, await whatsAppNumber.OutlookAsync(agencyId, cancellationToken));
     }
 
     /// <summary>A free public site address for an agency named <paramref name="name"/> (suffixed <c>-2</c>, <c>-3</c>… when taken).</summary>
@@ -136,6 +164,11 @@ public sealed class AgencyPlatformService(
                 }
 
                 var agency = registered.Value;
+                if (await WhatsAppNumberRefusalAsync(agency.Id, AgencyModules.None, agency.Modules, ct) is { } refused)
+                {
+                    return Result.Failure<AgencyRegistration>(refused);
+                }
+
                 db.Set<Agency>().Add(agency);
                 await db.SaveChangesAsync(ct);
                 await provisioning.ProvisionAsync(agency.Id, ct);
@@ -214,13 +247,23 @@ public sealed class AgencyPlatformService(
             },
             cancellationToken);
 
-    /// <summary>Switches the optional modules of the agency: exactly <paramref name="modules"/> are on afterwards.</summary>
+    /// <summary>
+    /// Switches the optional modules of the agency: exactly <paramref name="modules"/> are on afterwards. Switching WhatsApp
+    /// on is refused while nothing designates the agency served by the platform's number and another agency has it: the
+    /// number would serve neither (designate one with <c>WhatsApp:AgencyId</c> first). Switched on for an agency the
+    /// number does not serve (another one is designated), it is allowed — the page warns that it sends and receives nothing.
+    /// </summary>
     public Task<Result> SetModulesAsync(Guid agencyId, AgencyModules modules, CancellationToken cancellationToken = default) =>
         ChangeAsync(
             agencyId,
             async (agency, ct) =>
             {
                 var previous = agency.Modules;
+                if (await WhatsAppNumberRefusalAsync(agency.Id, previous, modules, ct) is { } refused)
+                {
+                    return refused;
+                }
+
                 var changed = agency.SetModules(modules);
                 return changed.IsFailure || previous == agency.Modules
                     ? changed
@@ -270,6 +313,18 @@ public sealed class AgencyPlatformService(
                 : Result.Failure<Guid>(PlatformErrors.AgencyNotFound),
             cancellationToken: cancellationToken);
     }
+
+    /// <summary>
+    /// The refusal of switching WhatsApp on for the agency when the platform's number would then serve nobody: nothing
+    /// designates the served agency and another agency has the module on. The support designates the agency to serve
+    /// (<c>WhatsApp:AgencyId</c>) first, then switches the module on.
+    /// </summary>
+    private async Task<Error?> WhatsAppNumberRefusalAsync(Guid agencyId, AgencyModules previous, AgencyModules requested, CancellationToken cancellationToken) =>
+        (previous & AgencyModules.WhatsApp) == AgencyModules.None
+        && (requested & AgencyModules.WhatsApp) == AgencyModules.WhatsApp
+        && await whatsAppNumber.OutlookAsync(agencyId, cancellationToken) == WhatsAppNumberOutlook.WouldBeAmbiguous
+            ? PlatformErrors.WhatsAppNumberServesAnotherAgency
+            : null;
 
     /// <summary>A requested field equals the stored one (as the agency stores it: trimmed, blank as none).</summary>
     private static bool Same(string? requested, string? current) =>
@@ -357,4 +412,8 @@ public static class PlatformErrors
     public static readonly Error ConcurrentUpdate = Error.Conflict(
         "referential.platform_concurrent_update",
         "The agency was changed meanwhile: reload it and try again.");
+
+    public static readonly Error WhatsAppNumberServesAnotherAgency = Error.Conflict(
+        "platform.whatsapp_number_serves_another_agency",
+        "The platform's WhatsApp number serves another agency and designates none: with a second agency it would serve neither. Set WhatsApp:AgencyId to the agency to serve, then switch the module on.");
 }

@@ -561,6 +561,21 @@
   <data name="Platform.Agency.Modules.Saved" xml:space="preserve">
     <value>Modules saved.</value>
   </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesThis" xml:space="preserve">
+    <value>The platform's WhatsApp number serves this agency: its notifications, the replies of its shared inbox and its assistant leave from this number, and its customers' messages reach it.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesOther" xml:space="preserve">
+    <value>The platform's WhatsApp number serves the agency "{0}" (one number for the whole platform).</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesNone" xml:space="preserve">
+    <value>The platform's WhatsApp number serves no agency for now.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Elsewhere" xml:space="preserve">
+    <value>The platform's WhatsApp number is reserved for another agency: with the module on, this agency keeps the history of its conversations but sends and receives no WhatsApp message. To give it the number (the other agency loses it), set this, then restart the application:</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Ambiguous" xml:space="preserve">
+    <value>Another agency already has the WhatsApp module and nothing designates the agency served by the platform's number: with two agencies it would serve neither, so switching the module on is refused. Designate the agency to serve first (application restart), for instance this one:</value>
+  </data>
   <data name="Platform.Agency.Status" xml:space="preserve">
     <value>Status of the agency</value>
   </data>
