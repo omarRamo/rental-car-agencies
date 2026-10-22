@@ -5,17 +5,23 @@ public sealed class PublicSiteOptions
 {
     public const string SectionName = "PublicSite";
 
-    /// <summary>Brand shown in the header, page titles and e-mails.</summary>
+    /// <summary>
+    /// Name of the platform: its own page at <c>/</c>, the account pages and the e-mails to the staff. The site of an agency
+    /// and the e-mails to its customers carry the name of the agency (ADR-0067).
+    /// </summary>
     public string AgencyName { get; set; } = "CarRental";
 
-    /// <summary>WhatsApp number in international format without "+" (e.g. <c>21612345678</c>); the floating button is hidden when empty.</summary>
+    /// <summary>
+    /// WhatsApp number in international format without "+" (e.g. <c>21612345678</c>), the platform's: the floating button
+    /// shows on the sites of the agencies whose WhatsApp module is on; hidden when empty.
+    /// </summary>
     public string? WhatsAppNumber { get; set; }
 
-    /// <summary>Absolute public URL used in e-mail links (e.g. <c>https://www.example.tn</c>); the request URL is used when empty.</summary>
+    /// <summary>
+    /// Absolute public URL of the platform used in e-mail links (e.g. <c>https://rental.app</c>), the address of an
+    /// agency's site following it (<c>/agence-1/fr</c>); the request URL is used when empty.
+    /// </summary>
     public Uri? BaseUrl { get; set; }
-
-    /// <summary>Agency presented by the public site; when empty, the only active agency (or the first one created).</summary>
-    public Guid? AgencyId { get; set; }
 
     /// <summary>Lets search engines index the site (robots.txt); defaults to true in Production only (recette stays hidden).</summary>
     public bool? AllowIndexing { get; set; }

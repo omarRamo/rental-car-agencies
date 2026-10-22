@@ -1,6 +1,6 @@
 # ADR-0015 — Localisation par ressources .resx, routes publiques préfixées par la culture
 
-- **Statut** : Acceptée
+- **Statut** : Acceptée — précisée par l'[ADR-0067](0067-plateforme-multi-agences-cloisonnement-support-modules.md) : l'adresse de l'agence précède la culture (`/{agence}/{culture}/…`) et `/{agence}` redirige vers la meilleure culture ; `/` devient la page de la plateforme
 - **Date** : 2026-10-20
 - **Source** : [spécifications](../SPEC.md) (vitrine en français et en anglais, arabe prévu), [prompt](../PROMPT.md) sections 10 et Annexe A
 

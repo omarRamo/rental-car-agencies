@@ -34,8 +34,8 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
 
         using var visitor = Create(host.Factory);
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={LocalDate(91)}&retour={LocalDate(94)}", "ECMR", Ct);
-        var drivers = $"/fr/reserver/{token}/conducteurs";
-        (await visitor.UploadAsync(drivers, $"/fr/reserver/{token}/pieces", "main.identity.front", Visitor.Jpeg, "image/jpeg", Ct)).Status.ShouldBe(HttpStatusCode.OK);
+        var drivers = $"/agence-demo-tunis/fr/reserver/{token}/conducteurs";
+        (await visitor.UploadAsync(drivers, $"/agence-demo-tunis/fr/reserver/{token}/pieces", "main.identity.front", Visitor.Jpeg, "image/jpeg", Ct)).Status.ShouldBe(HttpStatusCode.OK);
         var typedEmail = $"other.{suffix.ToLowerInvariant()}@example.test";
         using var saved = await visitor.SubmitAsync(
             drivers,
@@ -54,12 +54,12 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
                 new("consent.documents", "1"),
             ],
             Ct);
-        Location(saved).ShouldBe($"/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
+        Location(saved).ShouldBe($"/agence-demo-tunis/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
 
-        using var submitted = await visitor.SubmitAsync($"/fr/reserver/{token}/paiement", [new("terms", "1"), new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
+        using var submitted = await visitor.SubmitAsync($"/agence-demo-tunis/fr/reserver/{token}/paiement", [new("terms", "1"), new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
 
         // Nothing tells the visitor that the document is known: the request goes on to the bank like any other.
-        Location(submitted).ShouldStartWith("/fr/reserver/redirection/");
+        Location(submitted).ShouldStartWith("/agence-demo-tunis/fr/reserver/redirection/");
         var after = await PersonAsync(known);
         after.FirstName.ShouldBe(before.FirstName);
         after.LastName.ShouldBe(before.LastName);

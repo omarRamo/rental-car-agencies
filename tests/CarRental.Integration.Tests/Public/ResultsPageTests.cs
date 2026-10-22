@@ -29,7 +29,7 @@ public sealed class ResultsPageTests(IntegrationHost host)
         var airport = locations.Single(l => l.Code == "TUN");
         var (pickup, dropOff) = (LocalDate(20), LocalDate(24));
 
-        var (status, html) = await GetAsync($"/fr/reserver?lieu=TUN&depart={pickup}&retour={dropOff}");
+        var (status, html) = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={pickup}&retour={dropOff}");
 
         status.ShouldBe(HttpStatusCode.OK);
         var codes = OfferCodes(html);
@@ -58,7 +58,7 @@ public sealed class ResultsPageTests(IntegrationHost host)
     [Fact]
     public async Task The_category_of_a_deep_link_is_highlighted_first()
     {
-        var (_, html) = await GetAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(21)}&retour={LocalDate(25)}&cat=ECMR&src=whatsapp");
+        var (_, html) = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(21)}&retour={LocalDate(25)}&cat=ECMR&src=whatsapp");
 
         OfferCodes(html)[0].ShouldBe("ECMR");
         html.ShouldContain("<li class=\"offer offer--highlighted\"><article class=\"offer__card\" aria-labelledby=\"offer-ECMR\">");
@@ -69,8 +69,8 @@ public sealed class ResultsPageTests(IntegrationHost host)
     [Fact]
     public async Task Filters_keep_only_the_matching_categories()
     {
-        var (_, automatic) = await GetAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(22)}&retour={LocalDate(26)}&boite=auto");
-        var (_, fiveSeats) = await GetAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(22)}&retour={LocalDate(26)}&places=5&tri=prix_desc");
+        var (_, automatic) = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(22)}&retour={LocalDate(26)}&boite=auto");
+        var (_, fiveSeats) = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(22)}&retour={LocalDate(26)}&places=5&tri=prix_desc");
 
         OfferCodes(automatic).ShouldBe(["EDAR"]);
         OfferCodes(fiveSeats).ShouldNotContain("MCMR");
@@ -84,16 +84,16 @@ public sealed class ResultsPageTests(IntegrationHost host)
     public async Task The_english_results_live_at_book_and_the_french_slug_redirects()
     {
         var query = $"?lieu=TUN&depart={LocalDate(23)}&retour={LocalDate(27)}";
-        var (status, html) = await GetAsync("/en/book" + query);
+        var (status, html) = await GetAsync("/agence-demo-tunis/en/book" + query);
         using var client = host.CreateClient();
-        var wrongSlug = await client.GetAsync(new Uri("/en/reserver" + query, UriKind.Relative), Ct);
+        var wrongSlug = await client.GetAsync(new Uri("/agence-demo-tunis/en/reserver" + query, UriKind.Relative), Ct);
 
         status.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("<html lang=\"en\"");
         html.ShouldContain("Available cars");
         html.ShouldContain("Total incl. VAT");
         wrongSlug.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        Uri.UnescapeDataString(Support.HttpSignIn.PathAndQuery(wrongSlug.Headers.Location!)).ShouldBe("/en/book" + query);
+        Uri.UnescapeDataString(Support.HttpSignIn.PathAndQuery(wrongSlug.Headers.Location!)).ShouldBe("/agence-demo-tunis/en/book" + query);
     }
 
     [Theory]
@@ -103,12 +103,12 @@ public sealed class ResultsPageTests(IntegrationHost host)
     [InlineData("?lieu=TUN&depart=demain&retour={1}", "La date de départ n'est pas valide")]
     public async Task Invalid_searches_are_explained_with_a_summary_and_field_messages(string queryTemplate, string message)
     {
-        var url = "/fr/reserver" + string.Format(CultureInfo.InvariantCulture, queryTemplate, LocalDate(30), LocalDate(34));
+        var url = "/agence-demo-tunis/fr/reserver" + string.Format(CultureInfo.InvariantCulture, queryTemplate, LocalDate(30), LocalDate(34));
 
         var (status, html) = await GetAsync(url);
 
         status.ShouldBe(HttpStatusCode.OK);
-        html.ShouldContain("<title>Erreur : Rechercher une voiture | CarRental</title>");
+        html.ShouldContain("<title>Erreur : Rechercher une voiture | Agence Démo Tunis</title>");
         html.ShouldContain("class=\"error-summary\" role=\"alert\"");
         html.ShouldContain(message);
         html.ShouldContain("aria-invalid=\"true\"");
@@ -119,7 +119,7 @@ public sealed class ResultsPageTests(IntegrationHost host)
     [Fact]
     public async Task Without_any_search_the_form_is_shown_without_errors()
     {
-        var (status, html) = await GetAsync("/fr/reserver");
+        var (status, html) = await GetAsync("/agence-demo-tunis/fr/reserver");
 
         status.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("Indiquez votre lieu et vos dates");

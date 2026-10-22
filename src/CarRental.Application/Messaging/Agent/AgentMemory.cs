@@ -39,7 +39,7 @@ internal sealed class AgentMemory(IAppDbContext db)
 /// The agency the agent presents: the agency of the conversation (ADR-0067), when it is active, with its places, opening
 /// hours and active categories — never another agency's.
 /// </summary>
-internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQueries fleet, ISettingsReader settings)
+internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQueries fleet, ISettingsReader settings, IAgencyDirectory directory)
 {
     private AgentAgencyContext? _loaded;
 
@@ -51,7 +51,7 @@ internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQ
         }
 
         var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId && a.IsActive);
-        if (agency is null)
+        if (agency is null || await directory.FindAsync(agencyId, cancellationToken) is not { } site)
         {
             return null;
         }
@@ -59,7 +59,7 @@ internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQ
         var locations = await referential.GetLocationsAsync(agency.Id, cancellationToken);
         var hours = await settings.GetAsync(PricingSettings.AgencyOpeningHours, agency.Id, cancellationToken);
         var categories = await fleet.GetCategoriesAsync(agency.Id, includeInactive: false, cancellationToken);
-        _loaded = new AgentAgencyContext(agency, locations, hours, categories);
+        _loaded = new AgentAgencyContext(agency, locations, hours, categories, site.Slug);
         return _loaded;
     }
 }

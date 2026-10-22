@@ -1,8 +1,10 @@
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Payments.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
@@ -62,6 +64,7 @@ internal sealed partial class BookingPaymentLinkHandler(
     IOnlinePayments payments,
     IPaymentsQueries paymentQueries,
     IOutbox outbox,
+    IAgencyDirectory agencies,
     TimeProvider clock,
     ILogger<BookingPaymentLinkHandler> logger) : IOutboxHandler<BookingStatusChanged>
 {
@@ -109,7 +112,7 @@ internal sealed partial class BookingPaymentLinkHandler(
         }
         else
         {
-            var path = PublicBookingPaths.PaymentResult(culture);
+            var path = PublicBookingPaths.PaymentResult(await agencies.SlugAsync(booking.AgencyId, cancellationToken), culture);
             var started = await payments.StartPaymentAsync(
                 new OnlinePaymentRequest(booking.Id, booking.AgencyId, amount.Amount, culture, path, path, booking.Number, IsLink: true, Validity: due - now),
                 cancellationToken);

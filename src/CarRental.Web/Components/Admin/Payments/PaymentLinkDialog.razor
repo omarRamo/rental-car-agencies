@@ -1,6 +1,7 @@
 @* Creates a one-step payment link for a booking (register.do, valid 24 h by default) and shows it to copy; sending it by
    e-mail or WhatsApp comes later. The customer lands on the public result page of the payment afterwards. *@
 @inject IOperationRunner Runner
+@inject IAgencyDirectory AgencyDirectory
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IStringLocalizer<PaymentsResources> L
@@ -94,7 +95,10 @@
     {
         _busy = true;
         _error = null;
-        var path = PaymentResultPaths.For(_culture);
+        // The customer lands on the site of the agency of the payment (ADR-0067).
+        var site = (await AgencyDirectory.FindAsync(_agencyId))?.Slug
+                   ?? throw new InvalidOperationException($"The agency {_agencyId} of the payment link does not exist.");
+        var path = PaymentResultPaths.For(site, _culture);
         var request = new OnlinePaymentRequest(BookingId, _agencyId, PaymentsFormat.Value(_amount), _culture, path, path, IsLink: true, Validity: TimeSpan.FromHours(_hours));
         var result = await Runner.RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentRedirect>>((admin, ct) => admin.CreatePaymentLinkAsync(request, ct));
         _busy = false;

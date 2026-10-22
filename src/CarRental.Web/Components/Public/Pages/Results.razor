@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver"
-@page "/{culture:length(2)}/book"
+@page "/{agency}/{culture:length(2)}/reserver"
+@page "/{agency}/{culture:length(2)}/book"
 @* Results of a search (/fr/reserver, /en/book): the deep link is parsed and validated, availability and prices are
    always recomputed (channel WhatsApp for src=whatsapp), filters and sort are GET parameters. Not cacheable: the
    "Choose" forms carry an antiforgery token. Records the search and results steps of the funnel. *@
@@ -91,7 +91,7 @@
     <p class="notice" role="note">@L["Results.CategoryUnavailable", requested.Value]</p>
 }
 
-<form class="filters" method="get" action="@PublicRoutes.PathFor(PublicPage.Results, Lang)" aria-labelledby="filters-heading">
+<form class="filters" method="get" action="@PublicRoutes.PathFor(Slug, PublicPage.Results, Lang)" aria-labelledby="filters-heading">
     <h2 id="filters-heading" class="filters__title">@L["Results.Filters.Title"]</h2>
     @foreach (var (name, value) in _criteria.Query.ToParameters(includeFilters: false))
     {
@@ -140,7 +140,7 @@
                 @for (var index = 0; index < _outcome.Offers.Count; index++)
                 {
                     var offer = _outcome.Offers[index];
-                    <OfferCard Offer="offer" Criteria="_criteria" Culture="@Lang" EurRate="_agency.EurExchangeRate"
+                    <OfferCard Offer="offer" Criteria="_criteria" Slug="@Slug" Culture="@Lang" EurRate="_agency.EurExchangeRate"
                                Highlighted="@(_criteria.Query.Category?.Value == offer.Category.AcrissCode)" Priority="@(index == 0)" />
                 }
             </ul>
@@ -215,7 +215,7 @@
         }
 
         _now = Clock.GetUtcNow();
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         if (_agency is null)
         {
             return;
@@ -247,14 +247,14 @@
 
     private string DateTimeText(DateTimeOffset instant) => L["Results.DateTime", PublicFormat.TunisLocal(instant)];
 
-    private string ResultsLink(SearchQuery query) => PublicRoutes.PathFor(PublicPage.Results, Lang) + query.ToQueryString();
+    private string ResultsLink(SearchQuery query) => PublicRoutes.PathFor(Slug, PublicPage.Results, Lang) + query.ToQueryString();
 
     /// <summary>WhatsApp link pre-filled with the search, to book or ask while online booking is not open.</summary>
     private string? WhatsAppLink()
     {
         if (_criteria is null)
         {
-            return AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, L["WhatsApp.Message"]);
+            return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value), L["WhatsApp.Message"]);
         }
 
         var from = DateTimeText(_criteria.PickupAt);
@@ -262,6 +262,6 @@
         var message = _criteria.Query.Category is { } category
             ? L["Results.WhatsApp.Message", category.Value, from, to, _criteria.PickupLocation.Name]
             : L["Results.WhatsApp.MessageAnyCategory", from, to, _criteria.PickupLocation.Name];
-        return AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, message);
+        return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value), message);
     }
 }

@@ -76,7 +76,8 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 
 ```text
 /src
-  CarRental.Web             hôte ASP.NET Core : vitrine (rendu statique, /fr et /en),
+  CarRental.Web             hôte ASP.NET Core : vitrine de chaque agence (rendu statique,
+                            /{agence}/fr et /{agence}/en ; page de la plateforme à /),
                             back office (/admin, interactif, MudBlazor : utilisateurs et
                             permissions, paramètres, journal d'audit, messages de fond),
                             comptes (/account), santé (/health, /health/ready),
@@ -103,7 +104,7 @@ git clone https://github.com/omarRamo/rental-car-agencies.git
 cd rental-car-agencies
 dotnet tool restore                        # dotnet-ef
 docker compose up -d                       # SQL Server 2022 (localhost,14333) et Azurite
-dotnet run --project src/CarRental.Web     # https://localhost:7180
+dotnet run --project src/CarRental.Web     # https://localhost:7180 (vitrine : /agence-demo-tunis/fr)
 ```
 
 En développement, l'application applique les migrations et charge les données de démonstration au démarrage : deux agences, « Agence Démo Tunis » (trois lieux : agence, aéroports TUN et NBE ; comptes `gerant@demo.local`, `agent@demo.local` et `comptable@demo.local`) et « Agence Démo Sousse » (deux lieux, sa flotte, ses tarifs, quelques clients et dossiers ; compte `gerant.sousse@demo.local`), les paramètres par défaut et le compte de l'exploitant, `support@demo.local`, qui ouvre la plateforme (`/admin/platform`). WhatsApp et les canaux de vente sont fermés pour les agences de démonstration comme pour toute nouvelle agence : le support les ouvre depuis la fiche de l'agence. Leur mot de passe est dans `src/CarRental.Web/appsettings.Development.json`, valeur réservée au développement. En développement, la double authentification est désactivée (`Identity:TwoFactor:Required=false`, refusé hors de l'environnement Development) ; partout ailleurs, tests compris, elle reste obligatoire. Les e-mails sont écrits en fichiers `.eml` dans `src/CarRental.Web/App_Data/mail`.

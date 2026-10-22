@@ -86,7 +86,7 @@ if (-not $ready) { throw "The application did not become ready in 6 minutes: see
 
 Write-Host ''
 Write-Host 'The platform is running:'
-Write-Host '  Public site  https://localhost:7180/fr'
+Write-Host '  Public site  https://localhost:7180/agence-demo-tunis/fr'
 Write-Host '  Back office  https://localhost:7180/admin'
 Write-Host '  Accounts     gerant@demo.local, agent@demo.local, comptable@demo.local'
 Write-Host '               password and authenticator key: src\CarRental.Web\appsettings.Development.json (Seed section)'

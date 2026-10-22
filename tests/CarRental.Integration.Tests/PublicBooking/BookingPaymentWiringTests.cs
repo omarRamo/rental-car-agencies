@@ -25,6 +25,7 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
     public async Task The_validation_captures_the_guarantee_and_confirms_the_booking()
     {
         var agency = await CreateAsync(host, Ct);
+        var brand = await AgencyNameAsync(agency);
         var request = await SubmitAsync(host, agency, InDays(40), InDays(44), Ct);
         request.Guarantee.Mode.ShouldBe(FunnelGuaranteeMode.PreAuthorization);
         var held = await HoldGuaranteeAsync(host, request, Ct);
@@ -45,7 +46,7 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
         payment.Status.ShouldBe(PaymentStatusInfo.Captured);
         payment.CapturedAmount.ShouldBe(payment.Amount);
         var confirmed = await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject.Contains("confirmée", StringComparison.Ordinal), Ct);
-        confirmed.Subject.ShouldBe($"CarRental — Réservation {request.Number} confirmée");
+        confirmed.Subject.ShouldBe($"{brand} — Réservation {request.Number} confirmée");
     }
 
     [Fact]
@@ -73,6 +74,7 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
     public async Task An_expired_request_releases_its_pre_authorization()
     {
         var agency = await CreateAsync(host, Ct);
+        var brand = await AgencyNameAsync(agency);
         await SetAsync(host, agency.AgencyId, "bookings.hold_duration", "00:00:05", Ct);
         var request = await SubmitAsync(host, agency, InDays(50), InDays(53), Ct);
         await HoldGuaranteeAsync(host, request, Ct);
@@ -87,13 +89,14 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
             p => p.Count == 1 && p[0].Status == PaymentStatusInfo.Cancelled,
             "the expiry releases the held amount",
             Ct);
-        await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"CarRental — Votre demande {request.Number} a expiré", Ct);
+        await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"{brand} — Votre demande {request.Number} a expiré", Ct);
     }
 
     [Fact]
     public async Task In_the_payment_link_mode_the_link_is_emailed_and_its_payment_confirms_the_booking()
     {
         var agency = await CreateAsync(host, Ct);
+        var brand = await AgencyNameAsync(agency);
         await SetAsync(host, agency.AgencyId, BookingSettings.ValidationPaymentMode.Key, nameof(BookingValidationPaymentMode.PaymentLinkAfterValidation), Ct);
         var request = await SubmitAsync(host, agency, InDays(55), InDays(58), Ct);
         request.Guarantee.Mode.ShouldBe(FunnelGuaranteeMode.PaymentLinkAfterValidation, "no pre-authorization in the payment link mode");
@@ -108,14 +111,14 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
 
         validated.IsSuccess.ShouldBeTrue(validated.IsFailure ? validated.Error.ToString() : null);
         (await StatusAsync(host, request.BookingId, Ct)).ShouldBe(BookingStatusInfo.AwaitingPayment);
-        var email = await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"CarRental — Réservation {request.Number} : votre lien de paiement", Ct);
+        var email = await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"{brand} — Réservation {request.Number} : votre lien de paiement", Ct);
         var link = TestEmails.Links(email).Single(l => l.Contains("/dev/clictopay/pay/", StringComparison.Ordinal));
         var payment = await PayAsync(host, new Uri(link).PathAndQuery, Ct);
         payment.Status.ShouldBe(PaymentStatusInfo.Captured);
         payment.IsPaymentLink.ShouldBeTrue();
 
         await EventuallyAsync(() => StatusAsync(host, request.BookingId, Ct), s => s == BookingStatusInfo.Confirmed, "the captured link confirms the booking", Ct);
-        await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"CarRental — Réservation {request.Number} confirmée", Ct);
+        await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject == $"{brand} — Réservation {request.Number} confirmée", Ct);
     }
 
     [Fact]
@@ -142,4 +145,8 @@ public sealed class BookingPaymentWiringTests(IntegrationHost host)
         var descriptor = scope.ServiceProvider.GetServices<Application.Common.BackgroundJobs.RecurringJobDescriptor>().Single(d => d.JobId == jobId);
         await ((Application.Common.BackgroundJobs.IRecurringJob)scope.ServiceProvider.GetRequiredService(descriptor.JobType)).ExecuteAsync(Ct);
     }
+
+    /// <summary>The name of the agency, the brand of the e-mails to its customers (ADR-0067).</summary>
+    private async Task<string> AgencyNameAsync(Bookings.BookingAgency agency) =>
+        (await host.Factory.Services.GetRequiredService<CarRental.Application.Referential.Contracts.IAgencyDirectory>().FindAsync(agency.AgencyId, Ct)).ShouldNotBeNull().Name;
 }

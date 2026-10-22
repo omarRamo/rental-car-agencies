@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
+using CarRental.Web.Components.Public;
+using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Localization;
 using CarRental.Web.Resources.Public;
 using Microsoft.Extensions.Localization;
@@ -19,7 +21,11 @@ public static class PublicErrorPage
         var localizer = context.RequestServices.GetRequiredService<IStringLocalizer<PublicResources>>();
         var culture = CultureInfo.CurrentUICulture;
         var language = culture.TwoLetterISOLanguageName;
-        var home = context.RequestServices.GetRequiredService<CultureCatalog>().IsEnabled(language) ? $"/{language}" : "/";
+        // The home page of the site of the request (ADR-0067), else the page of the platform.
+        var site = PublicSiteAgency.SiteOf(context);
+        var home = site is not null && context.RequestServices.GetRequiredService<CultureCatalog>().IsEnabled(language)
+            ? PublicRoutes.PathFor(site.Slug, PublicPage.Home, language)
+            : "/";
         var encoder = HtmlEncoder.Default;
         var title = encoder.Encode(localizer[titleKey]);
 

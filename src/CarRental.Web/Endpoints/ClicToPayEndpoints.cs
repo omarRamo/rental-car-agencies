@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
@@ -18,9 +19,10 @@ namespace CarRental.Web.Endpoints;
 /// <summary>
 /// HTTP side of Clic to Pay (ADR-0038, ADR-0039). The return and failure addresses (anonymous) only identify the order:
 /// the status is always read server to server, then the browser is sent to the local path recorded when the payment
-/// started (never a path from the query: no open redirect). One merchant account serves every agency (ADR-0067): the
-/// return is handled by the platform, as the system actor <see cref="ReturnActor"/>, for the order of whichever agency it
-/// is. In Development and Testing, with the simulated gateway, the payment page of the fake
+/// started (never a path from the query: no open redirect), which carries the address of the site of the agency of the
+/// payment. One merchant account serves every agency (ADR-0067): the return addresses stay at the root and the return
+/// is handled by the platform, as the system actor <see cref="ReturnActor"/>, for the order of whichever agency it is.
+/// In Development and Testing, with the simulated gateway, the payment page of the fake
 /// (<c>/dev/clictopay/pay/{orderId}</c>) and a page to start a payment (<c>/dev/clictopay/start</c>) are mapped too; they
 /// do not exist anywhere else.
 /// </summary>
@@ -172,14 +174,18 @@ public static class ClicToPayEndpoints
             var form = await context.Request.ReadFormAsync(cancellationToken);
             var culture = form["Culture"].ToString() is "en" ? "en" : CultureCatalog.Default;
             var amount = decimal.TryParse(form["Amount"].ToString().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? value : 0m;
-            var agencyId = Guid.TryParse(form["AgencyId"].ToString(), out var agency) ? agency : Guid.Empty;
+            var agencyId = Guid.TryParse(form["AgencyId"].ToString(), out var parsed) ? parsed : Guid.Empty;
+
+            // The customer lands on the site of the agency; without a known agency the payment is refused below.
+            var site = agencyId == Guid.Empty ? null : await directory.FindAsync(agencyId, cancellationToken);
+            var resultPath = PaymentResultPaths.For(site?.Slug ?? "inconnue", culture);
             var request = new OnlinePaymentRequest(
                 Guid.TryParse(form["BookingId"].ToString(), out var booking) && booking != Guid.Empty ? booking : Guid.CreateVersion7(),
                 agencyId,
                 amount,
                 culture,
-                PaymentResultPaths.For(culture),
-                PaymentResultPaths.For(culture),
+                resultPath,
+                resultPath,
                 "DEV " + DateTime.UtcNow.ToString("HHmmss", CultureInfo.InvariantCulture));
 
             await using var scope = scopes.CreateAsyncScope();
@@ -210,9 +216,9 @@ public static class ClicToPayEndpoints
 /// <summary>Local paths of the public page that shows the outcome of an online payment (payment links, development pages).</summary>
 public static class PaymentResultPaths
 {
-    /// <summary>The result page of the payment in <paramref name="culture"/>, with the payment id placeholder of the online payments.</summary>
-    public static string For(string culture) =>
-        culture == "en"
-            ? $"/en/payment/{OnlinePaymentRequest.PaymentIdPlaceholder}"
-            : $"/{culture}/paiement/{OnlinePaymentRequest.PaymentIdPlaceholder}";
+    /// <summary>
+    /// The result page of the payment on the site of <paramref name="agency"/> (the agency of the payment) in
+    /// <paramref name="culture"/>, with the payment id placeholder of the online payments.
+    /// </summary>
+    public static string For(string agency, string culture) => PublicBookingPaths.PaymentResult(agency, culture);
 }

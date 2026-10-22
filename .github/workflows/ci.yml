@@ -443,27 +443,31 @@ jobs:
           cat "$RUNNER_TEMP/site.log"
           exit 1
 
-      # Dates relative to the run, in a period the demo fleet can rent; the first requests warm up the caches.
+      # The site of the demo agency, at its address (ADR-0067). Dates relative to the run, in a period the demo fleet
+      # can rent; the first requests warm up the caches.
       - name: Choose and warm up the measured pages
         id: pages
         run: |
           pickup="$(date -u -d '+21 days' +%Y-%m-%d)T10:00"
           dropoff="$(date -u -d '+25 days' +%Y-%m-%d)T10:00"
-          results="$SITE_URL/fr/reserver?lieu=TUN&depart=$pickup&retour=$dropoff"
-          for url in "$SITE_URL/fr" "$results"; do
+          home="$SITE_URL/agence-demo-tunis/fr"
+          results="$SITE_URL/agence-demo-tunis/fr/reserver?lieu=TUN&depart=$pickup&retour=$dropoff"
+          for url in "$home" "$results"; do
             for _ in 1 2 3; do
               curl -sk -o /dev/null -w "%{http_code} %{time_total}s $url\n" "$url"
             done
           done
+          echo "home=$home" >> "$GITHUB_OUTPUT"
           echo "results=$results" >> "$GITHUB_OUTPUT"
 
       - name: Lighthouse CI (collect, assert the budget, write the reports)
         env:
+          HOME_URL: ${{ steps.pages.outputs.home }}
           RESULTS_URL: ${{ steps.pages.outputs.results }}
         run: |
           status=0
           npx --yes "@lhci/cli@$LHCI_VERSION" collect --config=.github/lighthouse/lighthouserc.json \
-            --url="$SITE_URL/fr" --url="$RESULTS_URL" || status=1
+            --url="$HOME_URL" --url="$RESULTS_URL" || status=1
           npx --yes "@lhci/cli@$LHCI_VERSION" assert --config=.github/lighthouse/budget.json || status=1
           npx --yes "@lhci/cli@$LHCI_VERSION" upload --config=.github/lighthouse/lighthouserc.json || true
           exit "$status"
