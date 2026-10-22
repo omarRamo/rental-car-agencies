@@ -4,6 +4,7 @@ using CarRental.Application.Fleet;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Fleet;
 using CarRental.Domain.Referential;
+using CarRental.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Fleet;
@@ -13,8 +14,13 @@ internal static class FleetData
 {
     private static int _plateSequence;
 
+    /// <summary>
+    /// A staff actor of the scenario tests, working across agencies as every actor did before the agencies were separated
+    /// (ADR-0067): each test works on its own agency and its own rows; the separation itself is tested apart, with actors
+    /// of one agency (<see cref="TestActors"/>).
+    /// </summary>
     public static UserContextSnapshot Actor(string role, string? userName = null) =>
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), userName ?? $"{role.ToLowerInvariant()}@demo.local", RolePresets.PermissionsOf(role), "203.0.113.20", Guid.NewGuid().ToString("N"));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), userName ?? $"{role.ToLowerInvariant()}@demo.local", RolePresets.PermissionsOf(role), "203.0.113.20", Guid.NewGuid().ToString("N")) with { AllAgencies = true };
 
     public static UserContextSnapshot Manager => Actor(Roles.Manager, "gerant@demo.local");
 
@@ -32,7 +38,8 @@ internal static class FleetData
 
     public static async Task<Guid> NewCategoryAsync(IntegrationHost host, Guid agencyId, string code, CancellationToken cancellationToken, int displayOrder = 1)
     {
-        await using var scope = host.CreateScope(Manager);
+        // A manager of the agency of the category (ADR-0067: the categories of an agency are created by its staff).
+        await using var scope = host.CreateScope(TestActors.Staff(agencyId, Roles.Manager, "gerant@demo.local"));
         var service = scope.ServiceProvider.GetRequiredService<VehicleCategoryService>();
         var fuel = VehicleCategory.FuelOf(CarRental.Domain.Common.AcrissCode.Create(code).Value) ?? FuelType.Petrol;
         var created = await service.CreateAsync(

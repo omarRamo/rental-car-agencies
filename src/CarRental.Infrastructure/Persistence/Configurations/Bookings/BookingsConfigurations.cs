@@ -65,7 +65,8 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasMany(b => b.Events).WithOne().HasForeignKey(e => e.BookingId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(b => b.Events).HasField("_events").UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasIndex(b => b.Number).IsUnique();
+        // One series of numbers per agency (ADR-0067): a number is unique within its agency.
+        builder.HasIndex(b => new { b.AgencyId, b.Number }).IsUnique();
         builder.HasIndex(b => new { b.Channel, b.ChannelReference }).IsUnique().HasFilter("[ChannelReference] IS NOT NULL");
         builder.HasIndex(b => new { b.CategoryId, b.Status, b.PickupAt, b.ReturnAt });
         builder.HasIndex(b => new { b.AgencyId, b.PickupAt });

@@ -10,13 +10,17 @@ namespace CarRental.Integration.Tests.Payments;
 /// <summary>Isolated finance data for a test: its own agency and its own staff ids (sessions never collide between parallel tests).</summary>
 internal static class FinanceData
 {
-    public static UserContextSnapshot Actor(string role) =>
-        UserContextSnapshot.ForUser(
+    /// <summary>A staff actor of the scenario tests, across agencies (see <see cref="Fleet.FleetData.Actor"/>).</summary>
+    public static UserContextSnapshot Actor(string role)
+    {
+        var actor = UserContextSnapshot.ForUser(
             Guid.CreateVersion7(),
             $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@tests.local",
             RolePresets.PermissionsOf(role),
             "203.0.113.30",
             Guid.NewGuid().ToString("N"));
+        return actor with { AllAgencies = true };
+    }
 
     public static async Task<Guid> NewAgencyAsync(IntegrationHost host, CancellationToken cancellationToken)
     {

@@ -540,8 +540,9 @@ internal sealed class HighSeasonWorld
         return OkAsync<ChannelRestrictionService, Guid>(Manager, s => s.AddAsync(BookingComId, new RestrictionRequest(kind, category.Id, null, from, to, vehicles, note), Ct));
     }
 
+    /// <summary>A staff actor of the scenario, across agencies (see <see cref="Fleet.FleetData.Actor"/>).</summary>
     private static UserContextSnapshot Staff(string role, string email) =>
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), email, RolePresets.PermissionsOf(role), "203.0.113.40", Guid.NewGuid().ToString("N"));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), email, RolePresets.PermissionsOf(role), "203.0.113.40", Guid.NewGuid().ToString("N")) with { AllAgencies = true };
 
     private static string Digits(int from, int to) => RandomNumberGenerator.GetInt32(from, to).ToString(CultureInfo.InvariantCulture);
 

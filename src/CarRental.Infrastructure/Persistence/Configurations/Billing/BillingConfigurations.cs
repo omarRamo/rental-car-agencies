@@ -136,9 +136,9 @@ internal static class BillingDocumentColumns
 
         builder.HasOne<Agency>().WithMany().HasForeignKey(d => d.AgencyId).OnDelete(DeleteBehavior.Restrict);
 
-        // Gapless numbers: one document per number (and per position in its fiscal year).
-        builder.HasIndex(d => d.Number).IsUnique();
-        builder.HasIndex(d => new { d.FiscalYear, d.Sequence }).IsUnique();
+        // Gapless numbers of each agency (ADR-0067): one document per number (and per position in its fiscal year) in an agency.
+        builder.HasIndex(d => new { d.AgencyId, d.Number }).IsUnique();
+        builder.HasIndex(d => new { d.AgencyId, d.FiscalYear, d.Sequence }).IsUnique();
         builder.HasIndex(d => new { d.AgencyId, d.IssueDate });
 
         // The documents waiting for TTN (EInvoiceStatus.Pending = 2, Failed = 4).

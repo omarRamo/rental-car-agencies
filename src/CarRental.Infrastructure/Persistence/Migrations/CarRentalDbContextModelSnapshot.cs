@@ -1085,12 +1085,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.HasIndex("Number")
-                        .IsUnique();
-
                     b.HasIndex("AgencyId", "IssueDate");
 
-                    b.HasIndex("FiscalYear", "Sequence")
+                    b.HasIndex("AgencyId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("AgencyId", "FiscalYear", "Sequence")
                         .IsUnique();
 
                     b.ToTable("CreditNotes", "billing");
@@ -1637,16 +1637,16 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[FineId] IS NOT NULL");
 
-                    b.HasIndex("Number")
-                        .IsUnique();
-
                     b.HasIndex("AgencyId", "IssueDate");
+
+                    b.HasIndex("AgencyId", "Number")
+                        .IsUnique();
 
                     b.HasIndex("BookingId", "Kind")
                         .IsUnique()
                         .HasFilter("[BookingId] IS NOT NULL AND [Kind] IN (1, 2)");
 
-                    b.HasIndex("FiscalYear", "Sequence")
+                    b.HasIndex("AgencyId", "FiscalYear", "Sequence")
                         .IsUnique();
 
                     b.ToTable("Invoices", "billing");
@@ -2314,12 +2314,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("MainDriverId");
 
-                    b.HasIndex("Number")
-                        .IsUnique();
-
                     b.HasIndex("PayerCustomerId");
 
                     b.HasIndex("SecondaryDriverId");
+
+                    b.HasIndex("AgencyId", "Number")
+                        .IsUnique();
 
                     b.HasIndex("AgencyId", "PickupAt");
 

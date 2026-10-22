@@ -12,10 +12,35 @@ namespace CarRental.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "IX_Invoices_FiscalYear_Sequence",
+                schema: "billing",
+                table: "Invoices");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Invoices_Number",
+                schema: "billing",
+                table: "Invoices");
+
             migrationBuilder.DropPrimaryKey(
                 name: "PK_DocumentCounters",
                 schema: "infra",
                 table: "DocumentCounters");
+
+            migrationBuilder.DropIndex(
+                name: "IX_CreditNotes_FiscalYear_Sequence",
+                schema: "billing",
+                table: "CreditNotes");
+
+            migrationBuilder.DropIndex(
+                name: "IX_CreditNotes_Number",
+                schema: "billing",
+                table: "CreditNotes");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Bookings_Number",
+                schema: "bookings",
+                table: "Bookings");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "AgencyId",
@@ -93,10 +118,45 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 column: "SelectedAgencyId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Invoices_AgencyId_FiscalYear_Sequence",
+                schema: "billing",
+                table: "Invoices",
+                columns: new[] { "AgencyId", "FiscalYear", "Sequence" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_AgencyId_Number",
+                schema: "billing",
+                table: "Invoices",
+                columns: new[] { "AgencyId", "Number" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DocumentAccessLogs_AgencyId_OccurredAtUtc",
                 schema: "audit",
                 table: "DocumentAccessLogs",
                 columns: new[] { "AgencyId", "OccurredAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CreditNotes_AgencyId_FiscalYear_Sequence",
+                schema: "billing",
+                table: "CreditNotes",
+                columns: new[] { "AgencyId", "FiscalYear", "Sequence" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CreditNotes_AgencyId_Number",
+                schema: "billing",
+                table: "CreditNotes",
+                columns: new[] { "AgencyId", "Number" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bookings_AgencyId_Number",
+                schema: "bookings",
+                table: "Bookings",
+                columns: new[] { "AgencyId", "Number" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_AgencyId_OccurredAtUtc",
@@ -155,6 +215,16 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 schema: "identity",
                 table: "Users");
 
+            migrationBuilder.DropIndex(
+                name: "IX_Invoices_AgencyId_FiscalYear_Sequence",
+                schema: "billing",
+                table: "Invoices");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Invoices_AgencyId_Number",
+                schema: "billing",
+                table: "Invoices");
+
             migrationBuilder.DropPrimaryKey(
                 name: "PK_DocumentCounters",
                 schema: "infra",
@@ -164,6 +234,21 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 name: "IX_DocumentAccessLogs_AgencyId_OccurredAtUtc",
                 schema: "audit",
                 table: "DocumentAccessLogs");
+
+            migrationBuilder.DropIndex(
+                name: "IX_CreditNotes_AgencyId_FiscalYear_Sequence",
+                schema: "billing",
+                table: "CreditNotes");
+
+            migrationBuilder.DropIndex(
+                name: "IX_CreditNotes_AgencyId_Number",
+                schema: "billing",
+                table: "CreditNotes");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Bookings_AgencyId_Number",
+                schema: "bookings",
+                table: "Bookings");
 
             migrationBuilder.DropIndex(
                 name: "IX_AuditLogs_AgencyId_OccurredAtUtc",
@@ -215,6 +300,41 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 schema: "infra",
                 table: "DocumentCounters",
                 columns: new[] { "DocumentType", "Year" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_FiscalYear_Sequence",
+                schema: "billing",
+                table: "Invoices",
+                columns: new[] { "FiscalYear", "Sequence" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_Number",
+                schema: "billing",
+                table: "Invoices",
+                column: "Number",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CreditNotes_FiscalYear_Sequence",
+                schema: "billing",
+                table: "CreditNotes",
+                columns: new[] { "FiscalYear", "Sequence" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CreditNotes_Number",
+                schema: "billing",
+                table: "CreditNotes",
+                column: "Number",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bookings_Number",
+                schema: "bookings",
+                table: "Bookings",
+                column: "Number",
+                unique: true);
         }
     }
 }
