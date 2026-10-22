@@ -95,10 +95,10 @@
 | `Seed:Demo`, `Seed:DemoUserPassword`, `Seed:DemoAuthenticatorKey` | Données de démonstration (refusées en production) |
 | `Identity:InitialSupportEmail` | Premier compte support (exploitant de la plateforme) créé au démarrage s'il n'y en a aucun ; il crée ensuite les agences et invite leurs gérants (ADR-0067) |
 | `HostFiltering:AllowedHosts`, `HostFiltering:CustomDomains` | Hôtes acceptés (`*.azurewebsites.net` et domaines de l'agence) |
-| `PublicSite:BaseUrl`, `PublicSite:AgencyName`, `PublicSite:WhatsAppNumber` | Adresse publique de la plateforme (liens absolus des e-mails, suivis de l'adresse de la vitrine de l'agence du dossier), nom de la plateforme (page `/`, comptes ; vitrines et e-mails aux clients portent le nom de l'agence), numéro du bouton WhatsApp des vitrines dont le module WhatsApp est actif |
+| `PublicSite:BaseUrl`, `PublicSite:AgencyName`, `PublicSite:WhatsAppNumber` | Adresse publique de la plateforme (liens absolus des e-mails, suivis de l'adresse de la vitrine de l'agence du dossier), nom de la plateforme (page `/`, comptes ; vitrines et e-mails aux clients portent le nom de l'agence), numéro du bouton WhatsApp, affiché sur la vitrine de l'agence que ce numéro sert seulement (module WhatsApp actif, `WhatsApp:AgencyId` ou `WhatsApp:AgencySlug`) |
 | `Database:ApplyMigrationsOnStartup` | Migrations au démarrage (développement et tests ; sur Azure : bundle) |
 | `Localization:EnableArabic` | Active l'arabe (préparé, désactivé) |
-| `PublicSite:AgencyId`, `PublicSite:AllowIndexing` | Agence présentée par le bot WhatsApp (transitoire ; la vitrine suit l'adresse, ADR-0067) ; indexation par les moteurs (vrai en production seulement) |
+| `PublicSite:AllowIndexing` | Indexation par les moteurs (vrai en production seulement) ; l'agence d'une vitrine vient de son adresse (`/{agence}`, ADR-0067), plus de `PublicSite:AgencyId` |
 | `Turnstile:SiteKey`, `Turnstile:SecretKey` (`Turnstile--SecretKey` dans le Key Vault) | Cloudflare Turnstile, vérifié côté serveur en échec fermé (action du formulaire et nom d'hôte de la requête) ; clés de test officielles en développement et en test, leurs réponses refusées en production |
 | `RateLimiting:{Search,Submit,Upload}:{PermitLimit,Window,SegmentsPerWindow}` | Politiques `public-search`, `public-submit`, `public-upload` (par adresse client, `CF-Connecting-IP`) |
 | `ReverseProxy:TrustCloudflareHeader` | Lit l'adresse client dans `CF-Connecting-IP` : faux par défaut ; vrai seulement avec `restrictToCloudflare` (Bicep), qui le règle |
