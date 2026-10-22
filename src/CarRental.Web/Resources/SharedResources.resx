@@ -840,6 +840,21 @@
   <data name="Error.referential.location_address_too_long" xml:space="preserve">
     <value>L'adresse est trop longue (300 caractères au plus).</value>
   </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les lieux de l'agence.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>Ce lieu n'existe pas.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Un autre lieu de l'agence utilise déjà ce code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Gardez au moins un lieu actif : sans lieu, l'agence ne peut plus prendre de réservation.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>Le lieu a été modifié entre-temps : rechargez la page puis recommencez.</value>
+  </data>
   <data name="Error.referential.setting_key_invalid" xml:space="preserve">
     <value>Une clé de paramètre est faite de segments en minuscules séparés par des points, par exemple bookings.hold_duration.</value>
   </data>

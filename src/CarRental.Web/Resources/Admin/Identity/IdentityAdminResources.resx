@@ -21,6 +21,9 @@
   <data name="Audit.Column.Action" xml:space="preserve">
     <value>Action</value>
   </data>
+  <data name="Audit.Column.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
   <data name="Audit.Column.Date" xml:space="preserve">
     <value>Date</value>
   </data>
@@ -47,6 +50,12 @@
   </data>
   <data name="Audit.Filter.Action" xml:space="preserve">
     <value>Action</value>
+  </data>
+  <data name="Audit.Filter.Agency" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Audit.Agency.Platform" xml:space="preserve">
+    <value>Plateforme</value>
   </data>
   <data name="Audit.Filter.Correlation" xml:space="preserve">
     <value>Identifiant de corrélation</value>
@@ -80,6 +89,12 @@
   </data>
   <data name="Audit.Title" xml:space="preserve">
     <value>Journal d'audit</value>
+  </data>
+  <data name="Audit.Platform.Title" xml:space="preserve">
+    <value>Journal de la plateforme</value>
+  </data>
+  <data name="Audit.Platform.Intro" xml:space="preserve">
+    <value>Les journaux de toutes les agences et celui de la plateforme elle-même.</value>
   </data>
   <data name="Role.Accountant" xml:space="preserve">
     <value>Comptable</value>
@@ -125,6 +140,9 @@
   </data>
   <data name="Users.Empty" xml:space="preserve">
     <value>Aucun utilisateur.</value>
+  </data>
+  <data name="Users.AgencyRequired.Platform" xml:space="preserve">
+    <value>Aller aux agences de la plateforme</value>
   </data>
   <data name="Users.Field.DisplayName" xml:space="preserve">
     <value>Nom affiché</value>

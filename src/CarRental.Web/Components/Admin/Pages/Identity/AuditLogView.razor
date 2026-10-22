@@ -1,0 +1,249 @@
+@* The audit journal with its filters (ADR-0067): the journal of the agency the operation works for (the persistence layer
+   hides the others), or, AcrossAgencies (support, platform pages), the journals of every agency and of the platform
+   itself, with the agency of each entry and a filter by agency. *@
+@using System.Text.Json
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Identity.Audit
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="@L["Audit.Filter.From"]" @bind-Date="_from" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="@L["Audit.Filter.To"]" @bind-Date="_to" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" @bind-Value="_user" Label="@L["Audit.Filter.User"]" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" @bind-Value="_action" Label="@L["Audit.Filter.Action"]" Clearable="true">
+                @foreach (var action in _actions)
+                {
+                    <MudSelectItem T="string" Value="@action">@action</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        @if (AcrossAgencies)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string" @bind-Value="_agency" Label="@L["Audit.Filter.Agency"]" Clearable="true" ToStringFunc="AgencyChoiceName" data-testid="audit-agency">
+                    <MudSelectItem T="string" Value="@PlatformChoice">@L["Audit.Agency.Platform"]</MudSelectItem>
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="string" Value="@agency.Id.ToString("D")">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" sm="@(AcrossAgencies ? 6 : 4)" md="@(AcrossAgencies ? 3 : 4)">
+            <MudTextField T="string" @bind-Value="_entityType" Label="@L["Audit.Filter.EntityType"]" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="@(AcrossAgencies ? 6 : 4)" md="@(AcrossAgencies ? 3 : 4)">
+            <MudTextField T="string" @bind-Value="_entityId" Label="@L["Audit.Filter.EntityId"]" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="@(AcrossAgencies ? 6 : 4)" md="@(AcrossAgencies ? 3 : 4)">
+            <MudTextField T="string" @bind-Value="_correlationId" Label="@L["Audit.Filter.Correlation"]" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SearchAsync">@L["Audit.Search"]</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="ResetAsync">@L["Audit.Reset"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" T="AuditLogEntry" ServerData="LoadAsync" RowsPerPage="25" Dense="true" Hover="true" Striped="true" Elevation="1"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = Title })" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>@L["Audit.Column.Date"]</MudTh>
+        @if (AcrossAgencies)
+        {
+            <MudTh>@L["Audit.Column.Agency"]</MudTh>
+        }
+        <MudTh>@L["Audit.Column.User"]</MudTh>
+        <MudTh>@L["Audit.Column.Action"]</MudTh>
+        <MudTh>@L["Audit.Column.Entity"]</MudTh>
+        <MudTh>@L["Audit.Column.Ip"]</MudTh>
+        <MudTh><span class="visually-hidden">@L["Audit.Column.Details"]</span></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Audit.Column.Date"]">@Format(context.OccurredAtUtc)</MudTd>
+        @if (AcrossAgencies)
+        {
+            <MudTd DataLabel="@L["Audit.Column.Agency"]" data-audit-agency>@AgencyName(context.AgencyId)</MudTd>
+        }
+        <MudTd DataLabel="@L["Audit.Column.User"]">@(context.UserName ?? "—")</MudTd>
+        <MudTd DataLabel="@L["Audit.Column.Action"]"><MudChip T="string" Size="Size.Small" Color="ColorFor(context.Action)">@context.Action</MudChip></MudTd>
+        <MudTd DataLabel="@L["Audit.Column.Entity"]">@context.EntityType @context.EntityId</MudTd>
+        <MudTd DataLabel="@L["Audit.Column.Ip"]">@context.IpAddress</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@(_expanded.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                           Size="Size.Small" OnClick="() => Toggle(context.Id)" aria-label="@L["Audit.ShowDetails"]"
+                           aria-expanded="@(_expanded.Contains(context.Id) ? "true" : "false")" />
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent>
+        @if (_expanded.Contains(context.Id))
+        {
+            <MudTr>
+                <td colspan="@(AcrossAgencies ? 7 : 6)" class="audit-details">
+                    @if (!string.IsNullOrEmpty(context.Details))
+                    {
+                        <p><strong>@L["Audit.Details"]</strong> @context.Details</p>
+                    }
+                    @if (!string.IsNullOrEmpty(context.Before))
+                    {
+                        <p><strong>@L["Audit.Before"]</strong></p>
+                        <pre>@Pretty(context.Before)</pre>
+                    }
+                    @if (!string.IsNullOrEmpty(context.After))
+                    {
+                        <p><strong>@L["Audit.After"]</strong></p>
+                        <pre>@Pretty(context.After)</pre>
+                    }
+                    <p><strong>@L["Audit.Correlation"]</strong> <code>@context.CorrelationId</code></p>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+    <NoRecordsContent>
+        <MudText>@L["Audit.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    /// <summary>Value of the agency filter for the records of the platform itself.</summary>
+    private const string PlatformChoice = "platform";
+
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    private readonly HashSet<long> _expanded = [];
+    private MudTable<AuditLogEntry>? _table;
+    private IReadOnlyList<string> _actions = [];
+    private IReadOnlyList<AgencySummary> _agencies = [];
+    private DateTime? _from;
+    private DateTime? _to;
+    private string? _user;
+    private string? _action;
+    private string? _agency;
+    private string? _entityType;
+    private string? _entityId;
+    private string? _correlationId;
+
+    /// <summary>The accessible name of the table (the title of the page).</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    /// <summary>
+    /// The journals of every agency and of the platform (support only: the operations run across agencies), with the
+    /// agency of each entry and a filter by agency; otherwise the journal of the agency of the session.
+    /// </summary>
+    [Parameter]
+    public bool AcrossAgencies { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actions = await RunAsync<AuditLogQueries, Result<IReadOnlyList<string>>>((queries, ct) => queries.GetActionsAsync(ct));
+        _actions = actions.IsSuccess ? actions.Value : [];
+        if (AcrossAgencies)
+        {
+            _agencies = await Runner.RunAsync<IAgencyDirectory, IReadOnlyList<AgencySummary>>((agencies, ct) => agencies.ListAsync(ct));
+        }
+    }
+
+    private async Task<TableData<AuditLogEntry>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var filter = new AuditLogFilter
+        {
+            FromUtc = _from is { } from ? TunisTime.StartOfDay(DateOnly.FromDateTime(from)) : null,
+            ToUtc = _to is { } to ? TunisTime.StartOfDay(DateOnly.FromDateTime(to).AddDays(1)) : null,
+            User = _user,
+            Action = _action,
+            EntityType = _entityType,
+            EntityId = _entityId,
+            CorrelationId = _correlationId,
+            PlatformOnly = AcrossAgencies && _agency == PlatformChoice,
+            AgencyId = AcrossAgencies && Guid.TryParse(_agency, out var agencyId) ? agencyId : null,
+        };
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await RunAsync<AuditLogQueries, Result<PagedResult<AuditLogEntry>>>((queries, ct) => queries.SearchAsync(filter, page, ct), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<AuditLogEntry> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<AuditLogEntry> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    /// <summary>Runs a query for the agency of the session, or across agencies.</summary>
+    private Task<TResult> RunAsync<TService, TResult>(Func<TService, CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken = default)
+        where TService : notnull =>
+        AcrossAgencies ? Runner.RunAcrossAgenciesAsync(operation, cancellationToken) : Runner.RunAsync(operation, cancellationToken);
+
+    private Task SearchAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private Task ResetAsync()
+    {
+        _from = null;
+        _to = null;
+        _user = null;
+        _action = null;
+        _agency = null;
+        _entityType = null;
+        _entityId = null;
+        _correlationId = null;
+        return SearchAsync();
+    }
+
+    private void Toggle(long id)
+    {
+        if (!_expanded.Remove(id))
+        {
+            _expanded.Add(id);
+        }
+    }
+
+    /// <summary>The name of the agency of an entry; "Platform" for the records of the platform itself.</summary>
+    private string AgencyName(Guid? agencyId) =>
+        agencyId is { } id ? _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? id.ToString("D") : L["Audit.Agency.Platform"];
+
+    private string AgencyChoiceName(string? choice) =>
+        choice is null ? string.Empty
+        : choice == PlatformChoice ? L["Audit.Agency.Platform"]
+        : Guid.TryParse(choice, out var id) ? AgencyName(id)
+        : choice;
+
+    private static string Format(DateTimeOffset occurredAtUtc) =>
+        TunisTime.ToTunis(occurredAtUtc).ToString("G", CultureInfo.CurrentCulture);
+
+    private static Color ColorFor(string action) => action switch
+    {
+        _ when action.EndsWith("_failed", StringComparison.Ordinal) || action == CarRental.Domain.Identity.AuditActions.LockedOut => Color.Error,
+        _ when action.StartsWith("identity.", StringComparison.Ordinal) => Color.Info,
+        _ when action == CarRental.Domain.Identity.AuditActions.EntityDeleted || action == CarRental.Domain.Identity.AuditActions.EntitySoftDeleted => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private static string Pretty(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(document.RootElement, Indented);
+        }
+        catch (JsonException)
+        {
+            return json;
+        }
+    }
+}

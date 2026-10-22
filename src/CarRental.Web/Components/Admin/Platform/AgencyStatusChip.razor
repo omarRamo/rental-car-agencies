@@ -1,0 +1,16 @@
+@* Whether an agency is active or suspended by the support (ADR-0067). *@
+@inject IStringLocalizer<AdminResources> L
+
+@if (IsActive)
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Success" data-agency-status="active">@L["Platform.Agencies.Active"]</MudChip>
+}
+else
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Warning" data-agency-status="suspended">@L["Platform.Agencies.Suspended"]</MudChip>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public bool IsActive { get; set; }
+}

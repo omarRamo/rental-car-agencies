@@ -1,0 +1,13 @@
+@page "/admin/platform/audit"
+@attribute [HasPermission(Permissions.PlatformAgencies)]
+@using CarRental.Web.Components.Admin.Pages.Identity
+@using CarRental.Web.Resources.Admin.Identity
+@inject IStringLocalizer<IdentityAdminResources> L
+
+@* The journals of every agency and of the platform itself (support only, ADR-0067), with the agency of each entry. *@
+<PageTitle>@L["Audit.Platform.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Audit.Platform.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Audit.Platform.Intro"] @L["Audit.TimeZoneNote"]</MudText>
+
+<AuditLogView Title="@L["Audit.Platform.Title"]" AcrossAgencies="true" />

@@ -30,6 +30,7 @@ public static class ReferentialModule
         services.AddScoped<ISettingsReader, SettingsReader>();
         services.AddScoped<SettingsAdministrationService>();
         services.AddScoped<AgencyIdentityAdministrationService>();
+        services.AddScoped<LocationAdministrationService>();
         services.AddSettingDefinitions(WellKnownSettings.All);
         services.AddDataSeeder<ReferentialSettingsSeeder>();
         services.AddDataSeeder<AgencyProvisioningSeeder>();

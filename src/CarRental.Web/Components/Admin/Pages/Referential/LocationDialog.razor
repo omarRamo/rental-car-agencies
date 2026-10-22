@@ -1,0 +1,104 @@
+@* Creation or edition of a pick-up / return location of the agency: the code is typed once, at creation (the sales
+   channels reference it); the name, kind and address can change. *@
+@using CarRental.Application.Referential.Administration
+@using CarRental.Domain.Referential
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                @if (Existing is { } existing)
+                {
+                    <MudTextField T="string" Value="existing.Code" Label="@L["Locations.Field.Code"]" ReadOnly="true" HelperText="@L["Locations.Field.Code.Fixed"]" />
+                }
+                else
+                {
+                    <MudTextField T="string" @bind-Value="_code" Label="@L["Locations.Field.Code"]" HelperText="@L["Locations.Field.Code.Help"]" Required="true"
+                                  RequiredError="@Shared["Validation.Required"]" MaxLength="Location.CodeMaxLength" autocomplete="off" data-testid="location-code" />
+                }
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_name" Label="@L["Locations.Field.Name"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              MaxLength="Location.NameMaxLength" data-testid="location-name" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="LocationKind" @bind-Value="_kind" Label="@L["Locations.Field.Kind"]" ToStringFunc="@(kind => L[$"LocationKind.{kind}"])" data-testid="location-kind">
+                    @foreach (var kind in Enum.GetValues<LocationKind>())
+                    {
+                        <MudSelectItem T="LocationKind" Value="@kind">@L[$"LocationKind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_address" Label="@L["Locations.Field.Address"]" Lines="2" MaxLength="Location.AddressMaxLength" data-testid="location-address" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy" data-testid="location-submit">
+            @(Existing is null ? L["Locations.Submit.Create"] : L["Locations.Submit.Save"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _code;
+    private string? _name;
+    private LocationKind _kind = LocationKind.AgencyOffice;
+    private string? _address;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The location to edit; a new one when <see langword="null"/>.</summary>
+    [Parameter]
+    public LocationAdminItem? Existing { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } location)
+        {
+            (_name, _kind, _address) = (location.Name, location.Kind, location.Address);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var details = new LocationDetailsForm(_name ?? string.Empty, _kind, _address);
+        Result result;
+        if (Existing is { } location)
+        {
+            var locationId = location.Id;
+            result = await Runner.RunAsync<LocationAdministrationService, Result>((service, ct) => service.UpdateAsync(locationId, details, ct));
+        }
+        else
+        {
+            var code = _code ?? string.Empty;
+            result = await Runner.RunAsync<LocationAdministrationService, Result<Guid>>((service, ct) => service.CreateAsync(code, details, ct));
+        }
+
+        _busy = false;
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

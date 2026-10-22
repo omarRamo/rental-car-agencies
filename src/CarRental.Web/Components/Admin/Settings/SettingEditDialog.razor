@@ -18,6 +18,11 @@
         {
             <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Platform.Current", SettingText.Display(L, Item.Editor.Kind, Item.PlatformOrDefault)]</MudText>
         }
+        else
+        {
+            @* The platform value (support only, ADR-0067) applies to every agency without a value of its own. *@
+            <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Platform.Scope"]</MudText>
+        }
 
         <div class="mt-4" data-setting-editor="@Item.Editor.Kind">
             @switch (Item.Editor.Kind)

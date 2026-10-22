@@ -56,6 +56,30 @@ public sealed class UserAdministrationServiceTests
     }
 
     [Fact]
+    public async Task The_support_lists_the_users_of_an_agency_from_the_platform_pages_only()
+    {
+        var otherAgency = Guid.CreateVersion7();
+        _directory.AddTo(otherAgency, "gerant.sousse@demo.local", Roles.Manager);
+        _directory.AddTo(otherAgency, "agent.sousse@demo.local", Roles.Agent);
+        _directory.Add("support@demo.local", Roles.Support);
+        var support = ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "support@demo.local", Roles.Support));
+        var supportInside = new ScopedUserContext([]);
+        supportInside.Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), "support@demo.local", RolePresets.PermissionsOf(Roles.Support)) with
+        {
+            AgencyId = otherAgency,
+            AllAgencies = true,
+        });
+
+        var users = (await support.ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Value;
+
+        users.Items.Select(u => u.Email).ShouldBe(["gerant.sousse@demo.local", "agent.sousse@demo.local"], ignoreOrder: true);
+        users.Items.ShouldAllBe(u => u.AgencyId == otherAgency);
+        (await AsManager().ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await ServiceFor(supportInside).ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.PlatformScopeRequired);
+        (await support.ListAgencyUsersAsync(Guid.Empty, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.AgencyRequired);
+    }
+
+    [Fact]
     public async Task Create_user_assigns_the_role_sends_an_invitation_and_audits()
     {
         var result = await AsManager().CreateUserAsync(new CreateUserRequest(" agent2@demo.local ", " Agent Deux ", Roles.Agent), Ct);

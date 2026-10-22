@@ -55,4 +55,33 @@ public sealed class LocationTests
         location.Activate();
         location.IsActive.ShouldBeTrue();
     }
+
+    [Fact]
+    public void The_details_change_but_never_the_code()
+    {
+        var location = Location.Create(AgencyId, "MIR", "Monastir", LocationKind.Airport, "Aéroport de Monastir").Value;
+
+        location.UpdateDetails(" Hôtel Riadh ", LocationKind.DeliveryPoint, "  ").IsSuccess.ShouldBeTrue();
+
+        location.Code.ShouldBe("MIR");
+        location.Name.ShouldBe("Hôtel Riadh");
+        location.Kind.ShouldBe(LocationKind.DeliveryPoint);
+        location.Address.ShouldBeNull();
+        location.AgencyId.ShouldBe(AgencyId);
+        location.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Invalid_details_change_nothing()
+    {
+        var location = Location.Create(AgencyId, "SOU", "Sousse centre", LocationKind.AgencyOffice, "Boulevard du 14 Janvier").Value;
+
+        location.UpdateDetails(" ", LocationKind.Airport, null).Error.ShouldBe(ReferentialErrors.LocationNameInvalid);
+        location.UpdateDetails(new string('n', Location.NameMaxLength + 1), LocationKind.Airport, null).Error.ShouldBe(ReferentialErrors.LocationNameInvalid);
+        location.UpdateDetails("Sousse", (LocationKind)42, null).Error.ShouldBe(ReferentialErrors.LocationKindInvalid);
+        location.UpdateDetails("Sousse", LocationKind.Airport, new string('a', Location.AddressMaxLength + 1)).Error
+            .ShouldBe(ReferentialErrors.LocationAddressTooLong);
+
+        (location.Name, location.Kind, location.Address).ShouldBe(("Sousse centre", LocationKind.AgencyOffice, "Boulevard du 14 Janvier"));
+    }
 }
