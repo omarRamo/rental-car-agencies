@@ -36,6 +36,7 @@ public static class PaymentsModule
         services.AddScoped<OnlinePaymentAdministration>();
 
         services.AddSettingDefinitions(PaymentSettings.All);
+        services.AddScoped<IOnlinePaymentAgencyScopes, OnlinePaymentAgencyScopes>();
         services.AddRecurringJob<OnlinePaymentCatchUpJob>();
         services.AddRecurringJob<OnlinePaymentReconciliationJob>();
         return services;

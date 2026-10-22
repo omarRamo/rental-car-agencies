@@ -1,4 +1,5 @@
-@* Takes a security deposit for a booking: card imprint (authorization number), cash (deposit cash of the session) or cheque. *@
+@* Takes a security deposit for a booking of the agency: card imprint (authorization number), cash (deposit cash of the
+   session, offered only when the agency uses the cash module) or cheque. *@
 @inject IOperationRunner Runner
 @inject IStringLocalizer<PaymentsResources> L
 @inject IStringLocalizer<SharedResources> Shared
@@ -6,20 +7,9 @@
 <MudDialog>
     <DialogContent>
         <MudGrid Spacing="2">
-            @if (Agencies.Count > 1)
-            {
-                <MudItem xs="12">
-                    <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                        @foreach (var agency in Agencies)
-                        {
-                            <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-            }
             <MudItem xs="12" sm="6">
                 <MudSelect T="DepositModeInfo" @bind-Value="_mode" Label="@L["Field.DepositMode"]" ToStringFunc="@(m => L[$"DepositMode.{m}"])">
-                    @foreach (var mode in Enum.GetValues<DepositModeInfo>())
+                    @foreach (var mode in PaymentsFormat.DepositModes(CashOffered))
                     {
                         <MudSelectItem T="DepositModeInfo" Value="@mode">@L[$"DepositMode.{mode}"]</MudSelectItem>
                     }
@@ -64,11 +54,13 @@
     [Parameter, EditorRequired]
     public Guid BookingId { get; set; }
 
-    [Parameter]
-    public Guid? AgencyId { get; set; }
+    /// <summary>The agency of the booking (the agency of the session).</summary>
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
 
+    /// <summary>Whether a cash deposit is offered: the agency uses the cash module (ADR-0067).</summary>
     [Parameter]
-    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+    public bool CashOffered { get; set; } = true;
 
     /// <summary>Amount proposed (e.g. the deposit of the category), changeable.</summary>
     [Parameter]
@@ -76,11 +68,9 @@
 
     protected override void OnInitialized()
     {
-        _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _agencyId = AgencyId;
         _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
     }
-
-    private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
 
     private async Task SubmitAsync()
     {

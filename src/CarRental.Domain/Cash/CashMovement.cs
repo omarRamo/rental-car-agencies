@@ -6,7 +6,7 @@ namespace CarRental.Domain.Cash;
 /// A line of a <see cref="CashSession"/>: what moved, by how much, its signed effect on each pocket and what caused it.
 /// Movements are only appended, numbered within their session (<see cref="Sequence"/>), never changed nor removed.
 /// </summary>
-public sealed class CashMovement : Entity
+public sealed class CashMovement : Entity, IAgencyOwned
 {
     public const int ReasonMinLength = 3;
     public const int ReasonMaxLength = 500;
@@ -15,10 +15,11 @@ public sealed class CashMovement : Entity
     {
     }
 
-    private CashMovement(Guid id, Guid sessionId, int sequence, PlannedCashMovement planned, AuditActor by, DateTimeOffset at)
+    private CashMovement(Guid id, Guid sessionId, Guid agencyId, int sequence, PlannedCashMovement planned, AuditActor by, DateTimeOffset at)
         : base(id)
     {
         SessionId = sessionId;
+        AgencyId = agencyId;
         Sequence = sequence;
         Kind = planned.Kind;
         Amount = planned.Amount;
@@ -36,6 +37,9 @@ public sealed class CashMovement : Entity
     }
 
     public Guid SessionId { get; private set; }
+
+    /// <summary>The agency of the session.</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Order within the session (1, 2, 3…): the movements read in this order, independently of the clock.</summary>
     public int Sequence { get; private set; }
@@ -74,8 +78,8 @@ public sealed class CashMovement : Entity
 
     public string? RecordedByName { get; private set; }
 
-    internal static CashMovement Create(Guid sessionId, int sequence, PlannedCashMovement planned, AuditActor by, DateTimeOffset at) =>
-        new(NewId(), sessionId, sequence, planned, by, at);
+    internal static CashMovement Create(Guid sessionId, Guid agencyId, int sequence, PlannedCashMovement planned, AuditActor by, DateTimeOffset at) =>
+        new(NewId(), sessionId, agencyId, sequence, planned, by, at);
 }
 
 /// <summary>A movement checked by the session before it is appended.</summary>

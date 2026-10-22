@@ -14,9 +14,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CarRental.Integration.Tests.Accounting;
 
 /// <summary>
-/// The endpoints of the pre-accounting over HTTP (ADR-0065): the export of the journals in the generic CSV and Excel
-/// formats, never cached, for <c>accounting.manage</c> only; the receipts of the expenses, private, revalidated by entity
-/// tag, for <c>expenses.manage</c> only.
+/// The endpoints of the pre-accounting over HTTP (ADR-0065): the export of the journals of the agency of the session in
+/// the generic CSV and Excel formats, never cached, for <c>accounting.manage</c> only; the receipts of the expenses,
+/// private, revalidated by entity tag, for <c>expenses.manage</c> only.
 /// </summary>
 public sealed class AccountingWebTests(IntegrationHost host)
 {
@@ -28,7 +28,7 @@ public sealed class AccountingWebTests(IntegrationHost host)
     public async Task The_journals_of_the_month_export_as_csv_and_excel_for_the_accountant_only()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
-        await using (var scope = host.CreateScope(FinanceData.Actor(Roles.Agent)))
+        await using (var scope = host.CreateScope(FinanceData.StaffOf(agencyId, Roles.Agent)))
         {
             (await scope.ServiceProvider.GetRequiredService<ICounterPayments>().RecordPaymentAsync(
                 new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.CardTerminal, 245.5m, "TPE-WEB-1"),
@@ -36,20 +36,20 @@ public sealed class AccountingWebTests(IntegrationHost host)
         }
 
         var month = AccountingMonth.Of(TunisTime.Today(TimeProvider.System));
-        var url = $"/admin/accounting/export?agency={agencyId}&from={month}&to={month}&journal=all&format=csv";
+        var url = $"/admin/accounting/export?from={month}&to={month}&journal=all&format=csv";
         using var anonymous = host.CreateClient();
         var refused = await anonymous.GetAsync(new Uri(url, UriKind.Relative), Ct);
         refused.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/login");
 
         using var agent = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(agent, (await TestStaff.CreateAsync(host, Roles.Agent)).Email, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(agent, (await TestStaff.CreateAsync(host, Roles.Agent, agencyId: agencyId)).Email, "/admin", Ct);
         var denied = await agent.GetAsync(new Uri(url, UriKind.Relative), Ct);
         denied.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(denied.Headers.Location!).ShouldContain("/account/access-denied");
 
         using var accountant = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(accountant, (await TestStaff.CreateAsync(host, Roles.Accountant)).Email, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(accountant, (await TestStaff.CreateAsync(host, Roles.Accountant, agencyId: agencyId)).Email, "/admin", Ct);
         var csv = await accountant.GetAsync(new Uri(url, UriKind.Relative), Ct);
 
         csv.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -72,17 +72,42 @@ public sealed class AccountingWebTests(IntegrationHost host)
         (lines.Cell(3, 3).GetString(), lines.Cell(3, 7).GetValue<decimal>()).ShouldBe(("411", 245.5m));
         workbook.Worksheet("Contrôle").Cell(9, 2).GetString().ShouldBe("Oui", "balanced");
 
-        (await accountant.GetAsync(new Uri($"/admin/accounting/export?agency={agencyId}&from=2026-13&format=csv", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await accountant.GetAsync(new Uri("/admin/accounting/export?from=2026-13&format=csv", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await accountant.GetAsync(new Uri(url.Replace("format=csv", "format=sage", StringComparison.Ordinal), UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await accountant.GetAsync(new Uri(url.Replace("journal=all", "journal=XX", StringComparison.Ordinal), UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await accountant.GetAsync(new Uri($"/admin/accounting/export?agency={Guid.CreateVersion7()}&from={month}&format=csv", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task The_export_and_the_receipts_follow_the_modules_of_the_agency()
+    {
+        var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
+        Guid expenseId;
+        await using (var scope = host.CreateScope(FinanceData.StaffOf(agencyId, Roles.Accountant)))
+        {
+            var expenses = scope.ServiceProvider.GetRequiredService<ExpenseService>();
+            expenseId = (await expenses.RecordAsync(Form(agencyId, TunisTime.Today(TimeProvider.System)), Ct)).Value;
+            (await expenses.UploadReceiptAsync(expenseId, "ticket.png", new MemoryStream(Png), Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        using var accountant = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(accountant, (await TestStaff.CreateAsync(host, Roles.Accountant, agencyId: agencyId)).Email, "/admin", Ct);
+        var month = AccountingMonth.Of(TunisTime.Today(TimeProvider.System));
+        var export = new Uri($"/admin/accounting/export?from={month}&format=csv", UriKind.Relative);
+        var receipt = new Uri($"/admin/expenses/{expenseId}/receipt", UriKind.Relative);
+        (await accountant.GetAsync(export, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await accountant.GetAsync(receipt, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await FinanceData.SetModulesAsync(host, agencyId, AgencyModuleCatalog.Defaults & ~(AgencyModules.Accounting | AgencyModules.Cash), Ct);
+
+        HttpSignIn.PathAndQuery((await accountant.GetAsync(export, Ct)).Headers.Location!).ShouldContain("/account/access-denied", customMessage: "the accounting module is off");
+        HttpSignIn.PathAndQuery((await accountant.GetAsync(receipt, Ct)).Headers.Location!).ShouldContain("/account/access-denied", customMessage: "the cash module is off");
     }
 
     [Fact]
     public async Task A_receipt_is_served_privately_to_the_expense_managers_and_revalidated_by_its_entity_tag()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
-        var bookkeeper = FinanceData.Actor(Roles.Accountant);
+        var bookkeeper = FinanceData.StaffOf(agencyId, Roles.Accountant);
         Guid withReceipt;
         Guid withoutReceipt;
         await using (var scope = host.CreateScope(bookkeeper))
@@ -101,11 +126,11 @@ public sealed class AccountingWebTests(IntegrationHost host)
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/login");
 
         using var agent = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(agent, (await TestStaff.CreateAsync(host, Roles.Agent)).Email, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(agent, (await TestStaff.CreateAsync(host, Roles.Agent, agencyId: agencyId)).Email, "/admin", Ct);
         HttpSignIn.PathAndQuery((await agent.GetAsync(url, Ct)).Headers.Location!).ShouldContain("/account/access-denied");
 
         using var accountant = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(accountant, (await TestStaff.CreateAsync(host, Roles.Accountant)).Email, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(accountant, (await TestStaff.CreateAsync(host, Roles.Accountant, agencyId: agencyId)).Email, "/admin", Ct);
         var served = await accountant.GetAsync(url, Ct);
 
         served.StatusCode.ShouldBe(HttpStatusCode.OK);

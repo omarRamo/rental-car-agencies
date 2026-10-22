@@ -3,6 +3,7 @@ using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Cash;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -11,20 +12,27 @@ namespace CarRental.Application.Cash;
 
 /// <summary>
 /// The cash drawer of the acting user for the Payments module: cash payments, refunds and deposits go into the user's
-/// own open session, inside the unit of work of the payment (one transaction for both).
+/// own open session, inside the unit of work of the payment (one transaction for both). An agency without the cash module
+/// (ADR-0067) has no drawer: its cash is refused with a clear reason, never left without a session.
 /// </summary>
 internal sealed class CashDrawer(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
     IUserContext userContext,
     TimeProvider timeProvider,
-    IAccountingPeriods periods) : ICashDrawer
+    IAccountingPeriods periods,
+    IAgencyDirectory agencies) : ICashDrawer
 {
     public async Task<Result<Guid>> GetOpenSessionIdAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
         if (!userContext.HasPermission(Permissions.CashOwn))
         {
             return CashErrors.Forbidden;
+        }
+
+        if (!await agencies.HasModuleAsync(agencyId, AgencyModules.Cash, cancellationToken))
+        {
+            return CashErrors.ModuleOff;
         }
 
         if (userContext.UserId is not { } userId)

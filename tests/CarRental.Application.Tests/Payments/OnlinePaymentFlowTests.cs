@@ -1,6 +1,7 @@
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Tests.Payments.Fakes;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
@@ -77,6 +78,24 @@ public sealed class OnlinePaymentFlowTests
         // A settled payment is not read again on a reload of the return address.
         (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), Ct)).Value.Status.ShouldBe(PaymentStatusInfo.PreAuthorized);
         _harness.CallLog.Entries.Count(e => e.Operation == GatewayOperation.GetOrderStatusExtended).ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task The_catch_up_reads_the_orders_of_every_agency_each_agency_in_a_scope_of_its_own()
+    {
+        var other = Guid.CreateVersion7();
+        _harness.Referential.Agencies.Add(new AgencyInfo(other, "Agence Démo Sousse", "Sousse", null, null, IsActive: true));
+        var online = _harness.Online();
+        var first = (await online.StartPreAuthorizationAsync(_harness.Request(100m), Ct)).Value;
+        var second = (await online.StartPreAuthorizationAsync(_harness.Request(200m) with { AgencyId = other }, Ct)).Value;
+        _harness.Gateway.Pay(_harness.Payment(second.PaymentId).ExternalReference!);
+        _harness.Time.Advance(TimeSpan.FromMinutes(5));
+
+        await _harness.CatchUpJob().ExecuteAsync(Ct);
+
+        _harness.JobAgencies.ShouldBe([_harness.AgencyId, other], ignoreOrder: true);
+        _harness.Payment(first.PaymentId).Status.ShouldBe(PaymentStatus.Pending);
+        _harness.Payment(second.PaymentId).Status.ShouldBe(PaymentStatus.PreAuthorized, "confirmed for its own agency");
     }
 
     [Fact]

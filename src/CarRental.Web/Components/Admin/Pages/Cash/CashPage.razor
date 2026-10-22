@@ -1,5 +1,6 @@
 @page "/admin/cash"
 @attribute [HasPermission(Permissions.CashOwn)]
+@attribute [RequiresModule(AgencyModules.Cash)]
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject TimeProvider Time
@@ -35,17 +36,6 @@
                 <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Open.Title"]</MudText>
                 <MudText Typo="Typo.body2" Class="mb-3">@L["Open.Hint"]</MudText>
                 <MudGrid Spacing="2">
-                    @if (_agencies.Count > 1)
-                    {
-                        <MudItem xs="12" sm="6">
-                            <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                                @foreach (var agency in _agencies)
-                                {
-                                    <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
-                    }
                     <MudItem xs="12" sm="6">
                         <MudNumericField T="decimal?" @bind-Value="_openingFloat" Label="@L["Field.OpeningFloat"]" Min="0m" Format="N3" Adornment="Adornment.End"
                                          AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true"
@@ -53,7 +43,7 @@
                     </MudItem>
                     <MudItem xs="12">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PointOfSale" OnClick="OpenAsync"
-                                   Disabled="@(_busy || _openingFloat is null || _agencyId == Guid.Empty || !RendererInfo.IsInteractive)">@L["Open.Submit"]</MudButton>
+                                   Disabled="@(_busy || _openingFloat is null || Agency is null || !RendererInfo.IsInteractive)">@L["Open.Submit"]</MudButton>
                     </MudItem>
                 </MudGrid>
                 @if (_openError is not null)
@@ -157,10 +147,8 @@
     private MudTable<CashSessionSummary>? _table;
     private CashSessionDetails? _current;
     private IReadOnlyList<CashSessionSummary> _closedToday = [];
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private IReadOnlyList<CashierInfo> _cashiers = [];
     private CashSessionListTotals? _totals;
-    private Guid _agencyId;
     private decimal? _openingFloat;
     private string? _openError;
     private bool _loading = true;
@@ -175,12 +163,13 @@
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
+    /// <summary>The agency of the session (cascaded by the layout): a session is opened in it (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         _canManage = (await AuthenticationState).User.HasPermission(Permissions.CashManage);
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencies = [.. agencies.Where(a => a.IsActive)];
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
         if (_canManage)
         {
             var cashiers = await Runner.RunAsync<ICashSessions, Result<IReadOnlyList<CashierInfo>>>((sessions, ct) => sessions.ListCashiersAsync(ct));
@@ -189,8 +178,6 @@
 
         await LoadMineAsync();
     }
-
-    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
 
     private string CashierName(Guid? id) => _cashiers.FirstOrDefault(c => c.CashierId == id)?.Name ?? string.Empty;
 
@@ -227,9 +214,14 @@
 
     private async Task OpenAsync()
     {
+        if (Agency is not { } agency)
+        {
+            return;
+        }
+
         _busy = true;
         _openError = null;
-        var request = new OpenCashSessionRequest(_agencyId, PaymentsFormat.Value(_openingFloat));
+        var request = new OpenCashSessionRequest(agency.Id, PaymentsFormat.Value(_openingFloat));
         var result = await Runner.RunAsync<ICashSessions, Result<Guid>>((sessions, ct) => sessions.OpenAsync(request, ct));
         _busy = false;
         if (result.IsFailure)

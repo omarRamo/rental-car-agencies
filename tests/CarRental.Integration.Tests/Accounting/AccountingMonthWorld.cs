@@ -16,6 +16,7 @@ using CarRental.Integration.Tests.Billing;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Integration.Tests.Bookings.Handover;
 using CarRental.Integration.Tests.Channels;
+using CarRental.Integration.Tests.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Bookings.BookingWorld;
@@ -42,10 +43,14 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
 
     public SimulatedClock Clock => clock;
 
-    /// <summary>The agency of the month with the stamp duty (1.000) and the management fee of the fines (20.000).</summary>
+    /// <summary>
+    /// The agency of the month, provisioned like an agency the support registers (its own chart of accounts, ADR-0067), with
+    /// the stamp duty (1.000) and the management fee of the fines (20.000).
+    /// </summary>
     public async Task<MonthAgency> AgencyAsync()
     {
         var agency = await BookingWorld.CreateAsync(host, cancellationToken, ecmrVehicles: 5, cdmrVehicles: 0);
+        await FinanceData.ProvisionAsync(host, agency.AgencyId, cancellationToken);
         var legalName = await BillingWorld.IdentifyAsync(host, agency.AgencyId, cancellationToken);
         await SetAsync(host, agency.AgencyId, "billing.stamp_duty", "1.000", cancellationToken);
         await SetAsync(host, agency.AgencyId, "billing.fine_management_fee", "20.000", cancellationToken);

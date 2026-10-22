@@ -40,6 +40,9 @@ internal sealed class BillingStore(
 
     public BillingActor Actor() => new(user.IsSystem ? null : user.UserId, user.UserName);
 
+    /// <summary>True when the operation may bill for <paramref name="agencyId"/>: across agencies, or for that agency (ADR-0067).</summary>
+    public bool WorksFor(Guid agencyId) => user.IsAcrossAgencies || user.AgencyId == agencyId;
+
     /// <summary>The agency of <paramref name="agencyId"/>, or <see langword="null"/>.</summary>
     public async Task<AgencyInfo?> AgencyAsync(Guid agencyId, CancellationToken cancellationToken) =>
         (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId);

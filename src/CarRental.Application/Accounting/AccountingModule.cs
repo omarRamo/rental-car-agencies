@@ -11,7 +11,7 @@ using CarRental.Application.Channels.Contracts;
 using CarRental.Application.Common.Auditing;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
-using CarRental.Application.Common.Seeding;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Referential.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +20,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace CarRental.Application.Accounting;
 
 /// <summary>
-/// Accounting module (package 3B, ADR-0064 and ADR-0065): the chart of accounts and the mapping of the operation types, the
+/// Accounting module (package 3B, ADR-0064 and ADR-0065): the chart of accounts and the mapping of the operation types of
+/// each agency (provisioned with the agency, ADR-0067), the
 /// journals generated from the facts of the other modules (sales, purchases, bank, cash, miscellaneous; every entry
 /// balanced), their exports (generic CSV here, Excel by the web host; TODO(spec): the format of the chartered accountant),
 /// the reconciliations (cash, Clic to Pay with the merchant statement importers, Booking.com) and the monthly closing with
@@ -84,7 +85,7 @@ public static class AccountingModule
             sp.GetRequiredService<IAuditTrail>(),
             sp.GetRequiredService<TimeProvider>()));
 
-        services.AddDataSeeder<AccountingChartSeeder>();
+        services.AddAgencyInitializer<AccountingAgencyInitializer>();
         return services;
     }
 }

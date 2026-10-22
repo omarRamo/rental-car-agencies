@@ -8,7 +8,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CarRental.Infrastructure.Persistence.Configurations.Accounting;
 
-/// <summary>The chart of accounts (temporal table <c>accounting.Accounts</c>): one row per account, its number unique.</summary>
+/// <summary>
+/// The charts of accounts of the agencies (temporal table <c>accounting.Accounts</c>, ADR-0067): one row per account of
+/// an agency, its number unique in the agency.
+/// </summary>
 internal sealed class LedgerAccountConfiguration : IEntityTypeConfiguration<LedgerAccount>
 {
     public void Configure(EntityTypeBuilder<LedgerAccount> builder)
@@ -19,11 +22,12 @@ internal sealed class LedgerAccountConfiguration : IEntityTypeConfiguration<Ledg
         builder.Property(a => a.Label).HasMaxLength(LedgerAccount.LabelMaxLength).IsRequired();
         builder.Property(a => a.ChangedBy).HasMaxLength(AuditActor.UserNameMaxLength);
         builder.Ignore(a => a.Class);
-        builder.HasIndex(a => a.Number).IsUnique();
+        builder.HasOne<Agency>().WithMany().HasForeignKey(a => a.AgencyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(a => new { a.AgencyId, a.Number }).IsUnique();
     }
 }
 
-/// <summary>The mapping of the operation types (temporal table <c>accounting.Mappings</c>): one row per key.</summary>
+/// <summary>The mappings of the operation types of the agencies (temporal table <c>accounting.Mappings</c>): one row per agency and key.</summary>
 internal sealed class AccountMappingConfiguration : IEntityTypeConfiguration<AccountMapping>
 {
     public void Configure(EntityTypeBuilder<AccountMapping> builder)
@@ -33,8 +37,9 @@ internal sealed class AccountMappingConfiguration : IEntityTypeConfiguration<Acc
         builder.Property(m => m.Key).HasMaxLength(AccountMapping.KeyMaxLength).IsUnicode(false).IsRequired();
         builder.Property(m => m.AccountNumber).HasMaxLength(LedgerAccount.NumberMaxLength).IsUnicode(false).IsRequired();
         builder.Property(m => m.ChangedBy).HasMaxLength(AuditActor.UserNameMaxLength);
-        builder.HasIndex(m => m.Key).IsUnique();
-        builder.HasIndex(m => m.AccountNumber);
+        builder.HasOne<Agency>().WithMany().HasForeignKey(m => m.AgencyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => new { m.AgencyId, m.Key }).IsUnique();
+        builder.HasIndex(m => new { m.AgencyId, m.AccountNumber });
     }
 }
 
@@ -156,7 +161,7 @@ internal sealed class StatementLineConfiguration : IEntityTypeConfiguration<Stat
         builder.Property(l => l.Note).HasMaxLength(StatementLine.NoteMaxLength);
         builder.Ignore(l => l.SignedAmount);
         builder.HasIndex(l => new { l.StatementId, l.Position }).IsUnique();
-        builder.HasIndex(l => l.TransactionDate);
-        builder.HasIndex(l => l.SettledOn).HasFilter("[SettledOn] IS NOT NULL");
+        builder.HasIndex(l => new { l.AgencyId, l.TransactionDate });
+        builder.HasIndex(l => new { l.AgencyId, l.SettledOn }).HasFilter("[SettledOn] IS NOT NULL");
     }
 }

@@ -46,10 +46,12 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(p => p.BookingId);
         builder.HasIndex(p => new { p.AgencyId, p.RecordedAtUtc });
 
-        // Daily totals by means of payment (reconciliations): settled payments only.
-        builder.HasIndex(p => p.CapturedAtUtc).HasFilter("[CapturedAtUtc] IS NOT NULL");
+        // Daily totals by means of payment of an agency (reconciliations, journals): settled payments only.
+        builder.HasIndex(p => new { p.AgencyId, p.CapturedAtUtc }).HasFilter("[CapturedAtUtc] IS NOT NULL");
 
-        // Online payments: return from the payment page by gateway order id; catch-up and lists by status and date.
+        // Online payments: return from the payment page by gateway order id; catch-up and lists by status and date. Both
+        // stay global (ADR-0067): the gateway order ids come from the single merchant account of the platform, and the
+        // return of the browser and the catch-up read the orders across agencies.
         var clicToPay = (int)PaymentMethod.ClicToPay;
         builder.HasIndex(p => p.ExternalReference)
             .HasFilter($"[Method] = {clicToPay} AND [ExternalReference] IS NOT NULL")
@@ -62,7 +64,9 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
 /// <summary>
 /// The call log of the payment gateway (append only, never audited row by row: it is itself a log). No credentials, no
-/// card data, no raw answer: only structured fields. Read by payment for the history of the back office.
+/// card data, no raw answer: only structured fields. Read by payment for the history of the back office. A record of the
+/// agency of its payment, or of the platform (no agency) when no stored payment matches its order: no foreign key, like
+/// the audit journals.
 /// </summary>
 internal sealed class GatewayCallLogConfiguration : IEntityTypeConfiguration<GatewayCallLog>
 {

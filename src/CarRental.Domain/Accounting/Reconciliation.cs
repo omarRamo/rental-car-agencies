@@ -7,7 +7,7 @@ namespace CarRental.Domain.Accounting;
 /// explains (its stable key, its area, its amount when it was justified), the reason, who and when. Justifications are only
 /// added, never changed nor removed: the difference stays visible with its history.
 /// </summary>
-public sealed class ReconciliationJustification : AggregateRoot
+public sealed class ReconciliationJustification : AggregateRoot, IAgencyOwned
 {
     public const int ReasonMinLength = 5;
     public const int ReasonMaxLength = 500;
@@ -94,7 +94,7 @@ public sealed class ReconciliationJustification : AggregateRoot
 /// merchant portal. TODO(spec): the format of the SMT statement is unknown; the generic CSV format is documented in
 /// ADR-0064.
 /// </summary>
-public sealed class MerchantStatement : AggregateRoot
+public sealed class MerchantStatement : AggregateRoot, IAgencyOwned
 {
     public const int MaxLines = 5000;
     public const int FileNameMaxLength = 200;
@@ -188,7 +188,7 @@ public sealed class MerchantStatement : AggregateRoot
         var position = 0;
         foreach (var line in lines)
         {
-            statement._lines.Add(StatementLine.Create(statement.Id, ++position, line));
+            statement._lines.Add(StatementLine.Create(statement.Id, agencyId, ++position, line));
         }
 
         statement.Raise(new MerchantStatementRecorded(statement.Id, agencyId, statement._lines.Count));
@@ -201,7 +201,7 @@ public sealed class MerchantStatement : AggregateRoot
 }
 
 /// <summary>A line of a merchant statement: the transaction, the order it belongs to, its amount and, when known, the fee and the settlement.</summary>
-public sealed class StatementLine : Entity
+public sealed class StatementLine : Entity, IAgencyOwned
 {
     public const int ReferenceMaxLength = 64;
     public const int NoteMaxLength = 200;
@@ -210,10 +210,11 @@ public sealed class StatementLine : Entity
     {
     }
 
-    private StatementLine(Guid id, Guid statementId, int position, StatementLineInput input)
+    private StatementLine(Guid id, Guid statementId, Guid agencyId, int position, StatementLineInput input)
         : base(id)
     {
         StatementId = statementId;
+        AgencyId = agencyId;
         Position = position;
         TransactionDate = input.TransactionDate;
         Reference = input.Reference.Trim();
@@ -225,6 +226,9 @@ public sealed class StatementLine : Entity
     }
 
     public Guid StatementId { get; private set; }
+
+    /// <summary>The agency of the statement.</summary>
+    public Guid AgencyId { get; private set; }
 
     public int Position { get; private set; }
 
@@ -249,7 +253,8 @@ public sealed class StatementLine : Entity
     /// <summary>The signed amount for the customer: positive for a payment, negative for a refund.</summary>
     public Money SignedAmount => Kind == StatementLineKind.Refund ? Amount.Negate() : Amount;
 
-    internal static StatementLine Create(Guid statementId, int position, StatementLineInput input) => new(Entity.NewId(), statementId, position, input);
+    internal static StatementLine Create(Guid statementId, Guid agencyId, int position, StatementLineInput input) =>
+        new(Entity.NewId(), statementId, agencyId, position, input);
 }
 
 /// <summary>A statement line as read by an importer or typed by hand.</summary>

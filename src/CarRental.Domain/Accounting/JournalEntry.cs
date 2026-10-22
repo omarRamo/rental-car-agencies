@@ -8,7 +8,11 @@ namespace CarRental.Domain.Accounting;
 /// from the source facts of a period; those of a closed month are frozen with its <see cref="PeriodClosing"/>
 /// (<see cref="ClosingId"/>), never changed afterwards.
 /// </summary>
-public sealed class JournalEntry : Entity
+/// <remarks>
+/// Only the frozen copies are stored: they belong to the agency of their closing (<see cref="AgencyId"/>). An entry
+/// generated from the live facts is a value of the generation, without agency, that the persistence layer refuses to store.
+/// </remarks>
+public sealed class JournalEntry : Entity, IAgencyOwned
 {
     public const int PieceMaxLength = 40;
     public const int LabelMaxLength = 200;
@@ -29,6 +33,9 @@ public sealed class JournalEntry : Entity
         Label = label;
         SourceKey = sourceKey;
     }
+
+    /// <summary>The agency of the closing that froze the entry; empty for an entry generated from the live facts.</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>The closing that froze the entry; <see langword="null"/> for an entry generated from the live facts.</summary>
     public Guid? ClosingId { get; private set; }
@@ -92,19 +99,22 @@ public sealed class JournalEntry : Entity
         var position = 0;
         foreach (var draft in drafts)
         {
-            entry._lines.Add(JournalLine.Create(entry.Id, ++position, draft));
+            entry._lines.Add(JournalLine.Create(entry.Id, entry.AgencyId, ++position, draft));
         }
 
         return entry;
     }
 
-    /// <summary>A copy of the entry frozen by the closing <paramref name="closingId"/> at <paramref name="sequence"/>.</summary>
-    internal JournalEntry FreezeCopy(Guid closingId, int sequence)
+    /// <summary>
+    /// A copy of the entry frozen by the closing <paramref name="closingId"/> of <paramref name="agencyId"/> at
+    /// <paramref name="sequence"/>.
+    /// </summary>
+    internal JournalEntry FreezeCopy(Guid closingId, Guid agencyId, int sequence)
     {
-        var copy = new JournalEntry(NewId(), Journal, Date, Piece, Label, SourceKey) { ClosingId = closingId, Sequence = sequence };
+        var copy = new JournalEntry(NewId(), Journal, Date, Piece, Label, SourceKey) { AgencyId = agencyId, ClosingId = closingId, Sequence = sequence };
         foreach (var line in _lines)
         {
-            copy._lines.Add(JournalLine.Create(copy.Id, line.Position, new JournalLineDraft(line.AccountNumber, line.Label, line.Debit, line.Credit, line.LetteringKey)));
+            copy._lines.Add(JournalLine.Create(copy.Id, agencyId, line.Position, new JournalLineDraft(line.AccountNumber, line.Label, line.Debit, line.Credit, line.LetteringKey)));
         }
 
         return copy;
@@ -123,7 +133,7 @@ public sealed class JournalEntry : Entity
 }
 
 /// <summary>A line of a <see cref="JournalEntry"/>: account, label, debit or credit, lettering key.</summary>
-public sealed class JournalLine : Entity
+public sealed class JournalLine : Entity, IAgencyOwned
 {
     public const int LetteringKeyMaxLength = 40;
 
@@ -131,10 +141,11 @@ public sealed class JournalLine : Entity
     {
     }
 
-    private JournalLine(Guid id, Guid entryId, int position, JournalLineDraft draft)
+    private JournalLine(Guid id, Guid entryId, Guid agencyId, int position, JournalLineDraft draft)
         : base(id)
     {
         EntryId = entryId;
+        AgencyId = agencyId;
         Position = position;
         AccountNumber = draft.AccountNumber;
         Label = draft.Label;
@@ -144,6 +155,9 @@ public sealed class JournalLine : Entity
     }
 
     public Guid EntryId { get; private set; }
+
+    /// <summary>The agency of the entry.</summary>
+    public Guid AgencyId { get; private set; }
 
     public int Position { get; private set; }
 
@@ -164,7 +178,7 @@ public sealed class JournalLine : Entity
     /// <summary>Debit minus credit.</summary>
     public Money Balance => Debit - Credit;
 
-    internal static JournalLine Create(Guid entryId, int position, JournalLineDraft draft) => new(NewId(), entryId, position, draft);
+    internal static JournalLine Create(Guid entryId, Guid agencyId, int position, JournalLineDraft draft) => new(NewId(), entryId, agencyId, position, draft);
 }
 
 /// <summary>A line before it joins an entry: exactly one side positive, in dinars.</summary>

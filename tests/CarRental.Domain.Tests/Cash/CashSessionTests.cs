@@ -72,6 +72,7 @@ public sealed class CashSessionTests
         manualOut.Amount.ShouldBe(Tnd(70.5m));
         manualOut.Reason.ShouldBe("Achat de fournitures");
         manualOut.SessionId.ShouldBe(session.Id);
+        session.Movements.ShouldAllBe(m => m.AgencyId == AgencyId, "a movement belongs to the agency of its session");
         manualOut.RecordedAtUtc.ShouldBe(Morning.AddHours(4));
         manualOut.RecordedByUserId.ShouldBe(Agent.UserId);
         manualOut.RecordedByName.ShouldBe("agent@demo.local");

@@ -48,6 +48,24 @@ public sealed class BillingDocumentPipelineTests
     }
 
     [Fact]
+    public async Task Each_step_runs_as_the_system_working_for_the_agency_of_the_document()
+    {
+        var harness = new BillingHarness();
+        var file = harness.ClosedFile();
+        await harness.Invoicing.IssueRentalInvoiceAsync(file.BookingId, Ct);
+        var invoice = harness.Db.Rows<Invoice>().ShouldHaveSingleItem();
+
+        await harness.DocumentHandler.HandleAsync(harness.Db.Events.OfType<InvoiceIssued>().Single(), Context, Ct);
+        await harness.DocumentHandler.HandleAsync(new BillingDocumentRetryRequested(BillingDocumentType.Invoice, invoice.Id, invoice.AgencyId), Context, Ct);
+        await harness.DocumentHandler.HandleAsync(new BillingDocumentRetryRequested(BillingDocumentType.Invoice, invoice.Id), Context, Ct);
+
+        harness.StepActors.Count.ShouldBe(3);
+        harness.StepActors.ShouldAllBe(a => a.IsSystem && a.UserName == BillingScopes.ActorName && a.CorrelationId == Context.CorrelationId);
+        harness.StepActors.Take(2).ShouldAllBe(a => a.AgencyId == BillingHarness.AgencyId && !a.IsAcrossAgencies, "the agency of the document only");
+        harness.StepActors[2].IsAcrossAgencies.ShouldBeTrue("a request queued before the agencies were separated names none");
+    }
+
+    [Fact]
     public async Task A_replay_after_the_upload_keeps_the_stored_pdf_and_never_writes_it_again()
     {
         // The invoices container is immutable in production (ADR-0061): a PDF uploaded before a crash is kept as is.

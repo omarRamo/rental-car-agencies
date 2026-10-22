@@ -1,6 +1,6 @@
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
-using CarRental.Application.Common.Seeding;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Accounting;
 using CarRental.Domain.Common;
@@ -33,10 +33,11 @@ public sealed record MappingView(
     string? ChangedBy);
 
 /// <summary>
-/// The chart of accounts and the mapping of the operation types (<c>/admin/accounting</c>, permission
-/// <c>accounting.manage</c>, ADR-0065): one chart for the platform (TODO(spec): a chart per agency if the agencies are
-/// distinct companies), seeded with a default inspired by the Tunisian accounting system "to be validated by the chartered
-/// accountant". An account number never changes; an account mapped to an operation type stays active.
+/// The chart of accounts and the mapping of the operation types of the agency of the operation (<c>/admin/accounting</c>,
+/// permission <c>accounting.manage</c>, ADR-0065 and ADR-0067): each agency has its own chart, provisioned with a default
+/// inspired by the Tunisian accounting system "to be validated by the chartered accountant"
+/// (<see cref="AccountingAgencyInitializer"/>). An account number never changes; an account mapped to an operation type
+/// stays active. An operation that works for no agency (the support outside any agency) has no chart.
 /// </summary>
 public sealed class ChartOfAccountsService
 {
@@ -55,13 +56,14 @@ public sealed class ChartOfAccountsService
 
     public async Task<Result<IReadOnlyList<AccountView>>> ListAccountsAsync(CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        var accounts = await _db.Set<LedgerAccount>().AsNoTracking().ToListAsync(cancellationToken);
-        var mappings = await _db.Set<AccountMapping>().AsNoTracking().ToListAsync(cancellationToken);
+        var agencyId = _user.AgencyId!.Value;
+        var accounts = await _db.Set<LedgerAccount>().AsNoTracking().Where(a => a.AgencyId == agencyId).ToListAsync(cancellationToken);
+        var mappings = await _db.Set<AccountMapping>().AsNoTracking().Where(m => m.AgencyId == agencyId).ToListAsync(cancellationToken);
         var keys = mappings.ToLookup(m => m.AccountNumber, m => m.Key, StringComparer.Ordinal);
         return Result.Success<IReadOnlyList<AccountView>>(
         [
@@ -73,13 +75,16 @@ public sealed class ChartOfAccountsService
 
     public async Task<Result<IReadOnlyList<MappingView>>> ListMappingAsync(CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        var accounts = (await _db.Set<LedgerAccount>().AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(a => a.Number, StringComparer.Ordinal);
-        var mappings = (await _db.Set<AccountMapping>().AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(m => m.Key, StringComparer.Ordinal);
+        var agencyId = _user.AgencyId!.Value;
+        var accounts = (await _db.Set<LedgerAccount>().AsNoTracking().Where(a => a.AgencyId == agencyId).ToListAsync(cancellationToken))
+            .ToDictionary(a => a.Number, StringComparer.Ordinal);
+        var mappings = (await _db.Set<AccountMapping>().AsNoTracking().Where(m => m.AgencyId == agencyId).ToListAsync(cancellationToken))
+            .ToDictionary(m => m.Key, StringComparer.Ordinal);
         return Result.Success<IReadOnlyList<MappingView>>(
         [
             .. AccountingMappingCatalog.All.Select(definition =>
@@ -92,21 +97,22 @@ public sealed class ChartOfAccountsService
         ]);
     }
 
-    /// <summary>Adds an account to the chart (its number is unique and never changes).</summary>
+    /// <summary>Adds an account to the chart of the agency (its number is unique in the agency and never changes).</summary>
     public async Task<Result<Guid>> CreateAccountAsync(string number, string label, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        var created = LedgerAccount.Create(number, label, isDefault: false, _user.ToAuditActor(), _clock.GetUtcNow());
+        var agencyId = _user.AgencyId!.Value;
+        var created = LedgerAccount.Create(agencyId, number, label, isDefault: false, _user.ToAuditActor(), _clock.GetUtcNow());
         if (created.IsFailure)
         {
             return created.Error;
         }
 
-        if (await _db.Set<LedgerAccount>().AnyAsync(a => a.Number == created.Value.Number, cancellationToken))
+        if (await _db.Set<LedgerAccount>().AnyAsync(a => a.AgencyId == agencyId && a.Number == created.Value.Number, cancellationToken))
         {
             return AccountingErrors.AccountNumberTaken;
         }
@@ -125,18 +131,19 @@ public sealed class ChartOfAccountsService
     /// <summary>Activates or deactivates an account; an account mapped to an operation type stays active.</summary>
     public async Task<Result> SetAccountActiveAsync(Guid accountId, bool active, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        var account = await _db.Set<LedgerAccount>().FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken);
+        var agencyId = _user.AgencyId!.Value;
+        var account = await _db.Set<LedgerAccount>().FirstOrDefaultAsync(a => a.Id == accountId && a.AgencyId == agencyId, cancellationToken);
         if (account is null)
         {
             return AccountingErrors.AccountNotFound;
         }
 
-        if (!active && await IsMappedAsync(account.Number, cancellationToken))
+        if (!active && await IsMappedAsync(agencyId, account.Number, cancellationToken))
         {
             return AccountingErrors.AccountInUse;
         }
@@ -145,12 +152,12 @@ public sealed class ChartOfAccountsService
         return changed.IsFailure ? changed : await SaveAsync(cancellationToken);
     }
 
-    /// <summary>Maps an operation type to an active account of the chart.</summary>
+    /// <summary>Maps an operation type to an active account of the chart of the agency.</summary>
     public async Task<Result> MapAsync(string key, string accountNumber, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         if (!AccountingMappingCatalog.IsKnown(key))
@@ -158,18 +165,19 @@ public sealed class ChartOfAccountsService
             return AccountingErrors.MappingKeyUnknown;
         }
 
+        var agencyId = _user.AgencyId!.Value;
         var number = LedgerAccount.ValidateNumber(accountNumber);
-        if (number.IsFailure || !await _db.Set<LedgerAccount>().AnyAsync(a => a.Number == number.Value && a.IsActive, cancellationToken))
+        if (number.IsFailure || !await _db.Set<LedgerAccount>().AnyAsync(a => a.AgencyId == agencyId && a.Number == number.Value && a.IsActive, cancellationToken))
         {
             return AccountingErrors.MappingAccountInvalid;
         }
 
         var actor = _user.ToAuditActor();
         var now = _clock.GetUtcNow();
-        var mapping = await _db.Set<AccountMapping>().FirstOrDefaultAsync(m => m.Key == key, cancellationToken);
+        var mapping = await _db.Set<AccountMapping>().FirstOrDefaultAsync(m => m.AgencyId == agencyId && m.Key == key, cancellationToken);
         if (mapping is null)
         {
-            var created = AccountMapping.Create(key, number.Value, actor, now);
+            var created = AccountMapping.Create(agencyId, key, number.Value, actor, now);
             if (created.IsFailure)
             {
                 return created.Error;
@@ -189,26 +197,46 @@ public sealed class ChartOfAccountsService
         return await SaveAsync(cancellationToken);
     }
 
-    /// <summary>The account of every operation type for the generation of the journals (mapped and active accounts only).</summary>
-    internal static async Task<AccountResolver> ResolverAsync(IAppDbContext db, CancellationToken cancellationToken)
+    /// <summary>
+    /// The account of every operation type of <paramref name="agencyId"/> for the generation of its journals (mapped and
+    /// active accounts of its own chart only).
+    /// </summary>
+    internal static async Task<AccountResolver> ResolverAsync(IAppDbContext db, Guid agencyId, CancellationToken cancellationToken)
     {
-        var active = (await db.Set<LedgerAccount>().AsNoTracking().Where(a => a.IsActive).Select(a => a.Number).ToListAsync(cancellationToken))
+        var active = (await db.Set<LedgerAccount>().AsNoTracking().Where(a => a.AgencyId == agencyId && a.IsActive).Select(a => a.Number).ToListAsync(cancellationToken))
             .ToHashSet(StringComparer.Ordinal);
-        var mapped = await db.Set<AccountMapping>().AsNoTracking().ToDictionaryAsync(m => m.Key, m => m.AccountNumber, StringComparer.Ordinal, cancellationToken);
+        var mapped = await db.Set<AccountMapping>()
+            .AsNoTracking()
+            .Where(m => m.AgencyId == agencyId)
+            .ToDictionaryAsync(m => m.Key, m => m.AccountNumber, StringComparer.Ordinal, cancellationToken);
         return new AccountResolver(mapped.Where(m => active.Contains(m.Value)).ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal));
     }
 
-    private async Task<bool> IsMappedAsync(string number, CancellationToken cancellationToken) =>
-        await _db.Set<AccountMapping>().AnyAsync(m => m.AccountNumber == number, cancellationToken);
+    /// <summary>The labels of the accounts of the chart of <paramref name="agencyId"/>, by number.</summary>
+    internal static async Task<IReadOnlyDictionary<string, string>> LabelsAsync(IAppDbContext db, Guid agencyId, CancellationToken cancellationToken) =>
+        await db.Set<LedgerAccount>()
+            .AsNoTracking()
+            .Where(a => a.AgencyId == agencyId)
+            .ToDictionaryAsync(a => a.Number, a => a.Label, StringComparer.Ordinal, cancellationToken);
+
+    /// <summary>Refused without the permission, or for an operation that works for no agency (the chart is the agency's).</summary>
+    private Error? Denied() =>
+        !CanManage ? AccountingErrors.Forbidden
+        : _user.AgencyId is null ? AccountingErrors.AgencyNotFound
+        : null;
+
+    private async Task<bool> IsMappedAsync(Guid agencyId, string number, CancellationToken cancellationToken) =>
+        await _db.Set<AccountMapping>().AnyAsync(m => m.AgencyId == agencyId && m.AccountNumber == number, cancellationToken);
 
     private async Task<Result> ChangeAccountAsync(Guid accountId, Func<LedgerAccount, AuditActor, DateTimeOffset, Result> change, CancellationToken cancellationToken)
     {
-        if (!CanManage)
+        if (Denied() is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        var account = await _db.Set<LedgerAccount>().FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken);
+        var agencyId = _user.AgencyId!.Value;
+        var account = await _db.Set<LedgerAccount>().FirstOrDefaultAsync(a => a.Id == accountId && a.AgencyId == agencyId, cancellationToken);
         if (account is null)
         {
             return AccountingErrors.AccountNotFound;
@@ -237,7 +265,7 @@ public sealed class ChartOfAccountsService
         }
         catch (DbUpdateException)
         {
-            // A concurrent creation won the unique index (account number, mapping key).
+            // A concurrent creation won the unique index (account number, mapping key of the agency).
             return duplicate;
         }
     }
@@ -271,30 +299,40 @@ internal sealed class AccountResolver(IReadOnlyDictionary<string, string> accoun
 }
 
 /// <summary>
-/// Seeds the default chart of accounts and the mapping of every operation type in every environment (reference data):
-/// idempotent, it only adds the accounts and the keys that are missing (a key added by a later version of the catalogue
-/// gets its default account), never changes what the accountant changed.
+/// Provisions the chart of accounts of an agency (ADR-0067): the default chart and the mapping of every operation type,
+/// when the support registers the agency and at every start for each agency. Idempotent: it only adds the accounts and the
+/// keys the agency is missing (a key added by a later version of the catalogue gets its default account), never changes
+/// what the accountant changed.
 /// </summary>
-internal sealed class AccountingChartSeeder(IAppDbContext db, TimeProvider clock) : IDataSeeder
+internal sealed class AccountingAgencyInitializer(IAppDbContext db, TimeProvider clock) : IAgencyInitializer
 {
-    public SeedStage Stage => SeedStage.Reference;
+    public const string ActorName = "system:accounting-chart";
 
-    public int Order => 800;
+    public int Order => 600;
 
-    public async Task SeedAsync(CancellationToken cancellationToken)
+    public async Task InitializeAsync(Guid agencyId, CancellationToken cancellationToken)
     {
-        var actor = AuditActor.System("system:seed");
+        var actor = AuditActor.System(ActorName);
         var now = clock.GetUtcNow();
-        var numbers = (await db.Set<LedgerAccount>().Select(a => a.Number).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
-        foreach (var account in AccountingMappingCatalog.DefaultChart.Where(a => !numbers.Contains(a.Number)))
+        var numbers = (await db.Set<LedgerAccount>().Where(a => a.AgencyId == agencyId).Select(a => a.Number).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.Ordinal);
+        var keys = (await db.Set<AccountMapping>().Where(m => m.AgencyId == agencyId).Select(m => m.Key).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.Ordinal);
+        var accounts = AccountingMappingCatalog.DefaultChart.Where(a => !numbers.Contains(a.Number)).ToList();
+        var definitions = AccountingMappingCatalog.All.Where(d => !keys.Contains(d.Key)).ToList();
+        if (accounts.Count == 0 && definitions.Count == 0)
         {
-            db.Set<LedgerAccount>().Add(LedgerAccount.Create(account.Number, account.Label, isDefault: true, actor, now).Value);
+            return;
         }
 
-        var keys = (await db.Set<AccountMapping>().Select(m => m.Key).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
-        foreach (var definition in AccountingMappingCatalog.All.Where(d => !keys.Contains(d.Key)))
+        foreach (var account in accounts)
         {
-            db.Set<AccountMapping>().Add(AccountMapping.Create(definition.Key, definition.DefaultAccount, actor, now).Value);
+            db.Set<LedgerAccount>().Add(LedgerAccount.Create(agencyId, account.Number, account.Label, isDefault: true, actor, now).Value);
+        }
+
+        foreach (var definition in definitions)
+        {
+            db.Set<AccountMapping>().Add(AccountMapping.Create(agencyId, definition.Key, definition.DefaultAccount, actor, now).Value);
         }
 
         await db.SaveChangesAsync(cancellationToken);

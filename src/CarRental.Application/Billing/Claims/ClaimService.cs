@@ -45,7 +45,8 @@ public sealed class ClaimService
             return BillingErrors.Forbidden;
         }
 
-        var vehicle = await _fleet.GetVehicleAsync(form.VehicleId, cancellationToken);
+        // A claim of an agency the operation does not work for is refused like a vehicle of another agency (ADR-0067).
+        var vehicle = await _store.AgencyAsync(form.AgencyId, cancellationToken) is null ? null : await _fleet.GetVehicleAsync(form.VehicleId, cancellationToken);
         if (vehicle is null || vehicle.AgencyId != form.AgencyId)
         {
             return BillingErrors.ClaimVehicleRequired;
