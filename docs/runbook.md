@@ -387,7 +387,7 @@ Le gérant gère les comptes dans `/admin/users` : **« Nouvel utilisateur »** 
 - [ ] Domaine derrière Cloudflare (« Full (strict) », WebSockets, pas de « Cache Everything », Rocket Loader désactivé), certificat d'origine lié, `HEALTHCHECK_BASE_URL` renseigné, puis **`restrictToCloudflare = true`** et redéploiement ; `https://<webApp>.azurewebsites.net` répond 403.
 - [ ] `ALERT_EMAILS` défini au déploiement de la production, groupe d'actions testé (un e-mail reçu par chaque destinataire) ; surveillance externe gratuite de `https://www.<domaine>/health` ou test de disponibilité (`availabilityTestUrl`) ; `BUDGET_ALERT_EMAIL` défini.
 - [ ] Secrets dans le Key Vault : Clic to Pay (recette Clic to Pay faite), WhatsApp, Turnstile (et `Turnstile__SiteKey`) ; e-mail sur le domaine de l'agence vérifié (SPF, DKIM, DMARC).
-- [ ] Premier gérant créé (`initialManagerEmail`), double authentification enrôlée et **codes de récupération rangés en lieu sûr** ; un second compte de gérant recommandé (secours) ; aucune donnée de démonstration.
+- [ ] Premier compte support créé (`initialSupportEmail`), double authentification enrôlée et **codes de récupération rangés en lieu sûr** ; un second compte support recommandé (secours) ; chaque agence créée depuis `/admin/platform` avec son gérant invité ; aucune donnée de démonstration.
 - [ ] Verrou « CanNotDelete » sur la base et le compte de stockage de production (README de l'infrastructure, section 5.1).
 - [ ] Une restauration d'essai de la base faite et notée ; ce runbook relu, contacts remplis.
 - [ ] GitHub : environnement `prod` limité à `main`, alertes de sécurité de Dependabot activées, analyse CodeQL disponible (dépôt public ou GitHub Advanced Security).

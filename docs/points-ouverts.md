@@ -99,6 +99,23 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Exercice comptable | Exercice = année civile supposée (numéros `DEP-{année}`, mois de clôture) ; qui clôt chaque mois (comptable) et qui rouvre (gérant, avec motif) | Expert-comptable / agence | 3 |
 | Justificatifs des dépenses | Conservés dix ans avec les factures dans le conteneur immuable `invoices` ([ADR-0063](adr/0063-depenses-justificatifs-et-couts-des-vehicules.md)) : durée à confirmer | Expert-comptable | 3 |
 
+## Plateforme multi-agences (ADR-0067)
+
+Ouverts par le passage en service vendu à plusieurs agences ([ADR-0067](adr/0067-plateforme-multi-agences-cloisonnement-support-modules.md)). Les partenaires restent configurés une fois pour toute la plateforme ; chaque point devient nécessaire quand une deuxième agence réelle ouvre le module concerné.
+
+| Sujet | À trancher | Avec qui |
+|---|---|---|
+| Paiement en ligne | Un contrat commerçant Clic to Pay par agence (identifiants par agence dans le Key Vault, choix de la passerelle selon l'agence du paiement) ; d'ici là, une seule boutique encaisse pour la plateforme | Exploitant, agences, STB |
+| WhatsApp | Un numéro WhatsApp Business par agence (routage du webhook par `phone_number_id`) ; d'ici là, un seul numéro sert l'agence désignée par `WhatsApp:AgencyId` | Exploitant, Meta |
+| Booking.com et canaux | Compte fournisseur et certification par agence ; un canal appartient déjà à une agence | Agences, Booking.com |
+| Facturation électronique TTN | Adhésion et certificat par agence (chaque agence est le vendeur de ses factures) | Agences, expert-comptable |
+| E-mails | Adresse d'expédition et domaine vérifié par agence (SPF, DKIM, DMARC) ; d'ici là, l'adresse de la plateforme signe pour toutes | Exploitant |
+| Domaines | Domaine propre d'une agence (`www.agence.tn`) au lieu de `rental.app/agence` : certificat et règle Cloudflare par agence | Exploitant |
+| Page d'accueil de la plateforme | Contenu de `rental.app/` (présentation du service, liste des agences ou non) | Exploitant |
+| Défense en profondeur | Sécurité au niveau des lignes de SQL Server (`SESSION_CONTEXT`) en plus du filtre EF Core et du garde d'écriture | Exploitant |
+| Données partagées entre agences | Liste noire commune des clients indélicats (déclaration INPDP, accord des agences) : aujourd'hui chaque agence a la sienne | Agences, INPDP |
+| Facturation du service | Abonnement des agences à la plateforme (modules facturés, période d'essai) : hors de la plateforme pour l'instant | Exploitant |
+
 ## Incohérences relevées dans la spec v1
 
 À trancher puis corriger dans une v2 de la spec.

@@ -93,7 +93,7 @@
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | OpenTelemetry vers Azure Monitor |
 | `Email:AcsEndpoint`, `Email:SenderAddress` | Azure Communication Services (sinon fichiers `.eml`) |
 | `Seed:Demo`, `Seed:DemoUserPassword`, `Seed:DemoAuthenticatorKey` | Données de démonstration (refusées en production) |
-| `Identity:InitialManagerEmail` | Premier gérant créé au démarrage s'il n'y en a aucun |
+| `Identity:InitialSupportEmail` | Premier compte support (exploitant de la plateforme) créé au démarrage s'il n'y en a aucun ; il crée ensuite les agences et invite leurs gérants (ADR-0067) |
 | `HostFiltering:AllowedHosts`, `HostFiltering:CustomDomains` | Hôtes acceptés (`*.azurewebsites.net` et domaines de l'agence) |
 | `PublicSite:BaseUrl`, `PublicSite:AgencyName`, `PublicSite:WhatsAppNumber` | Liens absolus des e-mails, nom affiché, bouton WhatsApp |
 | `Database:ApplyMigrationsOnStartup` | Migrations au démarrage (développement et tests ; sur Azure : bundle) |
