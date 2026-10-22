@@ -128,8 +128,9 @@ internal static class SessionClaims
 
     /// <summary>
     /// Whether the session of <paramref name="principal"/> may go on: the user exists and is not locked out, their agency is
-    /// not suspended (ADR-0067), the security stamp is unchanged, and no permission of the session was revoked (granted
-    /// ones appear at the next page load).
+    /// not suspended (ADR-0067), the security stamp is unchanged, the session still works for the agency of the user — the
+    /// agency the support entered or left since may differ, without changing the stamp, which would end the support's
+    /// other sessions — and no permission of the session was revoked (granted ones appear at the next page load).
     /// </summary>
     public static async Task<bool> IsStillValidAsync(
         UserManager<ApplicationUser> userManager,
@@ -157,6 +158,13 @@ internal static class SessionClaims
             {
                 return false;
             }
+        }
+
+        // A circuit keeps the agency it opened with: once the support entered another agency (or left it), the circuit
+        // ends and the page reloads over HTTP with the renewed cookie, for the agency now chosen.
+        if (principal.GetAgencyId() != user.CurrentAgencyId)
+        {
+            return false;
         }
 
         var current = await claimsFactory.CreateAsync(user);

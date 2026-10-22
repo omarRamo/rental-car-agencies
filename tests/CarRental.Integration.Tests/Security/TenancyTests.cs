@@ -337,6 +337,32 @@ public sealed class TenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task An_open_circuit_of_the_support_ends_once_the_support_enters_another_agency_or_leaves_it()
+    {
+        var (first, second) = (await NewAgencyAsync("Circuit A"), await NewAgencyAsync("Circuit B"));
+        var (supportId, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        var support = await TestStaff.ActorAsync(host, supportId, supportEmail, Roles.Support);
+        var (managerId, _) = await TestStaff.CreateAsync(host, Roles.Manager, agencyId: first.Id);
+        var managerCircuit = await SessionOfAsync(managerId);
+
+        await SelectAgencyAsync(support, first.Id);
+        var circuitInFirst = await SessionOfAsync(supportId);
+        (await IsStillValidAsync(circuitInFirst)).ShouldBeTrue();
+
+        // From the platform pages of another tab: the stamp stays (the support's other sessions go on), the circuit
+        // opened in the first agency ends at its next revalidation.
+        await SelectAgencyAsync(support, second.Id);
+        (await IsStillValidAsync(circuitInFirst)).ShouldBeFalse("the circuit opened in the first agency no longer works for it");
+        var circuitInSecond = await SessionOfAsync(supportId);
+        (await IsStillValidAsync(circuitInSecond)).ShouldBeTrue();
+
+        await SelectAgencyAsync(support, agencyId: null);
+        (await IsStillValidAsync(circuitInSecond)).ShouldBeFalse("the support left the agency");
+        (await IsStillValidAsync(await SessionOfAsync(supportId))).ShouldBeTrue("a session of the platform pages");
+        (await IsStillValidAsync(managerCircuit)).ShouldBeTrue("a member of the agency always works for it");
+    }
+
+    [Fact]
     public async Task A_member_of_an_agency_never_receives_a_platform_permission()
     {
         var agency = await NewAgencyAsync("Permissions");
@@ -391,5 +417,34 @@ public sealed class TenancyTests(IntegrationHost host)
     {
         var (id, email) = await TestStaff.CreateAsync(host, Roles.Support);
         return await TestStaff.ActorAsync(host, id, email, Roles.Support);
+    }
+
+    /// <summary>The support enters <paramref name="agencyId"/> (or leaves the agency it entered) from the platform pages.</summary>
+    private async Task SelectAgencyAsync(UserContextSnapshot support, Guid? agencyId)
+    {
+        await using var scope = host.CreateScope(support);
+        var sessions = scope.ServiceProvider.GetRequiredService<SupportSessionService>();
+        var selected = agencyId is { } id ? await sessions.EnterAgencyAsync(id, Ct) : await sessions.LeaveAgencyAsync(Ct);
+        selected.IsSuccess.ShouldBeTrue(selected.IsFailure ? selected.Error.ToString() : null);
+    }
+
+    /// <summary>The principal of a session (a circuit) opened now by the user.</summary>
+    private async Task<System.Security.Claims.ClaimsPrincipal> SessionOfAsync(Guid userId)
+    {
+        await using var scope = host.CreateScope();
+        var user = (await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(userId.ToString()))!;
+        return await scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>().CreateAsync(user);
+    }
+
+    /// <summary>The revalidation of an open circuit (<see cref="CarRental.Web.Security.SessionClaims.IsStillValidAsync"/>).</summary>
+    private async Task<bool> IsStillValidAsync(System.Security.Claims.ClaimsPrincipal session)
+    {
+        await using var scope = host.CreateScope();
+        return await CarRental.Web.Security.SessionClaims.IsStillValidAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+            session,
+            scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>().Value,
+            scope.ServiceProvider.GetRequiredService<IAgencyDirectory>());
     }
 }
