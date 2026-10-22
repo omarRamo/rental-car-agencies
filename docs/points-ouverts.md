@@ -82,6 +82,17 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Fiche de désignation | Modèle officiel attendu par chaque autorité (police, garde nationale, municipalités), délai et mode d'envoi ; la plateforme produit une lettre de désignation générique ([ADR-0059](adr/0059-amendes-designation-du-conducteur-et-sinistres.md)) | Agence / avocat | 3 |
 | Sinistres | Comptabilisation des coûts et des remboursements (lot 3B) ; refacturation au client de la franchise au-delà de la caution retenue | Expert-comptable / agence | 3 |
 | Facture hors dossier | Pas de facture manuelle (hors dossier et hors amende) dans le lot 3A : l'agence en a-t-elle besoin ? | Agence | 3 |
+| Plan de comptes par défaut | Valider ou remplacer les comptes semés « à valider par l'expert-comptable » (numéros, libellés) et les correspondances des 49 types d'opération ; un plan et une série par agence si les agences sont des sociétés distinctes ([ADR-0065](adr/0065-plan-de-comptes-journaux-exports-et-cloture.md)) | Expert-comptable | 3 |
+| Format d'export comptable | Logiciel de l'expert-comptable, format d'import, codes des journaux (VT, AC, BQ, CA, OD), numérotation des pièces et lettrage attendus ; d'ici là, CSV et Excel génériques `date, journal, compte, pièce, libellé, débit, crédit, lettrage` avec total de contrôle | Expert-comptable | 3 |
+| Relevé marchand Clic to Pay | Format du relevé de SMT (colonnes, références, dates de remise, frais, mode de mise à disposition) ; d'ici là, CSV générique ou saisie ligne à ligne ([ADR-0064](adr/0064-rapprochements-caisse-clic-to-pay-booking-com.md)) | SMT / banque | 3 |
+| Relevé des versements Booking.com | Format du relevé et détail par réservation, devise, date de valeur ; d'ici là, versement saisi dans l'écran des canaux | Booking.com / agence | 3 |
+| TVA de la commission Booking.com | La commission déduite du versement est passée hors TVA en `6226` : facture de Booking.com avec TVA, autoliquidation, retenue à la source ? | Expert-comptable | 3 |
+| Comptabilisation des cautions | Cautions en `165`, garanties en `5812` (empreinte) et `5813` (chèque en portefeuille, jamais remis à l'encaissement) ; la part retenue règle le client (`411`) et s'encaisse en `532` : à valider, comme le traitement d'un chèque de caution encaissé | Expert-comptable | 3 |
+| Débours et contributions | Amende refacturée en débours (`4671`, sans TVA) et frais de gestion en produit (`7583`) ; contribution journalière en `4367` (compte de l'État, pas un produit) ; écarts de caisse en `658` / `758` ; écarts de versement en attente `471` | Expert-comptable | 3 |
+| TVA des dépenses | TVA récupérable de toutes les dépenses en `4365` : certaines catégories (carburant, véhicules de tourisme) sont-elles exclues du droit à déduction ? | Expert-comptable | 3 |
+| Comptabilisation des sinistres | Coûts et remboursements des sinistres hors journaux (seules les dépenses qui les paient y entrent, en achats) : écritures attendues ? | Expert-comptable | 3 |
+| Exercice comptable | Exercice = année civile supposée (numéros `DEP-{année}`, mois de clôture) ; qui clôt chaque mois (comptable) et qui rouvre (gérant, avec motif) | Expert-comptable / agence | 3 |
+| Justificatifs des dépenses | Conservés dix ans avec les factures dans le conteneur immuable `invoices` ([ADR-0063](adr/0063-depenses-justificatifs-et-couts-des-vehicules.md)) : durée à confirmer | Expert-comptable | 3 |
 
 ## Incohérences relevées dans la spec v1
 
