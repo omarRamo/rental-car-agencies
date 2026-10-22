@@ -17,7 +17,8 @@ internal static class ObservabilitySetup
     /// OpenTelemetry traces, metrics and logs. With <c>APPLICATIONINSIGHTS_CONNECTION_STRING</c> (Azure) the Azure Monitor
     /// distribution exports them (ASP.NET Core, HttpClient and SQL client instrumentation included) with rate-limited
     /// sampling (<c>Observability:TracesPerSecond</c>); otherwise the same instrumentation is added and exported with
-    /// OTLP when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set. Health probes are not traced.
+    /// OTLP when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set. Health probes are not traced; the access tokens of the public
+    /// addresses (<see cref="SecretPaths"/>) are written <c>{token}</c> in the traces and kept out of the logs.
     /// </summary>
     public static WebApplicationBuilder AddCarRentalObservability(this WebApplicationBuilder builder)
     {
@@ -32,7 +33,11 @@ internal static class ObservabilitySetup
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
+
+            // No scopes: the request scope of ASP.NET Core carries the raw path (RequestPath), and the addresses of the
+            // booking funnel and of "Ma réservation" hold access tokens. Logs are tied to their request by the trace
+            // context, whose path is redacted below.
+            logging.IncludeScopes = false;
         });
 
         builder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>

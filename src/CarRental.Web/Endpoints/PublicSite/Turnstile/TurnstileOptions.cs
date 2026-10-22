@@ -25,6 +25,13 @@ public sealed class TurnstileOptions
     /// </summary>
     public bool OfflineTestWidget { get; set; }
 
+    /// <summary>
+    /// Accepts the answers of Cloudflare's test keys (<c>metadata.result_with_testing_key</c>), which carry neither the
+    /// action nor the real host name. Set from the environment only: outside production; never in production, where a
+    /// test secret would accept a token anyone can write.
+    /// </summary>
+    public bool AcceptTestingKeys { get; set; }
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(SiteKey) && !string.IsNullOrWhiteSpace(SecretKey);
 }
 

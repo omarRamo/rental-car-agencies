@@ -13,8 +13,17 @@ public interface ITurnstileVerifier
     /// <param name="token">Value of the <c>cf-turnstile-response</c> form field.</param>
     /// <param name="remoteIp">Client IP (<c>ClientIpResolver</c>), sent to Cloudflare as an extra signal.</param>
     /// <param name="expectedAction">Action declared by the widget (<c>data-action</c>), checked when given.</param>
+    /// <param name="expectedHostname">
+    /// Host name of the site the form was posted to, checked when given against the host name on which the challenge
+    /// was solved (a token obtained on another site with the same site key is refused).
+    /// </param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    Task<TurnstileVerification> VerifyAsync(string? token, string? remoteIp, string? expectedAction = null, CancellationToken cancellationToken = default);
+    Task<TurnstileVerification> VerifyAsync(
+        string? token,
+        string? remoteIp,
+        string? expectedAction = null,
+        string? expectedHostname = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Outcome of a verification: success, or the error codes (Cloudflare's, or ours for local failures).</summary>
@@ -24,6 +33,10 @@ public sealed record TurnstileVerification(bool Success, IReadOnlyList<string> E
     public const string InvalidResponse = "invalid-input-response";
     public const string MissingSecret = "missing-input-secret";
     public const string ActionMismatch = "action-mismatch";
+    public const string HostnameMismatch = "hostname-mismatch";
+
+    /// <summary>The answer came from a test key of Cloudflare (it accepts a token anyone can write): refused in production.</summary>
+    public const string TestingKey = "testing-key";
     public const string Unavailable = "internal-error";
 
     public static TurnstileVerification Passed(string? hostname, string? action) => new(true, [], hostname, action);
@@ -33,7 +46,10 @@ public sealed record TurnstileVerification(bool Success, IReadOnlyList<string> E
 
 /// <summary>
 /// <see cref="ITurnstileVerifier"/> over Cloudflare's siteverify endpoint (typed <see cref="HttpClient"/>). Fails
-/// closed: no secret, no token, a timeout or an unexpected answer all mean "not verified".
+/// closed: no secret, no token, a timeout, an unexpected answer, another action or another host name all mean "not
+/// verified". An answer of a Cloudflare test key (<c>metadata.result_with_testing_key</c>: it carries neither action nor
+/// the real host name) is accepted only where <see cref="TurnstileOptions.AcceptTestingKeys"/> allows it, never in
+/// production.
 /// </summary>
 public sealed partial class TurnstileVerifier(HttpClient httpClient, IOptions<TurnstileOptions> options, ILogger<TurnstileVerifier> logger)
     : ITurnstileVerifier
@@ -41,7 +57,12 @@ public sealed partial class TurnstileVerifier(HttpClient httpClient, IOptions<Tu
     /// <summary>Longest token Cloudflare issues.</summary>
     public const int MaxTokenLength = 2048;
 
-    public async Task<TurnstileVerification> VerifyAsync(string? token, string? remoteIp, string? expectedAction = null, CancellationToken cancellationToken = default)
+    public async Task<TurnstileVerification> VerifyAsync(
+        string? token,
+        string? remoteIp,
+        string? expectedAction = null,
+        string? expectedHostname = null,
+        CancellationToken cancellationToken = default)
     {
         var settings = options.Value;
         if (string.IsNullOrWhiteSpace(settings.SecretKey))
@@ -95,13 +116,33 @@ public sealed partial class TurnstileVerifier(HttpClient httpClient, IOptions<Tu
             return new TurnstileVerification(false, answer.ErrorCodes ?? [], answer.Hostname, answer.Action);
         }
 
-        return expectedAction is not null && !string.Equals(answer.Action, expectedAction, StringComparison.Ordinal)
-            ? new TurnstileVerification(false, [TurnstileVerification.ActionMismatch], answer.Hostname, answer.Action)
+        if (answer.Metadata?.ResultWithTestingKey == true)
+        {
+            // A test key accepts a token anyone can write and reports neither the action nor the host name.
+            if (settings.AcceptTestingKeys)
+            {
+                return TurnstileVerification.Passed(answer.Hostname, answer.Action);
+            }
+
+            LogTestingKey();
+            return new TurnstileVerification(false, [TurnstileVerification.TestingKey], answer.Hostname, answer.Action);
+        }
+
+        if (expectedAction is not null && !string.Equals(answer.Action, expectedAction, StringComparison.Ordinal))
+        {
+            return new TurnstileVerification(false, [TurnstileVerification.ActionMismatch], answer.Hostname, answer.Action);
+        }
+
+        return expectedHostname is not null && !string.Equals(answer.Hostname, expectedHostname, StringComparison.OrdinalIgnoreCase)
+            ? new TurnstileVerification(false, [TurnstileVerification.HostnameMismatch], answer.Hostname, answer.Action)
             : TurnstileVerification.Passed(answer.Hostname, answer.Action);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Turnstile is not configured (Turnstile:SecretKey): protected submissions are refused.")]
     private partial void LogNotConfigured();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Turnstile answered with a Cloudflare test key (Turnstile:SecretKey): protected submissions are refused.")]
+    private partial void LogTestingKey();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Turnstile siteverify answered HTTP {StatusCode}: the submission is not verified.")]
     private partial void LogUnavailable(int statusCode);
@@ -114,5 +155,9 @@ public sealed partial class TurnstileVerifier(HttpClient httpClient, IOptions<Tu
         [property: JsonPropertyName("success")] bool Success,
         [property: JsonPropertyName("error-codes")] string[]? ErrorCodes,
         [property: JsonPropertyName("hostname")] string? Hostname,
-        [property: JsonPropertyName("action")] string? Action);
+        [property: JsonPropertyName("action")] string? Action,
+        [property: JsonPropertyName("metadata")] SiteVerifyMetadata? Metadata);
+
+    /// <summary>Metadata of an answer: whether a test key of Cloudflare produced it.</summary>
+    private sealed record SiteVerifyMetadata([property: JsonPropertyName("result_with_testing_key")] bool? ResultWithTestingKey);
 }

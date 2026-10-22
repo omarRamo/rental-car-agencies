@@ -68,6 +68,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0060](0060-alertes-et-telemetrie-de-sante.md) | Alertes : télémétrie de santé publiée par l'application, règles Azure Monitor à faible coût | Acceptée |
 | [0061](0061-sauvegardes-retention-et-immuabilite.md) | Sauvegardes, rétention longue et factures immuables | Acceptée |
 | [0062](0062-origine-cloudflare-et-revue-de-securite.md) | Origine réservée à Cloudflare et décisions de la revue de sécurité (passe 1) | Acceptée |
+| [0066](0066-revue-de-securite-passe-2.md) | Revue de sécurité, passe 2 : journaux sans jeton, Turnstile lié au site, documents jamais conservés, santé du bot | Acceptée |
 
 ## Modèle
 

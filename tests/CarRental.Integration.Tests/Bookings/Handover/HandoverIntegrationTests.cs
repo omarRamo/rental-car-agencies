@@ -274,6 +274,7 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         contract.StatusCode.ShouldBe(HttpStatusCode.OK);
         contract.Content.Headers.ContentType!.MediaType.ShouldBe("application/pdf");
         contract.Headers.CacheControl!.Private.ShouldBeTrue();
+        contract.Headers.CacheControl.NoStore.ShouldBeTrue("the contract holds personal data: the browser does not keep it either");
         contract.Content.Headers.ContentDisposition!.FileName!.Trim('"').ShouldBe($"{file.Number}-v1.pdf");
         TextOf(await contract.Content.ReadAsByteArrayAsync(Ct)).ShouldContain(file.Number);
 

@@ -124,9 +124,15 @@ internal static class CultureEndpoints
 
 public static class LocalUrls
 {
-    /// <summary>Same rule as ASP.NET Core <c>IsLocalUrl</c>: a rooted path that is not protocol-relative.</summary>
+    /// <summary>
+    /// Same rule as ASP.NET Core <c>IsLocalUrl</c>: a rooted path that is not protocol-relative and holds no control
+    /// character (a browser drops a tab or a line break: <c>/\t/evil.example</c> would become <c>//evil.example</c>, and
+    /// <c>LocalRedirect</c> would throw on it).
+    /// </summary>
     public static bool IsLocal(string? url) =>
         !string.IsNullOrEmpty(url)
         && url[0] == '/'
-        && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'));
+        && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
+        && !url.AsSpan().ContainsAnyInRange('\u0000', '\u001f')
+        && !url.AsSpan().ContainsAnyInRange('\u007f', '\u009f');
 }

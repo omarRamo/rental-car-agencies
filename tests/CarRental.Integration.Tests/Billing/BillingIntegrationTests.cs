@@ -198,15 +198,11 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         var response = await accountant.GetAsync(url, Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.ShouldBe("application/pdf");
-        response.Headers.CacheControl!.Private.ShouldBeTrue();
-        response.Headers.CacheControl.NoCache.ShouldBeTrue();
+        // The buyer is personal data: the browser does not keep the invoice either (security review, pass 2).
+        response.Headers.CacheControl!.NoStore.ShouldBeTrue();
+        response.Headers.CacheControl.Private.ShouldBeTrue();
         response.Content.Headers.ContentDisposition!.FileName!.Trim('"').ShouldBe($"{issued.Number}.pdf");
         TextOf(await response.Content.ReadAsByteArrayAsync(Ct)).ShouldContain(issued.Number);
-        using (var again = new HttpRequestMessage(HttpMethod.Get, url))
-        {
-            again.Headers.IfNoneMatch.Add(response.Headers.ETag.ShouldNotBeNull());
-            (await accountant.SendAsync(again, Ct)).StatusCode.ShouldBe(HttpStatusCode.NotModified);
-        }
 
         // The English courtesy translation is rendered on demand, never kept.
         var english = await accountant.GetAsync(new Uri($"/admin/invoices/{issued.Id:D}/pdf?lang=en", UriKind.Relative), Ct);

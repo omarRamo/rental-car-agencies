@@ -69,7 +69,7 @@ Les secrets sont dans le Key Vault de l'environnement (`kv-carrental-prd-…`), 
 | `WhatsApp--AppSecret` | Vérification de la signature du webhook | Meta for Developers > application > Paramètres > Général | Redémarrer **aussitôt** : entre le changement chez Meta et le redémarrage, les livraisons sont refusées (401) et Meta les relivre plus tard |
 | `WhatsApp--VerifyToken` | Abonnement du webhook | Valeur choisie par vous (longue, aléatoire) | Redémarrer, puis la saisir dans la configuration du webhook chez Meta |
 | `Turnstile--SecretKey` | Vérification anti-robot du tunnel | Cloudflare > Turnstile > widget > « Rotate secret key » | Enregistrer la nouvelle clé et redémarrer aussitôt (les soumissions sont refusées tant que l'application garde l'ancienne) ; la clé de site (`Turnstile__SiteKey`, paramètre d'application, non secrète) ne change pas |
-| Clé du fournisseur d'IA (lot 4B, nom à confirmer à la fusion, par exemple `Anthropic--ApiKey`) | Agent WhatsApp | Console du fournisseur | Redémarrer ; révoquer l'ancienne clé |
+| Clé du fournisseur d'IA : `Ai--ApiKey` (API Claude) ou `Ai--Foundry--ApiKey` (Microsoft Foundry, facultative : sans clé, identité managée) | Agent WhatsApp | Console du fournisseur | Redémarrer ; révoquer l'ancienne clé |
 | `Seed--DemoUserPassword`, `Seed--DemoAuthenticatorKey` | Comptes de démonstration (recette seulement) | Valeurs choisies par vous | Redémarrer la recette |
 | Clé `dataprotection` (clé RSA, pas un secret) | Protège les cookies de session et les jetons | Rotation automatique annuelle | Ne **jamais** désactiver ni supprimer une ancienne version (déconnexion de tous, jetons invalides) |
 
@@ -159,7 +159,13 @@ Un paiement en ligne est signalé à vérifier, ou une capture, une annulation o
 
 #### Entrée whatsapp
 
-Ajoutée par le lot 4B (tours du bot ou envois en attente trop anciens) : section à compléter à sa fusion. En attendant : [WhatsApp](#whatsapp--reprendre-la-main-quand-le-bot-est-en-panne).
+Un message client attend le bot depuis plus de 20 minutes : l'exécuteur des tours ne tourne plus, ou une conversation reste bloquée.
+
+1. Prendre la main sur ces conversations dans `/admin/whatsapp` (le bot se tait) et répondre aux clients.
+2. Vérifier `BackgroundJobs__RunServer=true` et l'entrée `jobs`, puis chercher dans les journaux « WhatsApp bot turn executor: … ».
+3. Vérifier la configuration de l'IA : `Ai__Mode`, le secret `Ai--ApiKey`, le réglage `ai.enabled` et la limite de dépense chez le fournisseur.
+
+L'alerte se résout d'elle-même quand plus aucun message n'attend. Voir aussi [WhatsApp](#whatsapp--reprendre-la-main-quand-le-bot-est-en-panne).
 
 ### Alerte payments-gateway
 

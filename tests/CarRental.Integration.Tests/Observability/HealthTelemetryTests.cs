@@ -1,11 +1,18 @@
+using System.Globalization;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Messaging.Agent.Turns;
 using CarRental.Application.Payments.Online;
 using CarRental.Domain.Common;
+using CarRental.Domain.Messaging;
+using CarRental.Domain.Messaging.Agent;
 using CarRental.Domain.Payments;
+using CarRental.Infrastructure.Messaging.Agent;
 using CarRental.Infrastructure.Observability;
+using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +22,7 @@ namespace CarRental.Integration.Tests.Observability;
 
 /// <summary>
 /// Health entries watched by the alert rules (ADR-0060), on the real application and SQL Server: the publisher of the
-/// telemetry, the entry of the recurring jobs and the entry of the online payments.
+/// telemetry, the entry of the recurring jobs, the entry of the online payments and the entry of the bot turns.
 /// </summary>
 public sealed class HealthTelemetryTests(IntegrationHost host)
 {
@@ -28,7 +35,7 @@ public sealed class HealthTelemetryTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task The_readiness_report_lists_the_jobs_and_the_payments()
+    public async Task The_readiness_report_lists_the_jobs_the_payments_and_the_bot()
     {
         using var client = host.CreateClient();
 
@@ -37,7 +44,7 @@ public sealed class HealthTelemetryTests(IntegrationHost host)
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
         var checks = JsonDocument.Parse(body).RootElement.GetProperty("checks");
-        foreach (var entry in new[] { "sql", "storage", "hangfire", "jobs", "outbox", "channels", "payments" })
+        foreach (var entry in new[] { "sql", "storage", "hangfire", "jobs", "outbox", "channels", "payments", "whatsapp" })
         {
             checks.TryGetProperty(entry, out _).ShouldBeTrue($"{entry}: {body}");
         }
@@ -77,6 +84,54 @@ public sealed class HealthTelemetryTests(IntegrationHost host)
             payment.ClearGatewayAttention().IsSuccess.ShouldBeTrue();
             await db.SaveChangesAsync(Ct);
         }
+    }
+
+    [Fact]
+    public async Task A_customer_message_waiting_for_the_bot_too_long_turns_the_whatsapp_entry_degraded()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var waiting = now - WhatsAppHealthCheck.MinimumStaleAfter - TimeSpan.FromMinutes(10);
+        var conversation = Conversation.Start("+3375" + RandomNumberGenerator.GetInt32(0, 10_000_000).ToString("D7", CultureInfo.InvariantCulture), "Client test", waiting).Value;
+        var message = conversation.ReceiveCustomerMessage($"wamid.TEST{Guid.NewGuid():N}", TextContent.Create("Bonjour ?").Value, waiting, null, waiting);
+        message.BotTurn.ShouldBe(BotTurnState.Pending);
+
+        // A retry due in two hours keeps the executor of the host away from this turn: it waits as a stuck one would.
+        var retry = BotTurnRetry.For(conversation.Id);
+        retry.Failed(now, TimeSpan.FromHours(2));
+        await using (var scope = host.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            db.Set<Conversation>().Add(conversation);
+            db.Set<Message>().Add(message);
+            db.Set<BotTurnRetry>().Add(retry);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        try
+        {
+            var entry = await EntryAsync("whatsapp");
+
+            entry.Status.ShouldBe(HealthStatus.Degraded, entry.Description);
+            entry.Description.ShouldNotBeNull().ShouldContain("/admin/whatsapp");
+            ((int)entry.Data["staleConversations"]).ShouldBeGreaterThanOrEqualTo(1);
+            ((double)entry.Data["oldestPendingMinutes"]).ShouldBeGreaterThanOrEqualTo(30d);
+        }
+        finally
+        {
+            await using var scope = host.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            var stuck = await db.Set<Message>().SingleAsync(m => m.Id == message.Id, Ct);
+            stuck.CompleteBotTurn(BotTurnState.NoReply);
+            db.Set<BotTurnRetry>().Remove(await db.Set<BotTurnRetry>().SingleAsync(r => r.Id == conversation.Id, Ct));
+            await db.SaveChangesAsync(Ct);
+        }
+    }
+
+    [Fact]
+    public void A_turn_may_wait_for_its_retries_and_model_calls_before_the_entry_reports_it()
+    {
+        WhatsAppHealthCheck.StaleAfter(new BotTurnOptions()).ShouldBe(WhatsAppHealthCheck.MinimumStaleAfter, "2 s, then 20 s, 1 and 5 minutes of retries, and the model calls");
+        WhatsAppHealthCheck.StaleAfter(new BotTurnOptions { RetryDelays = "00:10:00;00:30:00" }).ShouldBe(TimeSpan.FromMinutes(50) + TimeSpan.FromSeconds(2));
     }
 
     private async Task<HealthReportEntry> EntryAsync(string name)

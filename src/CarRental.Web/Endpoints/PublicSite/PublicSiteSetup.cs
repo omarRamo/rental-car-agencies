@@ -51,7 +51,8 @@ public static class PublicSiteSetup
 
     /// <summary>
     /// Turnstile options and the verifier (typed <see cref="HttpClient"/>). Development and tests use the always-passing
-    /// test keys of Cloudflare when none is configured; tests also render the widget offline by default.
+    /// test keys of Cloudflare when none is configured; tests also render the widget offline by default. The answers of
+    /// test keys are accepted outside production only, whatever the configuration says.
     /// </summary>
     private static IServiceCollection AddTurnstile(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
@@ -68,6 +69,7 @@ public static class PublicSiteSetup
 
                 options.OfflineTestWidget = !environment.IsProduction()
                     && (configuration.GetValue<bool?>($"{TurnstileOptions.SectionName}:{nameof(TurnstileOptions.OfflineTestWidget)}") ?? testing);
+                options.AcceptTestingKeys = !environment.IsProduction();
             });
         services.AddHttpClient<ITurnstileVerifier, TurnstileVerifier>(client => client.Timeout = TimeSpan.FromSeconds(10));
         return services;

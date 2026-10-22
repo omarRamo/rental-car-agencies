@@ -120,7 +120,10 @@ public static partial class PublicRateLimiting
             });
     }
 
-    /// <summary>429 with <c>Retry-After</c>: ProblemDetails for the APIs, a short localized page otherwise.</summary>
+    /// <summary>
+    /// 429 with <c>Retry-After</c>: ProblemDetails for the APIs, a short localized page otherwise. The refusal is logged
+    /// with the path, its access tokens written <c>{token}</c> (<see cref="SecretPaths"/>), never with the address.
+    /// </summary>
     private static async ValueTask OnRejectedAsync(OnRejectedContext context, CancellationToken cancellationToken)
     {
         var http = context.HttpContext;
@@ -129,7 +132,8 @@ public static partial class PublicRateLimiting
         http.Response.Headers.CacheControl = "no-store";
 
         var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(PublicRateLimiting).FullName!);
-        LogRejected(logger, http.Request.Path.Value ?? string.Empty);
+        var path = http.Request.Path.Value ?? string.Empty;
+        LogRejected(logger, SecretPaths.Redact(path) ?? path);
 
         var localizer = http.RequestServices.GetRequiredService<IStringLocalizer<PublicResources>>();
         if (http.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))

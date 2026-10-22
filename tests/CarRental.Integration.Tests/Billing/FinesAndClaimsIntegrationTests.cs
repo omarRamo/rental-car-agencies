@@ -1,3 +1,4 @@
+using System.Net;
 using CarRental.Application.Billing.Claims;
 using CarRental.Application.Billing.Fines;
 using CarRental.Application.Billing.Invoicing;
@@ -11,6 +12,7 @@ using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Fleet;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Billing.BillingWorld;
@@ -136,6 +138,18 @@ public sealed class FinesAndClaimsIntegrationTests(IntegrationHost host)
         stored.Container.ShouldBe(FileContainers.Inspections);
         stored.Path.ShouldStartWith($"claims/{claimId:N}/");
         (await ReadAsync(host, stored.Container, stored.Path, Ct)).ShouldBe(Jpeg);
+
+        // The papers and photos of a claim hold personal data: served to the claim staff, never kept by a cache.
+        using (var client = host.CreateClient())
+        {
+            var (_, email) = await TestStaff.CreateAsync(host, Roles.Agent);
+            await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
+            var download = await client.GetAsync(new Uri($"/admin/claims/files/{photoId:D}", UriKind.Relative), Ct);
+            download.StatusCode.ShouldBe(HttpStatusCode.OK);
+            download.Content.Headers.ContentType!.MediaType.ShouldBe("image/jpeg");
+            download.Headers.CacheControl!.NoStore.ShouldBeTrue();
+            (await download.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(Jpeg);
+        }
 
         await using (var scope = host.CreateScope())
         {
