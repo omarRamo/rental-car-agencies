@@ -1,4 +1,4 @@
-using CarRental.Application.Messaging.Webhooks;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Web.Hosting;
 using CarRental.Web.Localization;
@@ -54,7 +54,7 @@ public static class PublicSiteAgency
     /// <summary>
     /// The WhatsApp number of the site's button and links: the platform number (<c>PublicSite:WhatsAppNumber</c>, the
     /// partner accounts are the platform's, ADR-0067), only on the site of the agency that number serves — an active
-    /// agency whose WhatsApp module is on (<see cref="WhatsAppAgencyRouting"/>); <see langword="null"/> elsewhere.
+    /// agency whose WhatsApp module is on (<see cref="IWhatsAppNumber"/>); <see langword="null"/> elsewhere.
     /// </summary>
     public static string? WhatsAppNumber(HttpContext context, PublicSiteOptions options)
     {
@@ -78,7 +78,7 @@ public static class PublicSiteAgency
 /// suspended agency or a site whose module is off answer 404 (the status code page then renders, as for any 404).
 /// Whether the platform's WhatsApp number serves the agency is resolved at the same time (button and links of the site).
 /// </summary>
-internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDirectory agencies, WhatsAppAgencyRouting whatsApp)
+internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDirectory agencies, IWhatsAppNumber whatsApp)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -92,8 +92,7 @@ internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDi
                 return;
             }
 
-            var route = await whatsApp.ResolveAsync(context.RequestAborted);
-            PublicSiteAgency.Set(context, agency, route.AgencyId == agency.Id);
+            PublicSiteAgency.Set(context, agency, await whatsApp.ServesAsync(agency.Id, context.RequestAborted));
         }
 
         await next(context);
