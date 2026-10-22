@@ -105,6 +105,8 @@ dotnet run --project src/CarRental.Web     # https://localhost:7180
 
 En développement, l'application applique les migrations et charge les données de démonstration au démarrage : une agence, trois lieux (agence, aéroports TUN et NBE), les paramètres par défaut et trois comptes, `gerant@demo.local`, `agent@demo.local` et `comptable@demo.local`. Leur mot de passe et leur clé TOTP (à saisir dans une application d'authentification) sont dans `src/CarRental.Web/appsettings.Development.json`, valeurs réservées au développement. Les e-mails sont écrits en fichiers `.eml` dans `src/CarRental.Web/App_Data/mail`.
 
+**Sans Docker, au plus près de la production** : avec un SQL Server local (Express suffit), les scripts de [`deploy/local`](deploy/local/README.md) publient le build Release, créent et migrent la base par le bundle de migrations, puis lancent l'application et Azurite en arrière-plan (`install.ps1`, `start.ps1`, `stop.ps1`).
+
 ## Tests
 
 ```bash
