@@ -76,6 +76,25 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         text.ShouldContain("FACTURE");
         text.ShouldContain(file.Number);
 
+        // "Ma réservation" offers the invoice to the customer, for this booking only.
+        await using (var documentsScope = host.CreateScope())
+        {
+            var listed = new List<(ICustomerDocumentProvider Provider, CustomerDocumentInfo Document)>();
+            foreach (var provider in documentsScope.ServiceProvider.GetServices<ICustomerDocumentProvider>())
+            {
+                listed.AddRange((await provider.GetDocumentsAsync(file.BookingId, Ct)).Select(d => (provider, d)));
+            }
+
+            var (billing, document) = listed.Single(d => d.Document.Kind == CustomerDocumentKind.Invoice);
+            document.Number.ShouldBe(invoice.Number);
+            (await billing.OpenAsync(Guid.NewGuid(), document.Id, Ct)).ShouldBeNull();
+            await using var opened = (await billing.OpenAsync(file.BookingId, document.Id, Ct)).ShouldNotBeNull();
+            opened.FileName.ShouldBe($"{invoice.Number}.pdf");
+            using var copy = new MemoryStream();
+            await opened.Content.CopyToAsync(copy, Ct);
+            copy.ToArray().ShouldBe(pdf);
+        }
+
         // The e-mail of the buyer carries the stored PDF.
         invoice.EmailedTo.ShouldBe(file.DriverEmail);
         var email = await QueuedEmailAsync(invoice.Number);

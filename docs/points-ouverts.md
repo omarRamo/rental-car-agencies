@@ -87,7 +87,6 @@ Leurs délais ne dépendent pas du développement ; un retard décale le point d
 | Domaines du widget Turnstile | Le serveur exige désormais que le défi ait été résolu sur l'hôte qui reçoit le formulaire : déclarer dans le widget Cloudflare exactement les noms du site (domaine, `www`, recette) ; une clé de test est refusée en production ([revue de sécurité](securite/revue-owasp-2026-10.md), P2-03, [ADR-0066](adr/0066-revue-de-securite-passe-2.md)) | Agence (infra) | 2 |
 | Durée du lien et du code « Ma réservation » | 30 minutes aujourd'hui (`bookings.my_booking_link_validity`), l'ASVS 2.7.2 recommande 10 : passer à 15 ? Garder `bookings.my_booking_requests_per_hour × bookings.my_booking_code_attempts` sous 100 essais par heure (A-17) | Agence | 2 |
 | Plafond de dépense de l'agent IA | Les plafonds sont par conversation (0,50 USD) : fixer une limite de dépense mensuelle chez le fournisseur (console Anthropic, budget Azure pour Foundry) avant d'ouvrir le bot à tous les numéros (A-22) | Agence | 4 |
-| Factures dans « Ma réservation » | Aucun fournisseur de documents n'est enregistré pour les factures et avoirs (l'ADR-0051 le prévoyait en phase 3) : le client reçoit sa facture par e-mail mais ne la retrouve pas sur sa page | Agence / développement | 3 |
 
 ## Incohérences relevées dans la spec v1
 

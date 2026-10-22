@@ -89,6 +89,7 @@ public static class BillingModule
         // Contracts for the other modules; the Reporting ports (registered before the Reporting module: they win).
         services.AddScoped<IBillingQueries, BillingQueries>();
         services.AddScoped<IInvoicedAmountsSource, InvoicedAmountsSource>();
+        services.AddScoped<ICustomerDocumentProvider, BillingCustomerDocumentProvider>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IVehicleCostsSource, ClaimsVehicleCostsSource>());
 
         // The invoicing moments and what follows an issue, through the outbox.
