@@ -13,7 +13,7 @@ internal sealed class MessagingQueries(IAppDbContext db) : IMessagingQueries
     public async Task<ConversationInfo?> GetConversationAsync(Guid conversationId, CancellationToken cancellationToken = default) =>
         (await db.Set<Conversation>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken))?.ToInfo();
 
-    public async Task<ConversationInfo?> FindByNumberAsync(string whatsAppNumber, CancellationToken cancellationToken = default)
+    public async Task<ConversationInfo?> FindByNumberAsync(Guid agencyId, string whatsAppNumber, CancellationToken cancellationToken = default)
     {
         var number = WhatsAppNumbers.Normalize(whatsAppNumber);
         if (number.IsFailure)
@@ -21,7 +21,7 @@ internal sealed class MessagingQueries(IAppDbContext db) : IMessagingQueries
             return null;
         }
 
-        return (await db.Set<Conversation>().AsNoTracking().FirstOrDefaultAsync(c => c.WhatsAppNumber == number.Value, cancellationToken))?.ToInfo();
+        return (await db.Set<Conversation>().AsNoTracking().FirstOrDefaultAsync(c => c.AgencyId == agencyId && c.WhatsAppNumber == number.Value, cancellationToken))?.ToInfo();
     }
 
     public async Task<IReadOnlyList<ConversationInfo>> GetConversationsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default) =>

@@ -1200,6 +1200,9 @@
   <data name="Error.messaging.disabled" xml:space="preserve">
     <value>WhatsApp is not configured on this platform: no message can be sent.</value>
   </data>
+  <data name="Error.messaging.module_off" xml:space="preserve">
+    <value>WhatsApp is not open for the agency (module switched off or agency suspended): the message was not sent.</value>
+  </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta refused the message.</value>
   </data>

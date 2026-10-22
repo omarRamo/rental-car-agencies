@@ -42,18 +42,12 @@ public sealed partial class TenancyConventionTests
         "QuoteLine", "RentalContract", "ReturnCharge",
         // Cash
         "CashMovement", "CashSession", "Expense", "ExpenseSequence",
-        // Channels
-        "Channel", "ChannelBooking", "ChannelMapping", "ChannelMessageLog", "ChannelPayout", "ChannelQuota",
-        "ChannelReplicationItem", "ChannelSyncItem", "ChannelSyncState",
         // Customers
         "BlacklistEntry", "Consent", "Customer", "DriverSubmission", "IdentityDocument", "Person",
         "StagedDocumentImage", "SubmittedDocument",
         // Fleet
         "DeadlineAlert", "MaintenanceEvent", "MaintenancePlan", "Vehicle", "VehicleCategory", "VehicleCost",
         "VehicleDocument", "VehicleEconomics", "VehicleHistoryEntry", "VehiclePhoto",
-        // Messaging
-        "AgentConversationState", "AgentTurnRecord", "BookingNotification", "BotTurnRetry", "Conversation", "KnowledgeEntry",
-        "Message", "MessageStatusChange",
         // Payments
         "DepositHold", "GatewayCallLog", "Payment",
         // Pricing

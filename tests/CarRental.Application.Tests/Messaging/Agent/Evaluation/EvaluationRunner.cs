@@ -130,7 +130,7 @@ internal static class EvaluationRunner
         foreach (var knowledge in world.Knowledge)
         {
             var content = KnowledgeContent.Create(knowledge.Title, knowledge.Keywords, knowledge.French, knowledge.English, knowledge.Arabic).Value;
-            var entry = KnowledgeEntry.CreateDraft(knowledge.Topic, content, harness.Clock.GetUtcNow()).Value;
+            var entry = KnowledgeEntry.CreateDraft(harness.World.Agency.Id, knowledge.Topic, content, harness.Clock.GetUtcNow()).Value;
             if (knowledge.Validated)
             {
                 entry.Validate(manager, harness.Clock.GetUtcNow()).IsSuccess.ShouldBeTrue(knowledge.Topic);

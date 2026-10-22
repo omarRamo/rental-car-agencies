@@ -7,9 +7,10 @@ namespace CarRental.Domain.Messaging;
 /// reçu, avec son statut de livraison"). Only the conversation creates messages (it enforces the 24-hour window and the
 /// bot/human mode); a message is then loaded on its own — a thread may count hundreds of them — and only its delivery
 /// state changes: acceptance by the Graph API, then the statuses reported by Meta (sent, delivered, read, failed) with
-/// their error code and the pricing category, each status kept once (duplicate webhooks are ignored).
+/// their error code and the pricing category, each status kept once (duplicate webhooks are ignored). It belongs to the
+/// agency of its conversation.
 /// </summary>
-public sealed class Message : AggregateRoot
+public sealed class Message : AggregateRoot, IAgencyOwned
 {
     public const int MetaMessageIdMaxLength = 256;
     public const int AuthorNameMaxLength = AuditActor.UserNameMaxLength;
@@ -25,6 +26,7 @@ public sealed class Message : AggregateRoot
 
     private Message(
         Guid id,
+        Guid agencyId,
         Guid conversationId,
         MessageDirection direction,
         MessageAuthor author,
@@ -34,6 +36,7 @@ public sealed class Message : AggregateRoot
         DateTimeOffset now)
         : base(id)
     {
+        AgencyId = agencyId;
         ConversationId = conversationId;
         Direction = direction;
         Author = author;
@@ -44,6 +47,9 @@ public sealed class Message : AggregateRoot
         OccurredAtUtc = occurredAt.ToUniversalTime();
         CreatedAtUtc = now;
     }
+
+    /// <summary>The agency of the conversation.</summary>
+    public Guid AgencyId { get; private set; }
 
     public Guid ConversationId { get; private set; }
 
@@ -63,7 +69,10 @@ public sealed class Message : AggregateRoot
     /// <summary>Readable text of the content (<see cref="MessageContent.Text"/>), kept in a column for the lists.</summary>
     public string? Text { get; private set; }
 
-    /// <summary>Id of the message at Meta (<c>wamid.…</c>): the deduplication key of inbound messages and of statuses.</summary>
+    /// <summary>
+    /// Id of the message at Meta (<c>wamid.…</c>): the deduplication key of inbound messages and of statuses, unique on
+    /// the whole platform (Meta's own ids, whatever the agency).
+    /// </summary>
     public string? MetaMessageId { get; private set; }
 
     public MessageStatus Status { get; private set; }
@@ -108,17 +117,17 @@ public sealed class Message : AggregateRoot
     public bool IsInbound => Direction == MessageDirection.Inbound;
 
     /// <summary>A customer message (Meta id required), received at <paramref name="sentAt"/>.</summary>
-    internal static Message Inbound(Guid conversationId, string metaMessageId, MessageContent content, DateTimeOffset sentAt, bool botTurn, DateTimeOffset now) =>
-        new(NewId(), conversationId, MessageDirection.Inbound, MessageAuthor.Customer, content, MessageStatus.Received, sentAt, now)
+    internal static Message Inbound(Guid agencyId, Guid conversationId, string metaMessageId, MessageContent content, DateTimeOffset sentAt, bool botTurn, DateTimeOffset now) =>
+        new(NewId(), agencyId, conversationId, MessageDirection.Inbound, MessageAuthor.Customer, content, MessageStatus.Received, sentAt, now)
         {
             MetaMessageId = metaMessageId,
             BotTurn = botTurn ? BotTurnState.Pending : BotTurnState.None,
         };
 
     /// <summary>An outbound message, queued for the outbox (which sends it through the Graph API).</summary>
-    internal static Message Outbound(Guid conversationId, MessageAuthor author, MessageContent content, AuditActor? agent, DateTimeOffset now)
+    internal static Message Outbound(Guid agencyId, Guid conversationId, MessageAuthor author, MessageContent content, AuditActor? agent, DateTimeOffset now)
     {
-        var message = new Message(NewId(), conversationId, MessageDirection.Outbound, author, content, MessageStatus.Queued, now, now)
+        var message = new Message(NewId(), agencyId, conversationId, MessageDirection.Outbound, author, content, MessageStatus.Queued, now, now)
         {
             AuthorUserId = agent?.UserId,
             AuthorName = agent?.UserName is { } name ? MessageTexts.Truncate(name, AuthorNameMaxLength) : null,
@@ -228,7 +237,7 @@ public sealed class Message : AggregateRoot
 
         var at = occurredAt.ToUniversalTime();
         var title = errorTitle is { } text ? MessageTexts.Truncate(text, MetaErrorTitleMaxLength) : null;
-        _statusChanges.Add(MessageStatusChange.Record(Id, status, at, status == MessageStatus.Failed ? errorCode : null, status == MessageStatus.Failed ? title : null, now));
+        _statusChanges.Add(MessageStatusChange.Record(AgencyId, Id, status, at, status == MessageStatus.Failed ? errorCode : null, status == MessageStatus.Failed ? title : null, now));
         switch (status)
         {
             case MessageStatus.Sent:
@@ -291,16 +300,20 @@ public sealed class Message : AggregateRoot
     };
 }
 
-/// <summary>One delivery status of an outbound message, as reported by Meta (each status kept once). Part of <see cref="Message"/>.</summary>
-public sealed class MessageStatusChange : Entity
+/// <summary>
+/// One delivery status of an outbound message, as reported by Meta (each status kept once). Part of <see cref="Message"/>,
+/// whose agency it carries.
+/// </summary>
+public sealed class MessageStatusChange : Entity, IAgencyOwned
 {
     private MessageStatusChange()
     {
     }
 
-    private MessageStatusChange(Guid id, Guid messageId, MessageStatus status, DateTimeOffset occurredAtUtc, int? errorCode, string? errorTitle, DateTimeOffset recordedAtUtc)
+    private MessageStatusChange(Guid id, Guid agencyId, Guid messageId, MessageStatus status, DateTimeOffset occurredAtUtc, int? errorCode, string? errorTitle, DateTimeOffset recordedAtUtc)
         : base(id)
     {
+        AgencyId = agencyId;
         MessageId = messageId;
         Status = status;
         OccurredAtUtc = occurredAtUtc;
@@ -308,6 +321,8 @@ public sealed class MessageStatusChange : Entity
         ErrorTitle = errorTitle;
         RecordedAtUtc = recordedAtUtc;
     }
+
+    public Guid AgencyId { get; private set; }
 
     public Guid MessageId { get; private set; }
 
@@ -323,8 +338,8 @@ public sealed class MessageStatusChange : Entity
     /// <summary>When the platform processed the status.</summary>
     public DateTimeOffset RecordedAtUtc { get; private set; }
 
-    internal static MessageStatusChange Record(Guid messageId, MessageStatus status, DateTimeOffset occurredAt, int? errorCode, string? errorTitle, DateTimeOffset now) =>
-        new(NewId(), messageId, status, occurredAt, errorCode, errorTitle, now);
+    internal static MessageStatusChange Record(Guid agencyId, Guid messageId, MessageStatus status, DateTimeOffset occurredAt, int? errorCode, string? errorTitle, DateTimeOffset now) =>
+        new(NewId(), agencyId, messageId, status, occurredAt, errorCode, errorTitle, now);
 }
 
 /// <summary>Pricing information of a status (Meta <c>pricing</c> object): category, billable flag and pricing model, as reported.</summary>

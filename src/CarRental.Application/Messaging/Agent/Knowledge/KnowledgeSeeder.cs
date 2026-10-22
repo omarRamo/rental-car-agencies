@@ -1,21 +1,21 @@
 using CarRental.Application.Common.Persistence;
-using CarRental.Application.Common.Seeding;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Domain.Messaging.Agent;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Application.Messaging.Agent.Knowledge;
 
 /// <summary>
-/// First answers of the knowledge base, taken from the FAQ of the public site (<c>FaqContent</c>, public resources),
-/// seeded as <b>drafts</b> in every environment: the bot ignores them until a manager reviews and validates them in
-/// <c>/admin/whatsapp/knowledge</c>, so that nothing unvalidated is ever said. Figures that depend on the settings or
-/// the fleet (ages, deposits) are left out of the texts. A topic already present is never touched again.
+/// First answers of the knowledge base of each agency (each agency has its own, ADR-0067), taken from the FAQ of the
+/// public site (<c>FaqContent</c>, public resources), seeded as <b>drafts</b> when an agency is registered and at every
+/// start for the existing agencies (whether its WhatsApp module is on or not, so that they wait for its manager): the bot
+/// ignores them until a manager of the agency reviews and validates them in <c>/admin/whatsapp/knowledge</c>, so that
+/// nothing unvalidated is ever said. Figures that depend on the settings or the fleet (ages, deposits) are left out of the
+/// texts. A topic the agency already has is never touched again.
 /// </summary>
-internal sealed class KnowledgeSeeder(IAppDbContext db, TimeProvider clock) : IDataSeeder
+internal sealed class KnowledgeSeeder(IAppDbContext db, TimeProvider clock) : IAgencyInitializer
 {
-    public SeedStage Stage => SeedStage.Reference;
-
-    public int Order => 210;
+    public int Order => 700;
 
     internal static IReadOnlyList<(string Topic, string Title, string Keywords, string French, string English)> Drafts { get; } =
     [
@@ -48,14 +48,20 @@ internal sealed class KnowledgeSeeder(IAppDbContext db, TimeProvider clock) : ID
             "A minimum age and a minimum licence seniority are required, and a young driver fee may apply: it is included in the price as soon as you enter the driver's date of birth."),
     ];
 
-    public async Task SeedAsync(CancellationToken cancellationToken)
+    public async Task InitializeAsync(Guid agencyId, CancellationToken cancellationToken)
     {
-        var existing = await db.Set<KnowledgeEntry>().Select(e => e.TopicKey).ToListAsync(cancellationToken);
+        var existing = await db.Set<KnowledgeEntry>().Where(e => e.AgencyId == agencyId).Select(e => e.TopicKey).ToListAsync(cancellationToken);
+        var missing = Drafts.Where(d => !existing.Contains(d.Topic)).ToList();
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
         var now = clock.GetUtcNow();
-        foreach (var (topic, title, keywords, french, english) in Drafts.Where(d => !existing.Contains(d.Topic)))
+        foreach (var (topic, title, keywords, french, english) in missing)
         {
             var content = KnowledgeContent.Create(title, keywords, french, english, null).Value;
-            db.Set<KnowledgeEntry>().Add(KnowledgeEntry.CreateDraft(topic, content, now).Value);
+            db.Set<KnowledgeEntry>().Add(KnowledgeEntry.CreateDraft(agencyId, topic, content, now).Value);
         }
 
         await db.SaveChangesAsync(cancellationToken);

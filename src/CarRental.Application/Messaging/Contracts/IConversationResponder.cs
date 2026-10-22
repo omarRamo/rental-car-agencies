@@ -3,7 +3,8 @@ namespace CarRental.Application.Messaging.Contracts;
 /// <summary>
 /// Extension point of the WhatsApp auto-responder (package 4B implements it with the AI agent; the default answers
 /// nothing). The platform calls it at most once per customer turn of a conversation in bot mode, in a DI scope of its
-/// own with the system actor, outside any database transaction, and applies what it returns:
+/// own with the system actor working for the agency of the conversation only (ADR-0067: everything the responder reads
+/// and writes is of that agency), outside any database transaction, and applies what it returns:
 /// <list type="number">
 /// <item>the usage of the turn is added to the counters of the conversation (caps of the bot);</item>
 /// <item>the need replaces the structured need of the conversation;</item>
@@ -30,11 +31,13 @@ public interface IConversationResponder
 }
 
 /// <summary>
-/// One turn of a conversation in bot mode: who writes (number, profile name, linked person, payer and rental file), the
-/// time, the end of the 24-hour window, the need and usage so far, the customer messages of this turn and the earlier
-/// history (both oldest first; the history holds at most <see cref="MaxHistory"/> messages).
+/// One turn of a conversation in bot mode: the agency the customer writes to, who writes (number, profile name, linked
+/// person, payer and rental file), the time, the end of the 24-hour window, the need and usage so far, the customer
+/// messages of this turn and the earlier history (both oldest first; the history holds at most
+/// <see cref="MaxHistory"/> messages).
 /// </summary>
 /// <param name="ConversationId">The conversation.</param>
+/// <param name="AgencyId">The agency of the conversation: the responder only answers about it (places, prices, files, knowledge).</param>
 /// <param name="TriggerMessageId">The latest customer message, which triggered the turn.</param>
 /// <param name="WhatsAppNumber">The customer's number in E.164, e.g. <c>+21698123456</c> (check it against a rental file before giving its status).</param>
 /// <param name="ProfileName">The customer's WhatsApp profile name, if any.</param>
@@ -49,6 +52,7 @@ public interface IConversationResponder
 /// <param name="History">The earlier messages of the conversation, both directions, oldest first.</param>
 public sealed record ConversationTurn(
     Guid ConversationId,
+    Guid AgencyId,
     Guid TriggerMessageId,
     string WhatsAppNumber,
     string? ProfileName,

@@ -153,22 +153,27 @@ public sealed class WhatsAppInboxService(
             return MessagingErrors.Forbidden;
         }
 
-        Guid? bookingId = null;
+        BookingSummaryInfo? booking = null;
         if (!string.IsNullOrWhiteSpace(bookingNumber))
         {
-            var booking = await bookings.FindByNumberAsync(bookingNumber, cancellationToken);
+            booking = await bookings.FindByNumberAsync(bookingNumber, cancellationToken);
             if (booking is null)
             {
                 return MessagingErrors.BookingNotFound;
             }
-
-            bookingId = booking.Id;
         }
 
+        var bookingId = booking?.Id;
         return await ChangeAsync(
             conversationId,
             async (conversation, _, _, ct) =>
             {
+                // Numbers are unique within an agency only (ADR-0067): a file of another agency is no file of this conversation.
+                if (booking is not null && booking.AgencyId != conversation.AgencyId)
+                {
+                    return MessagingErrors.BookingNotFound;
+                }
+
                 conversation.LinkBooking(bookingId);
                 await AuditAsync(MessagingAuditActions.ConversationLinked, conversation, bookingId is { } linked ? $"rental file {linked}" : "rental file unlinked", ct);
                 return Result.Success();
@@ -309,6 +314,7 @@ public sealed class WhatsAppInboxService(
                 EntityType = nameof(Conversation),
                 EntityId = conversation.Id.ToString(),
                 Details = string.Create(CultureInfo.InvariantCulture, $"conversation {conversation.Id}: {details}"),
+                AgencyId = conversation.AgencyId,
             },
             cancellationToken);
 }

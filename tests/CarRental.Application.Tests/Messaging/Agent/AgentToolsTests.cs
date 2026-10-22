@@ -352,6 +352,34 @@ public sealed class AgentToolsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_file_of_another_agency_is_unknown_to_the_bot_even_for_its_driver()
+    {
+        var booking = AddBooking(BookingStatusInfo.Confirmed, mainDriverPhone: Number);
+        _harness.Bookings.Bookings[booking.Id] = booking with { AgencyId = Guid.CreateVersion7() };
+
+        await PlayAsync(ModelStep.Call(BookingStatusTool.ToolName, $$"""{"reference":"{{booking.Number}}"}"""));
+
+        var result = Result(BookingStatusTool.ToolName).GetRawText();
+        result.ShouldContain("introuvable");
+        result.ShouldNotContain(booking.Number);
+    }
+
+    [Fact]
+    public async Task A_number_also_given_by_another_agency_still_finds_the_file_of_the_agency_of_the_conversation()
+    {
+        // Numbers are unique within an agency only (ADR-0067): the file of the other agency is the first with this number.
+        var theirs = AddBooking(BookingStatusInfo.Cancelled, mainDriverPhone: "+21650999999");
+        var mine = AddBooking(BookingStatusInfo.Confirmed, mainDriverPhone: Number);
+        _harness.Bookings.Bookings[theirs.Id] = theirs with { AgencyId = Guid.CreateVersion7(), Number = mine.Number };
+
+        await PlayAsync(ModelStep.Call(BookingStatusTool.ToolName, $$"""{"reference":"{{mine.Number}}"}"""));
+
+        var result = Result(BookingStatusTool.ToolName);
+        result.GetProperty("statut").GetString().ShouldBe("trouve");
+        result.GetProperty("etat").GetString().ShouldBe("confirmée par l'agence");
+    }
+
+    [Fact]
     public async Task A_promise_on_a_file_not_confirmed_is_still_blocked()
     {
         var booking = AddBooking(BookingStatusInfo.PendingValidation, mainDriverPhone: Number);
@@ -414,7 +442,7 @@ public sealed class AgentToolsTests : IAsyncDisposable
 
     private KnowledgeEntry Entry(string topic, string title, string french, string? english = null, string? arabic = null, AuditActor? validate = null)
     {
-        var entry = KnowledgeEntry.CreateDraft(topic, KnowledgeContent.Create(title, null, french, english ?? french, arabic).Value, _harness.Clock.GetUtcNow()).Value;
+        var entry = KnowledgeEntry.CreateDraft(_harness.World.Agency.Id, topic, KnowledgeContent.Create(title, null, french, english ?? french, arabic).Value, _harness.Clock.GetUtcNow()).Value;
         if (validate is not null)
         {
             entry.Validate(validate, _harness.Clock.GetUtcNow()).IsSuccess.ShouldBeTrue();

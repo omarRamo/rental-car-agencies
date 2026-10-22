@@ -41,9 +41,9 @@ public sealed record AgentBookingCost(Guid BookingId, string? BookingNumber, int
 }
 
 /// <summary>
-/// The cost reports of the WhatsApp agent (permission <c>reports.read</c>): by month from its turn records, and by rental
-/// file from the usage of the conversations linked to it (conception phase 4 §2: « cumulés par conversation et par
-/// dossier attribué » — the cost of one conversation is shown in the inbox).
+/// The cost reports of the WhatsApp agent of the agency of the operation (permission <c>reports.read</c>): by month from
+/// its turn records, and by rental file from the usage of the conversations linked to it (conception phase 4 §2:
+/// « cumulés par conversation et par dossier attribué » — the cost of one conversation is shown in the inbox).
 /// </summary>
 public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimeProvider clock, IBookingsQueries bookings)
 {
@@ -58,7 +58,7 @@ public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimePr
     /// <summary>The last <paramref name="months"/> months (the current one first), months without turns included.</summary>
     public async Task<Result<IReadOnlyList<AgentMonthSummary>>> MonthlyAsync(int months, CancellationToken cancellationToken)
     {
-        if (!user.HasPermission(Permissions.ReportsRead))
+        if (!user.HasPermission(Permissions.ReportsRead) || user.AgencyId is not { } agencyId)
         {
             return MessagingErrors.Forbidden;
         }
@@ -69,7 +69,7 @@ public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimePr
         var since = TunisTime.StartOfDay(first);
         var records = await db.Set<AgentTurnRecord>()
             .AsNoTracking()
-            .Where(r => r.OccurredAtUtc >= since)
+            .Where(r => r.AgencyId == agencyId && r.OccurredAtUtc >= since)
             .Select(r => new
             {
                 r.OccurredAtUtc,
@@ -115,14 +115,14 @@ public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimePr
     public async Task<Result<PagedResult<AgentBookingCost>>> ByBookingAsync(PageRequest page, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(page);
-        if (!user.HasPermission(Permissions.ReportsRead))
+        if (!user.HasPermission(Permissions.ReportsRead) || user.AgencyId is not { } agencyId)
         {
             return MessagingErrors.Forbidden;
         }
 
         var byBooking = db.Set<Conversation>()
             .AsNoTracking()
-            .Where(c => c.BookingId != null && c.Usage.BotTurns > 0)
+            .Where(c => c.AgencyId == agencyId && c.BookingId != null && c.Usage.BotTurns > 0)
             .GroupBy(c => c.BookingId!.Value)
             .Select(g => new
             {
@@ -143,7 +143,8 @@ public sealed class AgentCostQueries(IAppDbContext db, IUserContext user, TimePr
         foreach (var row in rows)
         {
             var booking = await bookings.GetSummaryAsync(row.BookingId, cancellationToken);
-            items.Add(new AgentBookingCost(row.BookingId, booking?.Number, row.Conversations, row.BotTurns, row.AiCostUsd, row.MetaCostUsd));
+            var number = booking is not null && booking.AgencyId == agencyId ? booking.Number : null;
+            items.Add(new AgentBookingCost(row.BookingId, number, row.Conversations, row.BotTurns, row.AiCostUsd, row.MetaCostUsd));
         }
 
         return new PagedResult<AgentBookingCost>(items, total, page.Page, page.PageSize);

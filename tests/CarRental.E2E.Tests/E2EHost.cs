@@ -40,6 +40,9 @@ public sealed class E2EHost : IAsyncLifetime
         Factory = new CarRentalAppFactory(Containers, "CarRental_E2E");
         BaseAddress = Factory.CreateKestrel();
 
+        // The WhatsApp inbox and the channel screens of the demo agency need its optional modules (off by default, ADR-0067).
+        await TestModules.EnableBySlugAsync(Factory.Services, TestModules.DemoAgencySlug, TestModules.DemoModules);
+
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
     }

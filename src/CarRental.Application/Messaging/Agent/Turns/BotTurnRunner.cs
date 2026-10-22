@@ -29,12 +29,13 @@ public enum BotTurnRunOutcome
 }
 
 /// <summary>
-/// Runs the pending bot turn of one conversation (ADR-0054), under the conversation's turn lock: prepares the turn of the
-/// latest pending customer message (it answers the whole burst), calls the responder outside any transaction, applies
-/// its reply on fresh data (a takeover committed meanwhile wins). A failure of the responder schedules a retry with a
-/// growing delay; after the last attempt the conversation is handed over to a human with a polite message — a turn is
-/// never dropped silently. The state lives in the database (pending messages, <see cref="BotTurnRetry"/>), so a restart
-/// loses nothing.
+/// Runs the pending bot turn of one conversation (ADR-0054), under the conversation's turn lock, each step working for
+/// the agency of the conversation (ADR-0067): prepares the turn of the latest pending customer message (it answers the
+/// whole burst), calls the responder outside any transaction, applies its reply on fresh data (a takeover committed
+/// meanwhile wins). A failure of the responder schedules a retry with a growing delay; after the last attempt the
+/// conversation is handed over to a human with a polite message — a turn is never dropped silently. The state lives in
+/// the database (pending messages, <see cref="BotTurnRetry"/>), so a restart loses nothing. An agency suspended or whose
+/// WhatsApp module is off gets no turn: its messages wait for the module (the queue leaves them out).
 /// </summary>
 public interface IBotTurnRunner
 {
@@ -71,13 +72,20 @@ internal sealed partial class BotTurnRunner(
 
         await using (lease)
         {
+            if (await scopes.AgencyOfConversationAsync(conversationId, cancellationToken) is not { } agencyId
+                || !await scopes.IsOpenAsync(agencyId, cancellationToken))
+            {
+                return BotTurnRunOutcome.NoTurn;
+            }
+
             var turn = await scopes.RunAsync<ConversationTurns, ConversationTurn?>(
                 (turns, ct) => turns.PrepareLatestAsync(conversationId, ct),
                 correlationId: null,
-                cancellationToken);
+                cancellationToken,
+                agencyId);
             if (turn is null)
             {
-                await scopes.RunAsync<BotTurnRetries, bool>((retries, ct) => retries.ClearAsync(conversationId, ct), null, cancellationToken);
+                await scopes.RunAsync<BotTurnRetries, bool>((retries, ct) => retries.ClearAsync(conversationId, ct), null, cancellationToken, agencyId);
                 return BotTurnRunOutcome.NoTurn;
             }
 
@@ -88,14 +96,16 @@ internal sealed partial class BotTurnRunner(
                 reply = await scopes.RunOnceAsync<IConversationResponder, ConversationReply>(
                     (responder, ct) => responder.RespondAsync(turn, ct),
                     correlationId: null,
-                    cancellationToken) ?? ConversationReply.None;
+                    cancellationToken,
+                    agencyId) ?? ConversationReply.None;
             }
             catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 var attempts = await scopes.RunAsync<BotTurnRetries, int>(
-                    (retries, ct) => retries.RecordFailureAsync(conversationId, options.Value, ct),
+                    (retries, ct) => retries.RecordFailureAsync(conversationId, agencyId, options.Value, ct),
                     null,
-                    cancellationToken);
+                    cancellationToken,
+                    agencyId);
                 LogFailed(exception.GetType().Name, attempts, options.Value.MaxAttempts);
                 if (attempts < options.Value.MaxAttempts)
                 {
@@ -107,8 +117,8 @@ internal sealed partial class BotTurnRunner(
                 outcome = BotTurnRunOutcome.HandedOver;
             }
 
-            await scopes.RunAsync<ConversationTurns, bool>((turns, ct) => turns.ApplyAsync(turn, reply, ct), null, cancellationToken);
-            await scopes.RunAsync<BotTurnRetries, bool>((retries, ct) => retries.ClearAsync(conversationId, ct), null, cancellationToken);
+            await scopes.RunAsync<ConversationTurns, bool>((turns, ct) => turns.ApplyAsync(turn, reply, ct), null, cancellationToken, agencyId);
+            await scopes.RunAsync<BotTurnRetries, bool>((retries, ct) => retries.ClearAsync(conversationId, ct), null, cancellationToken, agencyId);
             return outcome;
         }
     }
@@ -120,14 +130,14 @@ internal sealed partial class BotTurnRunner(
 /// <summary>The retries of the bot turns (<see cref="BotTurnRetry"/>), each step in a scope of its own.</summary>
 internal sealed class BotTurnRetries(IAppDbContext db, TimeProvider clock)
 {
-    /// <summary>Counts a failed attempt and schedules the next one; returns the attempts so far.</summary>
-    public async Task<int> RecordFailureAsync(Guid conversationId, BotTurnOptions options, CancellationToken cancellationToken)
+    /// <summary>Counts a failed attempt of the conversation of <paramref name="agencyId"/> and schedules the next one; returns the attempts so far.</summary>
+    public async Task<int> RecordFailureAsync(Guid conversationId, Guid agencyId, BotTurnOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         var retry = await db.Set<BotTurnRetry>().FirstOrDefaultAsync(r => r.Id == conversationId, cancellationToken);
         if (retry is null)
         {
-            retry = BotTurnRetry.For(conversationId);
+            retry = BotTurnRetry.For(conversationId, agencyId);
             db.Set<BotTurnRetry>().Add(retry);
         }
 
@@ -153,19 +163,25 @@ internal sealed class BotTurnRetries(IAppDbContext db, TimeProvider clock)
 /// <summary>
 /// The queue of the bot turn executor, read from the messages themselves: the conversations with a pending customer
 /// message whose customer has been quiet for <see cref="BotTurnOptions.QuietPeriod"/> and whose retry, if any, is due —
-/// the oldest first.
+/// the oldest first —, of the active agencies whose WhatsApp module is on (the others' messages wait for the module).
 /// </summary>
-internal sealed class BotTurnQueue(IAppDbContext db, TimeProvider clock) : IBotTurnQueue
+internal sealed class BotTurnQueue(IAppDbContext db, MessagingScopes scopes, TimeProvider clock) : IBotTurnQueue
 {
     public async Task<IReadOnlyList<Guid>> DueAsync(BotTurnOptions options, IReadOnlyCollection<Guid> running, int take, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(running);
+        var open = await scopes.OpenAgenciesAsync(cancellationToken);
+        if (open.Count == 0)
+        {
+            return [];
+        }
+
         var now = clock.GetUtcNow();
         var quietSince = now - options.QuietPeriod;
         var runningIds = running.ToList();
         var pending = db.Set<Message>()
-            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending)
+            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending && open.Contains(m.AgencyId))
             .GroupBy(m => m.ConversationId)
             .Select(g => new { ConversationId = g.Key, Latest = g.Max(m => m.CreatedAtUtc) });
         var due = from p in pending
@@ -187,9 +203,15 @@ internal sealed class BotTurnQueue(IAppDbContext db, TimeProvider clock) : IBotT
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(excluded);
+        var open = await scopes.OpenAgenciesAsync(cancellationToken);
+        if (open.Count == 0)
+        {
+            return null;
+        }
+
         var excludedIds = excluded.ToList();
         var latest = await db.Set<Message>()
-            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending && !excludedIds.Contains(m.ConversationId))
+            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending && open.Contains(m.AgencyId) && !excludedIds.Contains(m.ConversationId))
             .GroupBy(m => m.ConversationId)
             .Select(g => new { ConversationId = g.Key, Latest = g.Max(m => m.CreatedAtUtc) })
             .ToListAsync(cancellationToken);

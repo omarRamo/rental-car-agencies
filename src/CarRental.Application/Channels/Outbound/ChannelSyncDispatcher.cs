@@ -4,7 +4,9 @@ using CarRental.Application.Channels.Adapters;
 using CarRental.Application.Channels.Core;
 using CarRental.Application.Channels.Logging;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Pricing.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +26,19 @@ public sealed record ChannelSyncRunResult(int Enqueued, int Sent, int Failed, in
 /// are taken (claims: two runs never send the same item), built from fresh data, sent through the adapter, and kept
 /// with their payload, or retried with growing delays and finally failed for good.
 /// </summary>
+/// <remarks>
+/// Only the channels of the active agencies whose channels module is on take part (ADR-0067): the work of the others
+/// waits for the module (their queued updates stay pending, sent with fresh data once it is back). A run of the pump or
+/// the jobs works across agencies and takes the changes recorded for every agency; a run from the screen works for the
+/// agency of the operation only and leaves the recorded changes to the pump, which it wakes.
+/// </remarks>
 public sealed partial class ChannelSyncDispatcher
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private readonly IAppDbContext _db;
+    private readonly IUserContext _user;
+    private readonly IAgencyDirectory _agencies;
     private readonly ChannelSyncSignal _signal;
     private readonly ChannelSyncQueue _queue;
     private readonly ChannelSyncPayloads _payloads;
@@ -42,6 +52,8 @@ public sealed partial class ChannelSyncDispatcher
 
     internal ChannelSyncDispatcher(
         IAppDbContext db,
+        IUserContext user,
+        IAgencyDirectory agencies,
         ChannelSyncSignal signal,
         ChannelSyncQueue queue,
         ChannelSyncPayloads payloads,
@@ -54,6 +66,8 @@ public sealed partial class ChannelSyncDispatcher
         ILogger<ChannelSyncDispatcher> logger)
     {
         _db = db;
+        _user = user;
+        _agencies = agencies;
         _signal = signal;
         _queue = queue;
         _payloads = payloads;
@@ -68,9 +82,27 @@ public sealed partial class ChannelSyncDispatcher
 
     public async Task<ChannelSyncRunResult> RunAsync(CancellationToken cancellationToken)
     {
-        var enqueued = await EnqueueChangesAsync(_signal.Drain(), cancellationToken);
-        var (priceUpdates, reminders) = await CheckPricesAsync(cancellationToken);
-        var (sent, failed, skipped) = await SendDueAsync(cancellationToken);
+        var agencies = await OpenAgenciesAsync(cancellationToken);
+        ChannelSyncChanges changes;
+        if (_user.IsAcrossAgencies)
+        {
+            changes = _signal.Drain();
+        }
+        else
+        {
+            // The recorded changes concern every agency: the pump takes them.
+            changes = ChannelSyncChanges.None;
+            _signal.Wake();
+        }
+
+        if (agencies.Count == 0)
+        {
+            return new ChannelSyncRunResult(0, 0, 0, 0, 0);
+        }
+
+        var enqueued = await EnqueueChangesAsync(changes, agencies, cancellationToken);
+        var (priceUpdates, reminders) = await CheckPricesAsync(agencies, cancellationToken);
+        var (sent, failed, skipped) = await SendDueAsync(agencies, cancellationToken);
         var result = new ChannelSyncRunResult(enqueued + priceUpdates, sent, failed, skipped, reminders);
         if (result != new ChannelSyncRunResult(0, 0, 0, 0, 0))
         {
@@ -80,14 +112,18 @@ public sealed partial class ChannelSyncDispatcher
         return result;
     }
 
-    /// <summary>Queues a full resynchronization of every connected channel (nightly job).</summary>
+    /// <summary>Queues a full resynchronization of every connected channel of an agency whose channels module is on (nightly job).</summary>
     public async Task<int> EnqueueFullResyncAsync(string reason, CancellationToken cancellationToken)
     {
-        var channels = await _db.Set<Channel>().Where(c => c.State == ChannelState.Connected).Select(c => c.Id).ToListAsync(cancellationToken);
-        foreach (var channelId in channels)
+        var agencies = await OpenAgenciesAsync(cancellationToken);
+        var channels = await _db.Set<Channel>()
+            .Where(c => c.State == ChannelState.Connected && agencies.Contains(c.AgencyId))
+            .Select(c => new { c.Id, c.AgencyId })
+            .ToListAsync(cancellationToken);
+        foreach (var channel in channels)
         {
-            await _queue.EnqueueAsync(channelId, ChannelSyncOperation.FullResync, null, reason, cancellationToken, immediate: true);
-            var state = await StateOfAsync(channelId, cancellationToken);
+            await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.FullResync, null, reason, cancellationToken, immediate: true);
+            var state = await StateOfAsync(channel.Id, channel.AgencyId, cancellationToken);
             state.FullResyncRequested(_clock.GetUtcNow());
         }
 
@@ -96,7 +132,17 @@ public sealed partial class ChannelSyncDispatcher
         return channels.Count;
     }
 
-    private async Task<int> EnqueueChangesAsync(ChannelSyncChanges changes, CancellationToken cancellationToken)
+    /// <summary>
+    /// The active agencies whose channels module is on, among those the operation works for: every one across agencies,
+    /// the agency of the operation otherwise.
+    /// </summary>
+    private async Task<IReadOnlyList<Guid>> OpenAgenciesAsync(CancellationToken cancellationToken)
+    {
+        var open = (await _agencies.ListAsync(cancellationToken)).Where(a => a.IsActive && a.HasModule(AgencyModules.Channels)).Select(a => a.Id);
+        return _user.IsAcrossAgencies ? [.. open] : [.. open.Where(id => id == _user.AgencyId)];
+    }
+
+    private async Task<int> EnqueueChangesAsync(ChannelSyncChanges changes, IReadOnlyList<Guid> agencies, CancellationToken cancellationToken)
     {
         if (changes.IsEmpty)
         {
@@ -106,10 +152,13 @@ public sealed partial class ChannelSyncDispatcher
         var count = 0;
         if (changes.All)
         {
-            var connected = await _db.Set<Channel>().Where(c => c.State == ChannelState.Connected).Select(c => c.Id).ToListAsync(cancellationToken);
-            foreach (var channelId in connected)
+            var connected = await _db.Set<Channel>()
+                .Where(c => c.State == ChannelState.Connected && agencies.Contains(c.AgencyId))
+                .Select(c => new { c.Id, c.AgencyId })
+                .ToListAsync(cancellationToken);
+            foreach (var channel in connected)
             {
-                await _queue.EnqueueAsync(channelId, ChannelSyncOperation.PushAvailability, null, "availability", cancellationToken, immediate: true);
+                await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.PushAvailability, null, "availability", cancellationToken, immediate: true);
                 count++;
             }
         }
@@ -119,12 +168,13 @@ public sealed partial class ChannelSyncDispatcher
             var targets = await (
                     from mapping in _db.Set<ChannelMapping>()
                     join channel in _db.Set<Channel>() on mapping.ChannelId equals channel.Id
-                    where channel.State == ChannelState.Connected && mapping.Kind == ChannelMappingKind.Category && mapping.InternalId != null && categories.Contains(mapping.InternalId.Value)
-                    select new { mapping.ChannelId, CategoryId = mapping.InternalId!.Value })
+                    where channel.State == ChannelState.Connected && agencies.Contains(channel.AgencyId)
+                          && mapping.Kind == ChannelMappingKind.Category && mapping.InternalId != null && categories.Contains(mapping.InternalId.Value)
+                    select new { mapping.ChannelId, channel.AgencyId, CategoryId = mapping.InternalId!.Value })
                 .ToListAsync(cancellationToken);
             foreach (var target in targets)
             {
-                await _queue.EnqueueAsync(target.ChannelId, ChannelSyncOperation.PushAvailability, target.CategoryId, "availability", cancellationToken, immediate: true);
+                await _queue.EnqueueAsync(target.ChannelId, target.AgencyId, ChannelSyncOperation.PushAvailability, target.CategoryId, "availability", cancellationToken, immediate: true);
                 count++;
             }
         }
@@ -134,10 +184,10 @@ public sealed partial class ChannelSyncDispatcher
     }
 
     /// <summary>A change of the published prices (plan, version or channel rule) of a selling channel since the last run.</summary>
-    private async Task<(int Updates, int Reminders)> CheckPricesAsync(CancellationToken cancellationToken)
+    private async Task<(int Updates, int Reminders)> CheckPricesAsync(IReadOnlyList<Guid> agencies, CancellationToken cancellationToken)
     {
         var channels = await _db.Set<Channel>().AsNoTracking()
-            .Where(c => c.State != ChannelState.Inactive)
+            .Where(c => c.State != ChannelState.Inactive && agencies.Contains(c.AgencyId))
             .Select(c => new { c.Id, c.AgencyId, c.SalesChannel, c.State })
             .ToListAsync(cancellationToken);
         var (updates, reminders) = (0, 0);
@@ -149,7 +199,7 @@ public sealed partial class ChannelSyncDispatcher
             var fingerprint = string.Create(
                 CultureInfo.InvariantCulture,
                 $"{plan?.Id:N}:{plan?.Version}|{own?.Id:N}:{own?.Version}|{rule?.Mode}:{rule?.MarkupPercent}");
-            var state = await StateOfAsync(channel.Id, cancellationToken);
+            var state = await StateOfAsync(channel.Id, channel.AgencyId, cancellationToken);
             if (!state.ObserveRates(fingerprint, _clock.GetUtcNow()))
             {
                 continue;
@@ -157,14 +207,14 @@ public sealed partial class ChannelSyncDispatcher
 
             if (channel.State == ChannelState.Connected)
             {
-                await _queue.EnqueueAsync(channel.Id, ChannelSyncOperation.PushRates, null, "rates", cancellationToken, immediate: true);
+                await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.PushRates, null, "rates", cancellationToken, immediate: true);
                 updates++;
             }
             else
             {
                 var published = own ?? plan;
                 var detail = published is null ? null : string.Create(CultureInfo.InvariantCulture, $"{published.Name} v{published.Version}");
-                _db.Set<ChannelReplicationItem>().Add(ChannelReplicationItem.ForRates(channel.Id, detail, new ChannelStamp(_clock.GetUtcNow(), ChannelSyncJob.ActorName)));
+                _db.Set<ChannelReplicationItem>().Add(ChannelReplicationItem.ForRates(channel.Id, channel.AgencyId, detail, new ChannelStamp(_clock.GetUtcNow(), ChannelSyncJob.ActorName)));
                 reminders++;
             }
         }
@@ -173,9 +223,9 @@ public sealed partial class ChannelSyncDispatcher
         return (updates, reminders);
     }
 
-    private async Task<(int Sent, int Failed, int Skipped)> SendDueAsync(CancellationToken cancellationToken)
+    private async Task<(int Sent, int Failed, int Skipped)> SendDueAsync(IReadOnlyList<Guid> agencies, CancellationToken cancellationToken)
     {
-        var claimed = await ClaimAsync(cancellationToken);
+        var claimed = await ClaimAsync(agencies, cancellationToken);
         var (sent, failed, skipped) = (0, 0, 0);
         var contexts = new Dictionary<Guid, ChannelContext?>();
         foreach (var group in claimed.GroupBy(i => i.CoalesceKey))
@@ -231,12 +281,12 @@ public sealed partial class ChannelSyncDispatcher
         return (sent, failed, skipped);
     }
 
-    /// <summary>Takes the due items for this run (optimistic concurrency: an item taken by another run is left to it).</summary>
-    private async Task<IReadOnlyList<ChannelSyncItem>> ClaimAsync(CancellationToken cancellationToken)
+    /// <summary>Takes the due items of <paramref name="agencies"/> for this run (optimistic concurrency: an item taken by another run is left to it).</summary>
+    private async Task<IReadOnlyList<ChannelSyncItem>> ClaimAsync(IReadOnlyList<Guid> agencies, CancellationToken cancellationToken)
     {
         var now = _clock.GetUtcNow();
         var due = await _db.Set<ChannelSyncItem>()
-            .Where(i => i.Status == ChannelSyncStatus.Pending && i.NextAttemptAtUtc <= now && (i.ClaimedUntilUtc == null || i.ClaimedUntilUtc <= now))
+            .Where(i => agencies.Contains(i.AgencyId) && i.Status == ChannelSyncStatus.Pending && i.NextAttemptAtUtc <= now && (i.ClaimedUntilUtc == null || i.ClaimedUntilUtc <= now))
             .OrderBy(i => i.NextAttemptAtUtc)
             .Take(Math.Max(1, _options.BatchSize))
             .ToListAsync(cancellationToken);
@@ -308,6 +358,7 @@ public sealed partial class ChannelSyncDispatcher
 
         await _log.RecordAsync(new ChannelMessageRecord(
             channel.Id,
+            channel.AgencyId,
             channel.Code,
             ChannelMessageDirection.Outbound,
             operation,
@@ -358,12 +409,12 @@ public sealed partial class ChannelSyncDispatcher
         CultureInfo.InvariantCulture,
         $"rates: {update.Items.Count} item(s), categories {string.Join(',', update.Items.Select(i => i.CategoryCode).Distinct())}");
 
-    private async Task<ChannelSyncState> StateOfAsync(Guid channelId, CancellationToken cancellationToken)
+    private async Task<ChannelSyncState> StateOfAsync(Guid channelId, Guid agencyId, CancellationToken cancellationToken)
     {
         var state = await _db.Set<ChannelSyncState>().FirstOrDefaultAsync(s => s.Id == channelId, cancellationToken);
         if (state is null)
         {
-            state = ChannelSyncState.For(channelId);
+            state = ChannelSyncState.For(channelId, agencyId);
             _db.Set<ChannelSyncState>().Add(state);
         }
 

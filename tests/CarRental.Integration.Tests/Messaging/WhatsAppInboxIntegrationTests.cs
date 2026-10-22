@@ -28,7 +28,7 @@ public sealed class WhatsAppInboxIntegrationTests(IntegrationHost host)
         using var client = host.CreateClient();
         (await PostAsync(client, Text(waId, "Bonjour, je voudrais modifier ma réservation", "Leila"), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         var conversation = await WaitForAsync(() => ConversationAsync(host, waId, Ct), c => c is not null, "the conversation", Ct);
-        var agent = Agent();
+        var agent = Agent(host);
 
         var listed = await RunAsync<WhatsAppInboxQueries, Result<PagedResult<InboxConversationItem>>>(agent, q => q.ListAsync(new InboxFilter(Search: waId[^7..]), new PageRequest(), Ct));
         var item = listed.Value.Items.ShouldHaveSingleItem();
@@ -92,12 +92,12 @@ public sealed class WhatsAppInboxIntegrationTests(IntegrationHost host)
         await using (var scope = host.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-            var old = Conversation.Start(oldNumber, "Ancien", longAgo).Value;
+            var old = Conversation.Start(host.DemoAgencyId, oldNumber, "Ancien", longAgo).Value;
             var oldMessage = old.ReceiveCustomerMessage(NewMetaId(), TextContent.Received("Il y a longtemps"), longAgo, null, longAgo);
-            var recent = Conversation.Start(recentNumber, "Récent", longAgo).Value;
+            var recent = Conversation.Start(host.DemoAgencyId, recentNumber, "Récent", longAgo).Value;
             var ancient = recent.ReceiveCustomerMessage(NewMetaId(), TextContent.Received("Vieux message"), longAgo, null, longAgo);
             var fresh = recent.ReceiveCustomerMessage(NewMetaId(), TextContent.Received("Message récent"), DateTimeOffset.UtcNow, null, DateTimeOffset.UtcNow);
-            var linked = Conversation.Start(anonymizedNumber, null, DateTimeOffset.UtcNow).Value;
+            var linked = Conversation.Start(host.DemoAgencyId, anonymizedNumber, null, DateTimeOffset.UtcNow).Value;
             linked.LinkPerson(personId, null);
             db.AddRange(old, recent, linked);
             db.AddRange(oldMessage, ancient, fresh);

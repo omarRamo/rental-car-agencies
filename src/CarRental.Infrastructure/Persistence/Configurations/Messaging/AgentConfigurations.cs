@@ -13,9 +13,9 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRental.Infrastructure.Persistence.Configurations.Messaging;
 
 /// <summary>
-/// Memory of the WhatsApp agent per conversation (<c>messaging.AgentConversationStates</c>, same id as the conversation,
-/// deleted with it): options of the latest search and amounts of the tools as JSON, counters. Ids, codes and amounts only,
-/// left out of the audit log (it changes at every turn).
+/// Memory of the WhatsApp agent per conversation (<c>messaging.AgentConversationStates</c>, same id and agency as the
+/// conversation, deleted with it): options of the latest search and amounts of the tools as JSON, counters. Ids, codes
+/// and amounts only, left out of the audit log (it changes at every turn).
 /// </summary>
 internal sealed class AgentConversationStateConfiguration : IEntityTypeConfiguration<AgentConversationState>
 {
@@ -24,6 +24,7 @@ internal sealed class AgentConversationStateConfiguration : IEntityTypeConfigura
         builder.ToTable("AgentConversationStates", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.AgencyId).IsRequired();
         builder.Ignore(s => s.ConversationId);
         builder.Ignore(s => s.Options);
         builder.Ignore(s => s.KnownAmounts);
@@ -41,8 +42,9 @@ internal sealed class AgentConversationStateConfiguration : IEntityTypeConfigura
 }
 
 /// <summary>
-/// Turns of the agent for the cost reports (<c>messaging.AgentTurnRecords</c>): counts and costs, no content, kept after
-/// the conversation is purged (no foreign key: the id then points to nothing). Not audited (one row per turn).
+/// Turns of the agent for the cost reports of each agency (<c>messaging.AgentTurnRecords</c>, by agency and month):
+/// counts and costs, no content, kept after the conversation is purged (no foreign key to it: the id then points to
+/// nothing). Not audited (one row per turn).
 /// </summary>
 internal sealed class AgentTurnRecordConfiguration : IEntityTypeConfiguration<AgentTurnRecord>
 {
@@ -51,15 +53,16 @@ internal sealed class AgentTurnRecordConfiguration : IEntityTypeConfiguration<Ag
         builder.ToTable("AgentTurnRecords", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.AgencyId).IsRequired();
         builder.Property(r => r.Model).HasMaxLength(AgentTurnRecord.ModelMaxLength).IsUnicode(false);
         builder.Property(r => r.AiCostUsd).HasPrecision(18, 6);
         builder.Property(r => r.MetaCostUsd).HasPrecision(18, 6);
-        builder.HasIndex(r => r.OccurredAtUtc);
+        builder.HasIndex(r => new { r.AgencyId, r.OccurredAtUtc });
         builder.HasIndex(r => r.ConversationId);
     }
 }
 
-/// <summary>Retries of the pending bot turn of a conversation (<c>messaging.BotTurnRetries</c>, same id, deleted with it).</summary>
+/// <summary>Retries of the pending bot turn of a conversation (<c>messaging.BotTurnRetries</c>, same id and agency, deleted with it).</summary>
 internal sealed class BotTurnRetryConfiguration : IEntityTypeConfiguration<BotTurnRetry>
 {
     public void Configure(EntityTypeBuilder<BotTurnRetry> builder)
@@ -67,6 +70,7 @@ internal sealed class BotTurnRetryConfiguration : IEntityTypeConfiguration<BotTu
         builder.ToTable("BotTurnRetries", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.AgencyId).IsRequired();
         builder.Ignore(r => r.ConversationId);
         builder.HasOne<Conversation>().WithOne().HasForeignKey<BotTurnRetry>(r => r.Id).OnDelete(DeleteBehavior.Cascade);
     }

@@ -28,8 +28,9 @@ public sealed class ChannelSyncJob(ChannelSyncDispatcher dispatcher) : IRecurrin
 }
 
 /// <summary>
-/// Full resynchronization of every connected channel, every night at 02:40 (Tunis): availability and prices of every
-/// mapped category over the horizon, whatever an outage or a lost signal may have missed.
+/// Full resynchronization of every connected channel of the agencies whose channels module is on, every night at 02:40
+/// (Tunis): availability and prices of every mapped category over the horizon, whatever an outage or a lost signal may
+/// have missed.
 /// </summary>
 public sealed class ChannelFullResyncJob(ChannelSyncDispatcher dispatcher) : IRecurringJob
 {
@@ -46,11 +47,14 @@ public sealed class ChannelFullResyncJob(ChannelSyncDispatcher dispatcher) : IRe
 
 /// <summary>
 /// Retention of the message log of the channels: every night at 03:50 (Tunis), deletes the rows older than
-/// <c>channels.message_log_retention_days</c> in batches, and writes the count to the audit log.
+/// <c>channels.message_log_retention_days</c> (one value for the platform) in batches, agency by agency — whether its
+/// channels module is on or off — then the platform's own rows (messages to no known channel), and writes each count to
+/// the audit log of its agency (of the platform for its rows).
 /// </summary>
 internal sealed partial class ChannelMessageLogRetentionJob(
     IAppDbContext db,
     ISettingsReader settings,
+    IAgencyDirectory agencies,
     IAuditTrail auditTrail,
     TimeProvider timeProvider,
     ILogger<ChannelMessageLogRetentionJob> logger) : IRecurringJob
@@ -67,10 +71,26 @@ internal sealed partial class ChannelMessageLogRetentionJob(
     {
         var days = await settings.GetAsync(ChannelsSettings.MessageLogRetentionDays, cancellationToken: cancellationToken);
         var cutoff = timeProvider.GetUtcNow() - TimeSpan.FromDays(days);
+        var known = (await agencies.ListAsync(cancellationToken)).Select(a => a.Id).ToList();
+        foreach (var agencyId in known)
+        {
+            var deleted = await DeleteInBatchesAsync(db.Set<ChannelMessageLog>().Where(m => m.AgencyId == agencyId && m.OccurredAtUtc < cutoff), cancellationToken);
+            await RecordAsync(agencyId, deleted, days, cancellationToken);
+        }
+
+        // Messages to no known channel, and those of an agency the directory no longer lists (deleted): the platform's.
+        var others = await DeleteInBatchesAsync(
+            db.Set<ChannelMessageLog>().Where(m => (m.AgencyId == null || !known.Contains(m.AgencyId.Value)) && m.OccurredAtUtc < cutoff),
+            cancellationToken);
+        await RecordAsync(null, others, days, cancellationToken);
+    }
+
+    private static async Task<int> DeleteInBatchesAsync(IQueryable<ChannelMessageLog> query, CancellationToken cancellationToken)
+    {
         var total = 0;
         for (var batch = 0; batch < MaxBatchesPerRun; batch++)
         {
-            var deleted = await db.Set<ChannelMessageLog>().Where(m => m.OccurredAtUtc < cutoff).Take(BatchSize).ExecuteDeleteAsync(cancellationToken);
+            var deleted = await query.Take(BatchSize).ExecuteDeleteAsync(cancellationToken);
             total += deleted;
             if (deleted < BatchSize)
             {
@@ -78,17 +98,24 @@ internal sealed partial class ChannelMessageLogRetentionJob(
             }
         }
 
-        if (total > 0)
+        return total;
+    }
+
+    private async Task RecordAsync(Guid? agencyId, int total, int days, CancellationToken cancellationToken)
+    {
+        if (total == 0)
         {
-            await auditTrail.RecordAsync(
-                new AuditEvent(PurgedAction)
-                {
-                    EntityType = nameof(ChannelMessageLog),
-                    Details = string.Create(CultureInfo.InvariantCulture, $"{total} channel message(s) older than {days} days"),
-                },
-                cancellationToken);
+            return;
         }
 
+        await auditTrail.RecordAsync(
+            new AuditEvent(PurgedAction)
+            {
+                EntityType = nameof(ChannelMessageLog),
+                Details = string.Create(CultureInfo.InvariantCulture, $"{total} channel message(s) older than {days} days"),
+                AgencyId = agencyId,
+            },
+            cancellationToken);
         LogPurged(total, days);
     }
 
@@ -99,6 +126,7 @@ internal sealed partial class ChannelMessageLogRetentionJob(
 /// <summary>
 /// Keeps the channel bookings in step with their rental files (<see cref="BookingStatusChanged"/>, idempotent): a file
 /// cancelled at the counter cancels its channel booking (no commission), a no-show is recorded for the reconciliation.
+/// Bookkeeping of the agency's own figures, done whether its channels module is on or off (nothing is sent to the channel).
 /// </summary>
 internal sealed class ChannelBookingStatusMirror(IAppDbContext db, TimeProvider clock) : IOutboxHandler<BookingStatusChanged>
 {
@@ -116,7 +144,7 @@ internal sealed class ChannelBookingStatusMirror(IAppDbContext db, TimeProvider 
             return;
         }
 
-        var record = await db.Set<ChannelBooking>().FirstOrDefaultAsync(b => b.BookingId == message.BookingId, cancellationToken);
+        var record = await db.Set<ChannelBooking>().FirstOrDefaultAsync(b => b.BookingId == message.BookingId && b.AgencyId == message.AgencyId, cancellationToken);
         if (record is null || record.State == state)
         {
             return;

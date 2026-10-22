@@ -25,8 +25,12 @@ public interface IChannelCommissions
         Guid? agencyId = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>The commission of each of <paramref name="bookingIds"/> created by a channel (absent: not a channel booking).</summary>
+    /// <summary>
+    /// The commission of each of <paramref name="bookingIds"/> created by a channel of <paramref name="agencyId"/>
+    /// (absent: not a channel booking of the agency).
+    /// </summary>
     Task<IReadOnlyDictionary<Guid, Money>> GetCommissionsByBookingAsync(
+        Guid agencyId,
         IReadOnlyCollection<Guid> bookingIds,
         CancellationToken cancellationToken = default);
 }

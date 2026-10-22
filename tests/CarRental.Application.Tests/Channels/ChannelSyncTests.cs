@@ -3,7 +3,9 @@ using CarRental.Application.Channels.Adapters;
 using CarRental.Application.Channels.Core;
 using CarRental.Application.Channels.Logging;
 using CarRental.Application.Channels.Outbound;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Tests.Bookings.Availability;
+using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,9 +85,9 @@ public sealed class ChannelSyncTests
         var sync = new SyncWorld();
         var queue = sync.Queue();
 
-        await queue.EnqueueAsync(sync.Channels.Channel.Id, ChannelSyncOperation.PushAvailability, sync.CategoryId, "restriction", Ct);
+        await queue.EnqueueAsync(sync.Channels.Channel.Id, sync.Channels.AgencyId, ChannelSyncOperation.PushAvailability, sync.CategoryId, "restriction", Ct);
         await sync.Channels.Db.SaveChangesAsync(Ct);
-        await queue.EnqueueAsync(sync.Channels.Channel.Id, ChannelSyncOperation.PushAvailability, sync.CategoryId, "restriction", Ct);
+        await queue.EnqueueAsync(sync.Channels.Channel.Id, sync.Channels.AgencyId, ChannelSyncOperation.PushAvailability, sync.CategoryId, "restriction", Ct);
         var early = await sync.Dispatcher().RunAsync(Ct);
         sync.Clock.Advance(SyncWorld.Debounce);
         var due = await sync.Dispatcher().RunAsync(Ct);
@@ -144,7 +146,7 @@ public sealed class ChannelSyncTests
     public async Task Updates_of_a_channel_disconnected_meanwhile_are_skipped_and_no_new_one_is_queued()
     {
         var sync = new SyncWorld();
-        await sync.Queue().EnqueueAsync(sync.Channels.Channel.Id, ChannelSyncOperation.PushAvailability, sync.CategoryId, "availability", Ct, immediate: true);
+        await sync.Queue().EnqueueAsync(sync.Channels.Channel.Id, sync.Channels.AgencyId, ChannelSyncOperation.PushAvailability, sync.CategoryId, "availability", Ct, immediate: true);
         await sync.Channels.Db.SaveChangesAsync(Ct);
         sync.Channels.Channel.ChangeState(ChannelState.Manual, sync.Channels.Stamp).IsSuccess.ShouldBeTrue();
         sync.Signal.AllChanged();
@@ -193,6 +195,7 @@ public sealed class ChannelSyncTests
         {
             _maxAttempts = maxAttempts;
             Channels = new ChannelWorld(Guid.CreateVersion7(), Clock);
+            Agencies = new StaticAgencyDirectory(Channels.AgencyId);
             CategoryId = Fleet.AddCategory(Channels.AgencyId, "ECMR").Id;
             Channels.Channel.MapCategory(CategoryId, "ECMR", null, Channels.Stamp).IsSuccess.ShouldBeTrue();
             Channels.Channel.MapLocation(Guid.CreateVersion7(), "TUN", Channels.Stamp).IsSuccess.ShouldBeTrue();
@@ -223,10 +226,16 @@ public sealed class ChannelSyncTests
 
         public IOptions<ChannelSyncOptions> Options => Microsoft.Extensions.Options.Options.Create(new ChannelSyncOptions { Debounce = Debounce, MaxAttempts = _maxAttempts });
 
+        /// <summary>The agencies of the platform: the channel's, with its channels module on.</summary>
+        public StaticAgencyDirectory Agencies { get; }
+
         public ChannelSyncQueue Queue() => new(Channels.Db, Clock, Options);
 
-        public ChannelSyncDispatcher Dispatcher() => new(
+        /// <summary>The dispatcher of the pump and the jobs (the system across agencies), or of an operation of <paramref name="actor"/>.</summary>
+        public ChannelSyncDispatcher Dispatcher(UserContextSnapshot? actor = null) => new(
             Channels.Db,
+            Actor(actor ?? UserContextSnapshot.System("system:channels-sync")),
+            Agencies,
             Signal,
             Queue(),
             new ChannelSyncPayloads(Availability, Pricing, Channels.Reader(), new FakeSettingsReader(new CallJournal()), Clock),
@@ -237,5 +246,12 @@ public sealed class ChannelSyncTests
             Clock,
             Options,
             NullLogger<ChannelSyncDispatcher>.Instance);
+
+        private static ScopedUserContext Actor(UserContextSnapshot snapshot)
+        {
+            var user = new ScopedUserContext([]);
+            user.Initialize(snapshot);
+            return user;
+        }
     }
 }

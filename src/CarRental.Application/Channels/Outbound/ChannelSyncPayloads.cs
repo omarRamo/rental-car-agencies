@@ -43,7 +43,7 @@ internal sealed class ChannelSyncPayloads(
             var id = category.InternalId!.Value;
             var profile = await availability.GetCapacityProfileAsync(id, range, channel.SalesChannel, cancellationToken) ?? [];
             var daily = DailyHeadroom(profile, today, end);
-            var rules = await restrictions.GetAsync(id, channel.SalesChannel, cancellationToken);
+            var rules = await restrictions.GetAsync(channel.AgencyId, id, channel.SalesChannel, cancellationToken);
             foreach (var location in locations)
             {
                 var stops = ChannelRestrictionRules.StopSalesAt(rules, location.InternalId!.Value, range);
