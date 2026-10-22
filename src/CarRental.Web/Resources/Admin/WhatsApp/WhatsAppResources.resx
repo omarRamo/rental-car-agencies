@@ -21,6 +21,9 @@
   <data name="Inbox.Disabled" xml:space="preserve">
     <value>WhatsApp n'est pas encore configuré sur cette plateforme : les conversations s'affichent, mais aucun message ne peut partir.</value>
   </data>
+  <data name="Number.NotServed" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert actuellement une autre agence : l'envoi est désactivé pour votre agence (notifications, réponses, assistant) et les messages de vos clients n'arrivent pas ici. L'historique reste consultable ; adressez-vous au support de la plateforme pour retrouver le numéro.</value>
+  </data>
   <data name="List.Title" xml:space="preserve">
     <value>Conversations</value>
   </data>

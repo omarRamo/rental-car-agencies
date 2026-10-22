@@ -39,6 +39,7 @@
 {
     <MudAlert Severity="Severity.Warning" Class="mb-3">@L["Inbox.Disabled"]</MudAlert>
 }
+<WhatsAppNumberNotice />
 
 <MudGrid Spacing="3">
     <MudItem xs="12" md="5" lg="4">
@@ -162,7 +163,7 @@
 
                     <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mt-4 mb-1">@L["Thread.Title"]</MudText>
                     <ConversationThread Messages="details.Messages" HasEarlier="details.HasEarlierMessages" />
-                    <ReplyComposer Details="details" Templates="@(_overview?.Templates ?? [])" Enabled="@(_overview?.IsEnabled ?? false)"
+                    <ReplyComposer Details="details" Templates="@(_overview?.Templates ?? [])" Enabled="@(_overview is { IsEnabled: true, IsServed: true })"
                                    TakenOverByMe="@(details.Mode == ConversationModeInfo.Human && details.HumanAgentId == _userId)" Sent="ReloadSelectedAsync" />
                 </MudPaper>
             }

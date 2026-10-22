@@ -12,7 +12,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations.Backfill;
 /// <item>a conversation takes the agency of the rental files it notified (the latest one), else of the file it is linked
 /// to, else the default agency (<see cref="MultiAgencyBackfill.DeclareDefaultAgency"/>); its messages, their statuses,
 /// the memory and the retries of its bot turns follow it;</item>
-/// <item>a booking notification takes the agency of its rental file, else of its conversation;</item>
+/// <item>a booking notification takes the agency of its conversation (a notification and its conversation always share
+/// their agency), else — conversation purged — of its rental file;</item>
 /// <item>a turn record takes the agency of its conversation, else (conversation purged) the default agency;</item>
 /// <item>the knowledge base until now becomes the default agency's (each agency gets its own drafts at the next start);</item>
 /// <item>the rows of a channel (mappings, payouts, changes to replicate, outbound queue and state, message log) take the
@@ -74,15 +75,20 @@ internal static class MultiAgencyMessagingChannelsBackfill
             INNER JOIN [messaging].[Conversations] AS [c] ON [c].[Id] = [r].[ConversationId]
             WHERE [r].[AgencyId] = @none;
 
-            -- Notifications: the agency of their file, else of their conversation.
-            UPDATE [n] SET [n].[AgencyId] = [b].[AgencyId]
-            FROM [messaging].[BookingNotifications] AS [n]
-            INNER JOIN [bookings].[Bookings] AS [b] ON [b].[Id] = [n].[BookingId]
-            WHERE [n].[AgencyId] = @none;
-
+            -- Notifications: the agency of their conversation, never of their own file first. A conversation took the
+            -- agency of the LATEST file it notified; on a database that already held several agencies, an older
+            -- notification of that conversation may concern a file of another agency, and taking that file's agency
+            -- would break the invariant of BookingNotification.Record (a notification has the agency of its
+            -- conversation, the agency every scope of the conversation works for). Only a notification whose
+            -- conversation was purged takes the agency of its file.
             UPDATE [n] SET [n].[AgencyId] = [c].[AgencyId]
             FROM [messaging].[BookingNotifications] AS [n]
             INNER JOIN [messaging].[Conversations] AS [c] ON [c].[Id] = [n].[ConversationId]
+            WHERE [n].[AgencyId] = @none;
+
+            UPDATE [n] SET [n].[AgencyId] = [b].[AgencyId]
+            FROM [messaging].[BookingNotifications] AS [n]
+            INNER JOIN [bookings].[Bookings] AS [b] ON [b].[Id] = [n].[BookingId]
             WHERE [n].[AgencyId] = @none;
 
             -- The rows of a channel take its agency.
