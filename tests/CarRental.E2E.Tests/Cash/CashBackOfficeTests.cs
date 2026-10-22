@@ -159,7 +159,24 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
         await Page.GotoAsync("/admin/payments");
         await WaitUntilReadyAsync();
         await Page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Cautions" }).ClickAsync();
-        await Page.GetByLabel("Identifiant du dossier", new PageGetByLabelOptions { Exact = true }).FillAsync(bookingId.ToString());
+        // The field is bound on change: a render of the tab while it loads wipes a value typed too early (the search then
+        // ran unfiltered). The value is committed with Tab and checked, typed again if it was wiped, then searched.
+        var bookingFilter = Page.GetByLabel("Identifiant du dossier", new PageGetByLabelOptions { Exact = true });
+        for (var attempt = 1; ; attempt++)
+        {
+            await bookingFilter.FillAsync(bookingId.ToString());
+            await bookingFilter.PressAsync("Tab");
+            try
+            {
+                await Expect(bookingFilter).ToHaveValueAsync(bookingId.ToString(), new LocatorAssertionsToHaveValueOptions { Timeout = 2_000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < 5)
+            {
+                // Wiped by a render: type it again.
+            }
+        }
+
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Rechercher" }).ClickAsync();
         var listed = Page.Locator("tr", new PageLocatorOptions { HasText = "Rayure portière avant droite" });
         await Expect(listed).ToContainTextAsync("Retenue partielle", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
