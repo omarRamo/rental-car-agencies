@@ -81,9 +81,11 @@ internal sealed class SaveChangesPipelineInterceptor(
     /// <summary>
     /// Refuses the save when a written row belongs to another agency than the one the operation works for, when a row
     /// would move to another agency, when agency data has no agency, or when a platform row (shared value, agency
-    /// registration) is written by an actor who does not work for the whole platform. Records of an agency or of the
-    /// platform (<see cref="IAgencyOrPlatform"/>, the audit journals) are written by the platform's own code for the
-    /// agency they concern — a sign-in, still anonymous, is recorded for the agency of the account — and never change.
+    /// registration) is written by an operation that does not work for the whole platform — the support inside an
+    /// agency or a system step working for one agency included: only an operation across agencies writes them. Records
+    /// of an agency or of the platform (<see cref="IAgencyOrPlatform"/>, the audit journals) are written by the
+    /// platform's own code for the agency they concern — a sign-in, still anonymous, is recorded for the agency of the
+    /// account — and never change.
     /// </summary>
     private void EnforceAgencyBoundaries(DbContext context)
     {
@@ -113,7 +115,8 @@ internal sealed class SaveChangesPipelineInterceptor(
                     break;
                 case IAgencyShared shared:
                     EnsureNotMoved(entry, nameof(IAgencyShared.AgencyId));
-                    if (shared.AgencyId is null ? !userContext.AllAgencies : restricted && shared.AgencyId != agencyId)
+                    // A shared value (no agency) is the platform's: an operation limited to an agency never writes it.
+                    if (restricted && (shared.AgencyId is null || shared.AgencyId != agencyId))
                     {
                         throw AgencyBoundaryException.OtherAgency(entry.Metadata.ClrType);
                     }

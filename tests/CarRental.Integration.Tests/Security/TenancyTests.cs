@@ -118,6 +118,42 @@ public sealed class TenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task Only_an_operation_across_agencies_writes_a_platform_value()
+    {
+        var agency = await NewAgencyAsync("Valeur commune");
+        var key = $"tests.platform_guard_{Guid.NewGuid():N}";
+
+        // Working for one agency — a system step of that agency, the support inside it, a visitor of its site — or for
+        // none: a platform value is out of reach, whatever the actor may do elsewhere.
+        UserContextSnapshot[] limited = [TestActors.SystemFor(agency.Id), TestActors.Support(agency.Id), TestActors.Visitor(agency.Id), UserContextSnapshot.Anonymous()];
+        foreach (var actor in limited)
+        {
+            await using var scope = host.CreateScope(actor);
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "01:00:00").Value);
+            await Should.ThrowAsync<AgencyBoundaryException>(() => db.SaveChangesAsync(Ct), actor.UserName ?? "a visitor");
+        }
+
+        await using (var scope = host.CreateScope(TestActors.SystemFor(agency.Id)))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "02:00:00", agency.Id).Value);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using (var scope = host.CreateScope(TestActors.Support()))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "03:00:00").Value);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var check = host.CreateScope();
+        (await check.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Setting>().Where(s => s.Key == key).Select(s => s.AgencyId).ToListAsync(Ct))
+            .ShouldBe([null, agency.Id], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task Each_agency_has_its_own_series_of_numbers()
     {
         var (first, second) = (await NewAgencyAsync("Numéros A"), await NewAgencyAsync("Numéros B"));

@@ -145,9 +145,10 @@
         var key = Item.Key;
         var value = StoredValue();
         var agencyId = Agency?.Id;
-        var result = await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => agencyId is { } id
-            ? service.SetAgencyValueAsync(key, id, value, ct)
-            : service.SetPlatformValueAsync(key, value, ct));
+        // A platform value is written across agencies, by the support inside an agency too (ADR-0067).
+        var result = agencyId is { } id
+            ? await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => service.SetAgencyValueAsync(key, id, value, ct))
+            : await Runner.RunAcrossAgenciesAsync<SettingsAdministrationService, Result>((service, ct) => service.SetPlatformValueAsync(key, value, ct));
         _busy = false;
 
         if (result.IsSuccess)
