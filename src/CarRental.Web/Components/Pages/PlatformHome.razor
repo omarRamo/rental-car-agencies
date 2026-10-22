@@ -1,0 +1,41 @@
+@page "/"
+@layout Public.Layout.PublicLayout
+@attribute [ExcludeFromInteractiveRouting]
+@using CarRental.Web.Resources.Public
+@inject IStringLocalizer<PublicResources> L
+@inject IOptions<PublicSiteOptions> Site
+
+@* The page of the platform itself (ADR-0067): each agency has its own site at its own address (/{agency}), so this page
+   lists none and leads the staff to the back office. Static rendering, in the language of the culture cookie or of the
+   browser (the language switcher of the layout sets the cookie). *@
+
+<PageTitle>@L["Title.Format", L["Platform.Title"], Site.Value.AgencyName]</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L["Platform.Description"]" />
+</HeadContent>
+
+<section class="platform" aria-labelledby="platform-heading">
+    <div class="platform__intro">
+        <h1 id="platform-heading">@L["Platform.Heading"]</h1>
+        <p class="hero__lead">@L["Platform.Lead", Site.Value.AgencyName]</p>
+    </div>
+    <div class="platform__cards">
+        <section class="card platform__card" aria-labelledby="platform-agencies">
+            <h2 id="platform-agencies">@L["Platform.Agencies.Title"]</h2>
+            <p>@L["Platform.Agencies.Text"]</p>
+        </section>
+        <section class="card platform__card" aria-labelledby="platform-staff">
+            <h2 id="platform-staff">@L["Platform.Staff.Title"]</h2>
+            <p>@L["Platform.Staff.Text"]</p>
+            <p><a class="button" href="/admin">@L["Platform.Staff.Link"]</a></p>
+        </section>
+    </div>
+</section>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    // The language of this address comes from the cookie and Accept-Language, not from the path.
+    protected override void OnInitialized() => HttpContext.Response.Headers.Vary = "Accept-Language, Cookie";
+}

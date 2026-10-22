@@ -1,4 +1,5 @@
 using System.Globalization;
+using CarRental.Domain.Referential;
 using CarRental.Web.Hosting;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Localization;
@@ -8,7 +9,8 @@ namespace CarRental.Web.Localization;
 
 /// <summary>
 /// UI cultures: French (neutral resources, default) and English; Arabic (right-to-left) is prepared and switched on with
-/// <c>Localization:EnableArabic</c> once translated. Public URLs are prefixed by the culture (<c>/fr/…</c>, <c>/en/…</c>).
+/// <c>Localization:EnableArabic</c> once translated. Public URLs carry the culture after the address of the agency's site
+/// (<c>/agence-1/fr/…</c>, <c>/agence-1/en/…</c>, ADR-0015 and ADR-0067).
 /// </summary>
 public sealed class CultureCatalog
 {
@@ -40,33 +42,36 @@ public sealed class CultureCatalog
         culture is not null && Enabled.Contains(culture, StringComparer.OrdinalIgnoreCase);
 }
 
-/// <summary>Culture from the first path segment (<c>/en/…</c>), including for a re-executed status page.</summary>
+/// <summary>
+/// Culture from the path of a public address, <c>/{agency}/{culture}/…</c> (<c>/agence-1/en/…</c>): the second segment
+/// when the first is not a word of the platform (<c>/admin</c>, <c>/account</c>…), including for a re-executed status page.
+/// </summary>
 internal sealed class PathRequestCultureProvider(CultureCatalog catalog) : RequestCultureProvider
 {
     public override Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         var path = httpContext.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath ?? httpContext.Request.Path.Value;
-        var segment = FirstSegment(path);
+        var segment = CultureSegment(path);
         return catalog.IsEnabled(segment)
             ? Task.FromResult<ProviderCultureResult?>(new ProviderCultureResult(segment!.ToLowerInvariant()))
             : NullProviderCultureResult;
     }
 
-    internal static string? FirstSegment(string? path)
+    /// <summary>The segment of <paramref name="path"/> that holds the culture of a public address, or <see langword="null"/>.</summary>
+    internal static string? CultureSegment(string? path)
     {
         if (string.IsNullOrEmpty(path) || path[0] != '/')
         {
             return null;
         }
 
-        var end = path.IndexOf('/', 1);
-        var segment = end < 0 ? path[1..] : path[1..end];
-        return segment.Length == 0 ? null : segment;
+        var segments = path.Split('/', 4, StringSplitOptions.RemoveEmptyEntries);
+        return segments.Length >= 2 && !AgencySlug.Reserved.Contains(segments[0].ToLowerInvariant()) ? segments[1] : null;
     }
 }
 
-/// <summary>Public routes are <c>/{culture:length(2)}/…</c>; a two-letter segment that is not an enabled culture is a 404.</summary>
+/// <summary>Public routes are <c>/{agency}/{culture:length(2)}/…</c>; a two-letter segment that is not an enabled culture is a 404.</summary>
 internal sealed class PublicCultureMiddleware(RequestDelegate next, CultureCatalog catalog)
 {
     public Task InvokeAsync(HttpContext context)
@@ -86,17 +91,12 @@ internal static class CultureEndpoints
 {
     public const string SetCulturePath = "/culture/set";
 
-    /// <summary><c>/</c> redirects to the remembered or preferred culture; <c>/culture/set</c> stores the choice in a cookie.</summary>
+    /// <summary>
+    /// <c>/culture/set</c> stores the choice in a cookie (back office, account pages and the page of the platform at
+    /// <c>/</c>; the address of a site page carries its culture).
+    /// </summary>
     public static IEndpointRouteBuilder MapCultureEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/", (HttpContext context, CultureCatalog catalog) =>
-        {
-            var requested = context.Features.Get<IRequestCultureFeature>()?.RequestCulture.UICulture.TwoLetterISOLanguageName;
-            var culture = catalog.IsEnabled(requested) ? requested! : CultureCatalog.Default;
-            context.Response.Headers.Vary = "Accept-Language, Cookie";
-            return Results.Redirect($"/{culture}");
-        });
-
         endpoints.MapGet(SetCulturePath, (string culture, string? returnUrl, HttpContext context, CultureCatalog catalog) =>
         {
             if (!catalog.IsEnabled(culture))

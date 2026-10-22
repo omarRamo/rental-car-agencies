@@ -2,8 +2,10 @@ namespace CarRental.Application.Bookings.Contracts;
 
 /// <summary>
 /// Local paths of the public booking pages that the application layer writes into links (e-mails, payment return
-/// addresses, notifications of the phase 4); the web host maps the same routes (checked by its tests). French and
-/// English slugs, as everywhere on the public site.
+/// addresses, notifications of the phase 4); the web host maps the same routes (checked by its tests). Every public
+/// address starts with the address of the agency's site (<c>Agency.Slug</c>, ADR-0067), then the culture: a link always
+/// carries the agency of its booking (<c>/agence-1/fr/ma-reservation</c>). French and English slugs, as everywhere on
+/// the public site.
 /// </summary>
 public static class PublicBookingPaths
 {
@@ -13,33 +15,57 @@ public static class PublicBookingPaths
     /// <summary>Placeholder of the payment id in a payment return path (replaced by the Payments module).</summary>
     public const string PaymentIdPlaceholder = "{paymentId}";
 
-    /// <summary>The access page of "Ma réservation": <c>/fr/ma-reservation</c>, <c>/en/my-booking</c>.</summary>
-    public static string MyBooking(string culture) => IsEnglish(culture) ? "/en/my-booking" : $"/{Normalize(culture)}/ma-reservation";
+    /// <summary>The home page of the site of <paramref name="agency"/> in <paramref name="culture"/>: <c>/agence-1/fr</c>.</summary>
+    public static string Site(string agency, string culture) => $"/{Slug(agency)}/{Normalize(culture)}";
 
-    /// <summary>The booking of the session: <c>/fr/ma-reservation/dossier</c>, <c>/en/my-booking/file</c>.</summary>
-    public static string MyBookingFile(string culture) => IsEnglish(culture) ? "/en/my-booking/file" : $"/{Normalize(culture)}/ma-reservation/dossier";
+    /// <summary>The access page of "Ma réservation": <c>/{agency}/fr/ma-reservation</c>, <c>/{agency}/en/my-booking</c>.</summary>
+    public static string MyBooking(string agency, string culture) =>
+        $"{Site(agency, culture)}/{(IsEnglish(culture) ? "my-booking" : "ma-reservation")}";
 
-    /// <summary>A link of an e-mail: <c>/fr/ma-reservation/acces/{token}</c> (the documents section when <paramref name="documents"/>).</summary>
-    public static string AccessLink(string culture, string token, bool documents = false)
+    /// <summary>The booking of the session: <c>/{agency}/fr/ma-reservation/dossier</c>, <c>/{agency}/en/my-booking/file</c>.</summary>
+    public static string MyBookingFile(string agency, string culture) =>
+        $"{MyBooking(agency, culture)}/{(IsEnglish(culture) ? "file" : "dossier")}";
+
+    /// <summary>
+    /// A link of an e-mail: <c>/{agency}/fr/ma-reservation/acces/{token}</c> (the documents section when
+    /// <paramref name="documents"/>).
+    /// </summary>
+    public static string AccessLink(string agency, string culture, string token, bool documents = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
-        var path = IsEnglish(culture) ? $"/en/my-booking/access/{token}" : $"/{Normalize(culture)}/ma-reservation/acces/{token}";
+        var path = $"{MyBooking(agency, culture)}/{(IsEnglish(culture) ? "access" : "acces")}/{token}";
         return documents ? $"{path}?section={DocumentsSection}" : path;
     }
 
-    /// <summary>The confirmation of a request: <c>/fr/reserver/confirmation/{numero}</c>, <c>/en/book/confirmation/{number}</c>.</summary>
-    public static string Confirmation(string culture, string number)
+    /// <summary>
+    /// The confirmation of a request: <c>/{agency}/fr/reserver/confirmation/{numero}</c>,
+    /// <c>/{agency}/en/book/confirmation/{number}</c>.
+    /// </summary>
+    public static string Confirmation(string agency, string culture, string number)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
-        return IsEnglish(culture) ? $"/en/book/confirmation/{number}" : $"/{Normalize(culture)}/reserver/confirmation/{number}";
+        return $"{Site(agency, culture)}/{(IsEnglish(culture) ? "book" : "reserver")}/confirmation/{number}";
     }
 
-    /// <summary>The page showing the outcome of an online payment (payment links): <c>/fr/paiement/{paymentId}</c>.</summary>
-    public static string PaymentResult(string culture) =>
-        IsEnglish(culture) ? $"/en/payment/{PaymentIdPlaceholder}" : $"/{Normalize(culture)}/paiement/{PaymentIdPlaceholder}";
+    /// <summary>The page showing the outcome of an online payment (payment links): <c>/{agency}/fr/paiement/{paymentId}</c>.</summary>
+    public static string PaymentResult(string agency, string culture) =>
+        $"{Site(agency, culture)}/{(IsEnglish(culture) ? "payment" : "paiement")}/{PaymentIdPlaceholder}";
 
     private static bool IsEnglish(string? culture) => string.Equals(culture?.Trim(), "en", StringComparison.OrdinalIgnoreCase);
 
     private static string Normalize(string? culture) =>
         culture?.Trim().ToLowerInvariant() is { Length: 2 } code && code.All(char.IsAsciiLetterLower) ? code : "fr";
+
+    /// <summary>The address of the agency's site as stored (lower case); never empty, never more than one segment.</summary>
+    private static string Slug(string agency)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
+        var slug = agency.Trim().ToLowerInvariant();
+        if (!slug.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
+        {
+            throw new ArgumentException("The address of an agency's site is lower-case letters, digits and hyphens.", nameof(agency));
+        }
+
+        return slug;
+    }
 }

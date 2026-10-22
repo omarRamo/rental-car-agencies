@@ -5,7 +5,7 @@
 @inject IStringLocalizer<PublicResources> L
 @inject NavigationManager Navigation
 
-<form class="search-form" method="get" action="@PublicRoutes.PathFor(PublicPage.Results, Culture)" novalidate data-search-form
+<form class="search-form" method="get" action="@PublicRoutes.PathFor(Agency.Site.Slug, PublicPage.Results, Culture)" novalidate data-search-form
       aria-labelledby="@(Heading is null ? null : $"{IdPrefix}-heading")">
     @if (Heading is not null)
     {

@@ -70,13 +70,13 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
     private async Task<string> BookOnAPhoneAsync(DateOnly day)
     {
         var suffix = HighSeasonDayE2EData.Unique();
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={HighSeasonDayE2EData.Input(day)}&retour={HighSeasonDayE2EData.Input(day.AddDays(3))}");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={HighSeasonDayE2EData.Input(day)}&retour={HighSeasonDayE2EData.Input(day.AddDays(3))}");
         var offer = Page.Locator($"li.offer:has(.offer__code:text-is('{HighSeasonDayE2EData.Category}'))");
         await Expect(offer).ToBeVisibleAsync(Slow);
         await AccessibleOnAPhoneAsync();
         await offer.Locator("form.offer__choose button").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
         await AccessibleOnAPhoneAsync();
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Continuer vers les conducteurs" }).ClickAsync();
 
@@ -105,7 +105,7 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Expect(Page).ToHaveURLAsync(new Regex("/dev/clictopay/pay/"));
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Payer" }).ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
         await Expect(Heading).ToHaveTextAsync("Demande reçue");
         await Expect(Page.Locator("[data-testid='guarantee-state']")).ToHaveAttributeAsync("data-state", "Held");
         await AccessibleOnAPhoneAsync();

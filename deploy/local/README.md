@@ -36,7 +36,7 @@ L'application tourne avec l'environnement « Development » : c'est le seul qui 
 .\deploy\local\stop.ps1
 ```
 
-- Vitrine : https://localhost:7180/fr — back office : https://localhost:7180/admin.
+- Vitrine de l'agence de démonstration : https://localhost:7180/agence-demo-tunis/fr (page de la plateforme : https://localhost:7180/) — back office : https://localhost:7180/admin.
 - Comptes `gerant@demo.local`, `agent@demo.local`, `comptable@demo.local` : mot de passe dans
   `src\CarRental.Web\appsettings.Development.json` (section `Seed`). La double authentification est désactivée en local
   (`Identity:TwoFactor:Required=false`). Une base créée avant ce réglage garde l'authentificateur de ses comptes : le

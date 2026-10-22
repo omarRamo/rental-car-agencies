@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver/confirmation/{Number}"
-@page "/{culture:length(2)}/book/confirmation/{Number}"
+@page "/{agency}/{culture:length(2)}/reserver/confirmation/{Number}"
+@page "/{agency}/{culture:length(2)}/book/confirmation/{Number}"
 @* The confirmation of a request (ADR-0049), also the return address of its guarantee: "request received, answer
    within two business hours", and where the guarantee stands as confirmed by the bank (held, being verified, failed with
    a new attempt, or the payment link to come). Details are shown to the browser that sent the request only (protected
@@ -22,7 +22,7 @@
     <section class="status-page" aria-labelledby="confirmation-heading">
         <h1 id="confirmation-heading">@L["Confirmation.Neutral.Heading"]</h1>
         <p>@L["Confirmation.Neutral.Text"]</p>
-        <p><a class="button" href="@BookingRoutes.MyBooking(Lang)">@L["Confirmation.MyBooking"]</a></p>
+        <p><a class="button" href="@BookingRoutes.MyBooking(Slug, Lang)">@L["Confirmation.MyBooking"]</a></p>
     </section>
     return;
 }
@@ -40,13 +40,13 @@
         <p>@PaymentText</p>
         @if (confirmation.Payment == FunnelPaymentState.AwaitingCustomer && !confirmation.CanRetryPayment)
         {
-            <p><a href="@BookingRoutes.Confirmation(Lang, confirmation.Number)">@L["Confirmation.Payment.Refresh"]</a></p>
+            <p><a href="@BookingRoutes.Confirmation(Slug, Lang, confirmation.Number)">@L["Confirmation.Payment.Refresh"]</a></p>
         }
     </div>
 
     @if (confirmation.CanRetryPayment)
     {
-        <form method="post" action="@BookingRoutes.ConfirmationPayment(Lang, confirmation.Number)" class="confirmation__retry">
+        <form method="post" action="@BookingRoutes.ConfirmationPayment(Slug, Lang, confirmation.Number)" class="confirmation__retry">
             <AntiforgeryToken />
             <button type="submit" class="button" data-testid="guarantee-retry">@L["Confirmation.Payment.Retry", PublicFormat.Price(confirmation.Guarantee.Amount)]</button>
         </form>
@@ -58,7 +58,7 @@
         <li>@L["Confirmation.Next.Answer"]</li>
         <li>@L["Confirmation.Next.Documents"]</li>
     </ol>
-    <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Lang)">@L["Confirmation.MyBooking"]</a></p>
+    <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Slug, Lang)">@L["Confirmation.MyBooking"]</a></p>
 </section>
 
 @code {
@@ -97,7 +97,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.Confirmation(Lang, Number)))
+        if (!EnsureCanonicalPath(BookingRoutes.Confirmation(Slug, Lang, Number)))
         {
             return;
         }

@@ -126,7 +126,7 @@ internal sealed partial class AgentConversationResponder(
 
         if (turn.NewMessages.Count > 0 && turn.NewMessages.All(AgentTranscript.IsAttachment))
         {
-            return Fixed(context, run, AgentMessages.AttachmentNotProcessed(context.Language, SecureLink(context.Language)), AgentTurnOutcome.AttachmentReply);
+            return Fixed(context, run, AgentMessages.AttachmentNotProcessed(context.Language, SecureLink(context)), AgentTurnOutcome.AttachmentReply);
         }
 
         var prompt = prompts.Render(context.Agency);
@@ -216,7 +216,7 @@ internal sealed partial class AgentConversationResponder(
         if (DocumentRequests.Contains(text))
         {
             LogGuardrail("document-request");
-            return Fixed(context, run, AgentMessages.DocumentsOnSecureLinkOnly(context.Language, SecureLink(context.Language)), AgentTurnOutcome.ReplacedByGuardrail);
+            return Fixed(context, run, AgentMessages.DocumentsOnSecureLinkOnly(context.Language, SecureLink(context)), AgentTurnOutcome.ReplacedByGuardrail);
         }
 
         if (AmountGuard.Unknown(text, context.KnownAmounts).Count > 0)
@@ -416,10 +416,13 @@ internal sealed partial class AgentConversationResponder(
         return parts.Count == 0 ? null : string.Join(" ; ", parts);
     }
 
-    private Uri SecureLinkUri(AgentLanguage language) =>
-        site.Value.PublicBaseUrl is { IsAbsoluteUri: true } baseUrl ? BookingDeepLink.FunnelPage(baseUrl, language) : new Uri("https://localhost/" + BookingDeepLink.PathFor(language));
+    /// <summary>The funnel page of the site of the agency of the conversation (ADR-0067).</summary>
+    private Uri SecureLinkUri(AgentTurnContext context) =>
+        BookingDeepLink.FunnelPage(
+            BookingDeepLink.SiteOf(site.Value.PublicBaseUrl is { IsAbsoluteUri: true } baseUrl ? baseUrl : new Uri("https://localhost/"), context.Agency.SiteSlug),
+            context.Language);
 
-    private string SecureLink(AgentLanguage language) => SecureLinkUri(language).AbsoluteUri;
+    private string SecureLink(AgentTurnContext context) => SecureLinkUri(context).AbsoluteUri;
 
     /// <summary>The language of the turn's messages; when they tell nothing (« ok », a button), that of the earlier customer messages.</summary>
     private static AgentLanguage LanguageOf(ConversationTurn turn) =>

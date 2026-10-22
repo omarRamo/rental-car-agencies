@@ -152,11 +152,13 @@ public sealed class BookingAgencyIsolationTests(IntegrationHost host)
             granted.AgencyId.ShouldBe(second.AgencyId);
         }
 
-        // The right code of the request opens it on the site of its agency only.
+        // The right code of the request opens it on the site of its agency only; the e-mail comes from that agency.
+        var agency = (await host.Factory.Services.GetRequiredService<CarRental.Application.Referential.Contracts.IAgencyDirectory>().FindAsync(second.AgencyId, Ct)).ShouldNotBeNull();
         var email = await TestEmails.WaitForAsync(
             host.Factory.EmailDirectory,
-            e => e.To.Contains(theirs.Email, StringComparison.Ordinal) && e.Subject == $"CarRental — Votre accès à la réservation {theirs.Number}",
+            e => e.To.Contains(theirs.Email, StringComparison.Ordinal) && e.Subject == $"{agency.Name} — Votre accès à la réservation {theirs.Number}",
             Ct);
+        TestEmails.Links(email).ShouldContain(l => l.Contains($"/{agency.Slug}/fr/ma-reservation/acces/", StringComparison.Ordinal), "the link leads to the site of the agency of the booking");
         var code = TestEmails.Code(email).ShouldNotBeNull();
         (await MyBookingAsync(first.AgencyId, s => s.OpenWithCodeAsync(onSecondSite, code, Ct))).Error.ShouldBe(AccessErrors.AccessInvalid);
         var opened = await MyBookingAsync(second.AgencyId, s => s.OpenWithCodeAsync(onSecondSite, code, Ct));

@@ -8,10 +8,18 @@
 <section class="status-page">
     <h1>@Title</h1>
     <p>@Message</p>
-    <p><a href="/">@L["NotFound.Home"]</a></p>
+    <p><a href="@HomePath">@L["NotFound.Home"]</a></p>
 </section>
 
 @code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    /// <summary>The home page of the site of the address (ADR-0067), else the page of the platform.</summary>
+    private string HomePath => HttpContext is not null && Public.Site.PublicSiteAgency.SiteOf(HttpContext) is { } site
+        ? Public.PublicRoutes.PathFor(site.Slug, Public.PublicPage.Home, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
+        : "/";
+
     [Parameter]
     public int StatusCode { get; set; }
 

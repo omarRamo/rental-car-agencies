@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/ma-reservation/dossier/annulation"
-@page "/{culture:length(2)}/my-booking/file/cancellation"
+@page "/{agency}/{culture:length(2)}/ma-reservation/dossier/annulation"
+@page "/{agency}/{culture:length(2)}/my-booking/file/cancellation"
 @* The cancellation of the booking of the session (ADR-0051), the fee shown first: free until the date of the policy of
    the agency, then its percentage of the total; what was paid online minus the fee is refunded online (above the
    approval threshold of the agency, a manager validates the refund first). The fee posted back must still be the fee
@@ -49,17 +49,17 @@
         </dl>
         <p>@L["Cancel.RefundHow"]</p>
         <p class="field-hint">@L["Cancel.Approval"]</p>
-        <form method="post" action="@BookingRoutes.MyBookingCancellation(Lang)" class="actions">
+        <form method="post" action="@BookingRoutes.MyBookingCancellation(Slug, Lang)" class="actions">
             <AntiforgeryToken />
             <input type="hidden" name="@MyBookingEndpoints.FeeField" value="@cancellation.Fee.Amount.ToString("0.000", CultureInfo.InvariantCulture)" />
             <button type="submit" class="button button--danger" data-testid="confirm-cancel">@L["Cancel.Confirm"]</button>
-            <a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Lang)">@L["Cancel.Keep"]</a>
+            <a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Slug, Lang)">@L["Cancel.Keep"]</a>
         </form>
     }
     else
     {
         <p>@L["Cancel.NotAllowed"]</p>
-        <p><a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Lang)">@L["Cancel.Back"]</a></p>
+        <p><a class="button button--secondary" href="@BookingRoutes.MyBookingFile(Slug, Lang)">@L["Cancel.Back"]</a></p>
     }
 </section>
 
@@ -69,7 +69,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCancellation(Lang)))
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCancellation(Slug, Lang)))
         {
             return;
         }
@@ -79,9 +79,9 @@
             var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
             var session = await MyBookingEndpoints.SessionAsync(HttpContext, Cookies, service);
             var file = session is null ? null : await service.GetFileAsync(session.BookingId, Aborted);
-            if (file is not { IsSuccess: true })
+            if (file is not { IsSuccess: true } || file.Value.AgencyId != SiteAgency.Id)
             {
-                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Slug, Lang), AccessErrors.SessionRequired.Code));
                 return;
             }
 

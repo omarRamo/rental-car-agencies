@@ -27,7 +27,7 @@ public sealed class GatewayDisabledFunnelTests(PublicScenarioHost scenario)
         var (token, _) = await FunnelWorld.StartDemoAsync(scenario.Factory, BookingWorld.InDays(96), BookingWorld.InDays(99), Ct);
 
         using var visitor = Create(scenario.Factory);
-        var payment = $"/fr/reserver/{token}/paiement";
+        var payment = $"/agence-demo-tunis/fr/reserver/{token}/paiement";
         var html = await visitor.PageAsync(payment, Ct);
         var page = WebUtility.HtmlDecode(html);
         page.ShouldContain("data-testid=\"payment-link-mode\"");
@@ -43,7 +43,7 @@ public sealed class GatewayDisabledFunnelTests(PublicScenarioHost scenario)
         using var submitted = await visitor.Client.PostAsync(new Uri(payment, UriKind.Relative), form, Ct);
         submitted.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
         var confirmationPath = Location(submitted);
-        confirmationPath.ShouldStartWith("/fr/reserver/confirmation/LOC-", customMessage: "no page of the bank");
+        confirmationPath.ShouldStartWith("/agence-demo-tunis/fr/reserver/confirmation/LOC-", customMessage: "no page of the bank");
 
         var confirmation = await visitor.TextAsync(confirmationPath, Ct);
         confirmation.ShouldContain("Demande reçue");

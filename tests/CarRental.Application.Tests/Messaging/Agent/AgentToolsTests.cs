@@ -187,7 +187,7 @@ public sealed class AgentToolsTests : IAsyncDisposable
 
         var quote = _harness.World.LockedQuotes.ShouldHaveSingleItem();
         reply.Message.ShouldBeOfType<OutboundText>().Body
-            .ShouldContain($"https://www.example.tn/en/book?lieu=TUN&depart=2027-07-01T10%3A00&retour=2027-07-05T10%3A00&cat=MCMR&devis={quote.Code}&src=whatsapp");
+            .ShouldContain($"{_harness.Site}en/book?lieu=TUN&depart=2027-07-01T10%3A00&retour=2027-07-05T10%3A00&cat=MCMR&devis={quote.Code}&src=whatsapp");
         var result = Result(QuoteLinkTool.ToolName);
         result.GetProperty("code_devis").GetString().ShouldBe(quote.Code);
         result.GetProperty("total_ttc").GetString().ShouldBe("369.520 TND");

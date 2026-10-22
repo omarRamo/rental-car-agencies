@@ -231,6 +231,33 @@
   <data name="Nav.Faq" xml:space="preserve">
     <value>FAQ</value>
   </data>
+  <data name="Platform.Agencies.Text" xml:space="preserve">
+    <value>Chaque agence partenaire a son propre site de réservation, à sa propre adresse : recherche, devis au prix garanti, demande de réservation et suivi dans « Ma réservation ». Pour réserver, suivez le lien que votre agence vous a donné.</value>
+  </data>
+  <data name="Platform.Agencies.Title" xml:space="preserve">
+    <value>Une agence, un site</value>
+  </data>
+  <data name="Platform.Description" xml:space="preserve">
+    <value>Plateforme de réservation en ligne des agences de location de voitures en Tunisie : chaque agence a son propre site.</value>
+  </data>
+  <data name="Platform.Heading" xml:space="preserve">
+    <value>La location de voitures, agence par agence</value>
+  </data>
+  <data name="Platform.Lead" xml:space="preserve">
+    <value>{0} réunit les agences de location de voitures qui proposent la réservation en ligne.</value>
+  </data>
+  <data name="Platform.Staff.Link" xml:space="preserve">
+    <value>Accéder au back office</value>
+  </data>
+  <data name="Platform.Staff.Text" xml:space="preserve">
+    <value>Le personnel des agences et le support de la plateforme se connectent au back office.</value>
+  </data>
+  <data name="Platform.Staff.Title" xml:space="preserve">
+    <value>Vous travaillez dans une agence ?</value>
+  </data>
+  <data name="Platform.Title" xml:space="preserve">
+    <value>Réservation en ligne des agences de location</value>
+  </data>
   <data name="Privacy.ContactFallback" xml:space="preserve">
     <value>l'agence (coordonnées sur la page Agence et contact)</value>
   </data>

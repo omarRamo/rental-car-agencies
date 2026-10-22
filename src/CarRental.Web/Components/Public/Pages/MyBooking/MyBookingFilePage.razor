@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/ma-reservation/dossier"
-@page "/{culture:length(2)}/my-booking/file"
+@page "/{agency}/{culture:length(2)}/ma-reservation/dossier"
+@page "/{agency}/{culture:length(2)}/my-booking/file"
 @* The booking of the "Ma réservation" session (ADR-0051): where it stands and its public timeline, what the agency asked
    for, the photos of the documents of each driver (sent to the agent, never applied to a person without its review),
    the balance to pay online, the cancellation under the policy, the contract and invoices once they exist. Only the
@@ -63,7 +63,7 @@
         }
         @if (_file.CanPayBalance)
         {
-            <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.PayBalance)">
+            <form method="post" action="@BookingRoutes.MyBookingAction(Slug, Lang, BookingRoutes.Actions.PayBalance)">
                 <AntiforgeryToken />
                 <button type="submit" class="button" data-testid="pay-balance">@L["File.PayBalance", PublicFormat.Price(_file.Balance)]</button>
             </form>
@@ -81,7 +81,7 @@
             <p>@L["File.Information.Text"]</p>
             @if (_file.CanProvideInformation)
             {
-                <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.InformationProvided)">
+                <form method="post" action="@BookingRoutes.MyBookingAction(Slug, Lang, BookingRoutes.Actions.InformationProvided)">
                     <AntiforgeryToken />
                     <button type="submit" class="button" data-testid="information-provided">@L["File.Information.Done"]</button>
                 </form>
@@ -94,7 +94,7 @@
         @if (_file.CanSendDocuments)
         {
             <p>@L["File.Documents.Intro"]</p>
-            <div class="photos" data-photos data-upload-url="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.Documents)"
+            <div class="photos" data-photos data-upload-url="@BookingRoutes.MyBookingAction(Slug, Lang, BookingRoutes.Actions.Documents)"
                  data-text-sending="@L["Photo.Status.Sending"]" data-text-received="@L["Photo.Status.Received"]"
                  data-text-failed="@L["Photo.Status.Failed"]" data-text-too-large="@ErrorText("customers.document_image.too_large")"
                  data-text-type="@ErrorText("customers.document_image.unsupported_type")">
@@ -105,7 +105,7 @@
                         @foreach (var slot in driver.Slots)
                         {
                             <PhotoSlot Key="@slot.Key" Label="@SlotLabel(slot, driver.IdentityType)" Received="@slot.Received" Optional="@slot.Optional"
-                                       Action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.Documents)" />
+                                       Action="@BookingRoutes.MyBookingAction(Slug, Lang, BookingRoutes.Actions.Documents)" />
                         }
                     </ul>
                 }
@@ -130,7 +130,7 @@
                 @foreach (var document in _file.Documents)
                 {
                     <li>
-                        <a href="@BookingRoutes.MyBookingDocument(Lang, document.Id)" download>
+                        <a href="@BookingRoutes.MyBookingDocument(Slug, Lang, document.Id)" download>
                             @L[$"File.Papers.{document.Kind}", document.Number ?? string.Empty]
                         </a>
                         <span class="field-hint">@L["File.Papers.Issued", PublicFormat.Date(document.IssuedAtUtc)]</span>
@@ -158,11 +158,11 @@
         <section class="card my-booking__section" aria-labelledby="cancel-title">
             <h2 id="cancel-title">@L["File.Cancel.Title"]</h2>
             <p>@(cancellation.IsFree ? L["File.Cancel.Free"] : L["File.Cancel.Fee", PublicFormat.Price(cancellation.Fee)])</p>
-            <p><a class="button button--secondary" href="@BookingRoutes.MyBookingCancellation(Lang)" data-testid="cancel-link">@L["File.Cancel.Link"]</a></p>
+            <p><a class="button button--secondary" href="@BookingRoutes.MyBookingCancellation(Slug, Lang)" data-testid="cancel-link">@L["File.Cancel.Link"]</a></p>
         </section>
     }
 
-    <form method="post" action="@BookingRoutes.MyBookingAction(Lang, BookingRoutes.Actions.SignOut)" class="my-booking__signout">
+    <form method="post" action="@BookingRoutes.MyBookingAction(Slug, Lang, BookingRoutes.Actions.SignOut)" class="my-booking__signout">
         <AntiforgeryToken />
         <button type="submit" class="link-button">@L["File.SignOut"]</button>
     </form>
@@ -205,25 +205,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.MyBookingFile(Lang)))
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingFile(Slug, Lang)))
         {
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.MyBooking))
         {
             var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
             if (await MyBookingEndpoints.SessionAsync(HttpContext, Cookies, service) is not { } session)
             {
-                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Slug, Lang), AccessErrors.SessionRequired.Code));
                 return;
             }
 
             var file = await service.GetFileAsync(session.BookingId, Aborted);
-            if (file.IsFailure)
+            if (file.IsFailure || file.Value.AgencyId != SiteAgency.Id)
             {
-                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Lang), AccessErrors.SessionRequired.Code));
+                Leave(BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(Slug, Lang), AccessErrors.SessionRequired.Code));
                 return;
             }
 

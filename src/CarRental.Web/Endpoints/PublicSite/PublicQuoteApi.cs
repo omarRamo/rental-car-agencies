@@ -22,15 +22,24 @@ public sealed class PublicApiOptions
 }
 
 /// <summary>
-/// The public quote API (SPEC §13, ADR-0049): <c>POST /api/public/quotes</c> prices a rental with the pricing engine and
-/// locks the quote for 24 hours (same rules as the "Choose" button of the site), <c>GET /api/public/quotes/{code}</c>
-/// reads a locked quote. The deep link of the answer (<c>devis=CODE</c>) opens the results of the same search; choosing the
+/// The public quote API (SPEC §13, ADR-0049) of the site of an agency: <c>POST /{agency}/api/public/quotes</c> prices a
+/// rental of that agency with the pricing engine and locks the quote for 24 hours (same rules as the "Choose" button of
+/// the site), <c>GET /{agency}/api/public/quotes/{code}</c> reads a locked quote of that agency. The deep link of the answer (<c>devis=CODE</c>) opens the results of the same search; choosing the
 /// category there reuses the locked quote while it is valid and matches. Clients authenticate with an API key
 /// (<c>X-Api-Key</c>, compared in constant time); calls are rate limited by client address and never cached.
 /// </summary>
 public static class PublicQuoteApi
 {
-    public const string Route = "/api/public/quotes";
+    /// <summary>
+    /// The APIs of a site start with its address, as every public address does (ADR-0067): the first segment names the
+    /// agency, so the resolution of the site (404 for an unknown, suspended or closed site), the visitor actor of that
+    /// agency and the pricing of its own fleet apply unchanged, and a quote code is only read on the site that locked it.
+    /// <c>api/public</c> follows, so that the APIs stay recognizable (proxy and WAF rules, <c>Disallow: /*/api/</c>);
+    /// <c>/api/…</c> at the root stays for the platform's own APIs (sales channels).
+    /// </summary>
+    public const string ApiPrefix = PublicSiteAgency.RouteParameterSegment + "/api/public";
+
+    public const string Route = ApiPrefix + "/quotes";
 
     public const string ApiKeyHeader = "X-Api-Key";
 
@@ -76,10 +85,11 @@ public static class PublicQuoteApi
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["body"] = ["required"] }, title: "The request is invalid.");
         }
 
-        var agency = await directory.GetAsync(cancellationToken);
+        var siteAgency = PublicSiteAgency.Require(context);
+        var agency = await directory.GetAsync(siteAgency, cancellationToken);
         if (agency is null)
         {
-            return TypedResults.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "No agency is open for online booking yet.");
+            return TypedResults.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "The agency is not open for online booking.");
         }
 
         var query = request.ToQuery();
@@ -100,7 +110,7 @@ public static class PublicQuoteApi
         // The quote is locked by the system working for the agency of the site only (ADR-0067).
         await using var scope = context.RequestServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<CarRental.Application.Common.Security.ScopedUserContext>()
-            .Initialize(CarRental.Application.Common.Security.UserContextSnapshot.System(Actor, Security.CorrelationIds.Current(context), agency.Agency.Id));
+            .Initialize(CarRental.Application.Common.Security.UserContextSnapshot.System(Actor, Security.CorrelationIds.Current(context), agencyId: siteAgency.Id));
         var requests = scope.ServiceProvider.GetRequiredService<IBookingRequests>();
         var locked = await requests.CreateLockedQuoteAsync(
             new PriceRequest(
@@ -124,7 +134,7 @@ public static class PublicQuoteApi
         }
 
         var response = PublicQuoteResponse.From(locked.Value, agency, criteria.Query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request));
-        return TypedResults.Created($"{Route}/{response.Code}", response);
+        return TypedResults.Created(QuotePath(siteAgency.Slug, response.Code), response);
     }
 
     internal static async Task<Results<Ok<PublicQuoteResponse>, NotFound, ProblemHttpResult>> GetAsync(
@@ -142,7 +152,7 @@ public static class PublicQuoteApi
             return Unauthorized();
         }
 
-        var agency = await directory.GetAsync(cancellationToken);
+        var agency = await directory.GetAsync(PublicSiteAgency.Require(context), cancellationToken);
         var quote = agency is null ? null : await requests.GetLockedQuoteAsync(code, cancellationToken);
         if (agency is null || quote is null || quote.AgencyId != agency.Agency.Id)
         {
@@ -163,6 +173,9 @@ public static class PublicQuoteApi
         };
         return TypedResults.Ok(PublicQuoteResponse.From(quote, agency, query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request)));
     }
+
+    /// <summary>The address of a locked quote on the site of <paramref name="agency"/>: <c>/agence-1/api/public/quotes/{code}</c>.</summary>
+    public static string QuotePath(string agency, string code) => $"/{agency}/api/public/quotes/{code}";
 
     /// <summary>Whether the request carries one of the configured keys (constant-time comparison of their hashes).</summary>
     internal static bool IsAuthorized(HttpRequest request, PublicApiOptions options)
@@ -255,7 +268,7 @@ public sealed record PublicQuoteResponse(
         var linkQuery = query with { QuoteCode = quote.Code, Info = null };
         var urls = LinkCultures.ToDictionary(
             culture => culture,
-            culture => PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(PublicPage.Results, culture) + linkQuery.ToQueryString()).AbsoluteUri);
+            culture => PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(agency.Site.Slug, PublicPage.Results, culture) + linkQuery.ToQueryString()).AbsoluteUri);
         return new PublicQuoteResponse(
             quote.Code,
             quote.ExpiresAtUtc,

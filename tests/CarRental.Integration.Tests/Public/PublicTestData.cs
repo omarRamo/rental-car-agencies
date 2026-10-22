@@ -13,6 +13,15 @@ internal static partial class PublicTestData
 {
     public const string DemoAgencyName = "Agence Démo Tunis";
 
+    /// <summary>The address of the public site of the demo agency (ADR-0067).</summary>
+    public const string DemoSlug = "agence-demo-tunis";
+
+    /// <summary>The first segment of every public address of the demo agency: <c>/agence-demo-tunis</c>.</summary>
+    public const string Site = "/" + DemoSlug;
+
+    /// <summary>The address of the public site of the second demo agency.</summary>
+    public const string SecondDemoSlug = "agence-demo-sousse";
+
     /// <summary>A browser user agent (robots are not measured).</summary>
     public const string BrowserUserAgent = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36";
 
