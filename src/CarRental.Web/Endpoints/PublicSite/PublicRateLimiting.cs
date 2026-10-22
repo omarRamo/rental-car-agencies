@@ -17,7 +17,7 @@ namespace CarRental.Web.Endpoints.PublicSite;
 /// </summary>
 public static class PublicRateLimits
 {
-    /// <summary>Searches and public reads: home, results, <c>GET /api/public/availability</c> (60 per minute and per IP).</summary>
+    /// <summary>Searches and public reads: home, results, <c>GET /{agency}/api/public/availability</c> (60 per minute and per IP).</summary>
     public const string Search = "public-search";
 
     /// <summary>Submissions of the booking funnel and magic link requests (10 per 10 minutes and per IP).</summary>
@@ -136,7 +136,7 @@ public static partial class PublicRateLimiting
         LogRejected(logger, SecretPaths.Redact(path) ?? path);
 
         var localizer = http.RequestServices.GetRequiredService<IStringLocalizer<PublicResources>>();
-        if (http.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+        if (IsApi(http.Request.Path))
         {
             await TypedResults.Problem(
                     statusCode: StatusCodes.Status429TooManyRequests,
@@ -147,6 +147,14 @@ public static partial class PublicRateLimiting
         }
 
         await PublicErrorPage.WriteAsync(http, StatusCodes.Status429TooManyRequests, "TooManyRequests.Title", "TooManyRequests.Message", cancellationToken);
+    }
+
+    /// <summary>An API of the platform (<c>/api/…</c>) or of the site of an agency (<c>/{agency}/api/…</c>).</summary>
+    internal static bool IsApi(PathString path)
+    {
+        var segments = (path.Value ?? string.Empty).Split('/', 4, StringSplitOptions.RemoveEmptyEntries);
+        return (segments.Length > 0 && string.Equals(segments[0], "api", StringComparison.OrdinalIgnoreCase))
+               || (segments.Length > 1 && string.Equals(segments[1], "api", StringComparison.OrdinalIgnoreCase));
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Rate limit reached on {Path}: 429 returned.")]

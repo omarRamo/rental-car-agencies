@@ -1,4 +1,5 @@
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Common.Email;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
@@ -18,7 +19,7 @@ namespace CarRental.Application.Bookings.Notifications;
 /// created, a cancellation from "Ma réservation" by that page (it knows the refund). The notification and the link are
 /// written with the processed mark of the message: exactly once, even when the message is delivered again.
 /// </summary>
-internal sealed class BookingNotificationPublisher(IAppDbContext db, IOutbox outbox, ISettingsReader settings, TimeProvider clock)
+internal sealed class BookingNotificationPublisher(IAppDbContext db, IOutbox outbox, ISettingsReader settings, IAgencyDirectory agencies, TimeProvider clock)
     : IOutboxHandler<BookingStatusChanged>
 {
     public async Task HandleAsync(BookingStatusChanged message, OutboxMessageContext context, CancellationToken cancellationToken)
@@ -48,7 +49,7 @@ internal sealed class BookingNotificationPublisher(IAppDbContext db, IOutbox out
                 .Select(e => e.Reason)
                 .FirstOrDefaultAsync(cancellationToken);
             var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, message.AgencyId, message.BookingId, profile.Culture, clock.GetUtcNow(), cancellationToken);
-            actionPath = PublicBookingPaths.AccessLink(profile.Culture, link.Token, documents: true);
+            actionPath = PublicBookingPaths.AccessLink(await agencies.SlugAsync(message.AgencyId, cancellationToken), profile.Culture, link.Token, documents: true);
             actionExpires = link.Grant.ExpiresAtUtc;
         }
 

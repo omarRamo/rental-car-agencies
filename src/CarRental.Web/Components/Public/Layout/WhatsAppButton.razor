@@ -1,13 +1,14 @@
-@* Floating WhatsApp button on every public page (hidden when PublicSite:WhatsAppNumber is empty). *@
+@* Floating WhatsApp button on the pages of a site whose agency has the WhatsApp module on (platform number
+   PublicSite:WhatsAppNumber; hidden when empty, outside any site, or when the module is off). *@
 @using CarRental.Web.Resources.Public
 @inject IStringLocalizer<PublicResources> L
-@inject IOptions<PublicSiteOptions> Site
+@inject IOptions<PublicSiteOptions> Options
 
-@if (!string.IsNullOrWhiteSpace(Site.Value.WhatsAppNumber))
+@if (PublicSiteAgency.WhatsAppNumber(Site, Options.Value) is { } number)
 {
     <aside class="whatsapp" aria-label="@L["WhatsApp.Region"]">
         <a class="whatsapp__button"
-           href="@($"https://wa.me/{Site.Value.WhatsAppNumber}?text={Uri.EscapeDataString(L["WhatsApp.Message"])}")"
+           href="@($"https://wa.me/{number}?text={Uri.EscapeDataString(L["WhatsApp.Message"])}")"
            target="_blank" rel="noopener noreferrer"
            aria-label="@L["WhatsApp.Label"]">
             <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
@@ -15,4 +16,10 @@
             </svg>
         </a>
     </aside>
+}
+
+@code {
+    /// <summary>The agency whose site is shown, or <see langword="null"/> outside any site.</summary>
+    [Parameter]
+    public AgencySummary? Site { get; set; }
 }

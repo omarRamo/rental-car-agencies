@@ -30,7 +30,7 @@
             <dd><a href="mailto:@Agency.Agency.Email">@Agency.Agency.Email</a></dd>
         </div>
     }
-    @if (ShowWhatsApp && AgencyLinks.WhatsAppUrl(Site.Value.WhatsAppNumber, L["WhatsApp.Message"]) is { } whatsApp)
+    @if (ShowWhatsApp && AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(Agency.Site, Site.Value), L["WhatsApp.Message"]) is { } whatsApp)
     {
         <div class="agency-facts__item">
             <dt>@L["Agency.WhatsApp"]</dt>

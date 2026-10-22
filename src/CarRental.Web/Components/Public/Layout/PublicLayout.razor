@@ -3,23 +3,35 @@
 @inject IOptions<PublicSiteOptions> Site
 @inject NavigationManager Navigation
 
-@* In-page links carry the page address: with <base href="/"> a bare "#main" would lead to the root. *@
+@* The site of an agency (ADR-0067): its name, menu and footer lead to its own pages (/{agency}/{culture}/…). Outside
+   any site (the page of the platform at /, a status page of an unknown address) only the platform's name and the staff
+   entrance are shown. In-page links carry the page address: with <base href="/"> a bare "#main" would lead to the root. *@
 <a class="skip-link" href="@PublicRoutes.InPage(Navigation, "main")">@L["SkipToContent"]</a>
 
 <header class="site-header">
     <div class="container site-header__inner">
-        <a class="site-brand" href="@PublicRoutes.PathFor(PublicPage.Home, _culture)">@Site.Value.AgencyName</a>
+        @if (_site is { } site)
+        {
+            <a class="site-brand" href="@PublicRoutes.PathFor(site.Slug, PublicPage.Home, _culture)">@site.Name</a>
+        }
+        else
+        {
+            <a class="site-brand" href="/">@Site.Value.AgencyName</a>
+        }
         <nav class="site-nav" aria-label="@L["LanguageNav"]">
-            <LanguageSwitcher />
+            <LanguageSwitcher Site="_site" />
         </nav>
     </div>
-    <nav class="site-menu" aria-label="@L["MainNav"]">
-        <ul class="container site-menu__list">
-            <li><a href="@($"{PublicRoutes.PathFor(PublicPage.Home, _culture)}#recherche")">@L["Nav.Book"]</a></li>
-            <li><a href="@PublicRoutes.PathFor(PublicPage.Agency, _culture)" aria-current="@Current(PublicPage.Agency)">@L["Nav.Agency"]</a></li>
-            <li><a href="@PublicRoutes.PathFor(PublicPage.Faq, _culture)" aria-current="@Current(PublicPage.Faq)">@L["Nav.Faq"]</a></li>
-        </ul>
-    </nav>
+    @if (_site is { } menuSite)
+    {
+        <nav class="site-menu" aria-label="@L["MainNav"]">
+            <ul class="container site-menu__list">
+                <li><a href="@($"{PublicRoutes.PathFor(menuSite.Slug, PublicPage.Home, _culture)}#recherche")">@L["Nav.Book"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(menuSite.Slug, PublicPage.Agency, _culture)" aria-current="@Current(PublicPage.Agency)">@L["Nav.Agency"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(menuSite.Slug, PublicPage.Faq, _culture)" aria-current="@Current(PublicPage.Faq)">@L["Nav.Faq"]</a></li>
+            </ul>
+        </nav>
+    }
 </header>
 
 <main id="main" class="site-main container" tabindex="-1">
@@ -30,23 +42,30 @@
     <div class="container site-footer__inner">
         <nav aria-label="@L["Footer.Nav"]">
             <ul class="site-footer__links">
-                <li><a href="@PublicRoutes.PathFor(PublicPage.Agency, _culture)">@L["Nav.Agency"]</a></li>
-                <li><a href="@PublicRoutes.PathFor(PublicPage.Faq, _culture)">@L["Nav.Faq"]</a></li>
-                <li><a href="@PublicRoutes.PathFor(PublicPage.Terms, _culture)">@L["Footer.Terms"]</a></li>
-                <li><a href="@PublicRoutes.PathFor(PublicPage.Privacy, _culture)">@L["Footer.Privacy"]</a></li>
+                @if (_site is { } footerSite)
+                {
+                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Agency, _culture)">@L["Nav.Agency"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Faq, _culture)">@L["Nav.Faq"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Terms, _culture)">@L["Footer.Terms"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Privacy, _culture)">@L["Footer.Privacy"]</a></li>
+                }
                 <li><a href="/account/login">@L["StaffLogin"]</a></li>
             </ul>
         </nav>
-        <p>@L["Footer.Prices"]</p>
-        <p>© @DateTime.UtcNow.Year @Site.Value.AgencyName</p>
+        @if (_site is not null)
+        {
+            <p>@L["Footer.Prices"]</p>
+        }
+        <p>© @DateTime.UtcNow.Year @(_site?.Name ?? Site.Value.AgencyName)</p>
     </div>
 </footer>
 
-<WhatsAppButton />
+<WhatsAppButton Site="_site" />
 
 @code {
     private string _culture = CultureCatalog.Default;
     private PublicPage? _page;
+    private AgencySummary? _site;
 
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
@@ -56,6 +75,7 @@
         _culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         if (HttpContext is not null)
         {
+            _site = PublicSiteAgency.SiteOf(HttpContext);
             _page = PublicRoutes.PageOf(HttpContext.Request.Path.Value);
             PublicPageCaching.Apply(HttpContext);
         }

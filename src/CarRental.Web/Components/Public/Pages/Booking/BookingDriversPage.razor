@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver/{Token}/conducteurs"
-@page "/{culture:length(2)}/book/{Token}/drivers"
+@page "/{agency}/{culture:length(2)}/reserver/{Token}/conducteurs"
+@page "/{agency}/{culture:length(2)}/book/{Token}/drivers"
 @* Step 2 of the booking funnel (ADR-0050): the main driver and an optional second driver, the photos of their
    documents (upload module) and the consents. The server validates every field and evaluates each driver on what was
    typed only (age, licence held long enough, documents valid until the return, international permit, CIN for a
@@ -18,7 +18,7 @@
 
 <PrivateHead Title="@(_errors.Count > 0 ? L["Drivers.ErrorTitle", L["Drivers.Title"]] : L["Drivers.Title"])" Description="@L["Drivers.Description"]" />
 
-<FunnelProgress Current="FunnelStep.Drivers" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
+<FunnelProgress Current="FunnelStep.Drivers" Slug="@Slug" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
 
 <h1>@L["Drivers.Heading"]</h1>
 
@@ -41,14 +41,14 @@ else
 
 <div class="funnel-layout">
     <div class="funnel-layout__main">
-        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)" class="funnel-form drivers" novalidate data-drivers-form>
+        <form method="post" action="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Drivers)" class="funnel-form drivers" novalidate data-drivers-form>
             <AntiforgeryToken />
             <p class="field-hint">@L["Drivers.Intro"]</p>
 
             <fieldset class="driver">
                 <legend class="driver__legend">@L["Drivers.Main"]</legend>
                 <DriverFields Role="@FunnelFields.Main" Input="@_input?.Main" Errors="@_errors" ContactRequired="true"
-                              UploadUrl="@BookingRoutes.UploadsPath(Lang, Token)" Uploads="@_uploads" />
+                              UploadUrl="@BookingRoutes.UploadsPath(Slug, Lang, Token)" Uploads="@_uploads" />
             </fieldset>
 
             <div class="form-check drivers__second-toggle">
@@ -61,7 +61,7 @@ else
             <fieldset class="driver driver--second">
                 <legend class="driver__legend">@L["Drivers.Second"]</legend>
                 <DriverFields Role="@FunnelFields.Second" Input="@(_input?.HasSecond == true ? _input.Second : null)" Errors="@_errors"
-                              UploadUrl="@BookingRoutes.UploadsPath(Lang, Token)" Uploads="@_uploads" />
+                              UploadUrl="@BookingRoutes.UploadsPath(Slug, Lang, Token)" Uploads="@_uploads" />
             </fieldset>
 
             <noscript>
@@ -76,7 +76,7 @@ else
                            aria-invalid="@(ConsentError is null ? null : "true")" aria-describedby="@(ConsentError is null ? null : "consent-documents-error")" />
                     <label for="consent-documents">
                         @L["Consents.Documents"]
-                        <a href="@PublicRoutes.PathFor(PublicPage.Privacy, Lang)" target="_blank" rel="noopener">@L["Consents.Documents.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
+                        <a href="@PublicRoutes.PathFor(Slug, PublicPage.Privacy, Lang)" target="_blank" rel="noopener">@L["Consents.Documents.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
                     </label>
                 </div>
                 <FieldMessage Id="consent-documents-error" Message="@ConsentError" />
@@ -94,7 +94,7 @@ else
                 <button type="submit" class="button">@L["Drivers.Continue"]</button>
             </div>
         </form>
-        <p class="funnel-back"><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)">@L["Drivers.Back"]</a></p>
+        <p class="funnel-back"><a href="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Options)">@L["Drivers.Back"]</a></p>
     </div>
     <aside class="funnel-layout__aside" aria-label="@L["Summary.Title"]">
         <FunnelSummary View="_view" Agency="_agency!" Culture="@Lang" />
@@ -122,21 +122,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)))
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Drivers)))
         {
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         FunnelLookup lookup;
         await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
         {
             lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Documents, Aborted);
         }
 
-        if (lookup.View is not { } view || _agency is null)
+        // A session of another agency is unknown at this address.
+        if (lookup.View is not { } view || _agency is null || view.AgencyId != SiteAgency.Id)
         {
-            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            Leave(BookingSelectionEndpoint.Fallback(Slug, Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
             return;
         }
 

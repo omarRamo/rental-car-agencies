@@ -38,7 +38,7 @@
             {
                 <p class="offer__eur">@L["Results.Euro", PublicFormat.Euros(euros)]</p>
             }
-            <form method="post" action="@PublicRoutes.SelectionPath(Culture)" class="offer__choose">
+            <form method="post" action="@PublicRoutes.SelectionPath(Slug, Culture)" class="offer__choose">
                 <AntiforgeryToken />
                 @foreach (var (name, value) in _fields)
                 {
@@ -60,6 +60,10 @@
     /// <summary>The validated search the offer answers (posted with the chosen category).</summary>
     [Parameter, EditorRequired]
     public SearchCriteria Criteria { get; set; } = default!;
+
+    /// <summary>The address of the agency's site.</summary>
+    [Parameter, EditorRequired]
+    public string Slug { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
     public string Culture { get; set; } = CultureCatalog.Default;

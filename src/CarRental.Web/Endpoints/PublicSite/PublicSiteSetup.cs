@@ -34,13 +34,17 @@ public static class PublicSiteSetup
     }
 
     /// <summary>
-    /// sitemap.xml, robots.txt, the public read and quote APIs, the "Choose" action of the results, the forms of the booking
-    /// funnel and of "Ma réservation".
+    /// sitemap.xml, robots.txt, the address of each site (<c>/{agency}</c>, redirected to its best culture), the public
+    /// read and quote APIs, the "Choose" action of the results, the forms of the booking funnel and of "Ma réservation".
     /// </summary>
     public static IEndpointRouteBuilder MapPublicSite(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapSeoEndpoints();
+        endpoints.MapGet(PublicSiteAgency.RouteParameterSegment, PublicSiteRoot.Redirect)
+            .AllowAnonymous()
+            .RequireRateLimiting(PublicRateLimits.Search)
+            .ExcludeFromDescription();
         endpoints.MapPublicAvailabilityApi();
         endpoints.MapPublicQuoteApi();
         endpoints.MapBookingSelection();

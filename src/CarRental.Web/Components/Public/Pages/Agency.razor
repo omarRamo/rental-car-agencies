@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/agence"
-@page "/{culture:length(2)}/agency"
+@page "/{agency}/{culture:length(2)}/agence"
+@page "/{agency}/{culture:length(2)}/agency"
 @* Agency and contact: address with a map link, phone, e-mail, WhatsApp, opening hours, pick-up locations, and the
    AutoRental structured data. *@
 @inherits PublicPageBase
@@ -60,16 +60,16 @@ else
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         if (_agency is not null)
         {
             var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
             _structuredData = AgencyStructuredData.Build(
                 _agency,
-                Site.Value.AgencyName,
-                baseUri,
-                PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(PublicPage.Home, Lang)),
-                Site.Value.WhatsAppNumber);
+                SiteAgency.Name,
+                PublicUrls.Absolute(baseUri, $"/{Slug}/"),
+                PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(Slug, PublicPage.Home, Lang)),
+                PublicSiteAgency.WhatsAppNumber(SiteAgency, Site.Value));
         }
     }
 }

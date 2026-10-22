@@ -10,7 +10,8 @@ namespace CarRental.Domain.Messaging.Agent;
 /// Parameter names are the same in every language; the page slug is the canonical one of the language (<c>/en/book</c>;
 /// Arabic and darija use the French site until Arabic is enabled). Dates are Tunis wall-clock times; the return place
 /// (<c>retour_lieu</c>) is given only when it differs. The server prices and checks everything again: the link only
-/// carries the search and the code of the locked quote.
+/// carries the search and the code of the locked quote. The base address is the address of the site of the agency
+/// (<c>https://rental.app/agence-1/</c>, ADR-0067): its path is kept.
 /// </summary>
 public static class BookingDeepLink
 {

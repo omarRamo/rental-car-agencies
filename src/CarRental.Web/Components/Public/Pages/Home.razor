@@ -1,4 +1,4 @@
-@page "/{culture:length(2)}"
+@page "/{agency}/{culture:length(2)}"
 @* Home page: search form (plain GET to the results), three selling points, categories with a "from" price per day
    computed by the pricing engine for the next weekend, short FAQ and the agency. Cacheable (no POST form): the
    funnel is measured on the results page. *@
@@ -100,7 +100,7 @@
 <section class="faq-short" aria-labelledby="faq-heading">
     <h2 id="faq-heading">@L["Home.Faq.Title"]</h2>
     <FaqList Items="_faq" />
-    <p><a href="@PublicRoutes.PathFor(PublicPage.Faq, Lang)">@L["Home.Faq.More"]</a></p>
+    <p><a href="@PublicRoutes.PathFor(Slug, PublicPage.Faq, Lang)">@L["Home.Faq.More"]</a></p>
 </section>
 
 @if (_agency is not null)
@@ -108,7 +108,7 @@
     <section class="agency-section" aria-labelledby="agency-heading">
         <h2 id="agency-heading">@L["Home.Agency.Title"]</h2>
         <AgencyBlock Agency="_agency" />
-        <p><a href="@PublicRoutes.PathFor(PublicPage.Agency, Lang)">@L["Home.Agency.More"]</a></p>
+        <p><a href="@PublicRoutes.PathFor(Slug, PublicPage.Agency, Lang)">@L["Home.Agency.More"]</a></p>
     </section>
 }
 
@@ -131,7 +131,7 @@
 
         _now = Clock.GetUtcNow();
         _query = SearchQuery.Parse(HttpContext.Request.Query);
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         _faq = [.. FaqContent.Build(L, _agency).Take(FaqContent.HomeCount)];
         if (_agency is null)
         {
@@ -142,10 +142,10 @@
         var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
         _structuredData = AgencyStructuredData.Build(
             _agency,
-            Site.Value.AgencyName,
-            baseUri,
-            PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(PublicPage.Home, Lang)),
-            Site.Value.WhatsAppNumber);
+            SiteAgency.Name,
+            PublicUrls.Absolute(baseUri, $"/{Slug}/"),
+            PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(Slug, PublicPage.Home, Lang)),
+            PublicSiteAgency.WhatsAppNumber(SiteAgency, Site.Value));
     }
 
     /// <summary>The results of the featured weekend for this category, with the traffic source of the home page.</summary>
@@ -160,6 +160,6 @@
             Return = SearchValidator.FormatLocal(offer.ReturnAt),
             Category = category.IsSuccess ? category.Value : null,
         };
-        return PublicRoutes.PathFor(PublicPage.Results, Lang) + query.ToQueryString();
+        return PublicRoutes.PathFor(Slug, PublicPage.Results, Lang) + query.ToQueryString();
     }
 }

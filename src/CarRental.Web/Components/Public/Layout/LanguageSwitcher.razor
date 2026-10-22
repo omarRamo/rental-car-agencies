@@ -1,5 +1,6 @@
-@* Same page in each enabled culture: the culture prefix and the localized slug are replaced (/fr/reserver?… →
-   /en/book?…), the query string is kept. *@
+@* Same page in each enabled culture: on a site, the culture segment and the localized slug are replaced
+   (/agence-1/fr/reserver?… → /agence-1/en/book?…), the query string is kept; outside any site (the page of the
+   platform), the choice is remembered by the culture cookie and the platform's page shown again. *@
 @inject NavigationManager Navigation
 @inject CultureCatalog Cultures
 
@@ -14,7 +15,7 @@
             }
             else
             {
-                <a href="@PublicRoutes.Localize(_relative, culture)" hreflang="@culture" lang="@culture">@CultureCatalog.NativeName(culture)</a>
+                <a href="@Address(culture)" hreflang="@culture" lang="@culture">@CultureCatalog.NativeName(culture)</a>
             }
         </li>
     }
@@ -24,9 +25,18 @@
     private string _current = CultureCatalog.Default;
     private string _relative = "/";
 
+    /// <summary>The agency whose site is shown, or <see langword="null"/> outside any site.</summary>
+    [Parameter]
+    public AgencySummary? Site { get; set; }
+
     protected override void OnParametersSet()
     {
         _current = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         _relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
     }
+
+    private string Address(string culture) =>
+        Site is null
+            ? $"{CultureEndpoints.SetCulturePath}?culture={culture}&returnUrl=%2F"
+            : PublicRoutes.Localize(_relative, culture);
 }

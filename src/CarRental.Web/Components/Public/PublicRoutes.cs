@@ -1,3 +1,4 @@
+using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Localization;
 
 namespace CarRental.Web.Components.Public;
@@ -14,14 +15,18 @@ public enum PublicPage
 }
 
 /// <summary>
-/// Localized addresses of the public site (docs/conception/phase-2-vitrine-paiement.md §1): <c>/fr/reserver</c> and
-/// <c>/en/book</c> are the same page. Every page declares the slug of each culture as a route; a slug of another culture
-/// (<c>/en/reserver</c>) redirects to the canonical one. Arabic, prepared but disabled, uses the French slugs for now.
+/// Localized addresses of the public site (docs/conception/phase-2-vitrine-paiement.md §1, ADR-0067): every address starts
+/// with the address of the agency's site, then the culture — <c>/agence-1/fr/reserver</c> and <c>/agence-1/en/book</c> are
+/// the same page. Every page declares the slug of each culture as a route; a slug of another culture
+/// (<c>/agence-1/en/reserver</c>) redirects to the canonical one. Arabic, prepared but disabled, uses the French slugs for now.
 /// </summary>
 public static class PublicRoutes
 {
-    /// <summary>Target of the "Choose" buttons of the results page (POST, antiforgery). Package 2C implements it.</summary>
-    public const string SelectionRouteTemplate = "/{culture:length(2)}/reserver/selection";
+    /// <summary>The start of every public route (<see cref="PublicSiteAgency.RoutePrefix"/>).</summary>
+    public const string RoutePrefix = PublicSiteAgency.RoutePrefix;
+
+    /// <summary>Target of the "Choose" buttons of the results page (POST, antiforgery).</summary>
+    public const string SelectionRouteTemplate = RoutePrefix + "/reserver/selection";
 
     private static readonly Dictionary<PublicPage, (string French, string English)> Slugs = new()
     {
@@ -33,7 +38,7 @@ public static class PublicRoutes
         [PublicPage.Privacy] = ("confidentialite", "privacy"),
     };
 
-    /// <summary>"Ma réservation" (package 2C), kept out of search engines by robots.txt.</summary>
+    /// <summary>"Ma réservation", kept out of search engines by robots.txt.</summary>
     private static readonly (string French, string English) MyBookingSlugs = ("ma-reservation", "my-booking");
 
     /// <summary>Pages listed in the sitemap, in this order.</summary>
@@ -46,17 +51,18 @@ public static class PublicRoutes
         return IsEnglish(culture) ? english : french;
     }
 
-    /// <summary>App-relative path of a page, e.g. <c>/en/book</c>.</summary>
-    public static string PathFor(PublicPage page, string culture)
+    /// <summary>App-relative path of a page of the site of <paramref name="agency"/>, e.g. <c>/agence-1/en/book</c>.</summary>
+    public static string PathFor(string agency, PublicPage page, string culture)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
         var normalized = Normalize(culture);
         var slug = Slug(page, normalized);
-        return slug.Length == 0 ? $"/{normalized}" : $"/{normalized}/{slug}";
+        return slug.Length == 0 ? $"/{agency}/{normalized}" : $"/{agency}/{normalized}/{slug}";
     }
 
     /// <summary>
-    /// A link to an element of the current page (<c>/fr/reserver?…#main</c>). The pages declare <c>&lt;base href="/"&gt;</c>,
-    /// against which a bare <c>#main</c> would resolve to the root and leave the page.
+    /// A link to an element of the current page (<c>/agence-1/fr/reserver?…#main</c>). The pages declare
+    /// <c>&lt;base href="/"&gt;</c>, against which a bare <c>#main</c> would resolve to the root and leave the page.
     /// </summary>
     public static string InPage(Microsoft.AspNetCore.Components.NavigationManager navigation, string elementId)
     {
@@ -66,28 +72,38 @@ public static class PublicRoutes
         return $"{(fragmentStart < 0 ? current : current[..fragmentStart])}#{elementId}";
     }
 
-    /// <summary>Address of the "Choose" action for <paramref name="culture"/>.</summary>
-    public static string SelectionPath(string culture) => $"/{Normalize(culture)}/reserver/selection";
+    /// <summary>Address of the "Choose" action of the site of <paramref name="agency"/> in <paramref name="culture"/> (same slug in every language).</summary>
+    public static string SelectionPath(string agency, string culture)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
+        return $"/{agency}/{Normalize(culture)}/reserver/selection";
+    }
 
-    /// <summary>Path prefixes of the booking funnel and "Ma réservation", in every culture (robots.txt).</summary>
+    /// <summary>
+    /// Patterns of the booking funnel and of "Ma réservation" of every site in <paramref name="culture"/>, for robots.txt
+    /// (<c>/*/fr/reserver</c>: the first segment is the site, whichever it is).
+    /// </summary>
     public static IEnumerable<string> PrivatePrefixes(string culture)
     {
         var normalized = Normalize(culture);
         return new[] { Slugs[PublicPage.Results].French, Slugs[PublicPage.Results].English, MyBookingSlugs.French, MyBookingSlugs.English }
             .Distinct(StringComparer.Ordinal)
-            .Select(slug => $"/{normalized}/{slug}");
+            .Select(slug => $"/*/{normalized}/{slug}");
     }
 
-    /// <summary>The page at <paramref name="path"/> (<c>/en/agency</c>, any culture's slug), or <see langword="null"/>.</summary>
+    /// <summary>
+    /// The page at <paramref name="path"/> (<c>/agence-1/en/agency</c>, any culture's slug), or <see langword="null"/>
+    /// when the path is not a page of a site.
+    /// </summary>
     public static PublicPage? PageOf(string? path)
     {
         var segments = (path ?? string.Empty).Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length is 0 or > 2 || !CultureCatalog.Prepared.Contains(segments[0], StringComparer.OrdinalIgnoreCase))
+        if (segments.Length is < 2 or > 3 || !CultureCatalog.Prepared.Contains(segments[1], StringComparer.OrdinalIgnoreCase))
         {
             return null;
         }
 
-        var slug = segments.Length == 2 ? segments[1] : string.Empty;
+        var slug = segments.Length == 3 ? segments[2] : string.Empty;
         foreach (var (page, (french, english)) in Slugs)
         {
             if (string.Equals(slug, french, StringComparison.OrdinalIgnoreCase) || string.Equals(slug, english, StringComparison.OrdinalIgnoreCase))
@@ -104,8 +120,9 @@ public static class PublicRoutes
         string.Equals(Slug(page, culture), slug ?? string.Empty, StringComparison.Ordinal);
 
     /// <summary>
-    /// The same address in <paramref name="targetCulture"/>: the culture prefix is replaced and a known first slug is
-    /// translated (<c>/fr/reserver/abc?x=1</c> → <c>/en/book/abc?x=1</c>); the rest of the path and the query are kept.
+    /// The same address in <paramref name="targetCulture"/>: the agency is kept, the culture replaced and a known slug
+    /// translated (<c>/agence-1/fr/reserver/abc?x=1</c> → <c>/agence-1/en/book/abc?x=1</c>); the rest of the path and the
+    /// query are kept. An address without a culture leads to the home page of its site in that culture.
     /// </summary>
     public static string Localize(string pathAndQuery, string targetCulture)
     {
@@ -116,23 +133,28 @@ public static class PublicRoutes
         var query = queryStart < 0 ? string.Empty : pathAndQuery[queryStart..];
 
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || !CultureCatalog.Prepared.Contains(segments[0], StringComparer.OrdinalIgnoreCase))
+        if (segments.Length == 0)
         {
-            return $"/{target}{query}";
+            return "/" + query;
         }
 
-        if (segments.Length > 1)
+        if (segments.Length == 1 || !CultureCatalog.Prepared.Contains(segments[1], StringComparer.OrdinalIgnoreCase))
         {
-            segments[1] = TranslateSlug(segments[1], target);
+            return $"/{segments[0]}/{target}{query}";
         }
 
-        // Pages of the booking funnel and of "Ma réservation" (/fr/reserver/{token}/conducteurs → /en/book/{token}/drivers).
-        for (var index = 2; index < segments.Length; index++)
+        if (segments.Length > 2)
+        {
+            segments[2] = TranslateSlug(segments[2], target);
+        }
+
+        // Pages of the booking funnel and of "Ma réservation" (/{agency}/fr/reserver/{token}/conducteurs → …/en/book/{token}/drivers).
+        for (var index = 3; index < segments.Length; index++)
         {
             segments[index] = TranslateStepSlug(segments[index], target);
         }
 
-        segments[0] = target;
+        segments[1] = target;
         return "/" + string.Join('/', segments) + query;
     }
 

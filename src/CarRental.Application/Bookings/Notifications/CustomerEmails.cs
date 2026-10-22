@@ -6,8 +6,11 @@ namespace CarRental.Application.Bookings.Notifications;
 /// <summary>Who an e-mail to a customer goes to.</summary>
 public sealed record CustomerRecipient(string Email, string? Name);
 
-/// <summary>The access e-mail of "Ma réservation": a single-use link and a six-digit code, valid until <paramref name="ExpiresAtUtc"/>.</summary>
-public sealed record AccessEmail(string Number, string Culture, string LinkPath, string Code, DateTimeOffset ExpiresAtUtc, string? BaseUrl);
+/// <summary>
+/// The access e-mail of "Ma réservation": a single-use link (on the site of <paramref name="AgencyId"/>, the agency of the
+/// booking) and a six-digit code, valid until <paramref name="ExpiresAtUtc"/>.
+/// </summary>
+public sealed record AccessEmail(string Number, string Culture, string LinkPath, string Code, DateTimeOffset ExpiresAtUtc, string? BaseUrl, Guid? AgencyId = null);
 
 /// <summary>
 /// Outbox message of an access request that matched a booking (ADR-0051): the access e-mail is composed and queued out

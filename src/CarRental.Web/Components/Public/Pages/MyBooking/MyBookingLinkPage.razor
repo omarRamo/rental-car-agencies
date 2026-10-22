@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/ma-reservation/acces/{Token}"
-@page "/{culture:length(2)}/my-booking/access/{Token}"
+@page "/{agency}/{culture:length(2)}/ma-reservation/acces/{Token}"
+@page "/{agency}/{culture:length(2)}/my-booking/access/{Token}"
 @* The link of an access e-mail (ADR-0051). Single use: it is spent by the click on this page (a POST), never by the GET
    that mail scanners and link previews make. A spent, expired or unknown link says so and offers a new request. *@
 @attribute [EnableRateLimiting(PublicRateLimits.Search)]
@@ -30,7 +30,7 @@
     {
         <h1 id="link-heading">@L["Link.Unusable.Heading"]</h1>
         <p>@L["Link.Unusable.Text"]</p>
-        <p><a class="button" href="@BookingRoutes.MyBooking(Lang)">@L["Link.Unusable.Again"]</a></p>
+        <p><a class="button" href="@BookingRoutes.MyBooking(Slug, Lang)">@L["Link.Unusable.Again"]</a></p>
     }
 </section>
 
@@ -42,7 +42,7 @@
     [Parameter]
     public string Token { get; set; } = string.Empty;
 
-    private string AccessPath => PublicBookingPaths.AccessLink(Lang, Token);
+    private string AccessPath => PublicBookingPaths.AccessLink(Slug, Lang, Token);
 
     protected override async Task OnInitializedAsync()
     {
