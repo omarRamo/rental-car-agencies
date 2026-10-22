@@ -414,6 +414,9 @@
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
 
     private IEnumerable<JournalLineRow> Lines =>
         (_journals?.Entries ?? []).Where(e => _journal is not { } wanted || e.Journal == wanted).SelectMany(e => e.Lines.Select(l => new JournalLineRow(e, l)));
@@ -423,7 +426,7 @@
         _canReopen = (await AuthenticationState).User.HasPermission(Permissions.AccountingReopen);
         var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
         _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
 
         // The month just over by default: the one to export and close.
         _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();

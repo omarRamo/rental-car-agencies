@@ -172,12 +172,15 @@
     private string? _search;
     private bool _includeDeleted;
     private bool _loaded;
+    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         var agencies = await Runner.RunAsync<ExpenseService, Result<IReadOnlyList<AgencyInfo>>>((service, ct) => service.GetAgenciesAsync(ct));
         _agencies = agencies.IsSuccess ? agencies.Value : [];
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
         await LoadVehiclesAsync();
         _loaded = true;
     }

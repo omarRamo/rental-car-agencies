@@ -288,12 +288,15 @@
     private bool _busy;
     private bool _loaded;
     private int _tab;
+    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
         _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
 
         // The month just over by default: the one to reconcile before closing it.
         _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();
