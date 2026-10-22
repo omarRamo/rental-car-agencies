@@ -27,7 +27,8 @@ public static class ReportingModule
     public static IServiceCollection AddReportingModule(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddSingleton<IFunnelEvents, FunnelEventRecorder>();
+        // Scoped: a step is recorded for the agency of the public site of the caller's request (ADR-0067).
+        services.AddScoped<IFunnelEvents, FunnelEventRecorder>();
         services.AddRecurringJob<FunnelEventRetentionJob>();
 
         // Ports (ADR-0046). The fleet costs are one source of direct costs among others (3B adds the expenses with

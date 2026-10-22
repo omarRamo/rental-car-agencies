@@ -28,6 +28,7 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
             return supplement.Error;
         }
 
+        Guid? agencyId = null;
         return await WithPlateConflictAsync(
             () => writer.AddVehicleAsync(
                 async (stamp, ct) =>
@@ -38,6 +39,8 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
                         return Result.Failure<Vehicle>(FleetErrors.CategoryNotFound);
                     }
 
+                    // The vehicle joins the agency of its category (ADR-0067).
+                    agencyId = category.AgencyId;
                     var registered = Vehicle.Register(category.AgencyId, category.Id, ToDetails(form), mileage, stamp);
                     if (registered.IsFailure)
                     {
@@ -54,6 +57,7 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
                     return supplementSet.IsSuccess ? vehicle : Result.Failure<Vehicle>(supplementSet.Error);
                 },
                 cancellationToken),
+            () => agencyId,
             form.PlateNumber,
             cancellationToken);
     }
@@ -73,11 +77,13 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
             return supplement.Error;
         }
 
+        Guid? agencyId = null;
         var result = await WithPlateConflictAsync(
             () => writer.ChangeVehicleAsync(
                 vehicleId,
                 async (vehicle, stamp, ct) =>
                 {
+                    agencyId = vehicle.AgencyId;
                     if (PlateNumbers.Normalize(form.PlateNumber) is { IsSuccess: true } plate
                         && await PlateTakenAsync(vehicle.AgencyId, plate.Value, vehicle.Id, ct))
                     {
@@ -103,6 +109,7 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
                     return supplementSet.IsSuccess ? Result.Success(true) : Result.Failure<bool>(supplementSet.Error);
                 },
                 cancellationToken),
+            () => agencyId,
             form.PlateNumber,
             cancellationToken);
         return result.IsSuccess ? Result.Success() : result.Error;
@@ -337,17 +344,25 @@ public sealed class VehicleService(IAppDbContext db, FleetWriter writer, IUserCo
     private Task<bool> PlateTakenAsync(Guid agencyId, string plateNumber, Guid? exceptId, CancellationToken cancellationToken) =>
         db.Set<Vehicle>().AnyAsync(v => v.AgencyId == agencyId && v.PlateNumber == plateNumber && v.Id != exceptId, cancellationToken);
 
-    /// <summary>The unique index on (agency, plate) may still reject a concurrent registration of the same plate.</summary>
-    private async Task<Result<T>> WithPlateConflictAsync<T>(Func<Task<Result<T>>> operation, string plateNumber, CancellationToken cancellationToken)
+    /// <summary>
+    /// The unique index on (agency, plate) may still reject a concurrent registration of the same plate in the agency
+    /// (<paramref name="agencyOf"/>, known once the operation has loaded the category or the vehicle): plates are unique
+    /// within an agency only (ADR-0067).
+    /// </summary>
+    private async Task<Result<T>> WithPlateConflictAsync<T>(
+        Func<Task<Result<T>>> operation,
+        Func<Guid?> agencyOf,
+        string plateNumber,
+        CancellationToken cancellationToken)
     {
         try
         {
             return await operation();
         }
-        catch (DbUpdateException) when (PlateNumbers.Normalize(plateNumber) is { IsSuccess: true })
+        catch (DbUpdateException) when (agencyOf() is { } agencyId && PlateNumbers.Normalize(plateNumber) is { IsSuccess: true } plate)
         {
-            var normalized = PlateNumbers.Normalize(plateNumber).Value;
-            if (await db.Set<Vehicle>().AnyAsync(v => v.PlateNumber == normalized, cancellationToken))
+            var normalized = plate.Value;
+            if (await db.Set<Vehicle>().AnyAsync(v => v.AgencyId == agencyId && v.PlateNumber == normalized, cancellationToken))
             {
                 return FleetErrors.PlateNumberTaken;
             }

@@ -111,8 +111,8 @@ public sealed class ReportQueries
         var previousFacts = previous is null ? null : await _bookings.GetBookingsOverlappingAsync(agency.Id, previous.From, previous.To, cancellationToken);
         var requests = covered is null ? [] : await RequestsAsync(agency.Id, covered, cancellationToken);
         var previousRequests = previous is null ? null : await RequestsAsync(agency.Id, previous, cancellationToken);
-        var funnel = covered is null ? [] : await FunnelCountsAsync(covered, cancellationToken);
-        var previousFunnel = previous is null ? null : await FunnelCountsAsync(previous, cancellationToken);
+        var funnel = covered is null ? [] : await FunnelCountsAsync(agency.Id, covered, cancellationToken);
+        var previousFunnel = previous is null ? null : await FunnelCountsAsync(agency.Id, previous, cancellationToken);
 
         return new ReportDashboard(
             agency.Id,
@@ -245,16 +245,19 @@ public sealed class ReportQueries
         _bookings.GetRequestsSubmittedAsync(agencyId, TunisTime.StartOfDay(period.From), TunisTime.StartOfDay(period.To.AddDays(1)), cancellationToken);
 
     /// <summary>
-    /// Visits of the search and results steps by channel and source: distinct anonymous visits, plus every event without
-    /// visit (opted-out browsers, each counted as a visit of its own).
+    /// Visits of the search and results steps of the public site of the agency by channel and source: distinct anonymous
+    /// visits, plus every event without visit (opted-out browsers, each counted as a visit of its own).
     /// </summary>
-    private async Task<List<FunnelCount>> FunnelCountsAsync(ReportPeriod period, CancellationToken cancellationToken)
+    private async Task<List<FunnelCount>> FunnelCountsAsync(Guid agencyId, ReportPeriod period, CancellationToken cancellationToken)
     {
         var from = TunisTime.StartOfDay(period.From);
         var to = TunisTime.StartOfDay(period.To.AddDays(1));
         var events = _db.Set<FunnelEvent>()
             .AsNoTracking()
-            .Where(e => e.OccurredAtUtc >= from && e.OccurredAtUtc < to && (e.Step == FunnelStep.Search || e.Step == FunnelStep.Results));
+            .Where(e => e.AgencyId == agencyId
+                        && e.OccurredAtUtc >= from
+                        && e.OccurredAtUtc < to
+                        && (e.Step == FunnelStep.Search || e.Step == FunnelStep.Results));
         var visits = await events
             .Where(e => e.VisitId != null)
             .Select(e => new { e.Channel, e.Source, e.Step, e.VisitId })

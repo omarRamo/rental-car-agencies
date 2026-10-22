@@ -43,7 +43,10 @@ public sealed class RatePlanAdministrationService
         _clock = clock;
     }
 
-    /// <summary>Plans of an agency (or every agency), drafts and published plans first; archives on demand.</summary>
+    /// <summary>
+    /// Plans of an agency (or of every agency the operation sees: its own for the staff, ADR-0067), drafts and published
+    /// plans first; archives on demand.
+    /// </summary>
     public async Task<Result<IReadOnlyList<RatePlanListItem>>> ListAsync(
         Guid? agencyId,
         bool includeArchived,

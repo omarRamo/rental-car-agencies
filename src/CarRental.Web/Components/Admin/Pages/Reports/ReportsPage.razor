@@ -1,11 +1,13 @@
 @page "/admin/reports"
 @attribute [HasPermission(Permissions.ReportsRead)]
-@* Reports (SPEC §8, ADR-0045 and ADR-0046): for an agency and a period (a calendar month by default), the fleet
-   indicators of the daily snapshots led by the revenue per available vehicle and per day, the profitability of each
-   vehicle, the channels, the booking pace, the conversion, the handling of the requests, the cancellations and the
-   cash, each compared with the previous period. Every chart has its data table; every table has its Excel export.
-   The selection is in the address (agency, from, to), so that a report can be bookmarked or shared. *@
+@attribute [RequiresModule(AgencyModules.Reports)]
+@* Reports (SPEC §8, ADR-0045 and ADR-0046): for the agency of the session (ADR-0067) and a period (a calendar month by
+   default), the fleet indicators of the daily snapshots led by the revenue per available vehicle and per day, the
+   profitability of each vehicle, the channels, the booking pace, the conversion, the handling of the requests, the
+   cancellations and the cash, each compared with the previous period. Every chart has its data table; every table has
+   its Excel export. The period is in the address (from, to), so that a report can be bookmarked or shared. *@
 @inject IOperationRunner Runner
+@inject CurrentAgency Current
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -31,17 +33,6 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <div class="report-toolbar">
-        @if (_agencies.Count > 0)
-        {
-            <div class="report-toolbar__field">
-                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChanged" Label="@L["Filter.Agency"]" Variant="Variant.Outlined">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@(agency.IsActive ? agency.Name : L["Filter.Agency.Inactive", agency.Name].Value)</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-        }
         <div class="report-toolbar__field">
             <MudSelect T="string" Value="_periodKey" ValueChanged="PeriodChanged" Label="@L["Filter.Period"]" Variant="Variant.Outlined">
                 @foreach (var (key, label) in _months)
@@ -848,7 +839,6 @@
 
     private static readonly ChartScale FullRatioScale = ChartScale.ForRatio(1m);
 
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private List<(string Key, string Label)> _months = [];
     private Guid _agencyId;
     private DateOnly _from;
@@ -890,9 +880,6 @@
         HintMargin = 8,
     }
 
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? Agency { get; set; }
-
     [SupplyParameterFromQuery(Name = "from")]
     public string? From { get; set; }
 
@@ -913,22 +900,17 @@
         _canReadFleet = user.HasPermission(Permissions.FleetRead);
         _canReadBookings = user.HasPermission(Permissions.BookingsRead);
 
-        // The report is computed once, by the interactive render (not by the prerendering as well).
-        if (RendererInfo.IsInteractive)
-        {
-            _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        }
+        // The report is always the one of the agency of the session (ADR-0067).
+        _agencyId = (await Current.GetAsync(user))?.Id ?? Guid.Empty;
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        // The report is computed once, by the interactive render (not by the prerendering as well).
         if (!RendererInfo.IsInteractive)
         {
             return;
         }
-
-        var defaultAgency = _agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault() ?? _agencies.FirstOrDefault();
-        _agencyId = Agency is { } requested && _agencies.Any(a => a.Id == requested) ? requested : defaultAgency?.Id ?? Guid.Empty;
 
         var fallback = ReportPeriod.DefaultFor(Today);
         (_from, _to) = ReportExport.TryParseDay(From, out var from) && ReportExport.TryParseDay(To, out var to) ? (from, to) : (fallback.From, fallback.To);
@@ -986,10 +968,8 @@
 
     private static string MonthKey(DateOnly day) => day.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
-    private void Go(Guid agencyId, DateOnly from, DateOnly to) =>
-        Navigation.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"/admin/reports?agency={agencyId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}"));
-
-    private void AgencyChanged(Guid agencyId) => Go(agencyId, _from, _to);
+    private void Go(DateOnly from, DateOnly to) =>
+        Navigation.NavigateTo(string.Create(CultureInfo.InvariantCulture, $"/admin/reports?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}"));
 
     private void PeriodChanged(string key)
     {
@@ -1002,7 +982,7 @@
         if (DateOnly.TryParseExact(key, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var month))
         {
             var period = ReportPeriod.MonthOf(month);
-            Go(_agencyId, period.From, period.To);
+            Go(period.From, period.To);
         }
     }
 
@@ -1010,11 +990,11 @@
     {
         if (_customFrom is { } from && _customTo is { } to)
         {
-            Go(_agencyId, DateOnly.FromDateTime(from), DateOnly.FromDateTime(to));
+            Go(DateOnly.FromDateTime(from), DateOnly.FromDateTime(to));
         }
     }
 
-    private string ExportUrl(ReportTable table) => _report is { } report ? ReportExport.Url(table, report.AgencyId, report.Period.From, report.Period.To) : "#";
+    private string ExportUrl(ReportTable table) => _report is { } report ? ReportExport.Url(table, report.Period.From, report.Period.To) : "#";
 
     private string Range(DateOnly from, DateOnly to) => L["Period.Range", ReportFormat.Date(from), ReportFormat.Date(to)];
 

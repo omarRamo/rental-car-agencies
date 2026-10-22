@@ -38,6 +38,7 @@ public sealed class FunnelEventRecorderTests
         await world.Recorder.RecordAsync(record, Ct);
 
         var saved = world.Db.Fake<FunnelEvent>().Items.ShouldHaveSingleItem();
+        saved.AgencyId.ShouldBe(RecorderWorld.SiteAgencyId, "the agency of the public site the visitor browses");
         saved.Step.ShouldBe(FunnelStep.Search);
         saved.VisitId.ShouldBe(record.VisitId);
         saved.Channel.ShouldBe(SalesChannel.WhatsApp);
@@ -46,7 +47,18 @@ public sealed class FunnelEventRecorderTests
         saved.CategoryCode!.Value.ShouldBe("ECMR");
         saved.OccurredAtUtc.ShouldBe(Now);
         world.Db.Saves.ShouldBe(1);
-        world.Actors.ShouldBe([FunnelEventRecorder.ActorName]);
+        world.Actors.ShouldBe([(FunnelEventRecorder.ActorName, (Guid?)RecorderWorld.SiteAgencyId)]);
+    }
+
+    [Fact]
+    public async Task A_caller_outside_any_public_site_records_nothing()
+    {
+        var world = new RecorderWorld(callerAgencyId: null);
+
+        await world.Recorder.RecordAsync(SearchRecord(), Ct);
+
+        world.Db.Fake<FunnelEvent>().Items.ShouldBeEmpty();
+        world.Db.Saves.ShouldBe(0);
     }
 
     [Fact]
@@ -95,7 +107,7 @@ public sealed class FunnelEventRecorderTests
     {
         var services = new ServiceCollection().AddReportingModule();
 
-        services.ShouldContain(d => d.ServiceType == typeof(IFunnelEvents) && d.ImplementationType == typeof(FunnelEventRecorder) && d.Lifetime == ServiceLifetime.Singleton);
+        services.ShouldContain(d => d.ServiceType == typeof(IFunnelEvents) && d.ImplementationType == typeof(FunnelEventRecorder) && d.Lifetime == ServiceLifetime.Scoped);
         services.ShouldContain(d => d.ServiceType == typeof(FunnelEventRetentionJob));
         FunnelEventRetentionJob.JobId.ShouldBe("reporting.purge_funnel_events");
         FunnelEventRetentionJob.CronExpression.ShouldBe("45 3 * * *");
@@ -105,22 +117,34 @@ public sealed class FunnelEventRecorderTests
 
     private sealed class RecorderWorld
     {
+        /// <summary>The agency of the public site of the caller (a visitor of that site).</summary>
+        public static readonly Guid SiteAgencyId = Guid.CreateVersion7();
+
         public RecorderWorld(bool failingSave = false, bool honourCancellation = false)
+            : this(SiteAgencyId, failingSave, honourCancellation)
+        {
+        }
+
+        public RecorderWorld(Guid? callerAgencyId, bool failingSave = false, bool honourCancellation = false)
         {
             var services = new ServiceCollection();
             services.AddScoped<ScopedUserContext>();
             services.AddScoped<IAppDbContext>(provider =>
                 new GuardedDbContext(Db, provider.GetRequiredService<ScopedUserContext>(), Actors, failingSave, honourCancellation));
             var provider = services.BuildServiceProvider();
+            var caller = new ScopedUserContext([]);
+            caller.Initialize(UserContextSnapshot.Anonymous("198.51.100.40") with { AgencyId = callerAgencyId });
             Recorder = new FunnelEventRecorder(
                 provider.GetRequiredService<IServiceScopeFactory>(),
+                caller,
                 new FakeTimeProvider(Now),
                 NullLogger<FunnelEventRecorder>.Instance);
         }
 
         public FakeAppDbContext Db { get; } = new();
 
-        public List<string?> Actors { get; } = [];
+        /// <summary>The actor of each save (name and agency).</summary>
+        public List<(string? Name, Guid? AgencyId)> Actors { get; } = [];
 
         public FunnelEventRecorder Recorder { get; }
     }
@@ -129,7 +153,7 @@ public sealed class FunnelEventRecorderTests
     /// Saves into the shared fake, records the actor of the scope at save time, and can fail or honour the cancellation
     /// token like a real provider.
     /// </summary>
-    private sealed class GuardedDbContext(FakeAppDbContext inner, ScopedUserContext userContext, List<string?> actors, bool fail, bool honourCancellation)
+    private sealed class GuardedDbContext(FakeAppDbContext inner, ScopedUserContext userContext, List<(string? Name, Guid? AgencyId)> actors, bool fail, bool honourCancellation)
         : IAppDbContext
     {
         public DbSet<TEntity> Set<TEntity>()
@@ -147,7 +171,7 @@ public sealed class FunnelEventRecorderTests
                 throw new InvalidOperationException("The database is down.");
             }
 
-            actors.Add(userContext.UserName);
+            actors.Add((userContext.UserName, userContext.AgencyId));
             return inner.SaveChangesAsync(cancellationToken);
         }
     }

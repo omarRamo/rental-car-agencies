@@ -3,6 +3,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Reporting.Indicators;
 using CarRental.Application.Reporting.Snapshots;
 using CarRental.Domain.Common;
+using CarRental.Integration.Tests.Fleet;
 using CarRental.Integration.Tests.Support;
 using CarRental.Web.Components.Admin.Reports;
 using CarRental.Web.Resources.Admin.Reports;
@@ -43,7 +44,8 @@ public sealed class ReportExportTests(IntegrationHost host)
         return report.Value;
     }
 
-    private async Task<HttpClient> SignedInAsync(string role, string? language = null)
+    /// <summary>A client signed in as a new member of <paramref name="agencyId"/>: an export is the report of the agency of the session.</summary>
+    private async Task<HttpClient> SignedInAsync(string role, Guid agencyId, string? language = null)
     {
         var client = host.CreateClient();
         if (language is not null)
@@ -51,12 +53,12 @@ public sealed class ReportExportTests(IntegrationHost host)
             client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(language);
         }
 
-        var (_, email) = await TestStaff.CreateAsync(host, role);
+        var (_, email) = await TestStaff.CreateAsync(host, role, agencyId: agencyId);
         await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
         return client;
     }
 
-    private static Uri Export(ReportTable table, Guid agencyId) => new(ReportExport.Url(table, agencyId, Day(-10), Day(-1)), UriKind.Relative);
+    private static Uri Export(ReportTable table) => new(ReportExport.Url(table, Day(-10), Day(-1)), UriKind.Relative);
 
     private static XLWorkbook Workbook(byte[] content) => new(new MemoryStream(content));
 
@@ -67,9 +69,9 @@ public sealed class ReportExportTests(IntegrationHost host)
     {
         var agency = await TwoRentedVehiclesAsync();
         var report = await DashboardAsync(agency.AgencyId);
-        using var client = await SignedInAsync(Roles.Manager);
+        using var client = await SignedInAsync(Roles.Manager, agency.AgencyId);
 
-        using var response = await client.GetAsync(Export(ReportTable.Vehicles, agency.AgencyId), Ct);
+        using var response = await client.GetAsync(Export(ReportTable.Vehicles), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.ShouldBe(Xlsx);
@@ -111,9 +113,9 @@ public sealed class ReportExportTests(IntegrationHost host)
     {
         var agency = await TwoRentedVehiclesAsync();
         var report = await DashboardAsync(agency.AgencyId);
-        using var client = await SignedInAsync(Roles.Accountant);
+        using var client = await SignedInAsync(Roles.Accountant, agency.AgencyId);
 
-        using var response = await client.GetAsync(Export(ReportTable.All, agency.AgencyId), Ct);
+        using var response = await client.GetAsync(Export(ReportTable.All), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         using var workbook = Workbook(await response.Content.ReadAsByteArrayAsync(Ct));
@@ -157,9 +159,9 @@ public sealed class ReportExportTests(IntegrationHost host)
     public async Task An_english_user_gets_english_sheets_and_file_name()
     {
         var agency = await TwoRentedVehiclesAsync();
-        using var client = await SignedInAsync(Roles.Manager, "en");
+        using var client = await SignedInAsync(Roles.Manager, agency.AgencyId, "en");
 
-        using var response = await client.GetAsync(Export(ReportTable.Channels, agency.AgencyId), Ct);
+        using var response = await client.GetAsync(Export(ReportTable.Channels), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentDisposition!.FileName!.Trim('"').ShouldStartWith("report-channels-");
@@ -175,11 +177,11 @@ public sealed class ReportExportTests(IntegrationHost host)
     public async Task Staff_without_reports_read_are_refused_and_visitors_sent_to_sign_in()
     {
         var agency = await TwoRentedVehiclesAsync();
-        using var agent = await SignedInAsync(Roles.Agent);
+        using var agent = await SignedInAsync(Roles.Agent, agency.AgencyId);
         using var anonymous = host.CreateClient();
 
-        using var refused = await agent.GetAsync(Export(ReportTable.Vehicles, agency.AgencyId), Ct);
-        using var visitor = await anonymous.GetAsync(Export(ReportTable.Vehicles, agency.AgencyId), Ct);
+        using var refused = await agent.GetAsync(Export(ReportTable.Vehicles), Ct);
+        using var visitor = await anonymous.GetAsync(Export(ReportTable.Vehicles), Ct);
 
         refused.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/access-denied");
@@ -212,10 +214,10 @@ public sealed class ReportExportTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task Unknown_tables_agencies_and_malformed_periods_are_rejected()
+    public async Task Unknown_tables_and_malformed_periods_are_rejected()
     {
         var agency = await CreateAsync(host, vehicles: 1, Ct);
-        using var client = await SignedInAsync(Roles.Manager);
+        using var client = await SignedInAsync(Roles.Manager, agency.AgencyId);
         var period = $"from={Day(-10):yyyy-MM-dd}&to={Day(-1):yyyy-MM-dd}";
 
         async Task<HttpStatusCode> StatusOf(string url)
@@ -224,13 +226,55 @@ public sealed class ReportExportTests(IntegrationHost host)
             return response.StatusCode;
         }
 
-        (await StatusOf($"/admin/reports/export/payroll?agency={agency.AgencyId}&{period}")).ShouldBe(HttpStatusCode.NotFound);
-        (await StatusOf($"/admin/reports/export/2?agency={agency.AgencyId}&{period}")).ShouldBe(HttpStatusCode.NotFound);
-        (await StatusOf($"/admin/reports/export/vehicles?{period}")).ShouldBe(HttpStatusCode.BadRequest);
-        (await StatusOf($"/admin/reports/export/vehicles?agency={agency.AgencyId}&from=21/10/2026&to={Day(-1):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
-        (await StatusOf($"/admin/reports/export/vehicles?agency={agency.AgencyId}&from={Day(-1):yyyy-MM-dd}&to={Day(-10):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
-        (await StatusOf($"/admin/reports/export/vehicles?agency={agency.AgencyId}&from={Day(-400):yyyy-MM-dd}&to={Day(-1):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
-        (await StatusOf($"/admin/reports/export/vehicles?agency={Guid.CreateVersion7()}&{period}")).ShouldBe(HttpStatusCode.NotFound);
-        (await StatusOf($"/admin/reports/export/vehicles?agency={agency.AgencyId}&{period}")).ShouldBe(HttpStatusCode.OK);
+        (await StatusOf($"/admin/reports/export/payroll?{period}")).ShouldBe(HttpStatusCode.NotFound);
+        (await StatusOf($"/admin/reports/export/2?{period}")).ShouldBe(HttpStatusCode.NotFound);
+        (await StatusOf("/admin/reports/export/vehicles")).ShouldBe(HttpStatusCode.BadRequest);
+        (await StatusOf($"/admin/reports/export/vehicles?from=21/10/2026&to={Day(-1):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
+        (await StatusOf($"/admin/reports/export/vehicles?from={Day(-1):yyyy-MM-dd}&to={Day(-10):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
+        (await StatusOf($"/admin/reports/export/vehicles?from={Day(-400):yyyy-MM-dd}&to={Day(-1):yyyy-MM-dd}")).ShouldBe(HttpStatusCode.BadRequest);
+        (await StatusOf($"/admin/reports/export/vehicles?{period}")).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task The_export_is_the_report_of_the_agency_of_the_session()
+    {
+        var agency = await TwoRentedVehiclesAsync();
+        var other = await CreateAsync(host, vehicles: 1, Ct);
+        string otherName;
+        await using (var scope = host.CreateScope(Manager))
+        {
+            otherName = (await scope.ServiceProvider.GetRequiredService<CarRental.Application.Referential.Contracts.IAgencyDirectory>().FindAsync(other.AgencyId, Ct))!.Name;
+            var run = await scope.ServiceProvider.GetRequiredService<SnapshotService>().RecomputeAsync(other.AgencyId, Day(-10), Day(-1), Ct);
+            run.IsSuccess.ShouldBeTrue(run.IsFailure ? run.Error.ToString() : null);
+        }
+
+        using var client = await SignedInAsync(Roles.Manager, other.AgencyId);
+
+        // An address naming another agency (as the exports did before the agencies were separated) changes nothing.
+        using var response = await client.GetAsync(new Uri($"{ReportExport.Url(ReportTable.Vehicles, Day(-10), Day(-1))}&agency={agency.AgencyId}", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentDisposition!.FileName!.Trim('"').ShouldContain(ReportExport.Slug(otherName));
+        using var workbook = Workbook(await response.Content.ReadAsByteArrayAsync(Ct));
+        var sheet = workbook.Worksheet("Véhicules");
+        var plates = sheet.RowsUsed().Skip(1).Select(r => r.Cell(1).GetString()).Where(p => p != "Total").ToList();
+        plates.ShouldHaveSingleItem("the one vehicle of the agency of the session, none of the other agency");
+        Number(sheet.RowsUsed().Single(r => r.Cell(1).GetString() == "Total").Cell(8)).ShouldBe(0m);
+        workbook.Worksheet("Synthèse").Cell(2, 2).GetString().ShouldBe(otherName);
+    }
+
+    [Fact]
+    public async Task Without_the_reports_module_the_exports_are_refused()
+    {
+        var agencyId = await FleetData.NewAgencyAsync(host, Ct, AgencyModuleCatalog.Defaults & ~AgencyModules.Reports);
+        using var manager = await SignedInAsync(Roles.Manager, agencyId);
+
+        using var refused = await manager.GetAsync(Export(ReportTable.Vehicles), Ct);
+        using var page = await manager.GetAsync(new Uri("/admin/reports", UriKind.Relative), Ct);
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/access-denied");
+        page.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        HttpSignIn.PathAndQuery(page.Headers.Location!).ShouldContain("/account/access-denied");
     }
 }

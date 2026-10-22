@@ -897,6 +897,9 @@
   <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
     <value>Paramètre UTM invalide (100 caractères au plus, sans caractère de contrôle).</value>
   </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>Une étape du parcours est mesurée pour l'agence de la vitrine consultée.</value>
+  </data>
   <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
     <value>Le départ effectif ne peut pas être dans le futur.</value>
   </data>

@@ -897,6 +897,9 @@
   <data name="Error.reporting.funnel_event.utm_invalid" xml:space="preserve">
     <value>Invalid UTM tag (100 characters at most, no control character).</value>
   </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>A funnel step is measured for the agency of the public site being browsed.</value>
+  </data>
   <data name="Error.booking.actual_pickup_invalid" xml:space="preserve">
     <value>The actual pick-up cannot be in the future.</value>
   </data>

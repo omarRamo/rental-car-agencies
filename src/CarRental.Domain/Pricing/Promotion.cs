@@ -8,7 +8,7 @@ namespace CarRental.Domain.Pricing;
 /// channels (empty = all). Non-combinable by default: the engine applies the best non-combinable promotion plus every
 /// combinable one, never below zero.
 /// </summary>
-public sealed class Promotion : Entity
+public sealed class Promotion : Entity, IAgencyOwned
 {
     public const int NameMaxLength = 80;
     public const int CodeMinLength = 3;
@@ -18,14 +18,18 @@ public sealed class Promotion : Entity
     {
     }
 
-    private Promotion(Guid id, Guid ratePlanId, PromotionDefinition definition, int position)
+    private Promotion(Guid id, RatePlan plan, PromotionDefinition definition, int position)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         Apply(definition, position);
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Back-office label (e.g. "Bienvenue 10 %").</summary>
     public string Name { get; private set; } = null!;
@@ -113,10 +117,10 @@ public sealed class Promotion : Entity
             && (definition.Channels ?? []).All(Enum.IsDefined);
     }
 
-    internal static Promotion Create(Guid ratePlanId, PromotionDefinition definition, int position) =>
-        new(NewId(), ratePlanId, definition, position);
+    internal static Promotion Create(RatePlan plan, PromotionDefinition definition, int position) =>
+        new(NewId(), plan, definition, position);
 
-    internal Promotion CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null }, Position);
+    internal Promotion CopyForNewPlan(RatePlan plan) => new(NewId(), plan, ToDefinition() with { Id = null }, Position);
 
     /// <summary>The content of this entity, as edited.</summary>
     public PromotionDefinition ToDefinition() => new(

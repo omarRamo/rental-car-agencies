@@ -60,18 +60,18 @@ internal sealed partial class ReportingDemoSeeder(
             }
         }
 
-        if (!await db.Set<FunnelEvent>().AsNoTracking().AnyAsync(e => e.Source == DemoSource, cancellationToken))
+        if (!await db.Set<FunnelEvent>().AsNoTracking().AnyAsync(e => e.AgencyId == agency.Id && e.Source == DemoSource, cancellationToken))
         {
-            db.Set<FunnelEvent>().AddRange(DemoFunnel(yesterday));
+            db.Set<FunnelEvent>().AddRange(DemoFunnel(agency.Id, yesterday));
             await db.SaveChangesAsync(cancellationToken);
         }
     }
 
     /// <summary>
-    /// A steady demo traffic: every day about ten to sixteen searches on the website and two to five through WhatsApp
-    /// links, four searches out of five showing results; anonymous visits, French and English.
+    /// A steady demo traffic on the public site of the agency: every day about ten to sixteen searches on the website and
+    /// two to five through WhatsApp links, four searches out of five showing results; anonymous visits, French and English.
     /// </summary>
-    private static IEnumerable<FunnelEvent> DemoFunnel(DateOnly lastDay)
+    private static IEnumerable<FunnelEvent> DemoFunnel(Guid agencyId, DateOnly lastDay)
     {
         for (var day = lastDay.AddDays(1 - FunnelDays); day <= lastDay; day = day.AddDays(1))
         {
@@ -82,10 +82,10 @@ internal sealed partial class ReportingDemoSeeder(
                     var visit = Guid.NewGuid();
                     var at = TunisTime.FromLocal(day, new TimeOnly(8, 0)).AddMinutes((37 * i) % 720);
                     var details = new FunnelEventDetails(visit, FunnelStep.Search, i % 3 == 0 ? "en" : "fr", channel, DemoSource);
-                    yield return FunnelEvent.Record(details, at).Value;
+                    yield return FunnelEvent.Record(agencyId, details, at).Value;
                     if (i % 5 != 4)
                     {
-                        yield return FunnelEvent.Record(details with { Step = FunnelStep.Results }, at.AddSeconds(2)).Value;
+                        yield return FunnelEvent.Record(agencyId, details with { Step = FunnelStep.Results }, at.AddSeconds(2)).Value;
                     }
                 }
             }

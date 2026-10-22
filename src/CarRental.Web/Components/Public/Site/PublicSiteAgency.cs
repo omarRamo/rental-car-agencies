@@ -40,9 +40,10 @@ public static class PublicSiteAgency
             return false;
         }
 
+        // The vehicle photos (/media/vehicles) belong to the back office: they are served as the signed-in staff member.
         return cultures.IsEnabled(PathRequestCultureProvider.FirstSegment(value))
             || path.StartsWithSegments("/api/public", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWithSegments("/media", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/media/categories", StringComparison.OrdinalIgnoreCase)
             || path.StartsWithSegments("/payments", StringComparison.OrdinalIgnoreCase)
             || path.StartsWithSegments("/dev/clictopay", StringComparison.OrdinalIgnoreCase);
     }

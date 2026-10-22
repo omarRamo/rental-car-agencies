@@ -39,9 +39,12 @@ public static class ReportExport
     public static bool TryParse(string? segment, out ReportTable table) =>
         BySegment.TryGetValue(segment ?? string.Empty, out table);
 
-    /// <summary>The download address of <paramref name="table"/> for an agency and a period (Tunis days, both included).</summary>
-    public static string Url(ReportTable table, Guid agencyId, DateOnly from, DateOnly to) =>
-        string.Create(CultureInfo.InvariantCulture, $"{RoutePrefix}/{Segment(table)}?agency={agencyId}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+    /// <summary>
+    /// The download address of <paramref name="table"/> for a period (Tunis days, both included): the report of the agency
+    /// of the session (ADR-0067).
+    /// </summary>
+    public static string Url(ReportTable table, DateOnly from, DateOnly to) =>
+        string.Create(CultureInfo.InvariantCulture, $"{RoutePrefix}/{Segment(table)}?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
 
     /// <summary>A day of an export address (<c>yyyy-MM-dd</c>).</summary>
     public static bool TryParseDay(string? text, out DateOnly day) =>

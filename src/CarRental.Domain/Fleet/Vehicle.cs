@@ -12,7 +12,7 @@ namespace CarRental.Domain.Fleet;
 /// <see cref="Revision"/> is incremented by every change, so that the row (and its <c>rowversion</c>) is updated even
 /// when only a child changes: two concurrent edits of the same vehicle cannot both succeed.
 /// </remarks>
-public sealed class Vehicle : AggregateRoot
+public sealed class Vehicle : AggregateRoot, IAgencyOwned
 {
     public const int PlateNumberMinLength = 2;
     public const int PlateNumberMaxLength = 20;
@@ -449,7 +449,7 @@ public sealed class Vehicle : AggregateRoot
 
         var previous = CurrentDocument(details.Type);
         previous?.Supersede(stamp.At);
-        var document = VehicleDocument.Create(Id, validated.Value, stamp.At);
+        var document = VehicleDocument.Create(this, validated.Value, stamp.At);
         _documents.Add(document);
         Touch();
         Record(VehicleHistoryKind.DocumentRecorded, stamp, details.Type.ToString(), Format(previous?.ExpiresOn), Format(document.ExpiresOn));
@@ -528,7 +528,7 @@ public sealed class Vehicle : AggregateRoot
         var plan = _maintenancePlans.FirstOrDefault(p => p.Type == details.Type);
         if (plan is null)
         {
-            plan = MaintenancePlan.Create(Id, validated.Value, Mileage, stamp.Today);
+            plan = MaintenancePlan.Create(this, validated.Value, stamp.Today);
             _maintenancePlans.Add(plan);
         }
         else
@@ -585,7 +585,7 @@ public sealed class Vehicle : AggregateRoot
             return FleetErrors.MaintenanceOverlap;
         }
 
-        var maintenance = MaintenanceEvent.Create(Id, validated.Value);
+        var maintenance = MaintenanceEvent.Create(this, validated.Value);
         _maintenanceEvents.Add(maintenance);
         Touch();
         Record(VehicleHistoryKind.MaintenanceScheduled, stamp, maintenance.Type.ToString(), newValue: Format(block));
@@ -781,7 +781,7 @@ public sealed class Vehicle : AggregateRoot
 
         if (Economics is null)
         {
-            Economics = VehicleEconomics.Create(Id, validated.Value);
+            Economics = VehicleEconomics.Create(this, validated.Value);
         }
         else
         {
@@ -796,7 +796,7 @@ public sealed class Vehicle : AggregateRoot
     public Result<VehicleCost> AddCost(DateOnly incurredOn, string label, Money amount, ChangeStamp stamp)
     {
         ArgumentNullException.ThrowIfNull(stamp);
-        var cost = VehicleCost.Create(Id, incurredOn, label, amount);
+        var cost = VehicleCost.Create(this, incurredOn, label, amount);
         if (cost.IsFailure)
         {
             return cost.Error;
@@ -839,7 +839,7 @@ public sealed class Vehicle : AggregateRoot
             return FleetErrors.TooManyPhotos;
         }
 
-        var added = VehiclePhoto.Create(photoId, Id, photo, stamp.At);
+        var added = VehiclePhoto.Create(photoId, this, photo, stamp.At);
         _photos.Add(added);
         Touch();
         Record(VehicleHistoryKind.PhotoAdded, stamp);
@@ -1021,7 +1021,7 @@ public sealed class Vehicle : AggregateRoot
         string? reason = null)
     {
         LastHistorySequence++;
-        _history.Add(VehicleHistoryEntry.Create(Id, LastHistorySequence, kind, stamp, subject, previousValue, newValue, reason));
+        _history.Add(VehicleHistoryEntry.Create(this, LastHistorySequence, kind, stamp, subject, previousValue, newValue, reason));
     }
 
     /// <summary>Raises <see cref="VehicleAvailabilityChanged"/> once per operation (and per previous category).</summary>

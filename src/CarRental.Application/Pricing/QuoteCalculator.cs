@@ -46,7 +46,7 @@ internal sealed class QuoteCalculator(
         }
 
         var category = request.CategoryId == Guid.Empty ? null : await fleet.GetCategoryAsync(request.CategoryId, cancellationToken);
-        if (category is not { IsActive: true })
+        if (category is not { IsActive: true } || category.AgencyId != request.AgencyId)
         {
             return PricingErrors.CategoryNotFound;
         }

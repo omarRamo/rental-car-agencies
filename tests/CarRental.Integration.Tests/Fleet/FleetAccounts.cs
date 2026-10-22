@@ -7,7 +7,8 @@ namespace CarRental.Integration.Tests.Fleet;
 
 /// <summary>
 /// Dedicated staff accounts of the fleet tests (test password and TOTP key), so that they never sign in at the same
-/// time as other test classes with the shared demo accounts (concurrent sign-ins of one account race on its row).
+/// time as other test classes with the shared demo accounts (concurrent sign-ins of one account race on its row). They
+/// belong to the main demo agency (ADR-0067).
 /// </summary>
 internal static class FleetAccounts
 {
@@ -21,6 +22,7 @@ internal static class FleetAccounts
         await Gate.WaitAsync();
         try
         {
+            var agencyId = await Support.TestStaff.DemoAgencyIdAsync(host);
             await using var scope = host.CreateScope();
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             if (await users.FindByEmailAsync(email) is not null)
@@ -36,6 +38,7 @@ internal static class FleetAccounts
                 DisplayName = email,
                 LockoutEnabled = true,
                 CreatedAtUtc = DateTimeOffset.UtcNow,
+                AgencyId = agencyId,
             };
             Ensure(await users.CreateAsync(user, TestAccounts.Password));
             Ensure(await users.AddToRoleAsync(user, role));

@@ -6,20 +6,24 @@ namespace CarRental.Domain.Pricing;
 /// A dated season of a rate plan (basse, moyenne, haute saison): an inclusive range of Tunis calendar dates. Seasons of
 /// a plan never overlap; daily prices are entered per <see cref="Level"/>. A season may impose a minimum rental duration.
 /// </summary>
-public sealed class Season : Entity
+public sealed class Season : Entity, IAgencyOwned
 {
     private Season()
     {
     }
 
-    private Season(Guid id, Guid ratePlanId, SeasonDefinition definition)
+    private Season(Guid id, RatePlan plan, SeasonDefinition definition)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         Apply(definition);
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public SeasonLevel Level { get; private set; }
 
@@ -39,9 +43,9 @@ public sealed class Season : Entity
         && definition.StartDate <= definition.EndDate
         && PricingValues.IsMinimumDays(definition.MinimumDays);
 
-    internal static Season Create(Guid ratePlanId, SeasonDefinition definition) => new(NewId(), ratePlanId, definition);
+    internal static Season Create(RatePlan plan, SeasonDefinition definition) => new(NewId(), plan, definition);
 
-    internal Season CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null });
+    internal Season CopyForNewPlan(RatePlan plan) => new(NewId(), plan, ToDefinition() with { Id = null });
 
     /// <summary>The content of this entity, as edited.</summary>
     public SeasonDefinition ToDefinition() => new(Level, StartDate, EndDate, MinimumDays, Id);

@@ -7,6 +7,9 @@ public sealed class FunnelEventTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 20, 15, 30, 0, TimeSpan.FromHours(1));
 
+    /// <summary>The agency of the public site the steps are reached on.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
+
     private static FunnelEventDetails Valid() => new(
         VisitId: Guid.NewGuid(),
         Step: FunnelStep.Search,
@@ -23,9 +26,10 @@ public sealed class FunnelEventTests
     {
         var details = Valid();
 
-        var recorded = FunnelEvent.Record(details, Now).Value;
+        var recorded = FunnelEvent.Record(AgencyId, details, Now).Value;
 
         recorded.Id.ShouldNotBe(Guid.Empty);
+        recorded.AgencyId.ShouldBe(AgencyId);
         recorded.VisitId.ShouldBe(details.VisitId);
         recorded.Step.ShouldBe(FunnelStep.Search);
         recorded.OccurredAtUtc.ShouldBe(Now);
@@ -45,6 +49,7 @@ public sealed class FunnelEventTests
     public void Text_values_are_trimmed_lower_cased_where_needed_and_blank_ones_dropped()
     {
         var recorded = FunnelEvent.Record(
+            AgencyId,
             Valid() with { Culture = " EN ", Source = "  Google ", UtmSource = "  ", UtmContent = " banner-1 " },
             Now).Value;
 
@@ -59,17 +64,23 @@ public sealed class FunnelEventTests
     {
         var bookingId = Guid.CreateVersion7();
 
-        var recorded = FunnelEvent.Record(Valid() with { VisitId = null, Step = FunnelStep.Confirmation, BookingId = bookingId }, Now).Value;
+        var recorded = FunnelEvent.Record(AgencyId, Valid() with { VisitId = null, Step = FunnelStep.Confirmation, BookingId = bookingId }, Now).Value;
 
         recorded.VisitId.ShouldBeNull();
         recorded.BookingId.ShouldBe(bookingId);
+    }
+
+    [Fact]
+    public void A_step_belongs_to_the_agency_of_a_public_site()
+    {
+        FunnelEvent.Record(Guid.Empty, Valid(), Now).Error.ShouldBe(ReportingErrors.FunnelAgencyRequired);
     }
 
     [Theory]
     [MemberData(nameof(InvalidDetails))]
     public void Invalid_details_are_rejected(FunnelEventDetails details, string expectedCode)
     {
-        FunnelEvent.Record(details, Now).Error.Code.ShouldBe(expectedCode);
+        FunnelEvent.Record(AgencyId, details, Now).Error.Code.ShouldBe(expectedCode);
     }
 
     public static TheoryData<FunnelEventDetails, string> InvalidDetails()

@@ -7,7 +7,7 @@ namespace CarRental.Domain.Fleet;
 /// 208 or similar". Transmission and air conditioning follow the code; the fuel must match it when the code states one.
 /// The deposit (caution) applies to a rental, the reduced deposit when the franchise waiver is bought.
 /// </summary>
-public sealed class VehicleCategory : AggregateRoot, ISoftDeletable
+public sealed class VehicleCategory : AggregateRoot, ISoftDeletable, IAgencyOwned
 {
     public const int NameMaxLength = 80;
     public const int ExampleModelMaxLength = 120;

@@ -71,9 +71,9 @@ public sealed class FleetWebTests(IntegrationHost host)
         refused.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/login");
 
-        await FleetAccounts.EnsureAsync(host, FleetAccounts.Accountant, Roles.Accountant);
+        var (_, accountantEmail) = await TestStaff.CreateAsync(host, Roles.Accountant, agencyId: agencyId);
         using var accountant = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(accountant, FleetAccounts.Accountant, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(accountant, accountantEmail, "/admin", Ct);
         var served = await accountant.GetAsync(new Uri(url, UriKind.Relative), Ct);
 
         served.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -81,6 +81,12 @@ public sealed class FleetWebTests(IntegrationHost host)
         served.Headers.CacheControl!.Private.ShouldBeTrue();
         served.Headers.CacheControl.NoCache.ShouldBeTrue();
         (await accountant.GetAsync(new Uri($"/media/vehicles/{vehicleId:D}/photos/{Guid.CreateVersion7():D}", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        // The staff of another agency (ADR-0067): the vehicle does not exist for them.
+        var (_, otherEmail) = await TestStaff.CreateAsync(host, Roles.Manager);
+        using var other = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(other, otherEmail, "/admin", Ct);
+        (await other.GetAsync(new Uri(url, UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
