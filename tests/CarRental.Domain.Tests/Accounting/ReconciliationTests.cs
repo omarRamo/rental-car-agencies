@@ -50,6 +50,7 @@ public sealed class ReconciliationTests
             At).Value;
 
         statement.Lines.Select(l => (l.Position, l.Reference, l.SignedAmount.Amount)).ShouldBe([(1, "abc", 100m), (2, "def", -20m)]);
+        statement.Lines.ShouldAllBe(l => l.AgencyId == AgencyId, "the lines belong to the agency of their statement");
         statement.Days().ShouldBe([new DateOnly(2027, 3, 3), new DateOnly(2027, 3, 31), new DateOnly(2027, 3, 5), new DateOnly(2027, 4, 1)], ignoreOrder: true);
         statement.Provider.ShouldBe(MerchantStatement.ClicToPay);
     }

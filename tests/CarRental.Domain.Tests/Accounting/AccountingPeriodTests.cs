@@ -100,6 +100,8 @@ public sealed class AccountingPeriodTests
         closing.Entries.ShouldAllBe(e => e.ClosingId == closing.Id);
         closing.Entries.Select(e => e.Id).ShouldNotContain(bank.Id, "the frozen entries are copies");
         closing.Entries.SelectMany(e => e.Lines).Count().ShouldBe(6);
+        closing.Entries.ShouldAllBe(e => e.AgencyId == AgencyId && e.Lines.All(l => l.AgencyId == AgencyId), "the frozen journals are the agency's");
+        bank.AgencyId.ShouldBe(Guid.Empty, "an entry generated from the live facts is never stored");
     }
 
     [Fact]

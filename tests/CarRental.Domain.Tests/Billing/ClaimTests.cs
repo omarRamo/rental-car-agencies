@@ -54,6 +54,21 @@ public sealed class ClaimTests
     }
 
     [Fact]
+    public void The_costs_reimbursements_and_files_of_a_claim_belong_to_its_agency()
+    {
+        var claim = Opened();
+
+        claim.AddCost(new ClaimEntryInput(new DateOnly(2026, 10, 15), "Réparation", 800m), Accountant, Now).IsSuccess.ShouldBeTrue();
+        claim.AddReimbursement(new ClaimEntryInput(new DateOnly(2026, 10, 30), "Indemnité", 300m), Accountant, Now).IsSuccess.ShouldBeTrue();
+        claim.AddDocument(File(), Accountant, Now).IsSuccess.ShouldBeTrue();
+
+        claim.AgencyId.ShouldBe(AgencyId);
+        claim.Costs.ShouldAllBe(c => c.AgencyId == AgencyId);
+        claim.Reimbursements.ShouldAllBe(r => r.AgencyId == AgencyId);
+        claim.Documents.ShouldAllBe(d => d.AgencyId == AgencyId);
+    }
+
+    [Fact]
     public void A_removed_file_is_discarded_after_the_commit()
     {
         var claim = Opened();

@@ -1,7 +1,10 @@
 using System.Net;
 using CarRental.Application.Common.BackgroundJobs;
+using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Payments.Administration;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
 using CarRental.Application.Referential.Contracts;
@@ -167,6 +170,42 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
             PaymentStatusInfo.Cancelled,
             Expired: true,
             PaidLate: false));
+    }
+
+    [Fact]
+    public async Task The_catch_up_job_works_for_every_agency_and_each_agency_reads_its_own_online_payments_only()
+    {
+        var (a, b) = (await FinanceData.NewAgencyAsync(host, Ct), await FinanceData.NewAgencyAsync(host, Ct));
+        var linkA = await BackdatedAsync(a, OnlinePaymentFlow.OneStep, 300m, recordedAgo: TimeSpan.FromHours(25), validity: TimeSpan.FromHours(24), isLink: true);
+        var linkB = await BackdatedAsync(b, OnlinePaymentFlow.OneStep, 310m, recordedAgo: TimeSpan.FromHours(25), validity: TimeSpan.FromHours(24), isLink: true);
+
+        // One merchant account for the platform: the job reads the orders of every agency.
+        await using (var scope = host.CreateScope(UserContextSnapshot.System($"system:job:{CatchUpJobId}")))
+        {
+            await CatchUpJob(scope).ExecuteAsync(Ct);
+        }
+
+        await using (var check = host.CreateScope())
+        {
+            var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            foreach (var (paymentId, agencyId) in new[] { (linkA.PaymentId, a), (linkB.PaymentId, b) })
+            {
+                (await db.Set<Payment>().AsNoTracking().SingleAsync(p => p.Id == paymentId, Ct)).Status.ShouldBe(PaymentStatus.Cancelled);
+                var reads = await db.Set<GatewayCallLog>().AsNoTracking()
+                    .Where(c => c.PaymentId == paymentId && c.Operation == GatewayOperation.GetOrderStatusExtended)
+                    .Select(c => c.AgencyId)
+                    .ToListAsync(Ct);
+                reads.ShouldNotBeEmpty();
+                reads.ShouldAllBe(id => id == agencyId, "a call is a record of the agency of the payment of its order");
+            }
+        }
+
+        await using var scopeA = host.CreateScope(FinanceData.StaffOf(a, Roles.Manager));
+        var admin = scopeA.ServiceProvider.GetRequiredService<OnlinePaymentAdministration>();
+        (await admin.GetAsync(linkB.PaymentId, Ct)).Error.ShouldBe(PaymentsErrors.OnlinePaymentNotFound);
+        (await admin.GetAsync(linkA.PaymentId, Ct)).Value.Calls.ShouldNotBeEmpty();
+        (await admin.ListAsync(new OnlinePaymentListFilter(), new PageRequest(1, 100), Ct)).Value.Page.Items.Select(p => p.PaymentId).ShouldBe([linkA.PaymentId]);
+        (await admin.RefreshAsync(linkB.PaymentId, Ct)).Error.ShouldBe(PaymentsErrors.OnlinePaymentNotFound);
     }
 
     [Fact]
