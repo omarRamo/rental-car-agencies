@@ -74,6 +74,9 @@ public sealed class ExpenseService
 
     private bool CanManage => _user.HasPermission(Permissions.ExpensesManage);
 
+    /// <summary>The operation may read and write for <paramref name="agencyId"/>: across agencies, or for that agency (ADR-0067).</summary>
+    private bool WorksFor(Guid agencyId) => _user.IsAcrossAgencies || _user.AgencyId == agencyId;
+
     private DateOnly Today => TunisTime.Today(_clock);
 
     /// <summary>The expenses of an agency, the latest first, with the totals of the filtered list (deleted ones never count).</summary>
@@ -170,6 +173,11 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
+        if (!WorksFor(agencyId))
+        {
+            return ExpenseErrors.AgencyNotFound;
+        }
+
         var options = new List<ExpenseVehicleOption>();
         foreach (var category in await _fleet.GetCategoriesAsync(agencyId, includeInactive: true, cancellationToken))
         {
@@ -186,6 +194,11 @@ public sealed class ExpenseService
         if (!CanManage)
         {
             return ExpenseErrors.Forbidden;
+        }
+
+        if (!WorksFor(agencyId))
+        {
+            return ExpenseErrors.VehicleNotFound;
         }
 
         var vehicle = await _fleet.GetVehicleAsync(vehicleId, cancellationToken);

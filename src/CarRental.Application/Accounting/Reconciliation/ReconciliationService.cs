@@ -66,14 +66,23 @@ public sealed class ReconciliationService
 
     private bool CanManage => _user.HasPermission(Permissions.ReconciliationManage);
 
+    /// <summary>
+    /// Refused without the permission, or for an agency the operation does not work for: an agency reconciles its own
+    /// facts only, whatever the other modules would answer (ADR-0067).
+    /// </summary>
+    private Error? Denied(Guid agencyId) =>
+        !CanManage ? AccountingErrors.Forbidden
+        : !_user.IsAcrossAgencies && _user.AgencyId != agencyId ? AccountingErrors.AgencyNotFound
+        : null;
+
     /// <summary>The formats of the statement importers.</summary>
     public IReadOnlyList<string> ImportFormats => [.. _importers.Select(i => i.Format)];
 
     public async Task<Result<CashReconciliationView>> GetCashAsync(Guid agencyId, AccountingMonth month, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var justifications = await JustificationsAsync(agencyId, month, cancellationToken);
@@ -82,9 +91,9 @@ public sealed class ReconciliationService
 
     public async Task<Result<ClicToPayReconciliationView>> GetClicToPayAsync(Guid agencyId, AccountingMonth month, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var justifications = await JustificationsAsync(agencyId, month, cancellationToken);
@@ -93,9 +102,9 @@ public sealed class ReconciliationService
 
     public async Task<Result<ChannelsReconciliationView>> GetChannelsAsync(Guid agencyId, AccountingMonth month, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var justifications = await JustificationsAsync(agencyId, month, cancellationToken);
@@ -106,15 +115,12 @@ public sealed class ReconciliationService
     public async Task<Result<Guid>> JustifyAsync(Guid agencyId, AccountingMonth month, string differenceKey, string? reason, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(differenceKey);
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
-        // The differences of the agency the operation works for only (ADR-0067).
-        var difference = !_user.IsAcrossAgencies && _user.AgencyId != agencyId
-            ? null
-            : (await DifferencesAsync(agencyId, month, cancellationToken)).FirstOrDefault(d => d.Key == differenceKey);
+        var difference = (await DifferencesAsync(agencyId, month, cancellationToken)).FirstOrDefault(d => d.Key == differenceKey);
         if (difference is null)
         {
             return AccountingErrors.DifferenceNotFound;
@@ -134,9 +140,9 @@ public sealed class ReconciliationService
     /// <summary>The statements brought in for the agency, the latest first.</summary>
     public async Task<Result<IReadOnlyList<StatementView>>> ListStatementsAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var statements = await _db.Set<MerchantStatement>().AsNoTracking().Where(s => s.AgencyId == agencyId).ToListAsync(cancellationToken);
@@ -166,9 +172,9 @@ public sealed class ReconciliationService
     public async Task<Result<StatementImportOutcome>> ImportStatementAsync(Guid agencyId, string format, string? fileName, Stream content, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var importer = _importers.FirstOrDefault(i => string.Equals(i.Format, format, StringComparison.OrdinalIgnoreCase));
@@ -199,9 +205,9 @@ public sealed class ReconciliationService
     public async Task<Result<Guid>> AddManualLineAsync(Guid agencyId, StatementLineForm form, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(form);
-        if (!CanManage)
+        if (Denied(agencyId) is { } denied)
         {
-            return AccountingErrors.Forbidden;
+            return denied;
         }
 
         var amount = Money.FromExact(form.Amount, Currency.Tnd);
@@ -487,12 +493,6 @@ public sealed class ReconciliationService
         await _unitOfWork.ExecuteAsync<Guid>(
             async ct =>
             {
-                // An operation of one agency records the statements of that agency only (ADR-0067).
-                if (!_user.IsAcrossAgencies && _user.AgencyId != agencyId)
-                {
-                    return AccountingErrors.AgencyNotFound;
-                }
-
                 var days = lines.Select(l => l.TransactionDate).Concat(lines.Where(l => l.SettledOn is not null).Select(l => l.SettledOn!.Value)).Distinct();
                 foreach (var day in days)
                 {

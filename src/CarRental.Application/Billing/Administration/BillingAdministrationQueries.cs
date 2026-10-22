@@ -299,6 +299,12 @@ public sealed class BillingAdministrationQueries
             return BillingErrors.Forbidden;
         }
 
+        // The files of the agency the operation works for only (ADR-0067).
+        if (!_store.WorksFor(agencyId))
+        {
+            return Result.Success<IReadOnlyList<FileToInvoice>>([]);
+        }
+
         var files = await _bookings.GetFilesToInvoiceAsync(agencyId, _store.Now() - ToInvoiceWindow, 500, cancellationToken);
         if (files.Count == 0)
         {
