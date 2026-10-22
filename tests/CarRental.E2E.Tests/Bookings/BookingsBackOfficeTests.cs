@@ -137,14 +137,14 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await Expect(unassigned).ToBeVisibleAsync(Slow);
         var vehicleRow = Page.Locator("[data-category='CDMR'] ~ [data-vehicle]").First;
         var plate = await vehicleRow.GetAttributeAsync("data-vehicle");
-        await unassigned.DragToAsync(vehicleRow.Locator(".planning-track"));
+        await DragAsync(unassigned, vehicleRow.Locator(".planning-track"));
 
         var assigned = Page.Locator($"[data-vehicle='{plate}'] button[data-booking='{booking.Number}']");
         await Expect(assigned).ToBeVisibleAsync(Slow);
         var summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(booking.BookingId));
         summary.ShouldNotBeNull().AssignedVehicleId.ShouldNotBeNull();
 
-        await assigned.DragToAsync(Page.Locator("[data-lane='CDMR'] .planning-track"));
+        await DragAsync(assigned, Page.Locator("[data-lane='CDMR'] .planning-track"));
         await Expect(unassigned).ToBeVisibleAsync(Slow);
         summary = await AsSystemAsync(services => services.GetRequiredService<IBookingsQueries>().GetSummaryAsync(booking.BookingId));
         summary.ShouldNotBeNull().AssignedVehicleId.ShouldBeNull();
@@ -174,6 +174,23 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         await BackOfficeSession.WaitForTransitionsAsync(Page);
         var result = await widget.RunAxe();
         result.Violations.Where(v => v.Impact is "critical" or "serious").Select(v => v.Id).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Drags <paramref name="bar"/> straight down or up onto <paramref name="track"/>, at the time of the bar, with the mouse.
+    /// The week scrolls sideways: bringing the centre of the target into view while the button is pressed (what
+    /// <c>DragToAsync</c> does) would scroll the grid under the pointer, and the browser then never starts the drag.
+    /// </summary>
+    private async Task DragAsync(ILocator bar, ILocator track)
+    {
+        await bar.EvaluateAsync("bar => bar.scrollIntoView({ block: 'center', inline: 'center' })");
+        var from = (await bar.BoundingBoxAsync()).ShouldNotBeNull();
+        var to = (await track.BoundingBoxAsync()).ShouldNotBeNull();
+        var x = from.X + (from.Width / 2);
+        await Page.Mouse.MoveAsync(x, from.Y + (from.Height / 2));
+        await Page.Mouse.DownAsync();
+        await Page.Mouse.MoveAsync(x, to.Y + (to.Height / 2), new MouseMoveOptions { Steps = 10 });
+        await Page.Mouse.UpAsync();
     }
 
     private static string LocalInput(DateOnly day) => $"{day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}T10:00";
