@@ -2091,4 +2091,7 @@
   <data name="Error.identity.not_support_account" xml:space="preserve">
     <value>Seul un compte support ouvre et quitte les agences.</value>
   </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>Une étape du parcours est mesurée pour l'agence de la vitrine consultée.</value>
+  </data>
 </root>

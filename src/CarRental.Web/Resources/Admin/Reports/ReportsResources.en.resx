@@ -22,19 +22,13 @@
     <value>{0}, {1}</value>
   </data>
   <data name="Reports.NoAgency" xml:space="preserve">
-    <value>No agency is registered yet: the reports will appear with the first agency.</value>
+    <value>The reports are those of the agency of the session: enter an agency from the platform to see them.</value>
   </data>
   <data name="Loading" xml:space="preserve">
     <value>Computing the indicators</value>
   </data>
   <data name="Period.Range" xml:space="preserve">
     <value>from {0} to {1}</value>
-  </data>
-  <data name="Filter.Agency" xml:space="preserve">
-    <value>Agency</value>
-  </data>
-  <data name="Filter.Agency.Inactive" xml:space="preserve">
-    <value>{0} (inactive)</value>
   </data>
   <data name="Filter.Period" xml:space="preserve">
     <value>Period</value>

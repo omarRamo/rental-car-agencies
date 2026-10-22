@@ -7,20 +7,24 @@ namespace CarRental.Domain.Pricing;
 /// percentage on its daily prices (e.g. Booking.com commission), or the channel's own published plan. A channel without
 /// rule is priced at parity.
 /// </summary>
-public sealed class ChannelRule : Entity
+public sealed class ChannelRule : Entity, IAgencyOwned
 {
     private ChannelRule()
     {
     }
 
-    private ChannelRule(Guid id, Guid ratePlanId, ChannelRuleDefinition definition)
+    private ChannelRule(Guid id, RatePlan plan, ChannelRuleDefinition definition)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         Apply(definition);
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public SalesChannel Channel { get; private set; }
 
@@ -36,9 +40,9 @@ public sealed class ChannelRule : Entity
             ? definition.MarkupPercent is { } percent && PricingValues.IsPercentage(percent, allowZero: false, allowHundred: true)
             : definition.MarkupPercent is null);
 
-    internal static ChannelRule Create(Guid ratePlanId, ChannelRuleDefinition definition) => new(NewId(), ratePlanId, definition);
+    internal static ChannelRule Create(RatePlan plan, ChannelRuleDefinition definition) => new(NewId(), plan, definition);
 
-    internal ChannelRule CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition());
+    internal ChannelRule CopyForNewPlan(RatePlan plan) => new(NewId(), plan, ToDefinition());
 
     /// <summary>The content of this entity, as edited.</summary>
     public ChannelRuleDefinition ToDefinition() => new(Channel, Mode, MarkupPercent);

@@ -1,6 +1,6 @@
 using CarRental.Application.Common.Persistence;
-using CarRental.Application.Common.Seeding;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Common.Seeding;
 using CarRental.Application.Common.Tenancy;
 using CarRental.Domain.Referential;
 using Microsoft.EntityFrameworkCore;

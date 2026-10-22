@@ -1,5 +1,6 @@
 using CarRental.Application.Fleet.Deadlines;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Fleet;
 
@@ -41,6 +42,32 @@ public sealed class DeadlineAlertJobTests
         alert.Level.ShouldBe(DeadlineAlertLevel.Within7Days);
         alert.RecipientCount.ShouldBe(2);
         alert.SentAtUtc.ShouldBe(FleetTestBed.Now);
+    }
+
+    [Fact]
+    public async Task The_managers_of_each_agency_hear_of_the_vehicles_of_their_agency_only()
+    {
+        _bed.Identity.Users.Clear();
+        var sousse = Guid.CreateVersion7();
+        _bed.Referential.Agencies.Add(new AgencyInfo(sousse, "Agence Sousse", "Sousse", null, null, IsActive: true));
+        _bed.Identity.AgencyUsers.Add((_bed.AgencyId, new UserContactInfo(Guid.CreateVersion7(), "Gérant Test", "gerant.test@demo.local"), Roles.Manager));
+        _bed.Identity.AgencyUsers.Add((sousse, new UserContactInfo(Guid.CreateVersion7(), "Gérant Sousse", "gerant.sousse@demo.local"), Roles.Manager));
+        var own = _bed.AddVehicle(_bed.AddCategory(), "215 TU 1", documentsExpireOn: new DateOnly(2027, 6, 30));
+        own.RecordDocument(new VehicleDocumentDetails(VehicleDocumentType.Insurance, "POL-1", null, Today.AddDays(6)), FleetTestBed.Stamp()).IsSuccess.ShouldBeTrue();
+        var other = _bed.AddVehicle(_bed.AddCategory(agencyId: sousse), "215 TU 2", documentsExpireOn: new DateOnly(2027, 6, 30));
+        other.RecordDocument(new VehicleDocumentDetails(VehicleDocumentType.RoadTax, "VIG-1", null, Today.AddDays(12)), FleetTestBed.Stamp()).IsSuccess.ShouldBeTrue();
+
+        await _bed.AlertJob().ExecuteAsync(Ct);
+
+        _bed.Emails.Messages.Select(m => (m.To, m.Subject)).ShouldBe(
+            [
+                ("gerant.test@demo.local", "Agence Test: 215 TU 1 Insurance Within7Days"),
+                ("gerant.sousse@demo.local", "Agence Sousse: 215 TU 2 RoadTax Within15Days"),
+            ],
+            ignoreOrder: true);
+        _bed.Db.Fake<DeadlineAlert>().Items.Select(a => (a.VehicleId, a.AgencyId, a.RecipientCount)).ShouldBe(
+            [(own.Id, _bed.AgencyId, 1), (other.Id, sousse, 1)],
+            ignoreOrder: true);
     }
 
     [Fact]

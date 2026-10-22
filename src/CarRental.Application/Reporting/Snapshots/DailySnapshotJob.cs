@@ -10,10 +10,12 @@ using Microsoft.Extensions.Logging;
 namespace CarRental.Application.Reporting.Snapshots;
 
 /// <summary>
-/// The nightly snapshot (ADR-0045): every night at 03:00, Tunis time, for each active agency, computes the previous day
-/// again with the <c>reporting.snapshot_refresh_days</c> − 1 days before it (7 days by default), so that a late
-/// recording (return, no-show, cost) still reaches the snapshots; each agency in a scope of its own (its own DbContext).
-/// An agency that fails does not stop the others; the run fails at the end so that the dashboard of the jobs shows it.
+/// The nightly snapshot (ADR-0045): every night at 03:00, Tunis time, for each agency, computes the previous day again
+/// with the <c>reporting.snapshot_refresh_days</c> − 1 days before it (7 days by default), so that a late recording
+/// (return, no-show, cost) still reaches the snapshots. Each agency is computed in a scope of its own (its own DbContext),
+/// restricted to that agency (ADR-0067); none is skipped, even when its reports module is off or it is suspended: the
+/// snapshots are data, shown again when the module is back. An agency that fails does not stop the others; the run fails
+/// at the end so that the dashboard of the jobs shows it.
 /// </summary>
 internal sealed partial class DailySnapshotJob(
     IServiceScopeFactory scopeFactory,
@@ -32,12 +34,12 @@ internal sealed partial class DailySnapshotJob(
     {
         var yesterday = TunisTime.Today(clock).AddDays(-1);
         var failed = new List<Guid>();
-        foreach (var agency in (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive))
+        foreach (var agency in await referential.GetAgenciesAsync(cancellationToken))
         {
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName));
+                scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName, agencyId: agency.Id));
                 var days = await scope.ServiceProvider.GetRequiredService<ISettingsReader>()
                     .GetAsync(ReportingSettings.SnapshotRefreshDays, agency.Id, cancellationToken);
                 var run = await scope.ServiceProvider.GetRequiredService<SnapshotWriter>()

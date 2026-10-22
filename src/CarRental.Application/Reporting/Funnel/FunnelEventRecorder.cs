@@ -9,12 +9,14 @@ using Microsoft.Extensions.Logging;
 namespace CarRental.Application.Reporting.Funnel;
 
 /// <summary>
-/// <see cref="IFunnelEvents"/>: validates the record and inserts one <see cref="FunnelEvent"/> in a DI scope of its
-/// own (its own <c>DbContext</c>, actor <see cref="ActorName"/>), so that it neither joins nor disturbs the unit of
-/// work of the page, and can outlive it when the caller does not await. Never throws: measurement is best effort.
+/// <see cref="IFunnelEvents"/>: validates the record and inserts one <see cref="FunnelEvent"/> for the agency the caller
+/// works for — the agency of the public site the visitor browses (ADR-0067) — in a DI scope of its own (its own
+/// <c>DbContext</c>, actor <see cref="ActorName"/> restricted to that agency), so that it neither joins nor disturbs the
+/// unit of work of the page, and can outlive it when the caller does not await. Never throws: measurement is best effort.
 /// </summary>
 internal sealed partial class FunnelEventRecorder(
     IServiceScopeFactory scopeFactory,
+    IUserContext caller,
     TimeProvider timeProvider,
     ILogger<FunnelEventRecorder> logger) : IFunnelEvents
 {
@@ -31,7 +33,9 @@ internal sealed partial class FunnelEventRecorder(
             return;
         }
 
-        var created = FunnelEvent.Record(ToDetails(record), timeProvider.GetUtcNow());
+        // Read before any await: the step belongs to the public site the request shows.
+        var agencyId = caller.AgencyId ?? Guid.Empty;
+        var created = FunnelEvent.Record(agencyId, ToDetails(record), timeProvider.GetUtcNow());
         if (created.IsFailure)
         {
             LogRejected(record.Step.ToString(), created.Error.Code);
@@ -44,7 +48,7 @@ internal sealed partial class FunnelEventRecorder(
             timeout.CancelAfter(Timeout);
 
             await using var scope = scopeFactory.CreateAsyncScope();
-            scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System(ActorName));
+            scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System(ActorName, agencyId: agencyId));
             var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
             db.Set<FunnelEvent>().Add(created.Value);
             await db.SaveChangesAsync(timeout.Token);

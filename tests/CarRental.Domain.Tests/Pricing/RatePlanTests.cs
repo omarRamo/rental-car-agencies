@@ -404,6 +404,36 @@ public sealed class RatePlanTests
     }
 
     [Fact]
+    public void Every_part_of_a_plan_and_of_its_copies_belongs_to_the_agency_of_the_plan()
+    {
+        var plan = ReferencePlan()
+            .Event("Aïd", new DateOnly(2027, 5, 16), new DateOnly(2027, 5, 18))
+            .EventPrice(Ecmr, "Aïd", 150m)
+            .TierDiscount(3, Ecmr, 7m)
+            .Promotion(new PromotionDefinition("Bienvenue", PromotionKind.Code, PromotionDiscountType.Percentage, DiscountPercent: 10m, Code: "BIENVENUE10"))
+            .ChannelRule(SalesChannel.BookingCom, ChannelPricingMode.Markup, 15m)
+            .Build();
+
+        foreach (var content in new[] { plan, plan.CopyAsDraft(Later).Value, plan.CopyAsChannelDraft(SalesChannel.Web, Later).Value })
+        {
+            content.AgencyId.ShouldBe(AgencyId);
+            IEnumerable<Guid> parts =
+            [
+                .. content.Seasons.Select(s => s.AgencyId),
+                .. content.Events.Select(e => e.AgencyId),
+                .. content.Prices.Select(p => p.AgencyId),
+                .. content.Tiers.Select(t => t.AgencyId),
+                .. content.TierCategoryDiscounts.Select(d => d.AgencyId),
+                .. content.Extras.Select(e => e.AgencyId),
+                .. content.Promotions.Select(p => p.AgencyId),
+                .. content.ChannelRules.Select(r => r.AgencyId),
+            ];
+            parts.ShouldNotBeEmpty();
+            parts.ShouldAllBe(agencyId => agencyId == AgencyId);
+        }
+    }
+
+    [Fact]
     public void A_channel_draft_copies_the_default_plan_without_its_channel_rules()
     {
         var plan = ReferencePlan().ChannelRule(SalesChannel.BookingCom, ChannelPricingMode.OwnGrid).Build();

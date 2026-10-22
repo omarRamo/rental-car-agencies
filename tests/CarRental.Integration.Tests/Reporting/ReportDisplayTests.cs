@@ -103,12 +103,11 @@ public sealed class ReportDisplayTests
     [Fact]
     public void Exports_have_a_stable_address_per_table_and_an_ascii_file_name()
     {
-        var agencyId = Guid.Parse("01a15e40-91de-75ae-9295-43ebd0bfc6c4");
         var from = new DateOnly(2026, 10, 1);
         var to = new DateOnly(2026, 10, 31);
 
-        ReportExport.Url(ReportTable.Vehicles, agencyId, from, to)
-            .ShouldBe("/admin/reports/export/vehicles?agency=01a15e40-91de-75ae-9295-43ebd0bfc6c4&from=2026-10-01&to=2026-10-31");
+        // No agency in the address: an export is the report of the agency of the session (ADR-0067).
+        ReportExport.Url(ReportTable.Vehicles, from, to).ShouldBe("/admin/reports/export/vehicles?from=2026-10-01&to=2026-10-31");
         ReportExport.FileName("rapport", "véhicules", "Agence Démo Tunis", from, to).ShouldBe("rapport-vehicules-agence-demo-tunis-2026-10-01-2026-10-31.xlsx");
         ReportExport.Slug("  Été 2026 / Sud  ").ShouldBe("ete-2026-sud");
         ReportExport.Slug("***").ShouldBe("export");

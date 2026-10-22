@@ -24,7 +24,8 @@ internal sealed class FleetTestBed
         Referential.Agencies.Add(new AgencyInfo(AgencyId, "Agence Test", "Tunis", null, null, IsActive: true));
     }
 
-    public Guid AgencyId { get; } = Guid.CreateVersion7();
+    /// <summary>The agency of the fleet, which the staff actors of <see cref="As"/> work for (ADR-0067).</summary>
+    public Guid AgencyId { get; } = TestUsers.AgencyId;
 
     public FakeAppDbContext Db { get; } = new();
 
@@ -79,12 +80,12 @@ internal sealed class FleetTestBed
     public FleetQueries Queries() => new(Db, Time);
 
     public DeadlineAlertJob AlertJob() =>
-        new(Db, UnitOfWork, Identity, new PlainDeadlineAlertEmails(), Emails, Time, NullLogger<DeadlineAlertJob>.Instance);
+        new(Db, UnitOfWork, Identity, Referential, new PlainDeadlineAlertEmails(), Emails, Time, NullLogger<DeadlineAlertJob>.Instance);
 
-    public VehicleCategory AddCategory(string code = "ECMR", FuelType fuel = FuelType.Petrol, int displayOrder = 2, bool active = true)
+    public VehicleCategory AddCategory(string code = "ECMR", FuelType fuel = FuelType.Petrol, int displayOrder = 2, bool active = true, Guid? agencyId = null)
     {
         var category = VehicleCategory.Create(
-            AgencyId,
+            agencyId ?? AgencyId,
             new VehicleCategoryDetails(code, $"Catégorie {code}", "Peugeot 208", 5, 5, 1, 2, fuel, Money.Tnd(600m), Money.Tnd(300m), displayOrder)).Value;
         if (!active)
         {

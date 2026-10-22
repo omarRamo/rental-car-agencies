@@ -8,7 +8,10 @@ namespace CarRental.Application.Fleet.Contracts;
 /// </summary>
 public interface IFleetQueries
 {
-    /// <summary>Vehicle categories of an agency (all agencies when <paramref name="agencyId"/> is null), ordered by display order then ACRISS code.</summary>
+    /// <summary>
+    /// Vehicle categories of an agency (when <paramref name="agencyId"/> is null, of every agency the operation sees: its
+    /// own for an operation of one agency, ADR-0067), ordered by display order then ACRISS code.
+    /// </summary>
     Task<IReadOnlyList<VehicleCategoryInfo>> GetCategoriesAsync(
         Guid? agencyId = null,
         bool includeInactive = false,

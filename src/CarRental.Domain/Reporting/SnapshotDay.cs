@@ -8,7 +8,7 @@ namespace CarRental.Domain.Reporting;
 /// booking without vehicle, or a rented day when its vehicle was not in the fleet — reported apart instead of lost.
 /// Replaced with the rows of the day when it is computed again.
 /// </summary>
-public sealed class SnapshotDay : Entity
+public sealed class SnapshotDay : Entity, IAgencyOwned
 {
     private SnapshotDay()
     {

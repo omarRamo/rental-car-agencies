@@ -11,6 +11,8 @@ namespace CarRental.Infrastructure.Persistence.Configurations.Pricing;
 /// <summary>
 /// Rate plans and their content, schema <c>pricing</c>: one system-versioned table per part (ADR-0003, ADR-0023), so the
 /// state of a plan at any date can be rebuilt; published versions stay as rows and quotes name the version they used.
+/// Every row carries the agency of its plan (ADR-0067); the content is read through its plan, so only the plan has the
+/// foreign key to the agency.
 /// </summary>
 internal sealed class RatePlanConfiguration : IEntityTypeConfiguration<RatePlan>
 {

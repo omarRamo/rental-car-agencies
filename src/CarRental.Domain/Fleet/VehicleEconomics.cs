@@ -7,7 +7,7 @@ namespace CarRental.Domain.Fleet;
 /// computed per day (prorata temporis) over <c>[PurchasedOn, PurchasedOn + DepreciationYears)</c> and stops at the sale;
 /// monthly amounts are differences of rounded cumulative amounts, so that they always add up to the depreciable amount.
 /// </summary>
-public sealed class VehicleEconomics : Entity
+public sealed class VehicleEconomics : Entity, IAgencyOwned
 {
     public const int MaxDepreciationYears = 20;
     public const int MaxFinancingMonths = 120;
@@ -16,13 +16,17 @@ public sealed class VehicleEconomics : Entity
     {
     }
 
-    private VehicleEconomics(Guid id, Guid vehicleId)
+    private VehicleEconomics(Guid id, Vehicle vehicle)
         : base(id)
     {
-        VehicleId = vehicleId;
+        VehicleId = vehicle.Id;
+        AgencyId = vehicle.AgencyId;
     }
 
     public Guid VehicleId { get; private set; }
+
+    /// <summary>The agency of the vehicle (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public Money PurchasePrice { get; private set; }
 
@@ -106,9 +110,9 @@ public sealed class VehicleEconomics : Entity
         return valid ? details : FleetErrors.FinancingInvalid;
     }
 
-    internal static VehicleEconomics Create(Guid vehicleId, VehicleEconomicsDetails validated)
+    internal static VehicleEconomics Create(Vehicle vehicle, VehicleEconomicsDetails validated)
     {
-        var economics = new VehicleEconomics(NewId(), vehicleId);
+        var economics = new VehicleEconomics(NewId(), vehicle);
         economics.Apply(validated);
         return economics;
     }

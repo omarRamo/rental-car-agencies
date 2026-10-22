@@ -2,6 +2,7 @@ using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Email;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Fleet;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Fleet.Deadlines;
 
-/// <summary>A document deadline to notify (one e-mail per recipient).</summary>
+/// <summary>A document deadline to notify (one e-mail per recipient), with the name of the agency of the vehicle.</summary>
 public sealed record DeadlineAlertNotice(
     Guid VehicleId,
     string PlateNumber,
@@ -19,7 +20,8 @@ public sealed record DeadlineAlertNotice(
     string DocumentNumber,
     DateOnly ExpiresOn,
     int DaysLeft,
-    DeadlineAlertLevel Level);
+    DeadlineAlertLevel Level,
+    string AgencyName);
 
 /// <summary>Writes the localized e-mail of a deadline alert (implemented by the web host with its resources).</summary>
 public interface IDeadlineAlertEmailFactory
@@ -29,13 +31,15 @@ public interface IDeadlineAlertEmailFactory
 
 /// <summary>
 /// Every day at 07:00 (Tunis): for each current document of a vehicle in the fleet that expires within 30, 15 or 7 days
-/// or has expired, one e-mail per active manager, once per (document, level). The sent alert and its e-mails are written
-/// in the same transaction (outbox), so a run that fails or is replayed never sends twice; a renewal is a new document.
+/// or has expired, one e-mail per active manager of the agency of the vehicle (ADR-0067), once per (document, level).
+/// The sent alert and its e-mails are written in the same transaction (outbox), so a run that fails or is replayed never
+/// sends twice; a renewal is a new document.
 /// </summary>
 internal sealed partial class DeadlineAlertJob(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
     IIdentityQueries identity,
+    IReferentialQueries referential,
     IDeadlineAlertEmailFactory emails,
     IEmailQueue emailQueue,
     TimeProvider timeProvider,
@@ -58,12 +62,12 @@ internal sealed partial class DeadlineAlertJob(
         // Each agency's managers hear of their own vehicles only (ADR-0067).
         var sent = 0;
         var recipients = 0;
-        foreach (var agency in due.GroupBy(a => a.AgencyId))
+        foreach (var agency in due.GroupBy(a => a.Document.AgencyId))
         {
             var managers = await identity.GetActiveUsersInRoleAsync(agency.Key, Roles.Manager, cancellationToken);
             if (managers.Count == 0)
             {
-                LogNoRecipient(agency.Count());
+                LogNoRecipient(agency.Count(), agency.Key);
                 continue;
             }
 
@@ -94,7 +98,7 @@ internal sealed partial class DeadlineAlertJob(
                         return Result.Success(false);
                     }
 
-                    db.Set<DeadlineAlert>().Add(DeadlineAlert.Record(alert.Document, alert.AgencyId, alert.Level, now, managers.Count));
+                    db.Set<DeadlineAlert>().Add(DeadlineAlert.Record(alert.Document, alert.Level, now, managers.Count));
                     foreach (var manager in managers)
                     {
                         await emailQueue.EnqueueAsync(emails.Create(alert.Notice, manager), ct);
@@ -137,6 +141,7 @@ internal sealed partial class DeadlineAlertJob(
                 .Select(a => new { a.DocumentId, a.Level })
                 .ToListAsync(cancellationToken))
             .ToLookup(a => a.DocumentId, a => a.Level);
+        var agencyNames = (await referential.GetAgenciesAsync(cancellationToken)).ToDictionary(a => a.Id, a => a.Name);
 
         var due = new List<DueAlert>();
         foreach (var (vehicle, document) in documents.OrderBy(d => d.Document.ExpiresOn).ThenBy(d => d.Vehicle.PlateNumber, StringComparer.Ordinal))
@@ -156,15 +161,16 @@ internal sealed partial class DeadlineAlertJob(
                 document.Number,
                 expiresOn,
                 expiresOn.DayNumber - today.DayNumber,
-                level);
-            due.Add(new DueAlert(document, vehicle.AgencyId, level, notice));
+                level,
+                agencyNames.GetValueOrDefault(document.AgencyId, string.Empty));
+            due.Add(new DueAlert(document, level, notice));
         }
 
         return due;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "{Count} fleet deadline alerts are due but no active manager can receive them; they will be retried at the next run.")]
-    private partial void LogNoRecipient(int count);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Count} fleet deadline alerts of agency {AgencyId} are due but no active manager of the agency can receive them; they will be retried at the next run.")]
+    private partial void LogNoRecipient(int count, Guid agencyId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Count} fleet deadline alerts sent to {Recipients} managers.")]
     private partial void LogSent(int count, int recipients);
@@ -172,5 +178,5 @@ internal sealed partial class DeadlineAlertJob(
     [LoggerMessage(Level = LogLevel.Information, Message = "Deadline alert of document {DocumentId} at level {Level} already sent by a concurrent run.")]
     private partial void LogAlreadySent(Exception exception, Guid documentId, DeadlineAlertLevel level);
 
-    internal sealed record DueAlert(VehicleDocument Document, Guid AgencyId, DeadlineAlertLevel Level, DeadlineAlertNotice Notice);
+    internal sealed record DueAlert(VehicleDocument Document, DeadlineAlertLevel Level, DeadlineAlertNotice Notice);
 }

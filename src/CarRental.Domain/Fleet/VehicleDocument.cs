@@ -6,7 +6,7 @@ namespace CarRental.Domain.Fleet;
 /// A document of a vehicle (insurance policy, vignette, technical inspection, registration card). Recording a new
 /// document of a type supersedes the current one, which stays in the renewal history.
 /// </summary>
-public sealed class VehicleDocument : Entity
+public sealed class VehicleDocument : Entity, IAgencyOwned
 {
     public const int NumberMaxLength = 60;
     public const int ProviderMaxLength = 120;
@@ -16,10 +16,11 @@ public sealed class VehicleDocument : Entity
     {
     }
 
-    private VehicleDocument(Guid id, Guid vehicleId, VehicleDocumentDetails details, DateTimeOffset recordedAt)
+    private VehicleDocument(Guid id, Vehicle vehicle, VehicleDocumentDetails details, DateTimeOffset recordedAt)
         : base(id)
     {
-        VehicleId = vehicleId;
+        VehicleId = vehicle.Id;
+        AgencyId = vehicle.AgencyId;
         Type = details.Type;
         Apply(details);
         IsCurrent = true;
@@ -27,6 +28,9 @@ public sealed class VehicleDocument : Entity
     }
 
     public Guid VehicleId { get; private set; }
+
+    /// <summary>The agency of the vehicle (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public VehicleDocumentType Type { get; private set; }
 
@@ -97,8 +101,8 @@ public sealed class VehicleDocument : Entity
         return normalized;
     }
 
-    internal static VehicleDocument Create(Guid vehicleId, VehicleDocumentDetails validated, DateTimeOffset recordedAt) =>
-        new(NewId(), vehicleId, validated, recordedAt);
+    internal static VehicleDocument Create(Vehicle vehicle, VehicleDocumentDetails validated, DateTimeOffset recordedAt) =>
+        new(NewId(), vehicle, validated, recordedAt);
 
     internal void Correct(VehicleDocumentDetails validated) => Apply(validated);
 

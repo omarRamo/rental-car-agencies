@@ -48,19 +48,11 @@ public sealed partial class TenancyConventionTests
         // Customers
         "BlacklistEntry", "Consent", "Customer", "DriverSubmission", "IdentityDocument", "Person",
         "StagedDocumentImage", "SubmittedDocument",
-        // Fleet
-        "DeadlineAlert", "MaintenanceEvent", "MaintenancePlan", "Vehicle", "VehicleCategory", "VehicleCost",
-        "VehicleDocument", "VehicleEconomics", "VehicleHistoryEntry", "VehiclePhoto",
         // Messaging
         "AgentConversationState", "AgentTurnRecord", "BookingNotification", "BotTurnRetry", "Conversation", "KnowledgeEntry",
         "Message", "MessageStatusChange",
         // Payments
         "DepositHold", "GatewayCallLog", "Payment",
-        // Pricing
-        "CategoryPrice", "ChannelRule", "DurationTier", "Extra", "PriorityEvent", "Promotion",
-        "RatePlan", "Season", "TierCategoryDiscount",
-        // Reporting
-        "FunnelEvent", "SnapshotDay", "VehicleDayRental", "VehicleDaySnapshot",
     };
 
     private static readonly IModel Model = BuildModel();

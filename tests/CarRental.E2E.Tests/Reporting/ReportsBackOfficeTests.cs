@@ -37,7 +37,7 @@ public sealed class ReportsBackOfficeTests(E2EHost host) : BrowserTest(host)
         var agencyId = await DemoAgencyIdAsync();
         var expected = await ExpectedReportAsync(agencyId);
         var manager = await BackOfficeSession.NewStaffAsync(Host, Roles.Manager);
-        await BackOfficeSession.SignInAsync(Page, manager, $"/admin/reports?agency={agencyId}");
+        await BackOfficeSession.SignInAsync(Page, manager, "/admin/reports");
         await Expect(Page.Locator("h1[data-ready=true]")).ToBeVisibleAsync(Slow);
 
         // The tiles, the manager's main indicator first.
@@ -139,7 +139,7 @@ public sealed class ReportsBackOfficeTests(E2EHost host) : BrowserTest(host)
         var tile = Page.GetByTestId("reports-widget");
         await Expect(tile).ToContainTextAsync("Revenu par véhicule disponible et par jour", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(tile).ToContainTextAsync("TND");
-        await Expect(tile.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Ouvrir les rapports" })).ToHaveAttributeAsync("href", new Regex("^/admin/reports\\?agency="));
+        await Expect(tile.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Ouvrir les rapports" })).ToHaveAttributeAsync("href", "/admin/reports");
 
         // The tile only: the other widgets of the dashboard belong to their own modules and tests.
         await BackOfficeSession.WaitForTransitionsAsync(Page);

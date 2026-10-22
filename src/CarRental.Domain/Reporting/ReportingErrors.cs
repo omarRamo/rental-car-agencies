@@ -5,6 +5,10 @@ namespace CarRental.Domain.Reporting;
 /// <summary>Business errors of the Reporting module (codes <c>reporting.*</c>; never shown to visitors).</summary>
 public static class ReportingErrors
 {
+    public static readonly Error FunnelAgencyRequired = Error.Validation(
+        "reporting.funnel_event.agency_required",
+        "A funnel step belongs to the agency of the public site it was reached on.");
+
     public static readonly Error FunnelStepInvalid = Error.Validation(
         "reporting.funnel_event.step_invalid",
         "Unknown funnel step.");

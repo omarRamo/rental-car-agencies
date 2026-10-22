@@ -5059,6 +5059,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -5116,6 +5119,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Fleet.MaintenancePlan", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("IntervalKm")
@@ -5400,6 +5406,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
@@ -5425,6 +5434,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Fleet.VehicleDocument", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("Cost")
@@ -5480,6 +5492,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("DepreciationYears")
                         .HasColumnType("int");
 
@@ -5524,6 +5539,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Kind")
                         .HasColumnType("int");
 
@@ -5564,6 +5582,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Fleet.VehiclePhoto", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ContentHash")
@@ -6726,6 +6747,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
@@ -6778,6 +6802,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Channel")
                         .HasColumnType("int");
 
@@ -6827,6 +6854,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
@@ -6871,6 +6901,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Pricing.Extra", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("CapPerUnit")
@@ -6951,6 +6984,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
@@ -7004,6 +7040,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Pricing.Promotion", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateOnly?>("BookableFrom")
@@ -7185,6 +7224,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
@@ -7233,6 +7275,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Pricing.TierCategoryDiscount", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CategoryId")
@@ -7519,6 +7564,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("BookingId")
                         .HasColumnType("uniqueidentifier");
 
@@ -7576,6 +7624,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasFilter("[VisitId] IS NOT NULL");
 
                     b.HasIndex("OccurredAtUtc", "Step");
+
+                    b.HasIndex("AgencyId", "OccurredAtUtc", "Step");
 
                     b.ToTable("FunnelEvents", "reporting");
 
@@ -8832,6 +8882,15 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Reporting.FunnelEvent", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CarRental.Domain.Reporting.SnapshotDay", b =>

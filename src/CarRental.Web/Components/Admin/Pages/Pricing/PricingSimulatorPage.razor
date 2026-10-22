@@ -8,6 +8,7 @@
 @using CarRental.Web.Components.Admin.Pricing
 @using CarRental.Web.Resources.Admin.Pricing
 @inject IOperationRunner Runner
+@inject CurrentAgency Current
 @inject TimeProvider Clock
 @inject IStringLocalizer<PricingAdminResources> L
 @inject IStringLocalizer<SharedResources> Shared
@@ -24,15 +25,7 @@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <form @onsubmit="SimulateAsync" aria-label="@L["Simulator.Title"]">
         <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6" md="4">
-                <MudSelect T="Guid" Value="_agencyId" ValueChanged="OnAgencyChangedAsync" Label="@L["Simulator.Agency"]" Variant="Variant.Outlined">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="4">
+            <MudItem xs="12" sm="6">
                 <MudSelect T="SalesChannel" Value="_channel" ValueChanged="OnChannelChangedAsync" Label="@L["Simulator.Channel"]" Variant="Variant.Outlined">
                     @foreach (var channel in Enum.GetValues<SalesChannel>())
                     {
@@ -40,7 +33,7 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="6" md="4">
+            <MudItem xs="12" sm="6">
                 <MudSelect T="Guid" Value="_categoryId" ValueChanged="OnCategoryChangedAsync" Label="@L["Simulator.Category"]" Variant="Variant.Outlined">
                     @foreach (var category in _categories)
                     {
@@ -155,7 +148,6 @@
 @code {
     private const string LocalFormat = "yyyy-MM-ddTHH:mm";
 
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private IReadOnlyList<VehicleCategoryInfo> _categories = [];
     private IReadOnlyList<LocationInfo> _locations = [];
     private IReadOnlyList<VehicleInfo> _vehicles = [];
@@ -181,9 +173,8 @@
     private bool _ready;
     private SimulationResult? _result;
 
-    /// <summary>Optional deep link: agency id.</summary>
-    [SupplyParameterFromQuery(Name = "agence")]
-    public Guid? AgencyQuery { get; set; }
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     /// <summary>Optional deep link: ACRISS code of the category, e.g. <c>ECMR</c>.</summary>
     [SupplyParameterFromQuery(Name = "cat")]
@@ -216,17 +207,10 @@
         _returnAt = ReturnQuery ?? now.Date.AddDays(4).AddHours(10).ToString(LocalFormat, CultureInfo.InvariantCulture);
         _comparedPlanId = ComparedQuery;
 
-        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((q, ct) => q.GetAgenciesAsync(ct));
-        _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        // The simulator prices the plans of the agency of the session only (ADR-0067).
+        _agencyId = (await Current.GetAsync((await AuthenticationState).User))?.Id ?? Guid.Empty;
         await LoadAgencyAsync();
         _ready = true;
-    }
-
-    private async Task OnAgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
-        _comparedPlanId = null;
-        await LoadAgencyAsync();
     }
 
     private async Task OnChannelChangedAsync(SalesChannel channel)
@@ -246,6 +230,7 @@
     {
         if (_agencyId == Guid.Empty)
         {
+            _formError = L["Plans.NoAgency"];
             return;
         }
 

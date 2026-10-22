@@ -363,8 +363,8 @@
   <data name="Plans.Action.Label" xml:space="preserve">
     <value>{0} : {1}</value>
   </data>
-  <data name="Plans.Agency" xml:space="preserve">
-    <value>Agence</value>
+  <data name="Plans.NoAgency" xml:space="preserve">
+    <value>Les grilles tarifaires sont celles de l'agence de la session : ouvrez une agence depuis la plateforme pour les consulter.</value>
   </data>
   <data name="Plans.Column.Actions" xml:space="preserve">
     <value>Actions</value>
@@ -632,9 +632,6 @@
   </data>
   <data name="Seasons.Title" xml:space="preserve">
     <value>Saisons</value>
-  </data>
-  <data name="Simulator.Agency" xml:space="preserve">
-    <value>Agence</value>
   </data>
   <data name="Simulator.ArchivedPlan" xml:space="preserve">
     <value>{0} — v{1} archivée ({2})</value>
