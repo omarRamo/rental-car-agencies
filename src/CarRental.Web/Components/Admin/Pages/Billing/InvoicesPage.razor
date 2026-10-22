@@ -290,9 +290,17 @@
     {
         if (Agency is { } agency && agency.Id != _agencyId)
         {
+            // The tables load on their first render: they are reloaded only when the agency changes afterwards. A reload
+            // started before that first load is superseded (cancelled) by it and this method would end there, the page
+            // never marked loaded.
+            var reload = _agencyId is not null;
             _agencyId = agency.Id;
             await LoadListsAsync();
-            await ReloadInvoicesAsync();
+            if (reload)
+            {
+                await ReloadInvoicesAsync();
+            }
+
             _loaded = true;
         }
     }

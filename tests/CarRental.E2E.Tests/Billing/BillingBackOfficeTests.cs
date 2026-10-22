@@ -51,6 +51,7 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
 
         await Expect(Page).ToHaveURLAsync(InvoicePage());
         await Expect(Page.GetByTestId("invoice-number")).ToHaveTextAsync(InvoiceTitle());
+        var number = (await Page.GetByTestId("invoice-number").InnerTextAsync())["Facture ".Length..];
         await Expect(Page.GetByTestId("invoice-total-due")).ToHaveTextAsync(Amount(file.Total));
 
         // The PDF is prepared by the outbox: its link appears on the page once stored.
@@ -86,6 +87,11 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         await Expect(Page.GetByTestId("invoice-remaining")).ToHaveTextAsync(Amount(file.Total - Money.Tnd(50m)));
         await Expect(note.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "PDF de AV-", Exact = false })).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
         await AssertAccessibleAsync();
+
+        // The invoices of the agency: the list loads itself on its first render and the page is marked ready.
+        await Page.GotoAsync("/admin/invoices");
+        await WaitUntilReadyAsync();
+        await Expect(Page.Locator("tr", new PageLocatorOptions { HasText = number }).First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await using var scope = Scope(null);
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
