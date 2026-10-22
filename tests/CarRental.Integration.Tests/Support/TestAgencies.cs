@@ -48,4 +48,20 @@ internal static class TestAgencies
         registered.IsSuccess.ShouldBeTrue(registered.IsFailure ? registered.Error.ToString() : null);
         return (await scope.ServiceProvider.GetRequiredService<IAgencyDirectory>().FindAsync(registered.Value.AgencyId, cancellationToken))!;
     }
+
+    /// <summary>Switches the modules of an agency as the support does (exactly <paramref name="modules"/> on afterwards).</summary>
+    public static async Task SetModulesAsync(IntegrationHost host, Guid agencyId, AgencyModules modules, CancellationToken cancellationToken)
+    {
+        await using var scope = PlatformScope(host, await SupportAsync(host));
+        var changed = await scope.ServiceProvider.GetRequiredService<AgencyPlatformService>().SetModulesAsync(agencyId, modules, cancellationToken);
+        changed.IsSuccess.ShouldBeTrue(changed.IsFailure ? changed.Error.ToString() : null);
+    }
+
+    /// <summary>Suspends an agency or lifts its suspension, as the support does.</summary>
+    public static async Task SetActiveAsync(IntegrationHost host, Guid agencyId, bool active, CancellationToken cancellationToken)
+    {
+        await using var scope = PlatformScope(host, await SupportAsync(host));
+        var changed = await scope.ServiceProvider.GetRequiredService<AgencyPlatformService>().SetActiveAsync(agencyId, active, cancellationToken);
+        changed.IsSuccess.ShouldBeTrue(changed.IsFailure ? changed.Error.ToString() : null);
+    }
 }

@@ -34,11 +34,11 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     public async Task A_visitor_books_in_french_with_photos_and_holds_the_guarantee_on_the_page_of_the_bank()
     {
         var suffix = Unique();
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(60)}&retour={LocalDate(63)}");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(60)}&retour={LocalDate(63)}");
         await Page.Locator("li.offer:has(.offer__code:text-is('ECMR')) form.offer__choose button").ClickAsync();
 
         // Step 1: options.
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Options et prix");
         await ShouldBeAccessibleOnAPhoneAsync();
         var total = await Page.Locator("[data-testid='funnel-total']").TextContentAsync();
@@ -72,7 +72,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
         await Expect(Page).ToHaveURLAsync(new Regex("/dev/clictopay/pay/"));
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Payer" }).ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Demande reçue");
         await Expect(Page.Locator("[data-testid='guarantee-state']")).ToHaveAttributeAsync("data-state", "Held");
         await ShouldBeAccessibleOnAPhoneAsync();
@@ -81,19 +81,19 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_english_funnel_speaks_english_and_switches_language_on_the_same_step()
     {
-        await Page.GotoAsync($"/en/book?lieu=TUN&depart={LocalDate(64)}&retour={LocalDate(67)}");
+        await Page.GotoAsync($"/agence-demo-tunis/en/book?lieu=TUN&depart={LocalDate(64)}&retour={LocalDate(67)}");
         await Page.Locator("li.offer:has(.offer__code:text-is('ECMR')) form.offer__choose button").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/en/book/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/en/book/[A-Za-z0-9_-]{43}/options$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Extras and price");
         await Expect(Page.GetByText("Step 1 of 3")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Continue to the drivers" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex("/en/book/[A-Za-z0-9_-]{43}/drivers$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/en/book/[A-Za-z0-9_-]{43}/drivers$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Who will drive?");
         await ShouldBeAccessibleOnAPhoneAsync();
 
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Français" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/conducteurs$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/[A-Za-z0-9_-]{43}/conducteurs$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Qui conduira ?");
     }
 
@@ -101,7 +101,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     public async Task The_payment_step_can_be_completed_with_the_keyboard_only()
     {
         var suffix = Unique();
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(68)}&retour={LocalDate(71)}");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(68)}&retour={LocalDate(71)}");
         await Page.Locator("li.offer:has(.offer__code:text-is('ECMR')) form.offer__choose button").ClickAsync();
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Continuer vers les conducteurs" }).ClickAsync();
         await FillDriverAsync(suffix, $"e2e.{suffix.ToLowerInvariant()}@example.test");
@@ -121,7 +121,7 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
     public async Task My_booking_opens_from_the_link_of_the_email_and_takes_the_photos()
     {
         var request = await SubmitRequestAsync(72, 75);
-        await Page.GotoAsync("/fr/ma-reservation");
+        await Page.GotoAsync("/agence-demo-tunis/fr/ma-reservation");
         await ShouldBeAccessibleOnAPhoneAsync();
         await Page.GetByLabel("Adresse e-mail").FillAsync(request.Email);
         await Page.GetByLabel("Numéro de réservation").FillAsync(request.Number);
@@ -133,14 +133,14 @@ public sealed class BookingFunnelJourneyTests(E2EHost host) : BrowserTest(host)
             Host.Factory.EmailDirectory,
             e => e.To.Contains(request.Email, StringComparison.Ordinal) && e.Subject.EndsWith($"Votre accès à la réservation {request.Number}", StringComparison.Ordinal),
             TestContext.Current.CancellationToken);
-        var link = TestEmails.Links(email).Single(l => l.Contains("/fr/ma-reservation/acces/", StringComparison.Ordinal));
+        var link = TestEmails.Links(email).Single(l => l.Contains("/agence-demo-tunis/fr/ma-reservation/acces/", StringComparison.Ordinal));
         link.ShouldStartWith(Host.BaseAddress.GetLeftPart(UriPartial.Authority));
 
         await Page.GotoAsync(link);
         await ShouldBeAccessibleOnAPhoneAsync();
         await Page.Locator("[data-testid='open-booking']").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/ma-reservation/dossier$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/ma-reservation/dossier$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync($"Réservation {request.Number}");
         await Expect(Page.Locator("[data-testid='booking-status']")).ToHaveTextAsync("En cours de validation");
         await Page.Locator("#photo-main-license-back").SetInputFilesAsync(new FilePayload { Name = "permis-verso.png", MimeType = "image/png", Buffer = Png });

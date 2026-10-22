@@ -51,9 +51,10 @@ public sealed partial class WhatsAppAgentConventionTests
     {
         var pickupAt = TunisTime.FromLocal(new DateTime(2027, 7, 1, 10, 0, 0));
 
-        var link = BookingDeepLink.Build(new Uri("https://www.example.tn/"), language, "TUN", "NBE", pickupAt, pickupAt.AddDays(4), "MCMR", "Q1F3K9");
+        // The base address of the bot is the address of the site of its agency (ADR-0067).
+        var link = BookingDeepLink.Build(new Uri("https://www.example.tn/agence-demo-tunis/"), language, "TUN", "NBE", pickupAt, pickupAt.AddDays(4), "MCMR", "Q1F3K9");
 
-        link.AbsolutePath.ShouldBe(PublicRoutes.PathFor(PublicPage.Results, culture));
+        link.AbsolutePath.ShouldBe(PublicRoutes.PathFor("agence-demo-tunis", PublicPage.Results, culture));
         var query = SearchQuery.Parse(QueryHelpers.ParseQuery(link.Query));
         query.PickupLocation.ShouldBe("TUN");
         query.ReturnLocation.ShouldBe("NBE");

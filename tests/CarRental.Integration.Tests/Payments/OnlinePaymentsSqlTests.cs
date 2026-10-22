@@ -14,12 +14,9 @@ using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Support;
 using CarRental.Testing;
-using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Endpoints;
-using CarRental.Web.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace CarRental.Integration.Tests.Payments;
 
@@ -37,9 +34,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     [Fact]
     public async Task A_pre_authorization_paid_on_the_simulated_page_is_confirmed_by_the_return_address()
     {
-        // The result page belongs to the public site: it shows the payments of the agency of the site it serves.
-        var agencyId = await PublicSiteAgencyAsync();
-        var started = await StartAsync(agencyId, 681.4m, "/fr/paiement/{paymentId}");
+        // The result page belongs to the site of the agency of the payment (ADR-0067): it shows the payments of that agency.
+        var site = await TestAgencies.RegisterAsync(host, "paiement", Ct);
+        var agencyId = site.Id;
+        var started = await StartAsync(agencyId, 681.4m, $"/{site.Slug}/fr/paiement/{{paymentId}}");
         using var client = host.CreateClient();
 
         var page = await client.GetAsync(new Uri(started.RedirectUrl, UriKind.Relative), Ct);
@@ -60,11 +58,13 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var returned = await client.GetAsync(new Uri(returnAddress, UriKind.Relative), Ct);
 
         returned.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        HttpSignIn.PathAndQuery(returned.Headers.Location!).ShouldBe($"/fr/paiement/{started.PaymentId:D}");
+        HttpSignIn.PathAndQuery(returned.Headers.Location!).ShouldBe($"/{site.Slug}/fr/paiement/{started.PaymentId:D}");
         returned.Headers.CacheControl!.NoStore.ShouldBeTrue();
-        var result = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
+        var result = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{site.Slug}/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
         result.ShouldContain("Paiement autorisé");
         result.ShouldContain("681,400 TND");
+        var elsewhere = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{Public.PublicTestData.DemoSlug}/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
+        elsewhere.ShouldNotContain("681,400 TND", customMessage: "the site of another agency never shows the payment");
 
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
@@ -237,7 +237,8 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var payment = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Payment>().AsNoTracking()
             .SingleAsync(p => p.Id == Guid.ParseExact(order.OrderNumber, "N"), Ct);
         payment.AgencyId.ShouldBe(agencyId);
-        payment.GatewayReturnPath.ShouldBe("/en/payment/{paymentId}");
+        var site = (await host.Factory.Services.GetRequiredService<IAgencyDirectory>().FindAsync(agencyId, Ct)).ShouldNotBeNull().Slug;
+        payment.GatewayReturnPath.ShouldBe($"/{site}/en/payment/{{paymentId}}", "the result page of the site of the agency of the payment");
     }
 
     [Fact]
@@ -265,14 +266,6 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var type = eventType.FullName!;
         var id = paymentId.ToString();
         return db.Set<OutboxMessage>().AsNoTracking().CountAsync(m => m.Type == type && m.Payload.Contains(id), Ct);
-    }
-
-    /// <summary>The agency whose public site the culture addresses (<c>/fr/…</c>) serve.</summary>
-    private async Task<Guid> PublicSiteAgencyAsync()
-    {
-        var services = host.Factory.Services;
-        var agencyId = await PublicSiteAgency.DefaultAsync(services.GetRequiredService<IAgencyDirectory>(), services.GetRequiredService<IOptions<PublicSiteOptions>>().Value, Ct);
-        return agencyId.ShouldNotBeNull();
     }
 
     /// <summary>A pre-authorization started like the funnel of the agency's public site starts it: as a visitor of that site.</summary>

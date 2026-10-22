@@ -12,6 +12,7 @@ public sealed class AgencyStructuredDataTests
     private static readonly Uri SiteUrl = new("https://www.example.tn/");
 
     internal static PublicAgency Agency(AgencyInfo? info = null) => new(
+        new AgencySummary(info?.Id ?? Guid.CreateVersion7(), info?.Name ?? "Agence Démo Tunis", "agence-demo-tunis", "Tunis", true, AgencyModuleCatalog.Defaults),
         info ?? new AgencyInfo(Guid.CreateVersion7(), "Agence Démo Tunis", "Tunis", "+216 70 000 000", "contact@demo.local", true, "1 avenue Habib Bourguiba, 1000 Tunis", 36.7998m, 10.1801m),
         [],
         [],
@@ -111,14 +112,14 @@ public sealed class AgencyStructuredDataTests
     }
 
     [Fact]
-    public void The_site_agency_is_the_configured_one_else_the_first_created()
+    public void The_whatsapp_contact_of_a_site_needs_the_whatsapp_module_of_its_agency()
     {
-        var first = new AgencyInfo(Guid.CreateVersion7(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)), "Z agence", "Tunis", null, null, true);
-        var second = new AgencyInfo(Guid.CreateVersion7(new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero)), "A agence", "Sousse", null, null, true);
+        var options = new CarRental.Web.Hosting.PublicSiteOptions { WhatsAppNumber = "21600000000" };
+        var site = Agency().Site;
 
-        PublicAgencyDirectory.Select([second, first], configuredId: null).ShouldBe(first);
-        PublicAgencyDirectory.Select([second, first], configuredId: second.Id).ShouldBe(second);
-        PublicAgencyDirectory.Select([second, first], configuredId: Guid.CreateVersion7()).ShouldBeNull();
-        PublicAgencyDirectory.Select([], configuredId: null).ShouldBeNull();
+        PublicSiteAgency.WhatsAppNumber(site, options).ShouldBeNull("the module is off for a new agency");
+        PublicSiteAgency.WhatsAppNumber(site with { Modules = site.Modules | AgencyModules.WhatsApp }, options).ShouldBe("21600000000");
+        PublicSiteAgency.WhatsAppNumber(site with { Modules = AgencyModules.WhatsApp }, new CarRental.Web.Hosting.PublicSiteOptions()).ShouldBeNull();
+        PublicSiteAgency.WhatsAppNumber(null, options).ShouldBeNull("outside any site");
     }
 }

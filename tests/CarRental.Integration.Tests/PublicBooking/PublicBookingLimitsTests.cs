@@ -26,7 +26,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
     public async Task Choosing_categories_beyond_the_submission_limit_gets_a_429()
     {
         using var visitor = Create(scenario.Factory);
-        var token = Support.HttpSignIn.AntiforgeryToken(await visitor.PageAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(116)}&retour={LocalDate(119)}", Ct));
+        var token = Support.HttpSignIn.AntiforgeryToken(await visitor.PageAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(116)}&retour={LocalDate(119)}", Ct));
 
         var statuses = new List<HttpStatusCode>();
         for (var attempt = 0; attempt <= PublicScenarioHost.RateLimit; attempt++)
@@ -39,7 +39,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
                 ["cat"] = "ECMR",
                 ["__RequestVerificationToken"] = token,
             });
-            using var response = await visitor.Client.PostAsync(new Uri("/fr/reserver/selection", UriKind.Relative), form, Ct);
+            using var response = await visitor.Client.PostAsync(new Uri("/agence-demo-tunis/fr/reserver/selection", UriKind.Relative), form, Ct);
             statuses.Add(response.StatusCode);
         }
 
@@ -52,7 +52,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
     {
         var request = await FunnelWorld.SubmitDemoAsync(scenario.Factory, BookingWorld.InDays(101), BookingWorld.InDays(104), Ct);
         using var visitor = Create(scenario.Factory);
-        var token = Support.HttpSignIn.AntiforgeryToken(await visitor.PageAsync("/fr/ma-reservation", Ct));
+        var token = Support.HttpSignIn.AntiforgeryToken(await visitor.PageAsync("/agence-demo-tunis/fr/ma-reservation", Ct));
 
         var statuses = new List<HttpStatusCode>();
         string? robotLocation = null;
@@ -67,7 +67,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
                 ["cf-turnstile-response"] = robot ? FakeTurnstileVerifier.RejectedToken : "XXXX.DUMMY.TOKEN.XXXX",
                 ["__RequestVerificationToken"] = token,
             });
-            using var response = await visitor.Client.PostAsync(new Uri("/fr/ma-reservation", UriKind.Relative), form, Ct);
+            using var response = await visitor.Client.PostAsync(new Uri("/agence-demo-tunis/fr/ma-reservation", UriKind.Relative), form, Ct);
             statuses.Add(response.StatusCode);
             if (robot)
             {
@@ -75,7 +75,7 @@ public sealed class PublicBookingLimitsTests(PublicScenarioHost scenario)
             }
         }
 
-        robotLocation.ShouldBe("/fr/ma-reservation?erreur=booking.funnel.verification_failed");
+        robotLocation.ShouldBe("/agence-demo-tunis/fr/ma-reservation?erreur=booking.funnel.verification_failed");
         statuses.Take(PublicScenarioHost.RateLimit).ShouldAllBe(s => s == HttpStatusCode.SeeOther);
         statuses[^1].ShouldBe(HttpStatusCode.TooManyRequests);
 

@@ -117,12 +117,12 @@ public sealed class AntiAbuseUnitTests
         var context = new DefaultHttpContext();
         ContentSecurityPolicyAdditions.For(context).AllowScript("https://challenges.cloudflare.com").AllowFrame("https://challenges.cloudflare.com/");
 
-        var policy = SecurityHeadersMiddleware.PolicyFor("/fr/reserver", context.Features.Get<ContentSecurityPolicyAdditions>());
+        var policy = SecurityHeadersMiddleware.PolicyFor("/agence-demo-tunis/fr/reserver", context.Features.Get<ContentSecurityPolicyAdditions>());
 
         policy.ShouldContain("script-src 'self' https://challenges.cloudflare.com;");
         policy.ShouldEndWith("; frame-src 'self' https://challenges.cloudflare.com");
         policy.ShouldNotContain("unsafe-inline");
-        SecurityHeadersMiddleware.PolicyFor("/fr/reserver", null).ShouldBe(SecurityHeadersMiddleware.PublicPolicy);
+        SecurityHeadersMiddleware.PolicyFor("/agence-demo-tunis/fr/reserver", null).ShouldBe(SecurityHeadersMiddleware.PublicPolicy);
         ContentSecurityPolicyAdditions.For(context).ShouldBeSameAs(context.Features.Get<ContentSecurityPolicyAdditions>());
     }
 

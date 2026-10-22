@@ -26,19 +26,19 @@ public sealed partial class PrivatePagesTests(IntegrationHost host)
         using var visitor = Create(host.Factory);
 
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={LocalDate(161)}&retour={LocalDate(164)}", "ECMR", Ct);
-        var options = $"/fr/reserver/{token}/options";
+        var options = $"/agence-demo-tunis/fr/reserver/{token}/options";
         await AssertPrivateAsync(visitor, options);
         using var toDrivers = await visitor.SubmitAsync(options, [new("action", "continue")], Ct);
         var drivers = Location(toDrivers);
         await AssertPrivateAsync(visitor, drivers);
         using var toPayment = await visitor.SubmitAsync(drivers, [.. Driver("main", suffix, email), new("consent.documents", "1")], Ct);
         var payment = Location(toPayment);
-        payment.ShouldBe($"/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
+        payment.ShouldBe($"/agence-demo-tunis/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
         await AssertPrivateAsync(visitor, payment);
 
         using var submitted = await visitor.SubmitAsync(payment, [new("terms", "1"), new("cf-turnstile-response", TurnstileTestKeys.DummyToken)], Ct);
         var redirect = Location(submitted);
-        redirect.ShouldStartWith("/fr/reserver/redirection/");
+        redirect.ShouldStartWith("/agence-demo-tunis/fr/reserver/redirection/");
         var interstitial = await AssertPrivateAsync(visitor, redirect);
         var bank = WebUtility.HtmlDecode(BankPage().Match(interstitial).Groups["url"].Value);
         using var paid = await visitor.SubmitAsync(bank, [new("action", "pay")], Ct);
@@ -53,27 +53,27 @@ public sealed partial class PrivatePagesTests(IntegrationHost host)
         }
 
         using var customer = Create(host.Factory);
-        await AssertPrivateAsync(customer, "/fr/ma-reservation");
+        await AssertPrivateAsync(customer, "/agence-demo-tunis/fr/ma-reservation");
         using var asked = await customer.SubmitAsync(
-            "/fr/ma-reservation",
+            "/agence-demo-tunis/fr/ma-reservation",
             [new("email", email), new("numero", number), new("cf-turnstile-response", TurnstileTestKeys.DummyToken)],
             Ct);
         var codePage = Location(asked);
         await AssertPrivateAsync(customer, codePage);
         var accessEmail = await TestEmails.WaitForAsync(
             host.Factory.EmailDirectory,
-            e => e.To.Contains(email, StringComparison.Ordinal) && e.Subject == $"CarRental — Votre accès à la réservation {number}",
+            e => e.To.Contains(email, StringComparison.Ordinal) && e.Subject == $"{Public.PublicTestData.DemoAgencyName} — Votre accès à la réservation {number}",
             Ct);
         var link = new Uri(TestEmails.Links(accessEmail).Single(l => l.Contains("/ma-reservation/acces/", StringComparison.Ordinal))).PathAndQuery;
         await AssertPrivateAsync(customer, link);
         using var opened = await customer.SubmitAsync(
             codePage,
-            "/fr/ma-reservation/code",
+            "/agence-demo-tunis/fr/ma-reservation/code",
             [new("demande", RequestId().Match(codePage).Value), new("code", TestEmails.Code(accessEmail)!)],
             Ct);
-        Location(opened).ShouldBe("/fr/ma-reservation/dossier");
-        (await AssertPrivateAsync(customer, "/fr/ma-reservation/dossier")).ShouldContain(number);
-        await AssertPrivateAsync(customer, "/fr/ma-reservation/dossier/annulation");
+        Location(opened).ShouldBe("/agence-demo-tunis/fr/ma-reservation/dossier");
+        (await AssertPrivateAsync(customer, "/agence-demo-tunis/fr/ma-reservation/dossier")).ShouldContain(number);
+        await AssertPrivateAsync(customer, "/agence-demo-tunis/fr/ma-reservation/dossier/annulation");
     }
 
     /// <summary>The page at <paramref name="path"/>: 200, never stored by a cache, never indexed nor followed.</summary>
@@ -90,7 +90,7 @@ public sealed partial class PrivatePagesTests(IntegrationHost host)
     [GeneratedRegex("<meta http-equiv=\"refresh\" content=\"0;url=(?<url>[^\"]+)\"")]
     private static partial Regex BankPage();
 
-    [GeneratedRegex("/fr/reserver/confirmation/(?<number>LOC-[0-9]{4}-[0-9]{6})$")]
+    [GeneratedRegex("/agence-demo-tunis/fr/reserver/confirmation/(?<number>LOC-[0-9]{4}-[0-9]{6})$")]
     private static partial Regex ConfirmationNumber();
 
     [GeneratedRegex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")]
