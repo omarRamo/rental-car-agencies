@@ -78,7 +78,9 @@ public sealed class FleetSeedAndAlertTests(IntegrationHost host)
         }
 
         vehicles.Count.ShouldBe(5);
-        vehicles.ShouldAllBe(v => v.AgencyId == sousse && v.Status == VehicleStatusInfo.Active && v.CompliantUntil > DateTimeOffset.UtcNow.AddDays(30));
+        vehicles.ShouldAllBe(
+            v => v.AgencyId == sousse && v.Status == VehicleStatusInfo.Active && v.CompliantUntil > DateTimeOffset.UtcNow.AddDays(290),
+            "its documents keep the vehicles rentable for about ten months, so that its site offers them months ahead");
 
         var plan = await staff.ServiceProvider.GetRequiredService<IPricingQueries>().GetPublishedPlanAsync(sousse, cancellationToken: Ct);
         plan.ShouldNotBeNull().Name.ShouldBe("Grille démo Sousse 2026-2028");
