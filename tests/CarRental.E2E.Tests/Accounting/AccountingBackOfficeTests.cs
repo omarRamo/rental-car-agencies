@@ -142,7 +142,8 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-        var agency = Agency.Register(new AgencyDetails($"Agence compta {suffix}", "Tunis")).Value;
+        // After "Agence Démo Tunis" by name: the other screens of the suite open on the first agency, the demo one.
+        var agency = Agency.Register(new AgencyDetails($"Agence Zitouna compta {suffix}", "Tunis")).Value;
         var openedAt = TunisTime.FromLocal(month.FirstDay.AddDays(9), new TimeOnly(9, 0));
         var session = CashSession.Open(agency.Id, Guid.CreateVersion7(), string.Create(CultureInfo.InvariantCulture, $"Caissier {suffix}"), Money.Tnd(50m), openedAt).Value;
         var actor = AuditActor.System("system:e2e");
