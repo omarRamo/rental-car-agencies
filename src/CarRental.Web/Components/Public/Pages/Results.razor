@@ -254,7 +254,7 @@
     {
         if (_criteria is null)
         {
-            return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(SiteAgency, Site.Value), L["WhatsApp.Message"]);
+            return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value), L["WhatsApp.Message"]);
         }
 
         var from = DateTimeText(_criteria.PickupAt);
@@ -262,6 +262,6 @@
         var message = _criteria.Query.Category is { } category
             ? L["Results.WhatsApp.Message", category.Value, from, to, _criteria.PickupLocation.Name]
             : L["Results.WhatsApp.MessageAnyCategory", from, to, _criteria.PickupLocation.Name];
-        return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(SiteAgency, Site.Value), message);
+        return AgencyLinks.WhatsAppUrl(PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value), message);
     }
 }

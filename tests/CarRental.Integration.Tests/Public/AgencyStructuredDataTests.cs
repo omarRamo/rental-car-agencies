@@ -112,14 +112,17 @@ public sealed class AgencyStructuredDataTests
     }
 
     [Fact]
-    public void The_whatsapp_contact_of_a_site_needs_the_whatsapp_module_of_its_agency()
+    public void The_whatsapp_contact_shows_on_the_site_of_the_agency_the_number_serves_only()
     {
         var options = new CarRental.Web.Hosting.PublicSiteOptions { WhatsAppNumber = "21600000000" };
-        var site = Agency().Site;
+        var served = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        PublicSiteAgency.Set(served, Agency().Site, servedByWhatsApp: true);
+        var other = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        PublicSiteAgency.Set(other, Agency().Site, servedByWhatsApp: false);
 
-        PublicSiteAgency.WhatsAppNumber(site, options).ShouldBeNull("the module is off for a new agency");
-        PublicSiteAgency.WhatsAppNumber(site with { Modules = site.Modules | AgencyModules.WhatsApp }, options).ShouldBe("21600000000");
-        PublicSiteAgency.WhatsAppNumber(site with { Modules = AgencyModules.WhatsApp }, new CarRental.Web.Hosting.PublicSiteOptions()).ShouldBeNull();
-        PublicSiteAgency.WhatsAppNumber(null, options).ShouldBeNull("outside any site");
+        PublicSiteAgency.WhatsAppNumber(served, options).ShouldBe("21600000000");
+        PublicSiteAgency.WhatsAppNumber(served, new CarRental.Web.Hosting.PublicSiteOptions()).ShouldBeNull("no number configured");
+        PublicSiteAgency.WhatsAppNumber(other, options).ShouldBeNull("the number serves another agency, or the module is off");
+        PublicSiteAgency.WhatsAppNumber(new Microsoft.AspNetCore.Http.DefaultHttpContext(), options).ShouldBeNull("outside any site");
     }
 }

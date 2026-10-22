@@ -1,10 +1,10 @@
-@* Floating WhatsApp button on the pages of a site whose agency has the WhatsApp module on (platform number
-   PublicSite:WhatsAppNumber; hidden when empty, outside any site, or when the module is off). *@
+@* Floating WhatsApp button on the pages of the site of the agency the platform's WhatsApp number serves (number
+   PublicSite:WhatsAppNumber; hidden when empty, outside any site, or for an agency the number does not serve). *@
 @using CarRental.Web.Resources.Public
 @inject IStringLocalizer<PublicResources> L
 @inject IOptions<PublicSiteOptions> Options
 
-@if (PublicSiteAgency.WhatsAppNumber(Site, Options.Value) is { } number)
+@if (HttpContext is not null && PublicSiteAgency.WhatsAppNumber(HttpContext, Options.Value) is { } number)
 {
     <aside class="whatsapp" aria-label="@L["WhatsApp.Region"]">
         <a class="whatsapp__button"
@@ -19,7 +19,6 @@
 }
 
 @code {
-    /// <summary>The agency whose site is shown, or <see langword="null"/> outside any site.</summary>
-    [Parameter]
-    public AgencySummary? Site { get; set; }
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
 }

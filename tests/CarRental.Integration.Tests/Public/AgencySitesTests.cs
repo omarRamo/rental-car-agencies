@@ -44,20 +44,32 @@ public sealed class AgencySitesTests(IntegrationHost host)
     [Fact]
     public async Task Each_site_searches_and_prices_the_fleet_of_its_own_agency_only()
     {
+        // An agency of the test with ECMR and CDMR vehicles, a published plan and its own office, next to the demo agency.
+        var agency = await Bookings.BookingWorld.CreateAsync(host, Ct);
+        var slug = (await host.Factory.Services.GetRequiredService<IAgencyDirectory>().FindAsync(agency.AgencyId, Ct)).ShouldNotBeNull().Slug;
+        string office;
+        await using (var scope = host.CreateScope())
+        {
+            office = (await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetLocationsAsync(agency.AgencyId, Ct)).Single(l => l.Id == agency.OfficeId).Code;
+        }
+
         using var client = host.CreateClient();
-        var dates = $"depart={LocalDate(140)}&retour={LocalDate(143)}";
+        var dates = $"depart={LocalDate(100)}&retour={LocalDate(103)}";
 
         var tunis = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{DemoSlug}/fr/reserver?lieu=TUN&{dates}", UriKind.Relative), Ct));
-        var sousse = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{SecondDemoSlug}/fr/reserver?lieu=SOU&{dates}", UriKind.Relative), Ct));
-        var elsewhere = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{SecondDemoSlug}/fr/reserver?lieu=TUN&{dates}", UriKind.Relative), Ct));
+        var own = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{slug}/fr/reserver?lieu={office}&{dates}", UriKind.Relative), Ct));
+        var elsewhere = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{slug}/fr/reserver?lieu=TUN&{dates}", UriKind.Relative), Ct));
+        var notTunis = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{DemoSlug}/fr/reserver?lieu={office}&{dates}", UriKind.Relative), Ct));
 
-        OfferCodes(tunis).ShouldContain(code => code != "ECMR" && code != "CDMR", "the Tunis agency has categories the Sousse agency has not");
-        OfferCodes(sousse).ShouldNotBeEmpty();
-        OfferCodes(sousse).ShouldBeSubsetOf(["ECMR", "CDMR"], "the categories of the Sousse agency only");
-        sousse.ShouldContain($"action=\"/{SecondDemoSlug}/fr/reserver/selection\"");
-        sousse.ShouldNotContain("Aéroport Tunis-Carthage");
+        OfferCodes(tunis).ShouldContain(code => code != "ECMR" && code != "CDMR", "the demo agency has categories the other agency has not");
+        OfferCodes(own).ShouldNotBeEmpty();
+        OfferCodes(own).ShouldBeSubsetOf(["ECMR", "CDMR"], "the categories of the agency of the site only");
+        own.ShouldContain($"action=\"/{slug}/fr/reserver/selection\"");
+        own.ShouldNotContain("Aéroport Tunis-Carthage");
         elsewhere.ShouldContain("Ce lieu de départ n'existe pas", customMessage: "a location of another agency is unknown to this site");
         OfferCodes(elsewhere).ShouldBeEmpty();
+        notTunis.ShouldContain("Ce lieu de départ n'existe pas");
+        OfferCodes(notTunis).ShouldBeEmpty();
     }
 
     [Fact]
@@ -133,17 +145,20 @@ public sealed class AgencySitesTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task The_whatsapp_button_shows_on_the_sites_whose_agency_has_the_module()
+    public async Task The_whatsapp_button_shows_on_the_site_of_the_agency_the_number_serves_only()
     {
+        // The platform's number serves the demo agency (WhatsApp:AgencySlug of the tests), whose module the host switches on.
         var agency = await TestAgencies.RegisterAsync(host, "whatsapp", Ct);
         using var client = host.CreateClient();
 
+        var demo = await client.GetStringAsync(new Uri($"/{DemoSlug}/fr", UriKind.Relative), Ct);
+        demo.ShouldContain("whatsapp__button");
+        demo.ShouldContain("https://wa.me/21600000000");
         (await client.GetStringAsync(new Uri($"/{agency.Slug}/fr", UriKind.Relative), Ct)).ShouldNotContain("whatsapp__button", customMessage: "the module is off for a new agency");
+        (await client.GetStringAsync(new Uri($"/{SecondDemoSlug}/fr", UriKind.Relative), Ct)).ShouldNotContain("wa.me");
 
         await TestAgencies.SetModulesAsync(host, agency.Id, agency.Modules | AgencyModules.WhatsApp, Ct);
-        var home = await client.GetStringAsync(new Uri($"/{agency.Slug}/fr", UriKind.Relative), Ct);
-        home.ShouldContain("whatsapp__button");
-        home.ShouldContain("https://wa.me/21600000000");
+        (await client.GetStringAsync(new Uri($"/{agency.Slug}/fr", UriKind.Relative), Ct)).ShouldNotContain("whatsapp__button", customMessage: "its module is on, but the number serves another agency");
     }
 
     [Fact]

@@ -1,11 +1,7 @@
 using CarRental.Application.Bookings.Contracts;
-using CarRental.Application.Common.Persistence;
-using CarRental.Application.Common.Security;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Domain.Common;
-using CarRental.Domain.Referential;
 using CarRental.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Public;
@@ -54,14 +50,9 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
     {
         _ = Factory.Server;
 
-        // The empty states of the results offer the WhatsApp contact of the site, shown when the WhatsApp module of its
-        // agency is on (ADR-0067): it is on for the demo agency of this host.
-        await using var scope = Factory.Services.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:tests"));
-        var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var agency = await db.Set<Agency>().SingleAsync(a => a.Slug == PublicTestData.DemoSlug);
-        agency.SetModules(agency.Modules | AgencyModules.WhatsApp).IsSuccess.ShouldBeTrue();
-        await db.SaveChangesAsync();
+        // The empty states of the results offer the WhatsApp contact of the site of the agency the number serves (ADR-0067):
+        // the demo agency, with its modules on as on the shared host.
+        await TestModules.EnableBySlugAsync(Factory.Services, TestModules.DemoAgencySlug, TestModules.DemoModules);
     }
 
     public async ValueTask DisposeAsync() => await Factory.DisposeAsync();

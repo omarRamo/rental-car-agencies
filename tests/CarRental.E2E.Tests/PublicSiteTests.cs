@@ -23,6 +23,7 @@ public sealed class PublicSiteTests(E2EHost host) : BrowserTest(host)
         await Expect(Page.Locator("html")).ToHaveAttributeAsync("lang", culture);
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync(heading);
         await Expect(Page.Locator("a.site-brand")).ToHaveTextAsync("Agence Démo Tunis");
+        await Expect(Page.Locator("a.whatsapp__button")).ToBeVisibleAsync();
 
         // Mobile first: nothing overflows the 390 px viewport horizontally.
         var overflow = await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > window.innerWidth");

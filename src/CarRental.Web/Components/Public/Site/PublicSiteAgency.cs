@@ -1,5 +1,5 @@
+using CarRental.Application.Messaging.Webhooks;
 using CarRental.Application.Referential.Contracts;
-using CarRental.Domain.Common;
 using CarRental.Web.Hosting;
 using CarRental.Web.Localization;
 using Microsoft.AspNetCore.Localization;
@@ -32,6 +32,8 @@ public static class PublicSiteAgency
 
     private const string ItemKey = "carrental.public-site-agency";
 
+    private const string WhatsAppKey = "carrental.public-site-whatsapp";
+
     /// <summary>The agency of the public site of this request, <see langword="null"/> outside the public site.</summary>
     public static Guid? Of(HttpContext context) => SiteOf(context)?.Id;
 
@@ -51,25 +53,32 @@ public static class PublicSiteAgency
 
     /// <summary>
     /// The WhatsApp number of the site's button and links: the platform number (<c>PublicSite:WhatsAppNumber</c>, the
-    /// partner accounts are the platform's, ADR-0067), only when the agency's WhatsApp module is on.
+    /// partner accounts are the platform's, ADR-0067), only on the site of the agency that number serves — an active
+    /// agency whose WhatsApp module is on (<see cref="WhatsAppAgencyRouting"/>); <see langword="null"/> elsewhere.
     /// </summary>
-    public static string? WhatsAppNumber(AgencySummary? agency, PublicSiteOptions options)
+    public static string? WhatsAppNumber(HttpContext context, PublicSiteOptions options)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
-        return agency is not null && agency.HasModule(AgencyModules.WhatsApp) && !string.IsNullOrWhiteSpace(options.WhatsAppNumber)
+        return context.Items.TryGetValue(WhatsAppKey, out var served) && served is true && !string.IsNullOrWhiteSpace(options.WhatsAppNumber)
             ? options.WhatsAppNumber
             : null;
     }
 
-    internal static void Set(HttpContext context, AgencySummary agency) => context.Items[ItemKey] = agency;
+    internal static void Set(HttpContext context, AgencySummary agency, bool servedByWhatsApp)
+    {
+        context.Items[ItemKey] = agency;
+        context.Items[WhatsAppKey] = servedByWhatsApp;
+    }
 }
 
 /// <summary>
 /// Resolves the agency of a public address before anything reads the actor of the request: the route value
 /// <see cref="PublicSiteAgency.RouteParameter"/> through the cached <see cref="IAgencyDirectory"/>. An unknown address, a
 /// suspended agency or a site whose module is off answer 404 (the status code page then renders, as for any 404).
+/// Whether the platform's WhatsApp number serves the agency is resolved at the same time (button and links of the site).
 /// </summary>
-internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDirectory agencies)
+internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDirectory agencies, WhatsAppAgencyRouting whatsApp)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -83,7 +92,8 @@ internal sealed class PublicSiteAgencyMiddleware(RequestDelegate next, IAgencyDi
                 return;
             }
 
-            PublicSiteAgency.Set(context, agency);
+            var route = await whatsApp.ResolveAsync(context.RequestAborted);
+            PublicSiteAgency.Set(context, agency, route.AgencyId == agency.Id);
         }
 
         await next(context);

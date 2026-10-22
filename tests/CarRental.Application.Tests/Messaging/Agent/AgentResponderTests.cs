@@ -64,7 +64,7 @@ public sealed class AgentResponderTests : IAsyncDisposable
         var text = reply.Message.ShouldBeOfType<OutboundText>().Body;
         var quote = _harness.World.LockedQuotes.ShouldHaveSingleItem();
         quote.Channel.ShouldBe(SalesChannel.WhatsApp);
-        text.ShouldContain("https://www.example.tn/fr/reserver?lieu=TUN&depart=2027-07-01T10%3A00&retour=2027-07-05T10%3A00&cat=MCMR&devis=" + quote.Code + "&src=whatsapp");
+        text.ShouldContain(_harness.Site + "fr/reserver?lieu=TUN&depart=2027-07-01T10%3A00&retour=2027-07-05T10%3A00&cat=MCMR&devis=" + quote.Code + "&src=whatsapp");
         _harness.Model.Requests[^2].Messages.SelectMany(m => m.Contents).OfType<TextContent>()
             .ShouldContain(c => c.Text.Contains("Choix du client", StringComparison.Ordinal) && c.Text.Contains("option:A1", StringComparison.Ordinal));
     }
@@ -148,7 +148,7 @@ public sealed class AgentResponderTests : IAsyncDisposable
 
         _harness.Model.Calls.ShouldBe(0);
         var text = reply.Message.ShouldBeOfType<OutboundText>().Body;
-        text.ShouldBe(AgentMessages.AttachmentNotProcessed(AgentLanguage.French, "https://www.example.tn/fr/reserver"));
+        text.ShouldBe(AgentMessages.AttachmentNotProcessed(AgentLanguage.French, _harness.Site + "fr/reserver"));
         DocumentRequests.Contains(text).ShouldBeFalse();
         reply.HandOverReason.ShouldBeNull();
         reply.Usage.ShouldNotBeNull().InputTokens.ShouldBe(0);
@@ -270,7 +270,7 @@ public sealed class AgentResponderTests : IAsyncDisposable
 
         var reply = await _harness.NewConversation().SendAsync("Quels documents ?");
 
-        reply.Message.ShouldBeOfType<OutboundText>().Body.ShouldBe(AgentMessages.DocumentsOnSecureLinkOnly(AgentLanguage.French, "https://www.example.tn/fr/reserver"));
+        reply.Message.ShouldBeOfType<OutboundText>().Body.ShouldBe(AgentMessages.DocumentsOnSecureLinkOnly(AgentLanguage.French, _harness.Site + "fr/reserver"));
     }
 
     [Fact]

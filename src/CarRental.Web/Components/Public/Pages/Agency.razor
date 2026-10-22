@@ -69,7 +69,7 @@ else
                 SiteAgency.Name,
                 PublicUrls.Absolute(baseUri, $"/{Slug}/"),
                 PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(Slug, PublicPage.Home, Lang)),
-                PublicSiteAgency.WhatsAppNumber(SiteAgency, Site.Value));
+                PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value));
         }
     }
 }
