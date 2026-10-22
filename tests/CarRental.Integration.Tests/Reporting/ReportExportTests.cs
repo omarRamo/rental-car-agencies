@@ -5,8 +5,10 @@ using CarRental.Application.Reporting.Snapshots;
 using CarRental.Domain.Common;
 using CarRental.Integration.Tests.Support;
 using CarRental.Web.Components.Admin.Reports;
+using CarRental.Web.Resources.Admin.Reports;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using static CarRental.Integration.Tests.Reporting.ReportingWorld;
 
 namespace CarRental.Integration.Tests.Reporting;
@@ -183,6 +185,30 @@ public sealed class ReportExportTests(IntegrationHost host)
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/access-denied");
         visitor.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(visitor.Headers.Location!).ShouldContain("/account/login");
+    }
+
+    [Fact]
+    public async Task Texts_that_look_like_formulas_stay_texts_in_the_workbook()
+    {
+        // Names typed by the staff reach the cells as they are: none may become a formula (CSV/Excel injection, R-09).
+        const string Link = "=HYPERLINK(\"https://evil.example/\",\"Ouvrir\")";
+        const string Sum = "@SUM(A1:A9)";
+        var agency = await TwoRentedVehiclesAsync();
+        var report = await DashboardAsync(agency.AgencyId);
+        var hostile = report with
+        {
+            AgencyName = Link,
+            Vehicles = [.. report.Vehicles.Select(v => v with { PlateNumber = "+216-1", VehicleName = Sum })],
+        };
+        var localizer = host.Factory.Services.GetRequiredService<IStringLocalizer<ReportsResources>>();
+
+        using var workbook = Workbook(ReportWorkbook.Build(hostile, ReportTable.All, localizer));
+
+        var cells = workbook.Worksheets.SelectMany(sheet => sheet.CellsUsed()).ToList();
+        cells.ShouldAllBe(cell => !cell.HasFormula);
+        cells.ShouldContain(cell => cell.DataType == XLDataType.Text && cell.GetString() == Link);
+        cells.ShouldContain(cell => cell.DataType == XLDataType.Text && cell.GetString() == Sum);
+        cells.ShouldContain(cell => cell.DataType == XLDataType.Text && cell.GetString() == "+216-1");
     }
 
     [Fact]
