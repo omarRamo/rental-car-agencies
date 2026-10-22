@@ -21,7 +21,10 @@ public enum NotificationOutcome
     /// <summary>This notification of this file was already queued (idempotence per file and kind).</summary>
     AlreadySent = 2,
 
-    /// <summary>WhatsApp is not configured on this platform, or not open for the agency of the file (module off, agency suspended).</summary>
+    /// <summary>
+    /// WhatsApp is not configured on this platform, or not open for the agency of the file (module off, agency suspended,
+    /// or the platform's number serves another agency).
+    /// </summary>
     Disabled = 3,
 
     /// <summary>No template configured for this kind (or no review link for a review request).</summary>
@@ -43,8 +46,9 @@ public enum NotificationOutcome
 /// <summary>
 /// Utility notifications of a rental file by WhatsApp (SPEC §11): an approved template sent to the main driver of the
 /// file, only with his WhatsApp notifications consent (checked from the Customers module at the time of sending), at
-/// most once per file and kind (<see cref="BookingNotification"/>, unique), and only for an agency whose WhatsApp module
-/// is on (ADR-0067). The conversation of the number in the agency of the file is created when needed and linked to the
+/// most once per file and kind (<see cref="BookingNotification"/>, unique), and only for the agency served by the
+/// platform's WhatsApp number (ADR-0067: active, module on, and the customers' replies reach it). The conversation of the
+/// number in the agency of the file is created when needed and linked to the
 /// person and the file; the template goes out through the outbox like any message. Run in a scope working for the
 /// agency of the file.
 /// </summary>
@@ -53,7 +57,7 @@ public sealed partial class BookingNotifier(
     IBookingsQueries bookings,
     ICustomersQueries customers,
     IReferentialQueries referential,
-    IAgencyDirectory agencies,
+    IWhatsAppNumber whatsAppNumber,
     ISettingsReader settings,
     IWhatsAppClient client,
     TimeProvider clock,
@@ -126,8 +130,9 @@ public sealed partial class BookingNotifier(
             return NotificationOutcome.NotApplicable;
         }
 
-        if (!await agencies.HasModuleAsync(booking.AgencyId, AgencyModules.WhatsApp, cancellationToken))
+        if (!await whatsAppNumber.ServesAsync(booking.AgencyId, cancellationToken))
         {
+            // The module is off, the agency suspended, or the number serves another agency (the reply would reach it).
             return NotificationOutcome.Disabled;
         }
 

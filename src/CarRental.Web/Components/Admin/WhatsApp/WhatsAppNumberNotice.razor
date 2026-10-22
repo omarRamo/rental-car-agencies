@@ -1,0 +1,29 @@
+@* The platform has one WhatsApp number (ADR-0067): while it serves another agency, the WhatsApp screens of this agency
+   stay readable for its history, but nothing is sent nor received for it — said at the top of each of them. *@
+@using CarRental.Application.Referential.Contracts
+@inject IOperationRunner Runner
+@inject IStringLocalizer<WhatsAppResources> L
+
+@if (_served is false)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-3" data-testid="whatsapp-not-served">@L["Number.NotServed"]</MudAlert>
+}
+
+@code {
+    private bool? _served;
+
+    /// <summary>The agency of the session (cascaded by the admin layout).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RendererInfo.IsInteractive || Agency is not { } agency)
+        {
+            return;
+        }
+
+        var agencyId = agency.Id;
+        _served = await Runner.RunAsync<IWhatsAppNumber, bool>((number, ct) => number.ServesAsync(agencyId, ct));
+    }
+}

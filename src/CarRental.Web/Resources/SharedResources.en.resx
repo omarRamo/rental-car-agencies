@@ -2106,4 +2106,10 @@
   <data name="Error.customers.agency_required" xml:space="preserve">
     <value>Customers are registered for an agency: open the agency concerned first.</value>
   </data>
+  <data name="Error.messaging.number_not_served" xml:space="preserve">
+    <value>The platform's WhatsApp number does not serve this agency (it serves another agency, or none): no message can be sent for it.</value>
+  </data>
+  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
+    <value>The platform's WhatsApp number already serves another agency and can serve only one: with this module on here, it would serve neither of them. Designate the agency to serve first (setting WhatsApp__AgencyId), then switch the module on.</value>
+  </data>
 </root>

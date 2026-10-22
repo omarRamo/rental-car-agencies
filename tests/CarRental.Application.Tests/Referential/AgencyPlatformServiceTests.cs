@@ -1,6 +1,7 @@
 using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Referential.Platform;
 using CarRental.Application.Tests.Customers.Fakes;
 using CarRental.Application.Tests.Fakes;
@@ -9,11 +10,15 @@ using CarRental.Domain.Referential;
 
 namespace CarRental.Application.Tests.Referential;
 
-/// <summary>The identity of an agency as the support edits it from the platform pages (ADR-0067).</summary>
+/// <summary>
+/// The identity and the modules of an agency as the support edits them from the platform pages (ADR-0067), with the
+/// platform's single WhatsApp number in mind.
+/// </summary>
 public sealed class AgencyPlatformServiceTests
 {
     private readonly InMemoryAppDbContext _db = new();
     private readonly RecordingAuditTrail _audit = new();
+    private readonly FakeWhatsAppNumber _whatsAppNumber = new();
     private readonly Agency _agency = Agency.Register(new AgencyDetails(
         "Agence Côte",
         "Hammamet",
@@ -34,7 +39,7 @@ public sealed class AgencyPlatformServiceTests
     }
 
     private AgencyPlatformService ServiceFor(IUserContext context) =>
-        new(_db, new InlineUnitOfWork(), context, new AgencyProvisioning([], context), new NoManagerInvitations(), _audit);
+        new(_db, new InlineUnitOfWork(), context, new AgencyProvisioning([], context), new NoManagerInvitations(), _whatsAppNumber, _audit);
 
     private AgencyPlatformService AsSupport() => ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "support@demo.local", Roles.Support));
 
@@ -95,6 +100,71 @@ public sealed class AgencyPlatformServiceTests
         (await ServiceFor(supportInside).UpdateDetailsAsync(_agency.Id, request, Ct)).Error.ShouldBe(PlatformErrors.LeaveAgencyFirst);
 
         _agency.Name.ShouldBe("Agence Côte");
+    }
+
+    [Fact]
+    public async Task Switching_whatsapp_on_is_refused_while_the_number_would_then_serve_neither_agency()
+    {
+        _whatsAppNumber.Outlook = WhatsAppNumberOutlook.WouldBeAmbiguous;
+        var service = AsSupport();
+        var withWhatsApp = _agency.Modules | AgencyModules.WhatsApp;
+
+        (await service.SetModulesAsync(_agency.Id, withWhatsApp, Ct)).Error.ShouldBe(PlatformErrors.WhatsAppNumberServesAnotherAgency);
+        (await service.RegisterAsync(
+            new RegisterAgencyRequest("Agence Nord", "Bizerte", null, null, null, null, AgencyModuleCatalog.Defaults | AgencyModules.WhatsApp, "nord@demo.local", "Gérant Nord"),
+            Ct)).Error.ShouldBe(PlatformErrors.WhatsAppNumberServesAnotherAgency);
+
+        _agency.HasModule(AgencyModules.WhatsApp).ShouldBeFalse();
+        _db.Rows<Agency>().ShouldHaveSingleItem();
+        _audit.Events.ShouldBeEmpty();
+
+        // The other modules still change; once the agency to serve is designated, WhatsApp is switched on.
+        (await service.SetModulesAsync(_agency.Id, _agency.Modules & ~AgencyModules.Cash, Ct)).IsSuccess.ShouldBeTrue();
+        _whatsAppNumber.Outlook = WhatsAppNumberOutlook.Serves;
+        (await service.SetModulesAsync(_agency.Id, _agency.Modules | AgencyModules.WhatsApp, Ct)).IsSuccess.ShouldBeTrue();
+        _agency.HasModule(AgencyModules.WhatsApp).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Whatsapp_is_switched_on_for_an_agency_the_number_does_not_serve_and_the_page_says_which_one_it_serves()
+    {
+        var served = Agency.Register(new AgencyDetails("Agence Démo Tunis", "Tunis")).Value;
+        _db.Rows<Agency>().Add(served);
+        _whatsAppNumber.Served = served.Id;
+        _whatsAppNumber.Outlook = WhatsAppNumberOutlook.ServesAnotherAgency;
+        var service = AsSupport();
+
+        (await service.SetModulesAsync(_agency.Id, _agency.Modules | AgencyModules.WhatsApp, Ct)).IsSuccess.ShouldBeTrue("its history stays readable; the page warns");
+        var number = (await service.GetWhatsAppNumberAsync(_agency.Id, Ct)).Value;
+
+        _agency.HasModule(AgencyModules.WhatsApp).ShouldBeTrue();
+        number.ShouldBe(new PlatformWhatsAppNumber(served.Id, "Agence Démo Tunis", WhatsAppNumberOutlook.ServesAnotherAgency));
+        (await ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "gerant@demo.local", Roles.Manager)).GetWhatsAppNumberAsync(_agency.Id, Ct)).Error
+            .ShouldBe(PlatformErrors.Forbidden);
+    }
+
+    [Fact]
+    public async Task An_agency_that_already_has_whatsapp_keeps_changing_its_other_modules()
+    {
+        _agency.SetModules(_agency.Modules | AgencyModules.WhatsApp).IsSuccess.ShouldBeTrue();
+        _whatsAppNumber.Outlook = WhatsAppNumberOutlook.WouldBeAmbiguous;
+
+        (await AsSupport().SetModulesAsync(_agency.Id, _agency.Modules & ~AgencyModules.Reports, Ct)).IsSuccess.ShouldBeTrue();
+
+        _agency.HasModule(AgencyModules.Reports).ShouldBeFalse();
+    }
+
+    private sealed class FakeWhatsAppNumber : IWhatsAppNumber
+    {
+        public Guid? Served { get; set; }
+
+        public WhatsAppNumberOutlook Outlook { get; set; } = WhatsAppNumberOutlook.Serves;
+
+        public Task<Guid?> ServedAgencyAsync(CancellationToken cancellationToken = default) => Task.FromResult(Served);
+
+        public Task<bool> ServesAsync(Guid agencyId, CancellationToken cancellationToken = default) => Task.FromResult(Served == agencyId);
+
+        public Task<WhatsAppNumberOutlook> OutlookAsync(Guid agencyId, CancellationToken cancellationToken = default) => Task.FromResult(Outlook);
     }
 
     private sealed class NoManagerInvitations : IAgencyManagerInvitations
