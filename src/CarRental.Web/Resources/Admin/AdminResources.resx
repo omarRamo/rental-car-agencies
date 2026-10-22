@@ -561,6 +561,21 @@
   <data name="Platform.Agency.Modules.Saved" xml:space="preserve">
     <value>Modules enregistrés.</value>
   </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesThis" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert cette agence : ses notifications, les réponses de sa boîte partagée et son assistant partent de ce numéro, et les messages de ses clients y arrivent.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesOther" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert l'agence « {0} » (un seul numéro pour toute la plateforme).</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesNone" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme ne sert aucune agence pour l'instant.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Elsewhere" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme est réservé à une autre agence : avec le module ouvert, cette agence garde l'historique de ses conversations mais n'envoie ni ne reçoit aucun message WhatsApp. Pour lui donner le numéro (l'autre agence le perd), régler ceci puis redémarrer l'application :</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Ambiguous" xml:space="preserve">
+    <value>Une autre agence a déjà le module WhatsApp et rien ne désigne l'agence servie par le numéro de la plateforme : avec deux agences, il n'en servirait plus aucune, donc l'ouverture du module est refusée. Désigner d'abord l'agence à servir (redémarrage de l'application), par exemple celle-ci :</value>
+  </data>
   <data name="Platform.Agency.Status" xml:space="preserve">
     <value>État de l'agence</value>
   </data>

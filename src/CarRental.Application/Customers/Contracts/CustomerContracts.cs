@@ -32,6 +32,9 @@ public sealed record PersonInfo(
     IReadOnlyList<IdentityDocumentInfo> Documents)
 {
     public string FullName => string.Join(' ', new[] { FirstName, LastName }.Where(part => part.Length > 0));
+
+    /// <summary>The agency the person is a customer of (ADR-0067): a caller working across agencies checks it.</summary>
+    public Guid AgencyId { get; init; }
 }
 
 /// <summary>

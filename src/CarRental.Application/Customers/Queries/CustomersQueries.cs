@@ -67,7 +67,10 @@ internal sealed class CustomersQueries(IAppDbContext db, IUserContext userContex
             person.Address.ToInfo(),
             person.IsAnonymized,
             customerId,
-            [.. person.CurrentDocuments.OrderBy(d => d.Type).Select(d => d.ToInfo(revealNumbers))]);
+            [.. person.CurrentDocuments.OrderBy(d => d.Type).Select(d => d.ToInfo(revealNumbers))])
+        {
+            AgencyId = person.AgencyId,
+        };
     }
 
     public async Task<CustomerInfo?> GetCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)

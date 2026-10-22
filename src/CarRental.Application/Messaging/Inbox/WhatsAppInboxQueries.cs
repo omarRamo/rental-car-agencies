@@ -27,6 +27,7 @@ public sealed class WhatsAppInboxQueries(
     IBookingsQueries bookings,
     ISettingsReader settings,
     IWhatsAppClient client,
+    IWhatsAppNumber whatsAppNumber,
     IIdentityQueries identity,
     TimeProvider clock)
 {
@@ -198,11 +199,20 @@ public sealed class WhatsAppInboxQueries(
             hasEarlier);
     }
 
-    /// <summary>Whether WhatsApp is configured (messages can be sent) and the templates an agent can send.</summary>
+    /// <summary>
+    /// Whether WhatsApp is configured (messages can be sent), whether the platform's number serves the agency of the
+    /// operation (it sends nothing otherwise, ADR-0067), and the templates an agent can send.
+    /// </summary>
     public async Task<Result<InboxOverview>> GetOverviewAsync(CancellationToken cancellationToken)
     {
         var templates = await GetTemplatesAsync(cancellationToken);
-        return templates.IsSuccess ? new InboxOverview(client.IsEnabled, templates.Value) : templates.Error;
+        if (templates.IsFailure)
+        {
+            return templates.Error;
+        }
+
+        var served = user.AgencyId is { } agencyId && await whatsAppNumber.ServesAsync(agencyId, cancellationToken);
+        return new InboxOverview(client.IsEnabled, served, templates.Value);
     }
 
     /// <summary>The templates an agent can send (those with a configured name), the follow-up first.</summary>

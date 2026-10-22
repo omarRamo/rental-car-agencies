@@ -39,8 +39,11 @@ public static class MessagingModule
         // Pipeline: webhook deliveries → events (for the agency served by the number) → bot turns → sending, each step in
         // a scope of its own.
         services.AddSingleton<MessagingScopes>();
+        // The agency served by the platform's number: the inbound messages reach it, and WhatsApp is open for it only.
         services.AddOptions<WhatsAppRoutingOptions>();
         services.AddSingleton<WhatsAppAgencyRouting>();
+        services.AddSingleton<WhatsAppNumber>();
+        services.AddSingleton<IWhatsAppNumber>(provider => provider.GetRequiredService<WhatsAppNumber>());
         services.AddScoped<WhatsAppWebhookInbox>();
         services.AddScoped<WhatsAppEventRecorder>();
         services.AddScoped<ConversationTurns>();

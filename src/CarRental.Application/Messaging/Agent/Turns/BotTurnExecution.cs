@@ -17,7 +17,8 @@ public interface IBotTurnDispatcher
 
 /// <summary>
 /// Runs the turn inside the caller (the 4A behaviour): prepare, respond, apply, each step working for the agency of the
-/// conversation; nothing for an agency suspended or whose WhatsApp module is off (its messages wait). An exception of the
+/// conversation; nothing for an agency WhatsApp is not open for — suspended, module off, or not served by the platform's
+/// number (its messages wait). An exception of the
 /// responder goes up to the outbox, which retries the message later.
 /// </summary>
 internal sealed class InlineBotTurnDispatcher(MessagingScopes scopes) : IBotTurnDispatcher

@@ -1203,6 +1203,9 @@
   <data name="Error.messaging.module_off" xml:space="preserve">
     <value>WhatsApp is not open for the agency (module switched off or agency suspended): the message was not sent.</value>
   </data>
+  <data name="Error.messaging.number_not_served" xml:space="preserve">
+    <value>The platform's WhatsApp number does not serve this agency (it serves another agency, or none): no message can be sent for it.</value>
+  </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta refused the message.</value>
   </data>
@@ -2060,6 +2063,9 @@
   </data>
   <data name="Error.referential.platform_concurrent_update" xml:space="preserve">
     <value>The agency was changed meanwhile: reload it and try again.</value>
+  </data>
+  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
+    <value>The platform's WhatsApp number already serves another agency and can serve only one: with this module on here, it would serve neither of them. Designate the agency to serve first (setting WhatsApp__AgencyId), then switch the module on.</value>
   </data>
   <data name="Error.identity.last_support" xml:space="preserve">
     <value>The last active support account cannot be locked.</value>

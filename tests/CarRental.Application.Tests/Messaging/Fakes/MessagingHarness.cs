@@ -16,6 +16,7 @@ using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 namespace CarRental.Application.Tests.Messaging.Fakes;
@@ -57,6 +58,7 @@ internal sealed class MessagingHarness : IAsyncDisposable
         services.AddSingleton<IWhatsAppClient>(WhatsApp);
         services.AddSingleton<IWhatsAppWebhookParser>(Parser);
         services.AddSingleton<IIdentityQueries>(Identity);
+        services.AddSingleton(Options.Create(Routing));
         services.Replace(ServiceDescriptor.Scoped<IConversationResponder>(_ => Responder));
         configure?.Invoke(services);
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
@@ -79,6 +81,12 @@ internal sealed class MessagingHarness : IAsyncDisposable
 
     /// <summary>The agencies of the platform (the harness's own one; a test adds others or switches modules off).</summary>
     public StaticAgencyDirectory Agencies { get; }
+
+    /// <summary>
+    /// The designation of the agency served by the platform's number (none by default: the only agency with the module
+    /// on); a test changes it at any time, as a restart with another <c>WhatsApp:AgencyId</c> would.
+    /// </summary>
+    public WhatsAppRoutingOptions Routing { get; } = new();
 
     public FakeSettingsReader Settings { get; } = new();
 
@@ -181,11 +189,14 @@ internal sealed class MessagingHarness : IAsyncDisposable
         return await operation(scope.ServiceProvider.GetRequiredService<TService>());
     }
 
-    /// <summary>A person with this phone (and the WhatsApp notifications consent when <paramref name="consent"/>).</summary>
-    public Guid AddPerson(string phone, bool consent = false, string firstName = "Hédi", string lastName = "Ben Salah")
+    /// <summary>
+    /// A person with this phone (and the WhatsApp notifications consent when <paramref name="consent"/>), a customer of
+    /// the agency of the harness unless <paramref name="agencyId"/> names another one.
+    /// </summary>
+    public Guid AddPerson(string phone, bool consent = false, string firstName = "Hédi", string lastName = "Ben Salah", Guid? agencyId = null)
     {
         var id = Customers.AddPerson(firstName, lastName);
-        Customers.Persons[id] = Customers.Persons[id] with { Phone = phone };
+        Customers.Persons[id] = Customers.Persons[id] with { Phone = phone, AgencyId = agencyId ?? AgencyId };
         if (consent)
         {
             Customers.Consents.Add((id, ConsentPurposeInfo.WhatsAppNotifications, ConsentChannelInfo.Web, true));
