@@ -29,7 +29,7 @@ internal sealed partial class StagedDocumentImagePurgeJob(
     public async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         var cutoff = timeProvider.GetUtcNow() - UnusedLifetime;
-        var purged = 0;
+        var purged = new Dictionary<Guid, int>();
         while (!cancellationToken.IsCancellationRequested)
         {
             var batch = await db.Set<StagedDocumentImage>()
@@ -49,19 +49,24 @@ internal sealed partial class StagedDocumentImagePurgeJob(
 
             db.Set<StagedDocumentImage>().RemoveRange(batch);
             await db.SaveChangesAsync(cancellationToken);
-            purged += batch.Count;
+            foreach (var agency in batch.GroupBy(s => s.AgencyId))
+            {
+                purged[agency.Key] = purged.GetValueOrDefault(agency.Key) + agency.Count();
+            }
+
             if (batch.Count < BatchSize)
             {
                 break;
             }
         }
 
-        if (purged > 0)
+        // Across agencies (a technical purge by age); what it did is told for each agency.
+        foreach (var (agencyId, count) in purged)
         {
-            LogPurged(purged);
+            LogPurged(count, agencyId);
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} staged document image(s) purged.")]
-    private partial void LogPurged(int count);
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} staged document image(s) of agency {AgencyId} purged.")]
+    private partial void LogPurged(int count, Guid agencyId);
 }

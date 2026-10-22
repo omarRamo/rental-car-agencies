@@ -39,7 +39,7 @@ internal static class HandoverWorld
     public static async Task<HandoverFile> ConfirmedAsync(IntegrationHost host, CancellationToken cancellationToken, TimeSpan? shiftedBack = null)
     {
         var agency = await CreateAsync(host, cancellationToken, ecmrVehicles: 1);
-        var (driverId, email) = await NewDriverAsync(host, cancellationToken);
+        var (driverId, email) = await NewDriverAsync(host, agency.AgencyId, cancellationToken);
         var pickup = DateTimeOffset.UtcNow.AddMinutes(-10);
         var created = await BookingWorld.CreateAsync(host, Quick(agency, driverId, pickup, pickup.AddDays(1)), cancellationToken);
         Ok(await RunAsync<VehicleAssignmentService, Result>(host, Agent, s => s.AssignAsync(created.BookingId, agency.EcmrVehicles[0], cancellationToken: cancellationToken)));
@@ -97,8 +97,8 @@ internal static class HandoverWorld
 
     public static ReadingsInput Readings(int mileage, int fuel) => new(mileage, fuel, true, true, true, true, 2, 0, false, true);
 
-    /// <summary>An eligible Tunisian driver with an e-mail address of his own (the contract is sent to it).</summary>
-    private static async Task<(Guid PersonId, string Email)> NewDriverAsync(IntegrationHost host, CancellationToken cancellationToken)
+    /// <summary>An eligible Tunisian driver of the agency with an e-mail address of his own (the contract is sent to it).</summary>
+    private static async Task<(Guid PersonId, string Email)> NewDriverAsync(IntegrationHost host, Guid agencyId, CancellationToken cancellationToken)
     {
         var email = $"conducteur-{Guid.NewGuid():N}@tests.local";
         await using var scope = host.CreateScope(Agent);
@@ -116,7 +116,10 @@ internal static class HandoverWorld
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            },
             cancellationToken));
         Ok(await registration.AddOrReplaceDocumentAsync(
             person.PersonId,

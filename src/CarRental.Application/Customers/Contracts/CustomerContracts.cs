@@ -103,7 +103,7 @@ public sealed record IdentityDocumentInput(
 
 /// <summary>
 /// A person to find again or create (quick creation by phone or at the counter, web funnel). Only the names are
-/// required; phone, e-mail and document are the deduplication keys.
+/// required; phone, e-mail and document are the deduplication keys, within the agency of the person (ADR-0067).
 /// </summary>
 public sealed record PersonRegistrationRequest(
     string FirstName,
@@ -113,7 +113,14 @@ public sealed record PersonRegistrationRequest(
     string? Phone = null,
     string? Email = null,
     PostalAddressInfo? Address = null,
-    IdentityDocumentInput? Document = null);
+    IdentityDocumentInput? Document = null)
+{
+    /// <summary>
+    /// The agency the person is a customer of; <see langword="null"/> for the agency of the operation. An operation
+    /// across agencies (a channel, a job) names it; an operation of one agency may only name its own.
+    /// </summary>
+    public Guid? AgencyId { get; init; }
+}
 
 /// <summary>
 /// Result of <see cref="ICustomerRegistration.FindOrCreatePersonAsync"/>: the person used, how it was found,
@@ -136,7 +143,11 @@ public sealed record CompanyCustomerRequest(
     PostalAddressInfo BillingAddress,
     string? ContactName = null,
     string? Email = null,
-    string? Phone = null);
+    string? Phone = null)
+{
+    /// <summary>The agency the company is a payer of; <see langword="null"/> for the agency of the operation.</summary>
+    public Guid? AgencyId { get; init; }
+}
 
 /// <summary>How a registration found its person (ADR-0027).</summary>
 public enum PersonMatchKindInfo

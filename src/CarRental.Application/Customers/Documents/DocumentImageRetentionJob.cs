@@ -17,6 +17,8 @@ namespace CarRental.Application.Customers.Documents;
 /// the files are deleted through the outbox. The document data (type, number, dates) is kept.
 /// </summary>
 /// <remarks>
+/// Runs across agencies (the retention is a setting of the platform); each purge is recorded in the journal of the
+/// agency of the persons concerned.
 /// TODO(spec): disabled by default (<c>customers.document_image_retention_enabled</c> = false) because the legal
 /// destruction procedure is not validated: article 45 of law 2004-63 requires a report by a bailiff in the presence of
 /// an expert appointed by the INPDP. To be confirmed with the lawyer before enabling (points-ouverts.md).
@@ -67,7 +69,7 @@ internal sealed partial class DocumentImageRetentionJob(
                 break;
             }
 
-            var purged = 0;
+            var purged = new Dictionary<Guid, int>();
             foreach (var person in persons)
             {
                 if (await bookings.HasOpenBookingsAsync(person.Id, cancellationToken))
@@ -76,24 +78,30 @@ internal sealed partial class DocumentImageRetentionJob(
                     continue;
                 }
 
-                purged += person.PurgeDocumentImages(cutoff, now);
+                purged[person.AgencyId] = purged.GetValueOrDefault(person.AgencyId) + person.PurgeDocumentImages(cutoff, now);
             }
 
-            if (purged == 0)
+            if (purged.Values.Sum() == 0)
             {
                 continue;
             }
 
-            total += purged;
-            await auditTrail.RecordAsync(
-                new AuditEvent(CustomerAuditActions.DocumentImagesPurged)
-                {
-                    EntityType = nameof(IdentityDocument),
-                    Details = string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{purged} image(s) of {persons.Count} person(s) kept more than {days} days"),
-                },
-                cancellationToken);
+            // The purge is recorded in the journal of each agency whose customers it concerns (ADR-0067).
+            foreach (var (agencyId, count) in purged.Where(p => p.Value > 0))
+            {
+                total += count;
+                await auditTrail.RecordAsync(
+                    new AuditEvent(CustomerAuditActions.DocumentImagesPurged)
+                    {
+                        EntityType = nameof(IdentityDocument),
+                        Details = string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"{count} image(s) of {persons.Count(p => p.AgencyId == agencyId)} person(s) kept more than {days} days"),
+                        AgencyId = agencyId,
+                    },
+                    cancellationToken);
+            }
+
             await db.SaveChangesAsync(cancellationToken);
         }
 

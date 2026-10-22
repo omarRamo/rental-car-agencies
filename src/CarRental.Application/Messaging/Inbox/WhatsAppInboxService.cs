@@ -156,7 +156,7 @@ public sealed class WhatsAppInboxService(
         Guid? bookingId = null;
         if (!string.IsNullOrWhiteSpace(bookingNumber))
         {
-            var booking = await bookings.FindByNumberAsync(bookingNumber, cancellationToken);
+            var booking = await bookings.FindByNumberAsync(user.AgencyId, bookingNumber, cancellationToken);
             if (booking is null)
             {
                 return MessagingErrors.BookingNotFound;

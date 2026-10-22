@@ -41,20 +41,26 @@ internal static class CustomerTestData
     /// <summary>A tiny valid PNG (1×1 pixel).</summary>
     public static byte[] Png() => Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
+    /// <summary>The actor of a demo account: a member of its agency (ADR-0067) with the presets of <paramref name="role"/>.</summary>
     public static async Task<UserContextSnapshot> ActorAsync(IntegrationHost host, string email, string role)
     {
         await using var scope = host.CreateScope();
         var user = await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email);
-        return UserContextSnapshot.ForUser(user!.Id, email, RolePresets.PermissionsOf(role), "198.51.100.7", $"corr-{Guid.NewGuid():N}");
+        return UserContextSnapshot.ForUser(user!.Id, email, RolePresets.PermissionsOf(role), "198.51.100.7", $"corr-{Guid.NewGuid():N}") with
+        {
+            AgencyId = user.AgencyId,
+        };
     }
 
     /// <summary>
     /// A new staff account of <paramref name="role"/> with two-factor authentication on the test key: HTTP tests sign in
-    /// with their own account, so that parallel sign-ins never update the same user row.
+    /// with their own account, so that parallel sign-ins never update the same user row. A member of
+    /// <paramref name="agencyId"/>, the main demo agency by default (ADR-0067).
     /// </summary>
-    public static async Task<string> NewStaffAsync(IntegrationHost host, string role)
+    public static async Task<string> NewStaffAsync(IntegrationHost host, string role, Guid? agencyId = null)
     {
         var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@tests.local";
+        var agency = agencyId ?? await Support.TestStaff.DemoAgencyIdAsync(host);
         await using var scope = host.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = new ApplicationUser
@@ -65,6 +71,7 @@ internal static class CustomerTestData
             DisplayName = $"{role} {Name()}",
             LockoutEnabled = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
+            AgencyId = agency,
         };
         (await users.CreateAsync(user, TestAccounts.Password)).Succeeded.ShouldBeTrue();
         (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
@@ -78,10 +85,13 @@ internal static class CustomerTestData
 
     public static Task<UserContextSnapshot> ManagerAsync(IntegrationHost host) => ActorAsync(host, TestAccounts.ManagerEmail, Roles.Manager);
 
-    /// <summary>A Tunisian with a CIN carrying a front image (uploaded to the storage), created by the agent.</summary>
-    public static async Task<(Guid PersonId, Guid DocumentId)> PersonWithCinImageAsync(IntegrationHost host, CancellationToken cancellationToken)
+    /// <summary>
+    /// A Tunisian with a CIN carrying a front image (uploaded to the storage), created by the agent: a customer of the
+    /// main demo agency, or by <paramref name="agent"/> of another agency.
+    /// </summary>
+    public static async Task<(Guid PersonId, Guid DocumentId)> PersonWithCinImageAsync(IntegrationHost host, CancellationToken cancellationToken, UserContextSnapshot? agent = null)
     {
-        var agent = await AgentAsync(host);
+        agent ??= await AgentAsync(host);
         await using var scope = host.CreateScope(agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
         var person = await registration.FindOrCreatePersonAsync(

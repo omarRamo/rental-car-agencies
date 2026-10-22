@@ -25,7 +25,9 @@ namespace CarRental.Application.Bookings.PublicAccess;
 /// </summary>
 /// <remarks>
 /// <para>The token of the addresses is the only key to a session: it is checked (shape, hash, expiry) before anything
-/// else; the caller runs the writes as a system actor (<c>system:public-funnel</c>), the reads need no permission.</para>
+/// else; the caller runs the writes as a system actor (<c>system:public-funnel</c>) working for the agency of the public
+/// site, the reads need no permission. A session belongs to the agency of the site it was opened on: on the site of
+/// another agency its token is unknown (ADR-0067).</para>
 /// <para>Prices only come from the pricing engine through locked quotes; nothing posted by the browser is trusted beyond
 /// the choices it expresses (extra codes and quantities offered by the plan, driver details).</para>
 /// </remarks>
@@ -307,13 +309,13 @@ public sealed partial class FunnelService(
             return FunnelErrors.UploadLimitReached;
         }
 
-        var staged = await registration.StageDocumentImageAsync(content, cancellationToken);
+        var staged = await registration.StageDocumentImageAsync(content, session.AgencyId, cancellationToken);
         if (staged.IsFailure)
         {
             return staged.Error;
         }
 
-        var upload = FunnelUpload.Create(session.Id, slot, staged.Value.Id, staged.Value.ContentType, staged.Value.Length, now);
+        var upload = FunnelUpload.Create(session, slot, staged.Value.Id, staged.Value.ContentType, staged.Value.Length, now);
         db.Set<FunnelUpload>().Add(upload);
         await db.SaveChangesAsync(cancellationToken);
         return new FunnelUploadResult(upload.Id, slot.Key, upload.ContentType, upload.Length);
@@ -365,7 +367,7 @@ public sealed partial class FunnelService(
 
         // The profile (language, WhatsApp opt-in) exists before the request: its first message is in the right language.
         var language = string.IsNullOrWhiteSpace(culture) ? session.Culture : culture.Trim().ToLowerInvariant();
-        db.Set<BookingCustomerProfile>().Add(BookingCustomerProfile.Create(bookingId, language, input.WhatsAppNotificationsConsent, now, publicBaseUrl));
+        db.Set<BookingCustomerProfile>().Add(BookingCustomerProfile.Create(session.AgencyId, bookingId, language, input.WhatsAppNotificationsConsent, now, publicBaseUrl));
         await db.SaveChangesAsync(cancellationToken);
 
         var drivers = new List<Guid>();
@@ -376,6 +378,7 @@ public sealed partial class FunnelService(
                 continue;
             }
 
+            // Found again among (or registered as) the customers of the agency of the session only.
             var isMain = role == FunnelFields.Main;
             var registered = await registration.RegisterSubmittedDriverAsync(
                 new SubmittedDriverRequest(
@@ -385,7 +388,10 @@ public sealed partial class FunnelService(
                     ImagesFor(role, details, uploads),
                     input.DocumentProcessingConsent,
                     isMain && input.WhatsAppNotificationsConsent,
-                    isMain && input.MarketingConsent),
+                    isMain && input.MarketingConsent)
+                {
+                    AgencyId = session.AgencyId,
+                },
                 cancellationToken);
             if (registered.IsFailure)
             {

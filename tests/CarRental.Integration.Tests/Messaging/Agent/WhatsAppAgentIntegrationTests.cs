@@ -223,7 +223,7 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
     {
         var driverWaId = NewWaId();
         var agency = await BookingWorld.CreateAsync(host, Ct);
-        var driver = await NewDriverAsync("+" + driverWaId);
+        var driver = await NewDriverAsync("+" + driverWaId, agency.AgencyId);
         var booking = await BookingWorld.CreateAsync(host, BookingWorld.Quick(agency, driver, BookingWorld.InDays(85), BookingWorld.InDays(88)), Ct);
         var otherWaId = NewWaId();
         foreach (var waId in new[] { driverWaId, otherWaId })
@@ -298,8 +298,8 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
             .ToListAsync(Ct);
     }
 
-    /// <summary>An eligible Tunisian driver with this phone (CIN, licence held for ten years), created by an agent.</summary>
-    private async Task<Guid> NewDriverAsync(string phone)
+    /// <summary>An eligible Tunisian driver with this phone (CIN, licence held for ten years), created by an agent: a customer of the agency.</summary>
+    private async Task<Guid> NewDriverAsync(string phone, Guid agencyId)
     {
         await using var scope = host.CreateScope(BookingWorld.Agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
@@ -315,7 +315,10 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            },
             Ct);
         person.IsSuccess.ShouldBeTrue(person.IsFailure ? person.Error.ToString() : null);
         var license = await registration.AddOrReplaceDocumentAsync(

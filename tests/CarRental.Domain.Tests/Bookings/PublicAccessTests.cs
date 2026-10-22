@@ -13,6 +13,9 @@ public sealed class PublicAccessTests
 {
     private static readonly DateTimeOffset Now = new(2027, 3, 1, 9, 0, 0, TimeSpan.Zero);
 
+    /// <summary>The agency of the bookings of these tests.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
+
     [Fact]
     public void A_token_carries_256_random_bits_in_base64url_and_only_its_hash_is_kept()
     {
@@ -155,7 +158,7 @@ public sealed class PublicAccessTests
     {
         var code = AccessSecrets.NewCode();
         var salt = AccessSecrets.NewSalt();
-        var grant = BookingAccessGrant.Issue(null, AccessPurpose.MyBooking, AccessSecrets.HashToken(AccessSecrets.NewToken()), AccessSecrets.HashCode(code, salt), salt, "fr", TimeSpan.FromMinutes(30), Now);
+        var grant = BookingAccessGrant.Issue(AgencyId, null, AccessPurpose.MyBooking, AccessSecrets.HashToken(AccessSecrets.NewToken()), AccessSecrets.HashCode(code, salt), salt, "fr", TimeSpan.FromMinutes(30), Now);
 
         for (var attempt = 1; attempt < 5; attempt++)
         {
@@ -192,12 +195,12 @@ public sealed class PublicAccessTests
     [InlineData("ftp://agence.tn/", null)]
     [InlineData(null, null)]
     public void A_profile_keeps_only_the_origin_of_the_site_the_customer_used(string? baseUrl, string? expected) =>
-        BookingCustomerProfile.Create(Guid.NewGuid(), "fr", false, Now, baseUrl).PublicBaseUrl.ShouldBe(expected);
+        BookingCustomerProfile.Create(AgencyId, Guid.NewGuid(), "fr", false, Now, baseUrl).PublicBaseUrl.ShouldBe(expected);
 
     [Fact]
     public void A_payment_track_keeps_a_late_payment_flag_once_raised()
     {
-        var track = BookingPaymentTrack.Create(Guid.NewGuid(), Now);
+        var track = BookingPaymentTrack.Create(AgencyId, Guid.NewGuid(), Now);
 
         track.Apply(RequestPaymentState.Expired, Guid.NewGuid(), Money.Tnd(100m), paidLate: false, Now).ShouldBeTrue();
         track.Apply(RequestPaymentState.Captured, track.PaymentId, Money.Tnd(100m), paidLate: true, Now).ShouldBeTrue();
@@ -205,11 +208,25 @@ public sealed class PublicAccessTests
         track.PaidLate.ShouldBeTrue();
     }
 
+    [Fact]
+    public void The_records_of_the_public_pages_belong_to_the_agency_of_their_site()
+    {
+        var session = Session();
+        var upload = FunnelUpload.Create(session, UploadSlot.All[0], Guid.NewGuid(), "image/jpeg", 1_024, Now);
+
+        upload.SessionId.ShouldBe(session.Id);
+        upload.AgencyId.ShouldBe(session.AgencyId);
+        Grant().Grant.AgencyId.ShouldBe(AgencyId);
+        BookingCustomerProfile.Create(AgencyId, Guid.NewGuid(), "fr", false, Now).AgencyId.ShouldBe(AgencyId);
+        BookingPaymentTrack.Create(AgencyId, Guid.NewGuid(), Now).AgencyId.ShouldBe(AgencyId);
+        Should.Throw<ArgumentException>(() => BookingAccessGrant.Issue(Guid.Empty, null, AccessPurpose.MyBooking, AccessSecrets.HashToken(AccessSecrets.NewToken()), null, null, "fr", TimeSpan.FromMinutes(30), Now));
+    }
+
     private static (BookingAccessGrant Grant, string Code) Grant()
     {
         var code = AccessSecrets.NewCode();
         var salt = AccessSecrets.NewSalt();
-        var grant = BookingAccessGrant.Issue(Guid.NewGuid(), AccessPurpose.MyBooking, AccessSecrets.HashToken(AccessSecrets.NewToken()), AccessSecrets.HashCode(code, salt), salt, "fr", TimeSpan.FromMinutes(30), Now);
+        var grant = BookingAccessGrant.Issue(AgencyId, Guid.NewGuid(), AccessPurpose.MyBooking, AccessSecrets.HashToken(AccessSecrets.NewToken()), AccessSecrets.HashCode(code, salt), salt, "fr", TimeSpan.FromMinutes(30), Now);
         return (grant, code);
     }
 

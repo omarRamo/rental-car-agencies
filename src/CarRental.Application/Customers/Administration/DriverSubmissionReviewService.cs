@@ -187,7 +187,7 @@ public sealed class DriverSubmissionReviewService(IAppDbContext db, IUnitOfWork 
         IdentityDocument target;
         if (document.Details is { } details)
         {
-            if (await db.IsDocumentNumberUsedByAnotherPersonAsync(person.Id, details, cancellationToken))
+            if (await db.IsDocumentNumberUsedByAnotherPersonAsync(person, details, cancellationToken))
             {
                 return CustomersErrors.DocumentNumberInUse;
             }

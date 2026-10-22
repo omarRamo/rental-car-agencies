@@ -369,7 +369,7 @@ internal sealed class FakeBookingNumbers(FakeBookingsBilling bookings) : IBookin
 {
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) => Task.FromResult<BookingSummaryInfo?>(null);
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default)
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default)
     {
         var file = bookings.Files.Values.FirstOrDefault(f => string.Equals(f.Number, number.Trim(), StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(file is null

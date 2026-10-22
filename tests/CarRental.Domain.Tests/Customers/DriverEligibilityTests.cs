@@ -11,6 +11,9 @@ namespace CarRental.Domain.Tests.Customers;
 public sealed class DriverEligibilityTests
 {
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 9, 0, 0, TimeSpan.Zero);
+
+    /// <summary>The agency of the customers of these tests.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
     private static readonly EligibilityRules Rules = new(MinimumAge: 21, MinimumLicenseYears: 2);
 
     // Pick-up 28/06/2027 10:00, return 03/07/2027 10:00, Africa/Tunis.
@@ -21,7 +24,7 @@ public sealed class DriverEligibilityTests
     private static Person Driver(string? nationality = "TN", DateOnly? birthDate = null, bool withBirthDate = true)
     {
         var details = new PersonDetails("Sami", "Trabelsi", nationality, withBirthDate ? birthDate ?? new DateOnly(1990, 3, 14) : null);
-        return Person.Register(details, Now).Value;
+        return Person.Register(AgencyId, details, Now).Value;
     }
 
     private static Person EligibleTunisian()

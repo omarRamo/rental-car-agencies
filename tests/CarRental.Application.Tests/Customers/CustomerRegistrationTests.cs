@@ -1,6 +1,7 @@
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Tests.Customers.Fakes;
+using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Customers;
 
 namespace CarRental.Application.Tests.Customers;
@@ -111,7 +112,7 @@ public sealed class CustomerRegistrationTests
     public async Task A_person_found_by_phone_receives_the_document_it_did_not_have()
     {
         var harness = new CustomersHarness();
-        var existing = Person.Register(new PersonDetails("Julien", "Moreau", "FR", Phone: "+33 6 39 98 00 07"), CustomersHarness.Start).Value;
+        var existing = Person.Register(TestUsers.AgencyId, new PersonDetails("Julien", "Moreau", "FR", Phone: "+33 6 39 98 00 07"), CustomersHarness.Start).Value;
         harness.Add(existing);
 
         var result = await harness.Registration.FindOrCreatePersonAsync(

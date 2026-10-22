@@ -30,16 +30,9 @@ public sealed partial class TenancyConventionTests
     /// </summary>
     private static readonly HashSet<string> NotYetClassified = new(StringComparer.Ordinal)
     {
-        // Bookings
-        "Booking", "BookingAccessGrant", "BookingCustomerProfile", "BookingEvent", "BookingPaymentTrack", "DamageMark",
-        "FunnelSession", "FunnelUpload", "Inspection", "InspectionPhoto", "InspectionSignature", "Quote",
-        "QuoteLine", "RentalContract", "ReturnCharge",
         // Channels
         "Channel", "ChannelBooking", "ChannelMapping", "ChannelMessageLog", "ChannelPayout", "ChannelQuota",
         "ChannelReplicationItem", "ChannelSyncItem", "ChannelSyncState",
-        // Customers
-        "BlacklistEntry", "Consent", "Customer", "DriverSubmission", "IdentityDocument", "Person",
-        "StagedDocumentImage", "SubmittedDocument",
         // Messaging
         "AgentConversationState", "AgentTurnRecord", "BookingNotification", "BotTurnRetry", "Conversation", "KnowledgeEntry",
         "Message", "MessageStatusChange",

@@ -7,6 +7,9 @@ public sealed class CustomerTests
 {
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 9, 0, 0, TimeSpan.Zero);
 
+    /// <summary>The agency of the customers of these tests.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
+
     private static PostalAddress Address() => PostalAddress.Create("Immeuble Les Jasmins, rue du Lac Turkana", "Bureau 4", "1053", "Les Berges du Lac", "TN").Value;
 
     private static CompanyDetails Company() => new(
@@ -22,20 +25,29 @@ public sealed class CustomerTests
     {
         var personId = Guid.CreateVersion7();
 
-        var customer = Customer.ForPerson(personId, Now).Value;
+        var customer = Customer.ForPerson(AgencyId, personId, Now).Value;
 
         customer.Kind.ShouldBe(CustomerKind.Individual);
         customer.PersonId.ShouldBe(personId);
         customer.LegalName.ShouldBeNull();
         customer.CreatedAtUtc.ShouldBe(Now);
         customer.DomainEvents.ShouldHaveSingleItem().ShouldBe(new CustomerRegistered(customer.Id, CustomerKind.Individual));
-        Customer.ForPerson(Guid.Empty, Now).Error.ShouldBe(CustomersErrors.PersonRequired);
+        Customer.ForPerson(AgencyId, Guid.Empty, Now).Error.ShouldBe(CustomersErrors.PersonRequired);
+    }
+
+    [Fact]
+    public void A_payer_is_a_customer_of_one_agency()
+    {
+        Customer.ForPerson(AgencyId, Guid.CreateVersion7(), Now).Value.AgencyId.ShouldBe(AgencyId);
+        Customer.ForCompany(AgencyId, Company(), Now).Value.AgencyId.ShouldBe(AgencyId);
+        Customer.ForPerson(Guid.Empty, Guid.CreateVersion7(), Now).Error.ShouldBe(CustomersErrors.AgencyRequired);
+        Customer.ForCompany(Guid.Empty, Company(), Now).Error.ShouldBe(CustomersErrors.AgencyRequired);
     }
 
     [Fact]
     public void A_company_customer_carries_its_tax_identifier_and_billing_address()
     {
-        var customer = Customer.ForCompany(Company(), Now).Value;
+        var customer = Customer.ForCompany(AgencyId, Company(), Now).Value;
 
         customer.Kind.ShouldBe(CustomerKind.Company);
         customer.PersonId.ShouldBeNull();
@@ -56,7 +68,7 @@ public sealed class CustomerTests
     [InlineData("FR12345678901")]
     public void Tax_identifiers_are_validated_loosely(string taxIdentifier)
     {
-        Customer.ForCompany(Company() with { TaxIdentifier = taxIdentifier }, Now).IsSuccess.ShouldBeTrue();
+        Customer.ForCompany(AgencyId, Company() with { TaxIdentifier = taxIdentifier }, Now).IsSuccess.ShouldBeTrue();
     }
 
     [Theory]
@@ -67,24 +79,24 @@ public sealed class CustomerTests
     [InlineData("123456789012345678901234567890123")]
     public void Malformed_tax_identifiers_are_rejected(string taxIdentifier)
     {
-        Customer.ForCompany(Company() with { TaxIdentifier = taxIdentifier }, Now).Error.ShouldBe(CustomersErrors.TaxIdentifierInvalid);
+        Customer.ForCompany(AgencyId, Company() with { TaxIdentifier = taxIdentifier }, Now).Error.ShouldBe(CustomersErrors.TaxIdentifierInvalid);
     }
 
     [Fact]
     public void Company_details_are_validated()
     {
-        Customer.ForCompany(Company() with { LegalName = " " }, Now).Error.ShouldBe(CustomersErrors.LegalNameInvalid);
-        Customer.ForCompany(Company() with { LegalName = new string('a', Customer.LegalNameMaxLength + 1) }, Now).Error.ShouldBe(CustomersErrors.LegalNameInvalid);
-        Customer.ForCompany(Company() with { BillingAddress = null! }, Now).Error.ShouldBe(CustomersErrors.BillingAddressRequired);
-        Customer.ForCompany(Company() with { Email = "nope" }, Now).Error.ShouldBe(CustomersErrors.EmailInvalid);
-        Customer.ForCompany(Company() with { Phone = "1" }, Now).Error.ShouldBe(CustomersErrors.PhoneInvalid);
-        Customer.ForCompany(Company() with { ContactName = new string('a', Customer.ContactNameMaxLength + 1) }, Now).Error.ShouldBe(CustomersErrors.ContactNameInvalid);
+        Customer.ForCompany(AgencyId, Company() with { LegalName = " " }, Now).Error.ShouldBe(CustomersErrors.LegalNameInvalid);
+        Customer.ForCompany(AgencyId, Company() with { LegalName = new string('a', Customer.LegalNameMaxLength + 1) }, Now).Error.ShouldBe(CustomersErrors.LegalNameInvalid);
+        Customer.ForCompany(AgencyId, Company() with { BillingAddress = null! }, Now).Error.ShouldBe(CustomersErrors.BillingAddressRequired);
+        Customer.ForCompany(AgencyId, Company() with { Email = "nope" }, Now).Error.ShouldBe(CustomersErrors.EmailInvalid);
+        Customer.ForCompany(AgencyId, Company() with { Phone = "1" }, Now).Error.ShouldBe(CustomersErrors.PhoneInvalid);
+        Customer.ForCompany(AgencyId, Company() with { ContactName = new string('a', Customer.ContactNameMaxLength + 1) }, Now).Error.ShouldBe(CustomersErrors.ContactNameInvalid);
     }
 
     [Fact]
     public void Only_a_company_can_have_its_company_details_updated()
     {
-        var company = Customer.ForCompany(Company(), Now).Value;
+        var company = Customer.ForCompany(AgencyId, Company(), Now).Value;
         company.DequeueDomainEvents();
 
         company.UpdateCompany(Company() with { LegalName = "STS SA", ContactName = null }, Now.AddDays(1)).IsSuccess.ShouldBeTrue();
@@ -93,7 +105,7 @@ public sealed class CustomerTests
         company.LastModifiedAtUtc.ShouldBe(Now.AddDays(1));
         company.DomainEvents.ShouldHaveSingleItem().ShouldBe(new CompanyCustomerUpdated(company.Id));
 
-        Customer.ForPerson(Guid.CreateVersion7(), Now).Value.UpdateCompany(Company(), Now).Error.ShouldBe(CustomersErrors.NotACompany);
+        Customer.ForPerson(AgencyId, Guid.CreateVersion7(), Now).Value.UpdateCompany(Company(), Now).Error.ShouldBe(CustomersErrors.NotACompany);
     }
 
     [Fact]

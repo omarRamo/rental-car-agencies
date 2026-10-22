@@ -47,7 +47,7 @@ internal sealed class BookingNotificationPublisher(IAppDbContext db, IOutbox out
                 .OrderByDescending(e => e.Sequence)
                 .Select(e => e.Reason)
                 .FirstOrDefaultAsync(cancellationToken);
-            var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, message.BookingId, profile.Culture, clock.GetUtcNow(), cancellationToken);
+            var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, message.AgencyId, message.BookingId, profile.Culture, clock.GetUtcNow(), cancellationToken);
             actionPath = PublicBookingPaths.AccessLink(profile.Culture, link.Token, documents: true);
             actionExpires = link.Grant.ExpiresAtUtc;
         }
@@ -146,10 +146,14 @@ internal sealed class AccessEmailHandler(ICustomerEmailComposer composer, IOutbo
 /// <summary>Links of "Ma réservation" issued by the platform.</summary>
 internal static class AccessGrants
 {
-    /// <summary>A "compléter mon dossier" link (no code), valid <c>bookings.complete_file_link_validity</c>, added to the unit of work.</summary>
+    /// <summary>
+    /// A "compléter mon dossier" link (no code) of the booking <paramref name="bookingId"/> of <paramref name="agencyId"/>,
+    /// valid <c>bookings.complete_file_link_validity</c>, added to the unit of work.
+    /// </summary>
     public static async Task<(BookingAccessGrant Grant, string Token)> IssueCompleteFileLinkAsync(
         IAppDbContext db,
         ISettingsReader settings,
+        Guid agencyId,
         Guid bookingId,
         string culture,
         DateTimeOffset now,
@@ -157,7 +161,7 @@ internal static class AccessGrants
     {
         var validity = await settings.GetAsync(PublicBookingSettings.CompleteFileLinkValidity, cancellationToken: cancellationToken);
         var token = AccessSecrets.NewToken();
-        var grant = BookingAccessGrant.Issue(bookingId, AccessPurpose.CompleteFile, AccessSecrets.HashToken(token), null, null, culture, validity, now);
+        var grant = BookingAccessGrant.Issue(agencyId, bookingId, AccessPurpose.CompleteFile, AccessSecrets.HashToken(token), null, null, culture, validity, now);
         db.Set<BookingAccessGrant>().Add(grant);
         return (grant, token);
     }

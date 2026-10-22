@@ -1,6 +1,7 @@
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Parties;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Referential.Contracts;
@@ -14,6 +15,7 @@ namespace CarRental.Application.Bookings.Queries;
 /// <summary><see cref="IBookingsQueries"/>: projections of the rental files, completed by the Fleet and Customers contracts.</summary>
 internal sealed class BookingsQueries(
     IAppDbContext db,
+    IUserContext user,
     IFleetQueries fleet,
     ICustomersQueries customers,
     IAvailabilityQueries availability,
@@ -41,12 +43,15 @@ internal sealed class BookingsQueries(
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
         db.Set<Booking>().AsNoTracking().Where(b => b.Id == bookingId).Select(BookingMapping.ToSummary).FirstOrDefaultAsync(cancellationToken);
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default)
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default)
     {
         var normalized = (number ?? string.Empty).Trim().ToUpperInvariant();
-        return normalized.Length == 0
+
+        // A number is unique within an agency only: the lookup always runs in one agency, never across agencies.
+        var agency = agencyId ?? user.AgencyId;
+        return normalized.Length == 0 || agency is not { } scope
             ? Task.FromResult<BookingSummaryInfo?>(null)
-            : db.Set<Booking>().AsNoTracking().Where(b => b.Number == normalized).Select(BookingMapping.ToSummary).FirstOrDefaultAsync(cancellationToken);
+            : db.Set<Booking>().AsNoTracking().Where(b => b.AgencyId == scope && b.Number == normalized).Select(BookingMapping.ToSummary).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<PersonBookingInfo>> GetBookingsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default)

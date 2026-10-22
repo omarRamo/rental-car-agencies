@@ -33,7 +33,7 @@ public enum BookingEventType
 /// (UTC), the status before and after, who did it (a user, a customer, a channel or <c>system</c>), through which
 /// channel, the reason when one is required, and a few facts as JSON. Rows are only ever added, numbered per file.
 /// </summary>
-public sealed class BookingEvent : Entity
+public sealed class BookingEvent : Entity, IAgencyOwned
 {
     public const int DataMaxLength = 2000;
 
@@ -43,6 +43,7 @@ public sealed class BookingEvent : Entity
 
     private BookingEvent(
         Guid bookingId,
+        Guid agencyId,
         int sequence,
         DateTimeOffset occurredAtUtc,
         BookingEventType type,
@@ -54,6 +55,7 @@ public sealed class BookingEvent : Entity
         : base(NewId())
     {
         BookingId = bookingId;
+        AgencyId = agencyId;
         Sequence = sequence;
         OccurredAtUtc = occurredAtUtc.ToUniversalTime();
         Type = type;
@@ -67,6 +69,9 @@ public sealed class BookingEvent : Entity
     }
 
     public Guid BookingId { get; private set; }
+
+    /// <summary>The agency of the file (given by the file).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Position in the timeline of the file, from 1: the timeline is ordered by it, not by the clock.</summary>
     public int Sequence { get; private set; }
@@ -99,6 +104,7 @@ public sealed class BookingEvent : Entity
 
     internal static BookingEvent Create(
         Guid bookingId,
+        Guid agencyId,
         int sequence,
         DateTimeOffset occurredAtUtc,
         BookingEventType type,
@@ -114,6 +120,6 @@ public sealed class BookingEvent : Entity
             throw new ArgumentException($"The facts of a timeline row are limited to {DataMaxLength} characters.", nameof(facts));
         }
 
-        return new BookingEvent(bookingId, sequence, occurredAtUtc, type, statusBefore, statusAfter, actor, reason, data);
+        return new BookingEvent(bookingId, agencyId, sequence, occurredAtUtc, type, statusBefore, statusAfter, actor, reason, data);
     }
 }

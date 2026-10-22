@@ -97,9 +97,10 @@ public static class PublicQuoteApi
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["category"] = ["category_unknown"] }, title: "The category is unknown.");
         }
 
+        // The quote is locked by the system working for the agency of the site only (ADR-0067).
         await using var scope = context.RequestServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<CarRental.Application.Common.Security.ScopedUserContext>()
-            .Initialize(CarRental.Application.Common.Security.UserContextSnapshot.System(Actor, Security.CorrelationIds.Current(context)));
+            .Initialize(CarRental.Application.Common.Security.UserContextSnapshot.System(Actor, Security.CorrelationIds.Current(context), agency.Agency.Id));
         var requests = scope.ServiceProvider.GetRequiredService<IBookingRequests>();
         var locked = await requests.CreateLockedQuoteAsync(
             new PriceRequest(

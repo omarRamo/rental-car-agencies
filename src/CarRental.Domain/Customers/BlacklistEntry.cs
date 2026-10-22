@@ -4,9 +4,10 @@ namespace CarRental.Domain.Customers;
 
 /// <summary>
 /// A blacklist decision about a person: mandatory reason, author and date; lifted later with its own reason, author
-/// and date. Never shown to the person (the booking funnel applies it silently, SPEC §5). Part of <see cref="Person"/>.
+/// and date. Never shown to the person (the booking funnel applies it silently, SPEC §5). Part of <see cref="Person"/>:
+/// a blacklist is the decision of one agency about its customer, never seen by another agency (ADR-0067).
 /// </summary>
-public sealed class BlacklistEntry : Entity
+public sealed class BlacklistEntry : Entity, IAgencyOwned
 {
     public const int ReasonMinLength = 3;
     public const int ReasonMaxLength = 500;
@@ -16,10 +17,11 @@ public sealed class BlacklistEntry : Entity
     {
     }
 
-    private BlacklistEntry(Guid id, Guid personId, string reason, AuditActor author, DateTimeOffset now)
+    private BlacklistEntry(Guid id, Guid personId, Guid agencyId, string reason, AuditActor author, DateTimeOffset now)
         : base(id)
     {
         PersonId = personId;
+        AgencyId = agencyId;
         Reason = reason;
         AddedAtUtc = now;
         AddedByUserId = author.UserId;
@@ -27,6 +29,9 @@ public sealed class BlacklistEntry : Entity
     }
 
     public Guid PersonId { get; private set; }
+
+    /// <summary>The agency of the person (given by the person at creation).</summary>
+    public Guid AgencyId { get; private set; }
 
     public string Reason { get; private set; } = null!;
 
@@ -50,8 +55,8 @@ public sealed class BlacklistEntry : Entity
     internal static string? CleanReason(string? reason) =>
         TextRules.Clean(reason) is { Length: >= ReasonMinLength and <= ReasonMaxLength } cleaned ? cleaned : null;
 
-    internal static BlacklistEntry Add(Guid personId, string reason, AuditActor author, DateTimeOffset now) =>
-        new(NewId(), personId, reason, author, now);
+    internal static BlacklistEntry Add(Guid personId, Guid agencyId, string reason, AuditActor author, DateTimeOffset now) =>
+        new(NewId(), personId, agencyId, reason, author, now);
 
     internal void Lift(string reason, AuditActor author, DateTimeOffset now)
     {

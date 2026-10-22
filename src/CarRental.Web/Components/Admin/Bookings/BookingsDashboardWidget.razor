@@ -162,7 +162,7 @@
 
         var result = await Runner.RunAsync<BookingAdministrationQueries, Result<BookingsDashboard>>(async (queries, ct) =>
         {
-            var agency = await queries.GetDefaultAgencyAsync(ct);
+            var agency = await queries.GetCurrentAgencyAsync(ct);
             return agency.IsSuccess ? await queries.GetDashboardAsync(agency.Value.Id, ct) : agency.Error;
         });
         _dashboard = result.IsSuccess ? result.Value : null;

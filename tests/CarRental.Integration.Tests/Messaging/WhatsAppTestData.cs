@@ -8,6 +8,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Messaging;
 using CarRental.Infrastructure.Messaging;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -120,7 +121,8 @@ internal static class WhatsAppTestData
     /// <summary>A person with this phone (E.164 or <c>wa_id</c>), created by an agent, with the WhatsApp notifications consent when asked.</summary>
     public static async Task<Guid> NewPersonAsync(IntegrationHost host, string phone, bool consent, CancellationToken cancellationToken)
     {
-        await using var scope = host.CreateScope(Agent());
+        // A customer of the main demo agency (the customers of an agency are its own, ADR-0067).
+        await using var scope = host.CreateScope(Agent() with { AgencyId = await TestStaff.DemoAgencyIdAsync(host) });
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
         var person = await registration.FindOrCreatePersonAsync(
             new PersonRegistrationRequest(NewName(), "Whatsapp", Phone: phone.StartsWith('+') ? phone : "+" + phone),

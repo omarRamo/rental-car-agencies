@@ -4,20 +4,25 @@ using CarRental.Domain.Common;
 using CarRental.Domain.Customers;
 using CarRental.Domain.Identity;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Fleet;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Customers;
 
-/// <summary>The person aggregate and the payers on SQL Server: mapping, temporal history, masked audit, unique keys, concurrency.</summary>
+/// <summary>
+/// The person aggregate and the payers on SQL Server: mapping, temporal history, masked audit, unique keys within an
+/// agency (ADR-0067), concurrency.
+/// </summary>
 public sealed class CustomerPersistenceTests(IntegrationHost host)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static Person NewTunisian(string? cin = null)
+    private static Person NewTunisian(Guid agencyId, string? cin = null)
     {
         var now = DateTimeOffset.UtcNow;
         var person = Person.Register(
+            agencyId,
             new PersonDetails(
                 CustomerTestData.Name(),
                 CustomerTestData.Name(),
@@ -39,10 +44,13 @@ public sealed class CustomerPersistenceTests(IntegrationHost host)
         await db.SaveChangesAsync(Ct);
     }
 
+    /// <summary>An agency of the test (the customers of an agency are its own, ADR-0067).</summary>
+    private Task<Guid> AgencyAsync() => FleetData.NewAgencyAsync(host, Ct);
+
     [Fact]
     public async Task The_person_aggregate_round_trips_with_its_documents_images_consents_and_blacklist()
     {
-        var person = NewTunisian();
+        var person = NewTunisian(await AgencyAsync());
         var now = DateTimeOffset.UtcNow;
         var cin = person.CurrentDocument(IdentityDocumentType.NationalId)!;
         person.AttachDocumentImage(cin.Id, DocumentImageSide.Front, DocumentImage.Create($"persons/{person.Id:N}/front.png", "image/png", 68, now).Value, now).IsSuccess.ShouldBeTrue();
@@ -72,7 +80,7 @@ public sealed class CustomerPersistenceTests(IntegrationHost host)
     [Fact]
     public async Task A_person_without_address_has_a_null_address()
     {
-        var person = Person.Register(new PersonDetails(CustomerTestData.Name(), CustomerTestData.Name()), DateTimeOffset.UtcNow).Value;
+        var person = Person.Register(await AgencyAsync(), new PersonDetails(CustomerTestData.Name(), CustomerTestData.Name()), DateTimeOffset.UtcNow).Value;
         await SaveAsync(person);
 
         await using var scope = host.CreateScope();
@@ -85,7 +93,7 @@ public sealed class CustomerPersistenceTests(IntegrationHost host)
     [Fact]
     public async Task Persons_and_documents_keep_their_history_in_temporal_tables()
     {
-        var person = NewTunisian();
+        var person = NewTunisian(await AgencyAsync());
         var firstPhone = person.Phone;
         await SaveAsync(person);
 
@@ -111,7 +119,7 @@ public sealed class CustomerPersistenceTests(IntegrationHost host)
     [Fact]
     public async Task Personal_data_and_document_numbers_are_masked_in_the_audit_log()
     {
-        var person = NewTunisian();
+        var person = NewTunisian(await AgencyAsync());
         await SaveAsync(person);
 
         await using var scope = host.CreateScope();
@@ -136,31 +144,52 @@ public sealed class CustomerPersistenceTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task Two_persons_cannot_hold_the_same_current_document()
+    public async Task Two_persons_of_an_agency_cannot_hold_the_same_current_document_but_two_agencies_can()
     {
+        var (first, second) = (await AgencyAsync(), await AgencyAsync());
         var cin = CustomerTestData.Cin();
-        await SaveAsync(NewTunisian(cin));
+        await SaveAsync(NewTunisian(first, cin));
 
-        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(NewTunisian(cin)));
+        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(NewTunisian(first, cin)));
+        await SaveAsync(NewTunisian(second, cin));
     }
 
     [Fact]
-    public async Task A_person_has_one_individual_payer_and_a_tax_identifier_one_company()
+    public async Task A_person_has_one_individual_payer_and_a_tax_identifier_one_company_in_each_agency()
     {
-        var person = NewTunisian();
-        await SaveAsync(person, Customer.ForPerson(person.Id, DateTimeOffset.UtcNow).Value);
+        var (agencyId, other) = (await AgencyAsync(), await AgencyAsync());
+        var person = NewTunisian(agencyId);
+        await SaveAsync(person, Customer.ForPerson(agencyId, person.Id, DateTimeOffset.UtcNow).Value);
         var taxIdentifier = $"{Random.Shared.Next(1_000_000, 9_999_999)}/A/M/000";
         var address = PostalAddress.Create("45 avenue de la Liberté", null, "1002", "Tunis", "TN").Value;
-        await SaveAsync(Customer.ForCompany(new CompanyDetails("Société A", taxIdentifier, address), DateTimeOffset.UtcNow).Value);
+        await SaveAsync(Customer.ForCompany(agencyId, new CompanyDetails("Société A", taxIdentifier, address), DateTimeOffset.UtcNow).Value);
 
-        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(Customer.ForPerson(person.Id, DateTimeOffset.UtcNow).Value));
-        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(Customer.ForCompany(new CompanyDetails("Société B", taxIdentifier, address), DateTimeOffset.UtcNow).Value));
+        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(Customer.ForPerson(agencyId, person.Id, DateTimeOffset.UtcNow).Value));
+        await Should.ThrowAsync<DbUpdateException>(() => SaveAsync(Customer.ForCompany(agencyId, new CompanyDetails("Société B", taxIdentifier, address), DateTimeOffset.UtcNow).Value));
+        await SaveAsync(Customer.ForCompany(other, new CompanyDetails("Société A", taxIdentifier, address), DateTimeOffset.UtcNow).Value);
+    }
+
+    [Fact]
+    public async Task The_documents_consents_and_blacklist_of_a_person_carry_its_agency()
+    {
+        var agencyId = await AgencyAsync();
+        var person = NewTunisian(agencyId);
+        var now = DateTimeOffset.UtcNow;
+        person.GiveConsent(ConsentPurpose.MarketingEmail, ConsentChannel.Web, now).IsSuccess.ShouldBeTrue();
+        person.Blacklist("Incident de test", new AuditActor(null, "tests", null, null), now).IsSuccess.ShouldBeTrue();
+        await SaveAsync(person);
+
+        await using var scope = host.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+        (await db.Set<IdentityDocument>().Where(d => d.PersonId == person.Id).Select(d => d.AgencyId).ToListAsync(Ct)).ShouldAllBe(id => id == agencyId);
+        (await db.Set<Consent>().Where(c => c.PersonId == person.Id).Select(c => c.AgencyId).SingleAsync(Ct)).ShouldBe(agencyId);
+        (await db.Set<BlacklistEntry>().Where(e => e.PersonId == person.Id).Select(e => e.AgencyId).SingleAsync(Ct)).ShouldBe(agencyId);
     }
 
     [Fact]
     public async Task A_change_to_a_document_also_protects_the_person_against_a_concurrent_edit()
     {
-        var person = NewTunisian();
+        var person = NewTunisian(await AgencyAsync());
         await SaveAsync(person);
         await using var first = host.CreateScope();
         await using var second = host.CreateScope();

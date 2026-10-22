@@ -439,4 +439,26 @@ public sealed class InspectionTests
         inspection.AddDamage(Scratch(), Agent, Now).IsSuccess.ShouldBeTrue();
         inspection.Revision.ShouldBeGreaterThan(revision);
     }
+
+    [Fact]
+    public void Every_part_of_an_inspection_belongs_to_the_agency_of_its_file()
+    {
+        var departure = CompletedDeparture();
+        var inspection = Return(departure);
+        inspection.AddDamage(Scratch(DamageView.Rear, 50m, 50m), Agent, Now.AddDays(3)).IsSuccess.ShouldBeTrue();
+        inspection.RecordReadings(12_900, 6, FullKit).IsSuccess.ShouldBeTrue();
+        var charges = ReturnCharges.Propose(new ReturnFacts(12_340, 12_900, 8, 6, 3, false, null), Policy(includedKmPerDay: 0));
+        inspection.CompleteReturn(charges, Money.Tnd(600m), franchiseReduced: false, Now.AddDays(3), Agent, Now.AddDays(3)).IsSuccess.ShouldBeTrue();
+
+        departure.AgencyId.ShouldBe(AgencyId);
+        departure.Photos.ShouldNotBeEmpty();
+        departure.Photos.ShouldAllBe(p => p.AgencyId == AgencyId);
+        departure.Signatures.ShouldAllBe(s => s.AgencyId == AgencyId);
+        departure.Damages.ShouldAllBe(d => d.AgencyId == AgencyId);
+        inspection.AgencyId.ShouldBe(AgencyId);
+        inspection.Damages.Count.ShouldBe(2, "the known damage carried over and the new one");
+        inspection.Damages.ShouldAllBe(d => d.AgencyId == AgencyId);
+        inspection.Charges.ShouldNotBeEmpty();
+        inspection.Charges.ShouldAllBe(c => c.AgencyId == AgencyId);
+    }
 }
