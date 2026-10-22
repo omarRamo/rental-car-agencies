@@ -27,10 +27,12 @@ public sealed record ChannelSyncRunResult(int Enqueued, int Sent, int Failed, in
 /// with their payload, or retried with growing delays and finally failed for good.
 /// </summary>
 /// <remarks>
-/// Only the channels of the active agencies whose channels module is on take part (ADR-0067): the work of the others
-/// waits for the module (their queued updates stay pending, sent with fresh data once it is back). A run of the pump or
-/// the jobs works across agencies and takes the changes recorded for every agency; a run from the screen works for the
-/// agency of the operation only and leaves the recorded changes to the pump, which it wakes.
+/// Only the channels of the active agencies whose channels module is on are sent anything (ADR-0067): the work of the
+/// others waits for the module. Their availability changes are still queued (one pending update per channel and
+/// category at most, coalesced), so that they leave with fresh data as soon as the module is back or the suspension
+/// lifted, and their prices are compared again at that time. A run of the pump or the jobs works across agencies and
+/// takes the changes recorded for every agency; a run from the screen works for the agency of the operation only and
+/// leaves the recorded changes to the pump, which it wakes.
 /// </remarks>
 public sealed partial class ChannelSyncDispatcher
 {
@@ -95,12 +97,13 @@ public sealed partial class ChannelSyncDispatcher
             _signal.Wake();
         }
 
+        // Before the open agencies are looked at: a drained change of an agency without its module must wait in its queue.
+        var enqueued = await EnqueueChangesAsync(changes, cancellationToken);
         if (agencies.Count == 0)
         {
-            return new ChannelSyncRunResult(0, 0, 0, 0, 0);
+            return new ChannelSyncRunResult(enqueued, 0, 0, 0, 0);
         }
 
-        var enqueued = await EnqueueChangesAsync(changes, agencies, cancellationToken);
         var (priceUpdates, reminders) = await CheckPricesAsync(agencies, cancellationToken);
         var (sent, failed, skipped) = await SendDueAsync(agencies, cancellationToken);
         var result = new ChannelSyncRunResult(enqueued + priceUpdates, sent, failed, skipped, reminders);
@@ -142,7 +145,11 @@ public sealed partial class ChannelSyncDispatcher
         return _user.IsAcrossAgencies ? [.. open] : [.. open.Where(id => id == _user.AgencyId)];
     }
 
-    private async Task<int> EnqueueChangesAsync(ChannelSyncChanges changes, IReadOnlyList<Guid> agencies, CancellationToken cancellationToken)
+    /// <summary>
+    /// The recorded changes become queued updates of the connected channels concerned, of every agency (only a run across
+    /// agencies drains them): those of an agency without its module wait in its queue.
+    /// </summary>
+    private async Task<int> EnqueueChangesAsync(ChannelSyncChanges changes, CancellationToken cancellationToken)
     {
         if (changes.IsEmpty)
         {
@@ -153,7 +160,7 @@ public sealed partial class ChannelSyncDispatcher
         if (changes.All)
         {
             var connected = await _db.Set<Channel>()
-                .Where(c => c.State == ChannelState.Connected && agencies.Contains(c.AgencyId))
+                .Where(c => c.State == ChannelState.Connected)
                 .Select(c => new { c.Id, c.AgencyId })
                 .ToListAsync(cancellationToken);
             foreach (var channel in connected)
@@ -168,7 +175,7 @@ public sealed partial class ChannelSyncDispatcher
             var targets = await (
                     from mapping in _db.Set<ChannelMapping>()
                     join channel in _db.Set<Channel>() on mapping.ChannelId equals channel.Id
-                    where channel.State == ChannelState.Connected && agencies.Contains(channel.AgencyId)
+                    where channel.State == ChannelState.Connected
                           && mapping.Kind == ChannelMappingKind.Category && mapping.InternalId != null && categories.Contains(mapping.InternalId.Value)
                     select new { mapping.ChannelId, channel.AgencyId, CategoryId = mapping.InternalId!.Value })
                 .ToListAsync(cancellationToken);

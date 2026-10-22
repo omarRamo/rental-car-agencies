@@ -4,6 +4,7 @@ using CarRental.Application.Channels.Core;
 using CarRental.Application.Channels.Logging;
 using CarRental.Application.Channels.Outbound;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Tests.Bookings.Availability;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Channels;
@@ -179,6 +180,78 @@ public sealed class ChannelSyncTests
 
         run.Reminders.ShouldBe(1);
         sync.Channels.Db.Rows<ChannelReplicationItem>().ShouldHaveSingleItem().Detail.ShouldBe("Grille v3");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_updates_of_an_agency_without_its_channels_module_wait_and_go_once_it_is_back(bool suspended)
+    {
+        var sync = new SyncWorld();
+        sync.Agencies.Set(sync.Channels.AgencyId, suspended ? AgencyModuleCatalog.Every : AgencyModuleCatalog.Every & ~AgencyModules.Channels, active: !suspended);
+        sync.Pricing.Plan = DailyRatePricing.PlanVersion(sync.Channels.AgencyId, 1);
+        sync.Signal.CategoryChanged(sync.CategoryId);
+
+        var closed = await sync.Dispatcher().RunAsync(Ct);
+        var waiting = sync.Channels.Db.Rows<ChannelSyncItem>().ShouldHaveSingleItem("the change of the meantime is kept for the channel").Status;
+        sync.Signal.CategoryChanged(sync.CategoryId);
+        var stillClosed = await sync.Dispatcher().RunAsync(Ct);
+        var pricesCompared = sync.Channels.Db.Rows<ChannelSyncState>().Count;
+        sync.Agencies.Set(sync.Channels.AgencyId, AgencyModuleCatalog.Every);
+        var open = await sync.Dispatcher().RunAsync(Ct);
+
+        closed.ShouldBe(new ChannelSyncRunResult(1, 0, 0, 0, 0), "queued, but nothing is sent nor compared while the module is off");
+        stillClosed.Sent.ShouldBe(0);
+        waiting.ShouldBe(ChannelSyncStatus.Pending);
+        pricesCompared.ShouldBe(0, "the prices are compared once the module is back");
+        sync.Channels.Db.Rows<ChannelSyncState>().ShouldHaveSingleItem();
+        open.Sent.ShouldBe(1);
+        var item = sync.Channels.Db.Rows<ChannelSyncItem>().ShouldHaveSingleItem("the changes of the meantime coalesce into one update");
+        item.Status.ShouldBe(ChannelSyncStatus.Sent);
+        sync.Outbox.ReceivedBy(sync.Channels.Channel.Code).ShouldHaveSingleItem().Operation.ShouldBe(ChannelSyncOperation.PushAvailability);
+    }
+
+    [Fact]
+    public async Task A_run_from_the_screen_sends_the_updates_of_the_agency_of_the_operation_only_and_leaves_the_changes_to_the_pump()
+    {
+        var sync = new SyncWorld();
+        var otherAgency = Guid.CreateVersion7();
+        sync.Agencies.Set(otherAgency, AgencyModuleCatalog.Every);
+        var other = Channel.Create(otherAgency, "other-channel", "Autre canal", SalesChannel.BookingCom, ChannelAdapterKind.Fake, ChannelPaymentMode.PayOnSite, 0.15m, sync.Channels.Stamp).Value;
+        other.ChangeState(ChannelState.Connected, sync.Channels.Stamp).IsSuccess.ShouldBeTrue();
+        sync.Channels.Db.Set<Channel>().Add(other);
+        var queue = sync.Queue();
+        await queue.EnqueueAsync(sync.Channels.Channel.Id, sync.Channels.AgencyId, ChannelSyncOperation.PushAvailability, sync.CategoryId, "availability", Ct, immediate: true);
+        await queue.EnqueueAsync(other.Id, otherAgency, ChannelSyncOperation.PushAvailability, null, "availability", Ct, immediate: true);
+        await sync.Channels.Db.SaveChangesAsync(Ct);
+        sync.Signal.CategoryChanged(sync.CategoryId);
+        var manager = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", [Permissions.ChannelsManage]) with { AgencyId = sync.Channels.AgencyId };
+
+        var run = await sync.Dispatcher(manager).RunAsync(Ct);
+
+        run.Sent.ShouldBe(1);
+        run.Enqueued.ShouldBe(0, "the recorded changes concern every agency: the pump takes them");
+        sync.Outbox.Received.ShouldHaveSingleItem().ChannelCode.ShouldBe(sync.Channels.Channel.Code);
+        sync.Channels.Db.Rows<ChannelSyncItem>().Single(i => i.ChannelId == other.Id).Status.ShouldBe(ChannelSyncStatus.Pending);
+        sync.Signal.Drain().Categories.ShouldBe([sync.CategoryId]);
+    }
+
+    [Fact]
+    public async Task The_nightly_resynchronization_skips_the_agencies_without_their_channels_module()
+    {
+        var sync = new SyncWorld();
+        var otherAgency = Guid.CreateVersion7();
+        sync.Agencies.Set(otherAgency, AgencyModuleCatalog.Every & ~AgencyModules.Channels);
+        var other = Channel.Create(otherAgency, "closed-channel", "Canal fermé", SalesChannel.BookingCom, ChannelAdapterKind.Fake, ChannelPaymentMode.PayOnSite, 0.15m, sync.Channels.Stamp).Value;
+        other.ChangeState(ChannelState.Connected, sync.Channels.Stamp).IsSuccess.ShouldBeTrue();
+        sync.Channels.Db.Set<Channel>().Add(other);
+
+        var queued = await sync.Dispatcher().EnqueueFullResyncAsync("nightly", Ct);
+
+        queued.ShouldBe(1);
+        var item = sync.Channels.Db.Rows<ChannelSyncItem>().ShouldHaveSingleItem();
+        item.ChannelId.ShouldBe(sync.Channels.Channel.Id);
+        item.Operation.ShouldBe(ChannelSyncOperation.FullResync);
     }
 
     private static Period Day(DateOnly first, int fromDay, int toDay) =>
