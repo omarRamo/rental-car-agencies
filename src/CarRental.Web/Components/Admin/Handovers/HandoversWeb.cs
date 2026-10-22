@@ -9,7 +9,8 @@ namespace CarRental.Web.Components.Admin.Handovers;
 /// Web parts of the departure and return (ADR-0041): the contract PDF (QuestPDF, Community licence set once here at
 /// startup), the contract e-mail, and the streams of the hand-over files — photos and contracts for the readers of the
 /// files (<c>bookings.read</c>), signatures for the hand-over staff (<c>handovers.manage</c>) — from the private
-/// containers, never cached by a shared cache.
+/// containers, never cached by a shared cache. The photos of the vehicle are revalidated by the browser (many per
+/// hand-over); the contracts and the signatures hold personal data and are never cached, the browser included.
 /// </summary>
 internal static class HandoversWeb
 {
@@ -32,18 +33,23 @@ internal static class HandoversWeb
     }
 
     private static async Task<IResult> GetPhotoAsync(Guid photoId, string? size, HttpContext context, HandoverQueries queries, CancellationToken cancellationToken) =>
-        await StreamAsync(await queries.FindPhotoAsync(photoId, string.Equals(size, "thumb", StringComparison.Ordinal), cancellationToken), context, queries, cancellationToken);
+        await StreamAsync(await queries.FindPhotoAsync(photoId, string.Equals(size, "thumb", StringComparison.Ordinal), cancellationToken), context, queries, personalData: false, cancellationToken);
 
     private static async Task<IResult> GetSignatureAsync(Guid signatureId, HttpContext context, HandoverQueries queries, CancellationToken cancellationToken) =>
-        await StreamAsync(await queries.FindSignatureAsync(signatureId, cancellationToken), context, queries, cancellationToken);
+        await StreamAsync(await queries.FindSignatureAsync(signatureId, cancellationToken), context, queries, personalData: true, cancellationToken);
 
     private static async Task<IResult> GetContractAsync(Guid contractId, HttpContext context, HandoverQueries queries, CancellationToken cancellationToken) =>
-        await StreamAsync(await queries.FindContractAsync(contractId, cancellationToken), context, queries, cancellationToken);
+        await StreamAsync(await queries.FindContractAsync(contractId, cancellationToken), context, queries, personalData: true, cancellationToken);
 
+    /// <summary>
+    /// A hand-over file: with personal data (contract, signature), never cached; otherwise (a photo of the vehicle) kept
+    /// privately by the browser and revalidated with its entity tag.
+    /// </summary>
     private static async Task<IResult> StreamAsync(
         Result<HandoverMediaFile> found,
         HttpContext context,
         HandoverQueries queries,
+        bool personalData,
         CancellationToken cancellationToken)
     {
         if (found.IsFailure)
@@ -52,12 +58,19 @@ internal static class HandoversWeb
         }
 
         var file = found.Value;
-        var entityTag = new EntityTagHeaderValue($"\"{file.ETag}\"");
-        context.Response.Headers.CacheControl = "private, no-cache";
-        context.Response.Headers.ETag = entityTag.ToString();
-        if (context.Request.GetTypedHeaders().IfNoneMatch.Any(tag => tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(entityTag, useStrongComparison: false)))
+        if (personalData)
         {
-            return Results.StatusCode(StatusCodes.Status304NotModified);
+            context.Response.Headers.CacheControl = "no-store, private";
+        }
+        else
+        {
+            var entityTag = new EntityTagHeaderValue($"\"{file.ETag}\"");
+            context.Response.Headers.CacheControl = "private, no-cache";
+            context.Response.Headers.ETag = entityTag.ToString();
+            if (context.Request.GetTypedHeaders().IfNoneMatch.Any(tag => tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(entityTag, useStrongComparison: false)))
+            {
+                return Results.StatusCode(StatusCodes.Status304NotModified);
+            }
         }
 
         var download = await queries.OpenAsync(file, cancellationToken);

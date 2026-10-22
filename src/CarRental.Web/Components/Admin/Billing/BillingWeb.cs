@@ -15,8 +15,9 @@ namespace CarRental.Web.Components.Admin.Billing;
 /// Web parts of the Billing module (ADR-0058, ADR-0059): the PDF renderers (QuestPDF), the e-mail factory and the texts of
 /// the documents, and the streams of the back office — the stored PDF of an invoice or a credit note (and the courtesy
 /// translation of an invoice, rendered on demand) for the readers of invoices, the designation form of a fine (personal
-/// data, produced and logged on each request) and the files of the claims — always with an MFA session, never cached by
-/// a shared cache.
+/// data, produced and logged on each request) and the files of the claims — always with an MFA session and, since each
+/// of them holds personal data (the buyer, the driver, the parties and papers of a claim), never cached, the browser
+/// included (<c>no-store</c>).
 /// </summary>
 internal static class BillingWeb
 {
@@ -103,11 +104,6 @@ internal static class BillingWeb
         }
 
         var file = found.Value;
-        if (NotModified(context, file.ETag) is { } notModified)
-        {
-            return notModified;
-        }
-
         var download = await claims.OpenAsync(file, cancellationToken);
         return download is null ? Results.NotFound() : Stream(context, download, file.ContentType, file.FileName);
     }
@@ -120,29 +116,15 @@ internal static class BillingWeb
         }
 
         var file = found.Value;
-        if (NotModified(context, file.ETag) is { } notModified)
-        {
-            return notModified;
-        }
-
         var download = await queries.OpenAsync(file, cancellationToken);
         return download is null ? Results.NotFound() : Stream(context, download, file.ContentType, file.FileName);
     }
 
-    /// <summary>Sets the private cache headers and answers 304 when the browser already has this version.</summary>
-    private static IResult? NotModified(HttpContext context, string etag)
-    {
-        var entityTag = new EntityTagHeaderValue($"\"{etag}\"");
-        context.Response.Headers.CacheControl = "private, no-cache";
-        context.Response.Headers.ETag = entityTag.ToString();
-        return context.Request.GetTypedHeaders().IfNoneMatch.Any(tag => tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(entityTag, useStrongComparison: false))
-            ? Results.StatusCode(StatusCodes.Status304NotModified)
-            : null;
-    }
-
+    /// <summary>A stored file with personal data: inline, never kept by a cache, the browser included.</summary>
     private static IResult Stream(HttpContext context, FileDownload download, string contentType, string fileName)
     {
         context.Response.RegisterForDisposeAsync(download);
+        context.Response.Headers.CacheControl = "no-store, private";
         context.Response.Headers[HeaderNames.ContentDisposition] = new ContentDispositionHeaderValue("inline") { FileName = fileName }.ToString();
         return Results.Stream(download.Content, contentType);
     }
