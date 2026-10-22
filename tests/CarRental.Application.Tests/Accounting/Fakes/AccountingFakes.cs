@@ -3,6 +3,7 @@ using CarRental.Application.Accounting.Periods;
 using CarRental.Application.Billing.Contracts;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Cash.Contracts;
+using CarRental.Application.Cash.Expenses;
 using CarRental.Application.Channels.Contracts;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Payments.Contracts;
@@ -38,6 +39,18 @@ internal sealed class RecordingPeriodLock : IAccountingPeriodLock
     public Task<Result> AcquireExclusiveAsync(string resource, CancellationToken cancellationToken = default)
     {
         Acquired.Add((resource, true));
+        return Task.FromResult(Result.Success());
+    }
+}
+
+/// <summary>The numbering lock of the expenses: always granted, each acquisition recorded.</summary>
+internal sealed class RecordingExpenseNumberLock : IExpenseNumberLock
+{
+    public List<(Guid AgencyId, int Year)> Acquired { get; } = [];
+
+    public Task<Result> AcquireAsync(Guid agencyId, int year, CancellationToken cancellationToken = default)
+    {
+        Acquired.Add((agencyId, year));
         return Task.FromResult(Result.Success());
     }
 }

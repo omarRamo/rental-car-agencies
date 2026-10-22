@@ -42,6 +42,7 @@ public sealed class ExpenseService
     private readonly IFleetCostRecords _fleetCosts;
     private readonly IBillingAccountingQueries _billing;
     private readonly IAccountingPeriods _periods;
+    private readonly IExpenseNumberLock _numbers;
     private readonly IFileStorage _storage;
     private readonly TimeProvider _clock;
 
@@ -54,6 +55,7 @@ public sealed class ExpenseService
         IFleetCostRecords fleetCosts,
         IBillingAccountingQueries billing,
         IAccountingPeriods periods,
+        IExpenseNumberLock numbers,
         IFileStorage storage,
         TimeProvider clock)
     {
@@ -65,6 +67,7 @@ public sealed class ExpenseService
         _fleetCosts = fleetCosts;
         _billing = billing;
         _periods = periods;
+        _numbers = numbers;
         _storage = storage;
         _clock = clock;
     }
@@ -246,6 +249,13 @@ public sealed class ExpenseService
                     }
 
                     session = own.Value;
+                }
+
+                // One expense of the agency numbered at a time: no collision on the counter of the year.
+                var numbering = await _numbers.AcquireAsync(details.Value.AgencyId, details.Value.Date.Year, ct);
+                if (numbering.IsFailure)
+                {
+                    return numbering.Error;
                 }
 
                 var number = await NextNumberAsync(details.Value.AgencyId, details.Value.Date.Year, ct);
@@ -616,8 +626,8 @@ public sealed class ExpenseService
         [.. await _periods.GetClosedMonthsAsync(agencyId, cancellationToken)];
 
     /// <summary>
-    /// Runs the operation in a unit of work; two expenses numbered at once (the row version of the counter, or its unique
-    /// index for the first expense of a year) or a cash session changed meanwhile make it run again, a few times.
+    /// Runs the operation in a unit of work; a cash session changed meanwhile (or, should the numbering lock not hold, two
+    /// expenses numbered at once) makes it run again, a few times.
     /// </summary>
     private async Task<Result<T>> SaveWithRetryAsync<T>(Func<CancellationToken, Task<Result<T>>> operation, CancellationToken cancellationToken, bool retryOnConflict = true)
     {

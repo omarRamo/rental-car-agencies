@@ -44,6 +44,7 @@ public static class CashModule
             sp.GetRequiredService<IFleetCostRecords>(),
             sp.GetRequiredService<IBillingAccountingQueries>(),
             sp.GetRequiredService<IAccountingPeriods>(),
+            sp.GetRequiredService<IExpenseNumberLock>(),
             sp.GetRequiredService<IFileStorage>(),
             sp.GetRequiredService<TimeProvider>()));
 

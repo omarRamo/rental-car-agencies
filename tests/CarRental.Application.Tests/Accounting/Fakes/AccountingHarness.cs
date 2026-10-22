@@ -62,6 +62,8 @@ internal sealed class AccountingHarness
 
     public RecordingPeriodLock Lock { get; } = new();
 
+    public RecordingExpenseNumberLock Numbering { get; } = new();
+
     public RecordingAuditTrail Audit { get; } = new();
 
     public MemoryFileStorage Storage { get; } = new();
@@ -84,7 +86,7 @@ internal sealed class AccountingHarness
         new(Db, UnitOfWork, user, Lock, Referential, Cash, Sales, Billing, Journals(user), Reconciliation(user), Audit, Clock);
 
     public ExpenseService Expenses(IUserContext user) =>
-        new(Db, UnitOfWork, user, Referential, Fleet, Fleet, Billing, Periods, Storage, Clock);
+        new(Db, UnitOfWork, user, Referential, Fleet, Fleet, Billing, Periods, Numbering, Storage, Clock);
 
     /// <summary>The accounts of the default chart for every operation type, as the generation resolves them.</summary>
     public static AccountResolver DefaultAccounts() =>

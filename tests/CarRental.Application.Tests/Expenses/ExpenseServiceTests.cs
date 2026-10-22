@@ -51,6 +51,7 @@ public sealed class ExpenseServiceTests
         Stored(first).PaymentReference.ShouldBe("VIR-1");
         Stored(first).CashSessionId.ShouldBeNull();
         _harness.Db.Rows<ExpenseSequence>().Count.ShouldBe(2);
+        _harness.Numbering.Acquired.ShouldBe([(AgencyId, 2027), (AgencyId, 2027), (AgencyId, 2027), (AgencyId, 2026)], "one expense of the agency numbered at a time");
         _harness.Lock.Acquired.ShouldContain((AccountingLocks.Period(AgencyId, AccountingMonth.Of(MarchTenth)), false));
     }
 

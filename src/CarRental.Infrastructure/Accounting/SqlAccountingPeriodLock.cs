@@ -1,6 +1,7 @@
 using System.Data;
 using System.Globalization;
 using CarRental.Application.Accounting.Periods;
+using CarRental.Application.Cash.Expenses;
 using CarRental.Domain.Accounting;
 using CarRental.Domain.Common;
 using CarRental.Infrastructure.Persistence;
@@ -55,13 +56,14 @@ internal sealed class SqlAccountingPeriodLock(CarRentalDbContext db) : IAccounti
     }
 }
 
-/// <summary>Composition of the Accounting module's adapters: the lock of the accounting months on SQL Server.</summary>
+/// <summary>Composition of the adapters of package 3B: the locks of the accounting months and of the numbering of the expenses on SQL Server.</summary>
 public static class AccountingSetup
 {
     public static IServiceCollection AddAccountingInfrastructure(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IAccountingPeriodLock, SqlAccountingPeriodLock>();
+        services.AddScoped<IExpenseNumberLock, SqlExpenseNumberLock>();
         return services;
     }
 }
