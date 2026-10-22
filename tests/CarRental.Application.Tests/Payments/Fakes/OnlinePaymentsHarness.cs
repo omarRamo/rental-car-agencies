@@ -155,7 +155,12 @@ internal sealed class RecordingGatewayCallLog(InMemoryFinanceDb db) : IGatewayCa
         lock (_entries)
         {
             _entries.Add(entry);
-            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry));
+
+            // Like the adapter of the infrastructure: the call belongs to the agency of the payment of its order.
+            var agencyId = GatewayCallLog.PaymentIdOf(entry.OrderNumber) is { } paymentId
+                ? db.Set<Payment>().Where(p => p.Id == paymentId).Select(p => (Guid?)p.AgencyId).FirstOrDefault()
+                : null;
+            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry, agencyId));
         }
 
         return Task.CompletedTask;

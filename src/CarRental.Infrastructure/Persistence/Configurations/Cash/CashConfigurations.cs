@@ -39,11 +39,13 @@ internal sealed class CashSessionConfiguration : IEntityTypeConfiguration<CashSe
         builder.HasIndex(s => new { s.CashierId, s.AgencyId, s.BusinessDate })
             .IsUnique()
             .HasDatabaseName("IX_CashSessions_Cashier_Agency_BusinessDate");
+
+        // Global on purpose (ADR-0067): a person holds one drawer at a time, whatever the agency (the support included).
         builder.HasIndex(s => s.CashierId)
             .IsUnique()
             .HasFilter("[Status] = 1")
             .HasDatabaseName("IX_CashSessions_Cashier_Open");
-        builder.HasIndex(s => new { s.BusinessDate, s.Status });
+        builder.HasIndex(s => new { s.AgencyId, s.BusinessDate, s.Status });
     }
 }
 

@@ -7,7 +7,12 @@ namespace CarRental.Domain.Payments;
 /// gateway error and status codes, duration and time. It never holds credentials, card data or a raw answer of the
 /// gateway (PROMPT §9.1): only these structured, non-sensitive fields, cut to their stored length.
 /// </summary>
-public sealed class GatewayCallLog : Entity
+/// <remarks>
+/// A record of the agency of the online payment it concerns, or of the platform (ADR-0067): the client of the platform's
+/// single merchant account logs every call on its own, outside the business operation, so a call may concern an order
+/// that is not (or not yet) a stored payment; such a call belongs to the platform and only the support reads it.
+/// </remarks>
+public sealed class GatewayCallLog : Entity, IAgencyOrPlatform
 {
     public const int OrderNumberMaxLength = 32;
     public const int GatewayOrderIdMaxLength = 100;
@@ -24,6 +29,9 @@ public sealed class GatewayCallLog : Entity
         : base(id)
     {
     }
+
+    /// <summary>The agency of the online payment of the order, <see langword="null"/> when no stored payment matches it.</summary>
+    public Guid? AgencyId { get; private set; }
 
     public GatewayOperation Operation { get; private set; }
 
@@ -62,10 +70,18 @@ public sealed class GatewayCallLog : Entity
 
     public string? CorrelationId { get; private set; }
 
-    /// <summary>Records a call. Texts are trimmed and cut to their stored length; a negative duration counts as zero.</summary>
-    public static GatewayCallLog Record(GatewayCallLogEntry entry)
+    /// <summary>
+    /// Records a call for <paramref name="agencyId"/>, the agency of the payment of its order (<see langword="null"/>: a
+    /// record of the platform). Texts are trimmed and cut to their stored length; a negative duration counts as zero.
+    /// </summary>
+    public static GatewayCallLog Record(GatewayCallLogEntry entry, Guid? agencyId)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        if (agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("An agency id cannot be empty.", nameof(agencyId));
+        }
+
         if (!Enum.IsDefined(entry.Operation))
         {
             throw new ArgumentOutOfRangeException(nameof(entry), entry.Operation, "Unknown gateway operation.");
@@ -79,9 +95,10 @@ public sealed class GatewayCallLog : Entity
         var orderNumber = PaymentText.Truncate(entry.OrderNumber, OrderNumberMaxLength) ?? string.Empty;
         return new GatewayCallLog(NewId())
         {
+            AgencyId = agencyId,
             Operation = entry.Operation,
             OrderNumber = orderNumber,
-            PaymentId = Guid.TryParseExact(orderNumber, "N", out var paymentId) ? paymentId : null,
+            PaymentId = PaymentIdOf(orderNumber),
             RefundId = entry.RefundId,
             GatewayOrderId = PaymentText.Truncate(entry.GatewayOrderId, GatewayOrderIdMaxLength),
             Amount = entry.Amount,
@@ -96,6 +113,10 @@ public sealed class GatewayCallLog : Entity
             CorrelationId = PaymentText.Truncate(entry.CorrelationId, CorrelationIdMaxLength),
         };
     }
+
+    /// <summary>The online payment an order number designates: our order number is its id in 32 hexadecimal characters.</summary>
+    public static Guid? PaymentIdOf(string? orderNumber) =>
+        Guid.TryParseExact(orderNumber?.Trim(), "N", out var paymentId) ? paymentId : null;
 }
 
 /// <summary>What is known of a call to the payment gateway (see <see cref="GatewayCallLog"/>).</summary>

@@ -25,7 +25,8 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.InvoiceId).OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(i => i.Lines).HasField("_lines").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 
-        // InvoiceKind.Rental = 1, InvoiceKind.CancellationFee = 2: one of each per file.
+        // InvoiceKind.Rental = 1, InvoiceKind.CancellationFee = 2: one of each per file. The files and the fines are
+        // identified across the platform: these keys stay global (ADR-0067).
         builder.HasIndex(i => new { i.BookingId, i.Kind }).IsUnique().HasFilter("[BookingId] IS NOT NULL AND [Kind] IN (1, 2)");
         builder.HasIndex(i => i.FineId).IsUnique().HasFilter("[FineId] IS NOT NULL");
         builder.HasIndex(i => i.BookingId);
@@ -141,8 +142,8 @@ internal static class BillingDocumentColumns
         builder.HasIndex(d => new { d.AgencyId, d.FiscalYear, d.Sequence }).IsUnique();
         builder.HasIndex(d => new { d.AgencyId, d.IssueDate });
 
-        // The documents waiting for TTN (EInvoiceStatus.Pending = 2, Failed = 4).
-        builder.HasIndex(d => d.EInvoiceStatus).HasFilter("[EInvoiceStatus] IN (2, 4)");
+        // The documents of an agency waiting for TTN (EInvoiceStatus.Pending = 2, Failed = 4).
+        builder.HasIndex(d => new { d.AgencyId, d.EInvoiceStatus }).HasFilter("[EInvoiceStatus] IN (2, 4)");
     }
 }
 
@@ -177,7 +178,7 @@ internal sealed class FineConfiguration : IEntityTypeConfiguration<Fine>
         builder.HasIndex(f => new { f.AgencyId, f.Authority, f.TicketNumber }).IsUnique();
         builder.HasIndex(f => new { f.AgencyId, f.OffenceAtUtc });
         builder.HasIndex(f => new { f.AgencyId, f.Status });
-        builder.HasIndex(f => f.PlateKey);
+        builder.HasIndex(f => new { f.AgencyId, f.PlateKey });
         builder.HasIndex(f => f.BookingId);
     }
 }

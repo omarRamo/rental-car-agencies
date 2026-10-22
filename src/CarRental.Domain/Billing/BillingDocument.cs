@@ -15,7 +15,7 @@ namespace CarRental.Domain.Billing;
 /// <para>The draft state is <see cref="InvoiceDraft"/> / <see cref="CreditNoteDraft"/>, a value computed and checked before the
 /// number is taken: a document is persisted issued, never as a draft.</para>
 /// </remarks>
-public abstract class BillingDocument : AggregateRoot
+public abstract class BillingDocument : AggregateRoot, IAgencyOwned
 {
     public const int NumberMaxLength = 32;
     public const int LanguageMaxLength = 8;

@@ -4,9 +4,9 @@ namespace CarRental.Domain.Accounting;
 
 // Events carry identifiers and discriminators only (no amount nor text).
 
-public sealed record LedgerAccountChanged(Guid AccountId, string Number) : IDomainEvent;
+public sealed record LedgerAccountChanged(Guid AccountId, Guid AgencyId, string Number) : IDomainEvent;
 
-public sealed record AccountMappingChanged(Guid MappingId, string Key) : IDomainEvent;
+public sealed record AccountMappingChanged(Guid MappingId, Guid AgencyId, string Key) : IDomainEvent;
 
 /// <summary>A month of an agency was closed: its journals are frozen in <see cref="ClosingId"/>.</summary>
 public sealed record AccountingPeriodClosed(Guid PeriodId, Guid AgencyId, int Year, int Month, Guid ClosingId) : IDomainEvent;

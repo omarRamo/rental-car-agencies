@@ -8,9 +8,10 @@ namespace CarRental.Domain.Accounting;
 /// The account of an operation type (SPEC §8 "correspondance par type d'opération"): rental revenue and each invoice line
 /// nature, VAT collected per rate, daily contribution, stamp duty, customers, deposits received (a liability, never
 /// revenue), cash, bank, Clic to Pay clearing, Booking.com receivable and commissions, expenses per category, VAT
-/// deductible, suppliers, cash differences. One row per key of <see cref="AccountingMappingCatalog"/>.
+/// deductible, suppliers, cash differences. One row per agency and key of <see cref="AccountingMappingCatalog"/>: each
+/// agency maps its operation types to the accounts of its own chart (ADR-0067).
 /// </summary>
-public sealed class AccountMapping : AggregateRoot
+public sealed class AccountMapping : AggregateRoot, IAgencyOwned
 {
     public const int KeyMaxLength = 64;
 
@@ -18,14 +19,18 @@ public sealed class AccountMapping : AggregateRoot
     {
     }
 
-    private AccountMapping(Guid id, string key, string accountNumber, DateTimeOffset at, string? by)
+    private AccountMapping(Guid id, Guid agencyId, string key, string accountNumber, DateTimeOffset at, string? by)
         : base(id)
     {
+        AgencyId = agencyId;
         Key = key;
         AccountNumber = accountNumber;
         ChangedAtUtc = at;
         ChangedBy = by;
     }
+
+    /// <summary>The agency whose operation type is mapped.</summary>
+    public Guid AgencyId { get; private set; }
 
     public string Key { get; private set; } = null!;
 
@@ -35,10 +40,18 @@ public sealed class AccountMapping : AggregateRoot
 
     public string? ChangedBy { get; private set; }
 
-    /// <summary>Maps a key of the catalogue to an account of the chart (the caller checks that the account exists and is active).</summary>
-    public static Result<AccountMapping> Create(string key, string accountNumber, AuditActor by, DateTimeOffset at)
+    /// <summary>
+    /// Maps a key of the catalogue to an account of the chart of <paramref name="agencyId"/> (the caller checks that the
+    /// account exists and is active).
+    /// </summary>
+    public static Result<AccountMapping> Create(Guid agencyId, string key, string accountNumber, AuditActor by, DateTimeOffset at)
     {
         ArgumentNullException.ThrowIfNull(by);
+        if (agencyId == Guid.Empty)
+        {
+            return AccountingErrors.AgencyNotFound;
+        }
+
         if (!AccountingMappingCatalog.IsKnown(key))
         {
             return AccountingErrors.MappingKeyUnknown;
@@ -50,8 +63,8 @@ public sealed class AccountMapping : AggregateRoot
             return AccountingErrors.MappingAccountInvalid;
         }
 
-        var mapping = new AccountMapping(NewId(), key, number.Value, at, by.UserName);
-        mapping.Raise(new AccountMappingChanged(mapping.Id, key));
+        var mapping = new AccountMapping(NewId(), agencyId, key, number.Value, at, by.UserName);
+        mapping.Raise(new AccountMappingChanged(mapping.Id, agencyId, key));
         return mapping;
     }
 
@@ -67,7 +80,7 @@ public sealed class AccountMapping : AggregateRoot
         AccountNumber = number.Value;
         ChangedAtUtc = at;
         ChangedBy = by.UserName;
-        Raise(new AccountMappingChanged(Id, Key));
+        Raise(new AccountMappingChanged(Id, AgencyId, Key));
         return Result.Success();
     }
 }

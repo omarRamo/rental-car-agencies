@@ -3,11 +3,12 @@ using CarRental.Domain.Common;
 
 namespace CarRental.Domain.Tests.Accounting;
 
-/// <summary>The chart of accounts, the catalogue of the operation types and their default accounts.</summary>
+/// <summary>The chart of accounts of an agency, the catalogue of the operation types and their default accounts.</summary>
 public sealed class ChartOfAccountsTests
 {
     private static readonly AuditActor Accountant = new(Guid.CreateVersion7(), "comptable@demo.local", null, null);
     private static readonly DateTimeOffset At = new(2027, 4, 2, 9, 0, 0, TimeSpan.Zero);
+    private static readonly Guid Agency = Guid.CreateVersion7();
 
     [Theory]
     [InlineData("411", true)]
@@ -27,7 +28,7 @@ public sealed class ChartOfAccountsTests
     [Fact]
     public void A_default_account_waits_for_the_chartered_accountant_until_confirmed_or_renamed()
     {
-        var account = LedgerAccount.Create("4366", "État, TVA collectée", isDefault: true, Accountant, At).Value;
+        var account = LedgerAccount.Create(Agency, "4366", "État, TVA collectée", isDefault: true, Accountant, At).Value;
 
         account.NeedsValidation.ShouldBeTrue();
         account.IsActive.ShouldBeTrue();
@@ -35,15 +36,28 @@ public sealed class ChartOfAccountsTests
         account.Confirm(Accountant, At).IsSuccess.ShouldBeTrue();
         account.NeedsValidation.ShouldBeFalse();
 
-        var other = LedgerAccount.Create("7061", "Locations", isDefault: true, Accountant, At).Value;
+        var other = LedgerAccount.Create(Agency, "7061", "Locations", isDefault: true, Accountant, At).Value;
         other.Rename("  Locations de voitures ", Accountant, At).IsSuccess.ShouldBeTrue();
         other.Label.ShouldBe("Locations de voitures");
         other.NeedsValidation.ShouldBeFalse();
         other.Rename(" ", Accountant, At).Error.ShouldBe(AccountingErrors.AccountLabelInvalid);
 
-        LedgerAccount.Create("6061", "Carburants", isDefault: false, Accountant, At).Value.NeedsValidation.ShouldBeFalse();
-        LedgerAccount.Create("6061", new string('x', 121), isDefault: false, Accountant, At).Error.ShouldBe(AccountingErrors.AccountLabelInvalid);
-        LedgerAccount.Create("x", "Carburants", isDefault: false, Accountant, At).Error.ShouldBe(AccountingErrors.AccountNumberInvalid);
+        LedgerAccount.Create(Agency, "6061", "Carburants", isDefault: false, Accountant, At).Value.NeedsValidation.ShouldBeFalse();
+        LedgerAccount.Create(Agency, "6061", new string('x', 121), isDefault: false, Accountant, At).Error.ShouldBe(AccountingErrors.AccountLabelInvalid);
+        LedgerAccount.Create(Agency, "x", "Carburants", isDefault: false, Accountant, At).Error.ShouldBe(AccountingErrors.AccountNumberInvalid);
+    }
+
+    [Fact]
+    public void An_account_and_a_mapping_belong_to_the_chart_of_one_agency()
+    {
+        var account = LedgerAccount.Create(Agency, "532", "Banque", isDefault: false, Accountant, At).Value;
+        var mapping = AccountMapping.Create(Agency, AccountingMappingCatalog.Bank, "532", Accountant, At).Value;
+
+        (account.AgencyId, mapping.AgencyId).ShouldBe((Agency, Agency));
+        account.DomainEvents.OfType<LedgerAccountChanged>().ShouldHaveSingleItem().AgencyId.ShouldBe(Agency);
+        mapping.DomainEvents.OfType<AccountMappingChanged>().ShouldHaveSingleItem().AgencyId.ShouldBe(Agency);
+        LedgerAccount.Create(Guid.Empty, "532", "Banque", isDefault: false, Accountant, At).Error.ShouldBe(AccountingErrors.AgencyNotFound);
+        AccountMapping.Create(Guid.Empty, AccountingMappingCatalog.Bank, "532", Accountant, At).Error.ShouldBe(AccountingErrors.AgencyNotFound);
     }
 
     [Fact]
@@ -78,12 +92,12 @@ public sealed class ChartOfAccountsTests
     [Fact]
     public void A_mapping_names_a_known_operation_type_and_a_valid_number()
     {
-        var mapping = AccountMapping.Create(AccountingMappingCatalog.Bank, "532", Accountant, At).Value;
+        var mapping = AccountMapping.Create(Agency, AccountingMappingCatalog.Bank, "532", Accountant, At).Value;
 
         mapping.MapTo("5321", Accountant, At).IsSuccess.ShouldBeTrue();
         mapping.AccountNumber.ShouldBe("5321");
         mapping.MapTo("x", Accountant, At).Error.ShouldBe(AccountingErrors.MappingAccountInvalid);
-        AccountMapping.Create("sales.unknown", "532", Accountant, At).Error.ShouldBe(AccountingErrors.MappingKeyUnknown);
+        AccountMapping.Create(Agency, "sales.unknown", "532", Accountant, At).Error.ShouldBe(AccountingErrors.MappingKeyUnknown);
     }
 
     [Fact]

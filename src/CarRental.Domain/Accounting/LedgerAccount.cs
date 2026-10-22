@@ -8,9 +8,10 @@ namespace CarRental.Domain.Accounting;
 /// tunisien"): a number of digits, its label, active or not. The chart is seeded with a default inspired by the Tunisian
 /// accounting system whose accounts stay marked "to be validated by the chartered accountant" until someone confirms them
 /// (TODO(spec): the accountant validates or replaces them). A number never changes: it is referenced by the mapping and by
-/// the frozen journals; another account is created instead.
+/// the frozen journals; another account is created instead. Each agency has its own chart (ADR-0067): a number is unique
+/// within an agency.
 /// </summary>
-public sealed partial class LedgerAccount : AggregateRoot
+public sealed partial class LedgerAccount : AggregateRoot, IAgencyOwned
 {
     public const int NumberMinLength = 2;
     public const int NumberMaxLength = 10;
@@ -20,9 +21,10 @@ public sealed partial class LedgerAccount : AggregateRoot
     {
     }
 
-    private LedgerAccount(Guid id, string number, string label, bool isDefault, DateTimeOffset at, string? by)
+    private LedgerAccount(Guid id, Guid agencyId, string number, string label, bool isDefault, DateTimeOffset at, string? by)
         : base(id)
     {
+        AgencyId = agencyId;
         Number = number;
         Label = label;
         IsActive = true;
@@ -32,6 +34,9 @@ public sealed partial class LedgerAccount : AggregateRoot
         ChangedAtUtc = at;
         ChangedBy = by;
     }
+
+    /// <summary>The agency whose chart the account belongs to.</summary>
+    public Guid AgencyId { get; private set; }
 
     public string Number { get; private set; } = null!;
 
@@ -61,10 +66,15 @@ public sealed partial class LedgerAccount : AggregateRoot
         return cleaned is not null && NumberPattern().IsMatch(cleaned) ? cleaned : AccountingErrors.AccountNumberInvalid;
     }
 
-    /// <summary>An account created by the accountant (or by the default chart when <paramref name="isDefault"/>).</summary>
-    public static Result<LedgerAccount> Create(string? number, string? label, bool isDefault, AuditActor by, DateTimeOffset at)
+    /// <summary>An account of the chart of <paramref name="agencyId"/> created by the accountant (or by the default chart when <paramref name="isDefault"/>).</summary>
+    public static Result<LedgerAccount> Create(Guid agencyId, string? number, string? label, bool isDefault, AuditActor by, DateTimeOffset at)
     {
         ArgumentNullException.ThrowIfNull(by);
+        if (agencyId == Guid.Empty)
+        {
+            return AccountingErrors.AgencyNotFound;
+        }
+
         var validNumber = ValidateNumber(number);
         if (validNumber.IsFailure)
         {
@@ -77,8 +87,8 @@ public sealed partial class LedgerAccount : AggregateRoot
             return validLabel.Error;
         }
 
-        var account = new LedgerAccount(NewId(), validNumber.Value, validLabel.Value, isDefault, at, by.UserName);
-        account.Raise(new LedgerAccountChanged(account.Id, account.Number));
+        var account = new LedgerAccount(NewId(), agencyId, validNumber.Value, validLabel.Value, isDefault, at, by.UserName);
+        account.Raise(new LedgerAccountChanged(account.Id, agencyId, account.Number));
         return account;
     }
 
@@ -126,7 +136,7 @@ public sealed partial class LedgerAccount : AggregateRoot
     {
         ChangedAtUtc = at;
         ChangedBy = by.UserName;
-        Raise(new LedgerAccountChanged(Id, Number));
+        Raise(new LedgerAccountChanged(Id, AgencyId, Number));
     }
 
     [GeneratedRegex("^[1-9][0-9]{1,9}$", RegexOptions.CultureInvariant)]

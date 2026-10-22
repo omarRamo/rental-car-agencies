@@ -30,18 +30,10 @@ public sealed partial class TenancyConventionTests
     /// </summary>
     private static readonly HashSet<string> NotYetClassified = new(StringComparer.Ordinal)
     {
-        // Accounting
-        "AccountMapping", "AccountingPeriod", "JournalEntry", "JournalLine", "LedgerAccount", "MerchantStatement",
-        "PeriodClosing", "ReconciliationJustification", "StatementLine",
-        // Billing
-        "Claim", "ClaimCost", "ClaimDocument", "ClaimReimbursement", "CreditNote", "CreditNoteLine",
-        "Fine", "Invoice", "InvoiceLine",
         // Bookings
         "Booking", "BookingAccessGrant", "BookingCustomerProfile", "BookingEvent", "BookingPaymentTrack", "DamageMark",
         "FunnelSession", "FunnelUpload", "Inspection", "InspectionPhoto", "InspectionSignature", "Quote",
         "QuoteLine", "RentalContract", "ReturnCharge",
-        // Cash
-        "CashMovement", "CashSession", "Expense", "ExpenseSequence",
         // Channels
         "Channel", "ChannelBooking", "ChannelMapping", "ChannelMessageLog", "ChannelPayout", "ChannelQuota",
         "ChannelReplicationItem", "ChannelSyncItem", "ChannelSyncState",
@@ -54,8 +46,6 @@ public sealed partial class TenancyConventionTests
         // Messaging
         "AgentConversationState", "AgentTurnRecord", "BookingNotification", "BotTurnRetry", "Conversation", "KnowledgeEntry",
         "Message", "MessageStatusChange",
-        // Payments
-        "DepositHold", "GatewayCallLog", "Payment",
         // Pricing
         "CategoryPrice", "ChannelRule", "DurationTier", "Extra", "PriorityEvent", "Promotion",
         "RatePlan", "Season", "TierCategoryDiscount",
