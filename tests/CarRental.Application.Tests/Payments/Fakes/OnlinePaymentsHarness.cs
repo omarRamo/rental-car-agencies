@@ -35,9 +35,13 @@ internal sealed class OnlinePaymentsHarness
             DeclinedStatusCodes = configuredStatusCodes ? "6" : null,
         };
         Gateway = new FakeClicToPay(Microsoft.Extensions.Options.Options.Create(Options), CallLog, Time);
+        Bookings = new FakePaymentBookings(AgencyId);
     }
 
     public InMemoryFinanceDb Db { get; } = new();
+
+    /// <summary>The rental files the payments point to: of <see cref="AgencyId"/> unless a test says otherwise.</summary>
+    public FakePaymentBookings Bookings { get; }
 
     public FakeTimeProvider Time { get; }
 
@@ -74,7 +78,7 @@ internal sealed class OnlinePaymentsHarness
     public FakeAccountingPeriods Periods { get; } = new();
 
     public OnlinePayments Online(IUserContext? user = null, IClicToPayGateway? gateway = null) =>
-        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance, Periods);
+        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Bookings, Settings, Time, NullLogger<OnlinePayments>.Instance, Periods);
 
     /// <summary>The status changes told to the other modules for one payment, in order.</summary>
     public IReadOnlyList<OnlinePaymentStatusChanged> StatusChangesOf(Guid paymentId) =>

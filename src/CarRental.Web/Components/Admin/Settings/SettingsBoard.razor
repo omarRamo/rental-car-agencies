@@ -1,6 +1,7 @@
 @* Every declared setting by group, with its default, its platform value and, for the agency of the session, the agency's
    own value (ADR-0067). The platform values are edited by the support only (CanEditPlatform; the service checks it
-   again), the agency values by whoever manages the settings of that agency. *@
+   again), across agencies even inside an agency (only an operation across agencies writes a platform row), the agency
+   values by whoever manages the settings of that agency. *@
 @using CarRental.Application.Referential.Administration
 @using CarRental.Web.Resources.Admin.Settings
 @inject IOperationRunner Runner
@@ -159,7 +160,7 @@
 
         var key = item.Key;
         await NotifyAsync(
-            await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => service.ResetPlatformValueAsync(key, ct)),
+            await Runner.RunAcrossAgenciesAsync<SettingsAdministrationService, Result>((service, ct) => service.ResetPlatformValueAsync(key, ct)),
             L["Settings.ResetDone"]);
     }
 

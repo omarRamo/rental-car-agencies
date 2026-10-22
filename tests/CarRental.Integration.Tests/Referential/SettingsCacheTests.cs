@@ -67,6 +67,35 @@ public sealed class SettingsCacheTests(IntegrationHost host)
         (await ReadAsync(agencyId)).ShouldBe("Validée");
     }
 
+    [Fact]
+    public async Task An_operation_of_an_agency_never_reads_the_value_of_another_agency()
+    {
+        var (first, second) = (await NewAgencyAsync(), await NewAgencyAsync());
+        var own = $"Propre à A {Guid.NewGuid():N}"[..40];
+        await WriteAsync(first, own);
+        (await ReadAsync(first)).ShouldBe(own, "the system reads any agency (and warms the cache)");
+
+        // The staff of the second agency asking for the first agency's value gets the platform value, from the cache
+        // as inside a transaction (where the agency filter hides the row).
+        await using (var scope = host.CreateScope(TestActors.Staff(second, CarRental.Application.Identity.Contracts.Roles.Manager)))
+        {
+            var reader = scope.ServiceProvider.GetRequiredService<ISettingsReader>();
+            (await reader.GetAsync(TestSettings.Motto, first, Ct)).ShouldNotBe(own);
+            string? inside = null;
+            (await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().ExecuteAsync(
+                async ct =>
+                {
+                    inside = await reader.GetAsync(TestSettings.Motto, first, ct);
+                    return Result.Success();
+                },
+                cancellationToken: Ct)).IsSuccess.ShouldBeTrue();
+            inside.ShouldNotBe(own);
+        }
+
+        await using var firstScope = host.CreateScope(TestActors.Staff(first, CarRental.Application.Identity.Contracts.Roles.Manager));
+        (await firstScope.ServiceProvider.GetRequiredService<ISettingsReader>().GetAsync(TestSettings.Motto, first, Ct)).ShouldBe(own);
+    }
+
     private async Task<string> ReadAsync(Guid agencyId)
     {
         await using var scope = host.CreateScope();

@@ -70,7 +70,7 @@
     <value>Booking id</value>
   </data>
   <data name="Start.Booking.Hint" xml:space="preserve">
-    <value>Optional: a new id is created when empty.</value>
+    <value>A rental file of the chosen agency (the id in the address of its page).</value>
   </data>
   <data name="Start.Amount" xml:space="preserve">
     <value>Amount (TND)</value>

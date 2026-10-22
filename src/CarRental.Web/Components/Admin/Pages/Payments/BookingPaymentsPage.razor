@@ -1,18 +1,50 @@
 @page "/admin/payments/bookings/{BookingId:guid}"
 @attribute [HasPermission(Permissions.PaymentsRead)]
+@using CarRental.Application.Bookings.Contracts
+@using CarRental.Domain.Payments
+@inject IOperationRunner Runner
 @inject IStringLocalizer<PaymentsResources> L
+@inject IStringLocalizer<SharedResources> Shared
 
+@* The payments and deposits of one rental file of the agency of the session: a file the session does not see (unknown,
+   or of another agency, ADR-0067) shows the not-found state, never an empty panel to record money on. *@
 <PageTitle>@L["Booking.Title", PaymentsFormat.ShortId(BookingId)]</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-1">
     <MudLink Href="/admin/payments">@L["Booking.Back"]</MudLink>
 </MudStack>
-<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@L["Booking.Title", PaymentsFormat.ShortId(BookingId)]</MudText>
-<MudText Typo="Typo.body2" Class="mb-4">@L["Booking.Subtitle", BookingId]</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && (_booking is not null || _error is not null) ? "true" : "false")">@L["Booking.Title", PaymentsFormat.ShortId(BookingId)]</MudText>
 
-<BookingPaymentsPanel BookingId="BookingId" />
+@if (_error is not null)
+{
+    <FinanceNotice Tone="FinanceTone.Danger" Role="alert">@_error</FinanceNotice>
+}
+else if (_booking is { } booking)
+{
+    <MudText Typo="Typo.body2" Class="mb-4">@L["Booking.Subtitle", BookingId]</MudText>
+    <BookingPaymentsPanel BookingId="BookingId" AgencyId="booking.AgencyId" />
+}
+else
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Panel.Loading"]" />
+}
 
 @code {
+    private BookingSummaryInfo? _booking;
+    private string? _error;
+
     [Parameter]
     public Guid BookingId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_booking?.Id == BookingId)
+        {
+            return;
+        }
+
+        var bookingId = BookingId;
+        _booking = await Runner.RunAsync<IBookingsQueries, BookingSummaryInfo?>((bookings, ct) => bookings.GetSummaryAsync(bookingId, ct));
+        _error = _booking is null ? ErrorMessages.For(Shared, PaymentsErrors.BookingNotFound) : null;
+    }
 }
