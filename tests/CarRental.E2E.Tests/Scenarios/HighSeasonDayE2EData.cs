@@ -173,8 +173,16 @@ internal static class HighSeasonDayE2EData
         return new Late(file, name, TunisTime.DateOf(returnAt));
     }
 
+    /// <summary>The status of a file of the demo agency, by its number (numbers are unique within an agency only, ADR-0067).</summary>
     public static Task<BookingStatus> StatusAsync(E2EHost host, string number) =>
-        RunAsync(host, services => services.GetRequiredService<IAppDbContext>().Set<Booking>().Where(b => b.Number == number).Select(b => b.Status).SingleAsync());
+        RunAsync(host, async services =>
+        {
+            var agency = (await services.GetRequiredService<IReferentialQueries>().GetAgenciesAsync()).Single(a => a.Name == DemoAgencyName);
+            return await services.GetRequiredService<IAppDbContext>().Set<Booking>()
+                .Where(b => b.AgencyId == agency.Id && b.Number == number)
+                .Select(b => b.Status)
+                .SingleAsync();
+        });
 
     private static Task<int> RemainingAsync(E2EHost host, Guid categoryId, DateTimeOffset pickupAt, DateTimeOffset returnAt) =>
         RunAsync(host, async services =>
