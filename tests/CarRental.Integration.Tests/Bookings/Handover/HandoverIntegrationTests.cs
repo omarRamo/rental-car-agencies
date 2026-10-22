@@ -268,7 +268,7 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         (await anonymous.GetAsync(new Uri(HandoverMedia.ContractUrl(outcome.ContractId), UriKind.Relative), Ct)).StatusCode.ShouldBeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Unauthorized);
 
         using var client = host.CreateClient();
-        var (_, email) = await TestStaff.CreateAsync(host, Roles.Preparer);
+        var (_, email) = await TestStaff.CreateAsync(host, Roles.Preparer, agencyId: file.Agency.AgencyId);
         await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
         var contract = await client.GetAsync(new Uri(HandoverMedia.ContractUrl(outcome.ContractId), UriKind.Relative), Ct);
         contract.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -286,6 +286,13 @@ public sealed partial class HandoverIntegrationTests(IntegrationHost host)
         again.Headers.IfNoneMatch.Add(tag);
         (await client.SendAsync(again, Ct)).StatusCode.ShouldBe(HttpStatusCode.NotModified);
         (await client.GetAsync(new Uri(HandoverMedia.PhotoUrl(Guid.NewGuid()), UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        // The staff of another agency gets neither (ADR-0067).
+        using var stranger = host.CreateClient();
+        var (_, strangerEmail) = await TestStaff.CreateAsync(host, Roles.Preparer);
+        await HttpSignIn.SignInWithTwoFactorAsync(stranger, strangerEmail, "/admin", Ct);
+        (await stranger.GetAsync(new Uri(HandoverMedia.ContractUrl(outcome.ContractId), UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await stranger.GetAsync(new Uri(HandoverMedia.PhotoUrl(photoId, thumbnail: true), UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     private static async Task<byte[]> ReadAsync(IFileStorage storage, string container, string path)

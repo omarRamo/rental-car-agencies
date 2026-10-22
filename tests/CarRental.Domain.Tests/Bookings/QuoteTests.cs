@@ -10,6 +10,16 @@ namespace CarRental.Domain.Tests.Bookings;
 public sealed class QuoteTests
 {
     [Fact]
+    public void The_lines_of_a_quote_belong_to_the_agency_of_the_quote()
+    {
+        var quote = Quote.CreateVersion(Guid.CreateVersion7(), 1, QuoteOrigin.Initial, Content(), "ABC234", Agent.Name, Now).Value;
+
+        quote.AgencyId.ShouldBe(AgencyId);
+        quote.Lines.ShouldNotBeEmpty();
+        quote.Lines.ShouldAllBe(l => l.AgencyId == AgencyId);
+    }
+
+    [Fact]
     public void A_locked_quote_guarantees_its_price_for_24_hours()
     {
         var quote = Quote.CreateLocked(Content(), "Q7F3K2", "system:whatsapp", Now).Value;

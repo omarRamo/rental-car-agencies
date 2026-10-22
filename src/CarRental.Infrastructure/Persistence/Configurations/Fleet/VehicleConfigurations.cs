@@ -10,7 +10,9 @@ namespace CarRental.Infrastructure.Persistence.Configurations.Fleet;
 
 /// <summary>
 /// The vehicle aggregate: root in a temporal table, children in plain tables of the <c>fleet</c> schema (their history
-/// is kept by the aggregate itself: superseded documents, completed maintenances, history lines, audit log).
+/// is kept by the aggregate itself: superseded documents, completed maintenances, history lines, audit log). Every row
+/// carries the agency of its vehicle (ADR-0067); the children are read through their vehicle, so only the root has the
+/// foreign key to the agency.
 /// </summary>
 internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 {

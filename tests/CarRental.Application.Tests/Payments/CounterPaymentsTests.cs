@@ -57,6 +57,22 @@ public sealed class CounterPaymentsTests
     }
 
     [Fact]
+    public async Task An_agency_without_the_cash_module_takes_no_cash_but_the_other_means_of_payment()
+    {
+        var agent = _harness.User(Roles.Agent);
+        await _harness.OpenSessionAsync(agent, openingFloat: 100m, cancellationToken: Ct);
+        _harness.Referential.Modules[_harness.AgencyId] = AgencyModuleCatalog.Defaults & ~AgencyModules.Cash;
+        var bookingId = Guid.CreateVersion7();
+
+        (await _harness.Payments(agent).RecordPaymentAsync(CashPayment(bookingId, _harness.AgencyId, 250m), cancellationToken: Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        (await _harness.Deposits(agent).TakeAsync(new DepositRequest(bookingId, _harness.AgencyId, DepositModeInfo.Cash, 300m), Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        var card = (await _harness.Payments(agent).RecordPaymentAsync(
+            new CounterPaymentRequest(bookingId, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 250m, "TPE 1"), cancellationToken: Ct)).Value;
+        (await _harness.Payments(agent).RecordRefundAsync(new CounterRefundRequest(card, PaymentMethodInfo.Cash, 50m, "Trop-perçu"), Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        _harness.Db.Rows<Payment>().ShouldHaveSingleItem().Id.ShouldBe(card);
+    }
+
+    [Fact]
     public async Task Cash_cannot_be_recorded_without_an_open_session()
     {
         var agent = _harness.User(Roles.Agent);

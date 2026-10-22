@@ -1,4 +1,5 @@
-@* Pays money back on a captured payment (at most what remains refundable), with a mandatory reason. *@
+@* Pays money back on a captured payment (at most what remains refundable), with a mandatory reason; in cash only when
+   the agency uses the cash module. *@
 @inject IOperationRunner Runner
 @inject IStringLocalizer<PaymentsResources> L
 @inject IStringLocalizer<SharedResources> Shared
@@ -9,7 +10,7 @@
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
                 <MudSelect T="PaymentMethodInfo" @bind-Value="_method" Label="@L["Field.RefundMethod"]" ToStringFunc="@(m => L[$"Method.{m}"])">
-                    @foreach (var method in PaymentsFormat.RefundMethods)
+                    @foreach (var method in PaymentsFormat.Offered(PaymentsFormat.RefundMethods, CashOffered))
                     {
                         <MudSelectItem T="PaymentMethodInfo" Value="@method">@L[$"Method.{method}"]</MudSelectItem>
                     }
@@ -53,9 +54,14 @@
     [Parameter, EditorRequired]
     public PaymentInfo Payment { get; set; } = default!;
 
+    /// <summary>Whether cash is offered: the agency uses the cash module (ADR-0067).</summary>
+    [Parameter]
+    public bool CashOffered { get; set; } = true;
+
     protected override void OnInitialized()
     {
-        _method = PaymentsFormat.RefundMethods.Contains(Payment.Method) ? Payment.Method : PaymentMethodInfo.Cash;
+        var methods = PaymentsFormat.Offered(PaymentsFormat.RefundMethods, CashOffered);
+        _method = methods.Contains(Payment.Method) ? Payment.Method : methods[0];
         _amount = Payment.RefundableAmount.Amount;
     }
 

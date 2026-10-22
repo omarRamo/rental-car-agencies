@@ -188,11 +188,10 @@ else
         return years.Count == 0 || years.Contains(today) ? today : years.Min();
     }
 
+    /// <summary>The simulator, which prices the plans of the agency of the session (the agency of the plan).</summary>
     private string SimulatorLink() =>
-        _detail is { } detail
-            ? detail.Plan.Status == RatePlanStatus.Published
-                ? $"/admin/pricing/simulator?agence={detail.Plan.AgencyId}"
-                : $"/admin/pricing/simulator?agence={detail.Plan.AgencyId}&comparer={detail.Plan.Id}{(detail.Plan.Channel is { } channel ? $"&canal={channel}" : string.Empty)}"
+        _detail is { Plan.Status: not RatePlanStatus.Published } detail
+            ? $"/admin/pricing/simulator?comparer={detail.Plan.Id}{(detail.Plan.Channel is { } channel ? $"&canal={channel}" : string.Empty)}"
             : "/admin/pricing/simulator";
 
     private async Task RenameAsync()

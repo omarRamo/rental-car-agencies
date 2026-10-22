@@ -17,7 +17,7 @@ namespace CarRental.Domain.Bookings.Handover;
 /// <para>Files that are no longer referenced (replaced photos, voided signatures) are listed in
 /// <see cref="ReleasedFiles"/> for the application to delete once the change is committed.</para>
 /// </remarks>
-public sealed class Inspection : AggregateRoot
+public sealed class Inspection : AggregateRoot, IAgencyOwned
 {
     public const int MaxMileage = 2_000_000;
     public const int FullTank = 8;
@@ -388,7 +388,7 @@ public sealed class Inspection : AggregateRoot
             _photos.Remove(replaced);
         }
 
-        var photo = new InspectionPhoto(photoId, Id, slot, slot == PhotoSlot.Damage ? damageMarkId : null, image, thumbnail, actor, at);
+        var photo = new InspectionPhoto(photoId, Id, AgencyId, slot, slot == PhotoSlot.Damage ? damageMarkId : null, image, thumbnail, actor, at);
         _photos.Add(photo);
         ContentChanged();
         return photo;
@@ -436,7 +436,7 @@ public sealed class Inspection : AggregateRoot
             return valid.Error;
         }
 
-        var mark = new DamageMark(Entity.NewId(), Id, input with { Note = Clean(input.Note), IsPreExisting = Kind == InspectionKind.Departure || input.IsPreExisting }, null, actor, at);
+        var mark = new DamageMark(Entity.NewId(), Id, AgencyId, input with { Note = Clean(input.Note), IsPreExisting = Kind == InspectionKind.Departure || input.IsPreExisting }, null, actor, at);
         _damages.Add(mark);
         ContentChanged();
         return mark;
@@ -539,7 +539,7 @@ public sealed class Inspection : AggregateRoot
         }
 
         PaperSignature = null;
-        var signature = new InspectionSignature(signatureId, Id, role, name, image, actor, at);
+        var signature = new InspectionSignature(signatureId, Id, AgencyId, role, name, image, actor, at);
         _signatures.Add(signature);
         Revision++;
         return signature;
@@ -824,7 +824,7 @@ public sealed class Inspection : AggregateRoot
         foreach (var known in knownDamages.Take(MaxDamages))
         {
             var input = new DamageInput(known.View, known.X, known.Y, known.Type, known.Severity, known.Note, IsPreExisting: true);
-            _damages.Add(new DamageMark(Entity.NewId(), Id, input, known.Id, actor, at));
+            _damages.Add(new DamageMark(Entity.NewId(), Id, AgencyId, input, known.Id, actor, at));
         }
     }
 
@@ -860,7 +860,7 @@ public sealed class Inspection : AggregateRoot
         _charges.Clear();
         for (var position = 0; position < charges.Count; position++)
         {
-            _charges.Add(new ReturnCharge(Id, position + 1, charges[position], actor, at));
+            _charges.Add(new ReturnCharge(Id, AgencyId, position + 1, charges[position], actor, at));
         }
     }
 
@@ -885,7 +885,7 @@ public sealed class Inspection : AggregateRoot
 }
 
 /// <summary>A photo of an inspection, kept in the private container <c>inspections</c> with its thumbnail.</summary>
-public sealed class InspectionPhoto : Entity
+public sealed class InspectionPhoto : Entity, IAgencyOwned
 {
     private InspectionPhoto()
     {
@@ -894,6 +894,7 @@ public sealed class InspectionPhoto : Entity
     internal InspectionPhoto(
         Guid id,
         Guid inspectionId,
+        Guid agencyId,
         PhotoSlot slot,
         Guid? damageMarkId,
         HandoverFile image,
@@ -903,6 +904,7 @@ public sealed class InspectionPhoto : Entity
         : base(id)
     {
         InspectionId = inspectionId;
+        AgencyId = agencyId;
         Slot = slot;
         DamageMarkId = damageMarkId;
         StoragePath = image.Path;
@@ -917,6 +919,9 @@ public sealed class InspectionPhoto : Entity
     }
 
     public Guid InspectionId { get; private set; }
+
+    /// <summary>The agency of the inspection (given by the inspection).</summary>
+    public Guid AgencyId { get; private set; }
 
     public PhotoSlot Slot { get; private set; }
 
@@ -947,7 +952,7 @@ public sealed class InspectionPhoto : Entity
 /// A damage marked on the schematic of the vehicle: view, position in percent of the view (from its top-left corner),
 /// type, severity and note; pre-existing (known before this rental) or new (found at its return).
 /// </summary>
-public sealed class DamageMark : Entity
+public sealed class DamageMark : Entity, IAgencyOwned
 {
     public const int NoteMaxLength = 500;
 
@@ -955,10 +960,11 @@ public sealed class DamageMark : Entity
     {
     }
 
-    internal DamageMark(Guid id, Guid inspectionId, DamageInput input, Guid? sourceMarkId, BookingActor actor, DateTimeOffset at)
+    internal DamageMark(Guid id, Guid inspectionId, Guid agencyId, DamageInput input, Guid? sourceMarkId, BookingActor actor, DateTimeOffset at)
         : base(id)
     {
         InspectionId = inspectionId;
+        AgencyId = agencyId;
         SourceMarkId = sourceMarkId;
         RecordedByUserId = actor.UserId;
         RecordedBy = actor.Name;
@@ -967,6 +973,9 @@ public sealed class DamageMark : Entity
     }
 
     public Guid InspectionId { get; private set; }
+
+    /// <summary>The agency of the inspection (given by the inspection).</summary>
+    public Guid AgencyId { get; private set; }
 
     public DamageView View { get; private set; }
 
@@ -1018,7 +1027,7 @@ public sealed class DamageMark : Entity
 }
 
 /// <summary>A signature drawn on the tablet (PNG in the private container <c>inspections</c>).</summary>
-public sealed class InspectionSignature : Entity
+public sealed class InspectionSignature : Entity, IAgencyOwned
 {
     public const int SignerNameMaxLength = 120;
 
@@ -1026,10 +1035,11 @@ public sealed class InspectionSignature : Entity
     {
     }
 
-    internal InspectionSignature(Guid id, Guid inspectionId, SignatureRole role, string signerName, HandoverFile image, BookingActor actor, DateTimeOffset at)
+    internal InspectionSignature(Guid id, Guid inspectionId, Guid agencyId, SignatureRole role, string signerName, HandoverFile image, BookingActor actor, DateTimeOffset at)
         : base(id)
     {
         InspectionId = inspectionId;
+        AgencyId = agencyId;
         Role = role;
         SignerName = signerName;
         StoragePath = image.Path;
@@ -1041,6 +1051,9 @@ public sealed class InspectionSignature : Entity
     }
 
     public Guid InspectionId { get; private set; }
+
+    /// <summary>The agency of the inspection (given by the inspection).</summary>
+    public Guid AgencyId { get; private set; }
 
     public SignatureRole Role { get; private set; }
 

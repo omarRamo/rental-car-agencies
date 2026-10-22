@@ -23,16 +23,6 @@
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="handover-touch">@L["Day.Show"]</MudButton>
         <MudButton Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ChevronRight" Class="handover-touch" OnClick="@(() => MoveAsync(1))">@L["Day.Next"]</MudButton>
         <MudButton Variant="Variant.Text" Class="handover-touch" OnClick="TodayAsync">@L["Day.Today"]</MudButton>
-        @if (_agencies.Count > 1)
-        {
-            <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Day.Agency"]" Style="min-inline-size:14rem"
-                       ToStringFunc="@(id => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty)">
-                @foreach (var agency in _agencies)
-                {
-                    <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                }
-            </MudSelect>
-        }
     </form>
 </MudPaper>
 
@@ -70,8 +60,7 @@ else
 }
 
 @code {
-    private IReadOnlyList<AgencyChoice> _agencies = [];
-    private Guid _agencyId;
+    private Guid? _agencyId;
     private HandoverDay? _day;
     private string? _dayText;
     private string? _error;
@@ -98,30 +87,24 @@ else
 
     private async Task LoadAsync()
     {
-        if (_agencies.Count == 0)
+        // The day of the agency of the session (ADR-0067).
+        if (_agencyId is null)
         {
-            var agencies = await Runner.RunAsync<HandoverQueries, Result<IReadOnlyList<AgencyChoice>>>(async (queries, ct) =>
+            var agency = await Runner.RunAsync<HandoverQueries, Result<Guid>>(async (queries, ct) =>
             {
-                var found = await queries.GetAgenciesAsync(ct);
-                return found.IsSuccess ? Result.Success<IReadOnlyList<AgencyChoice>>([.. found.Value.Select(a => new AgencyChoice(a.Id, a.Name))]) : found.Error;
+                var found = await queries.GetCurrentAgencyAsync(ct);
+                return found.IsSuccess ? found.Value.Id : found.Error;
             });
-            if (agencies.IsFailure)
+            if (agency.IsFailure)
             {
-                _error = ErrorMessages.For(Shared, agencies.Error);
+                _error = ErrorMessages.For(Shared, agency.Error);
                 return;
             }
 
-            _agencies = agencies.Value;
-            if (_agencies.Count == 0)
-            {
-                _error = ErrorMessages.For(Shared, BookingErrors.AgencyRequired);
-                return;
-            }
-
-            _agencyId = _agencies[0].Id;
+            _agencyId = agency.Value;
         }
 
-        var agencyId = _agencyId;
+        var agencyId = _agencyId.Value;
         var date = SelectedDay;
         var result = await Runner.RunAsync<HandoverQueries, Result<HandoverDay>>((queries, ct) => queries.GetDayAsync(agencyId, date, ct));
         if (result.IsSuccess)
@@ -155,13 +138,6 @@ else
     {
         Go(TunisTime.Today(Clock));
         return Task.CompletedTask;
-    }
-
-    private async Task AgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
-        _day = null;
-        await LoadAsync();
     }
 
     private static string Screen(HandoverDayItem item, InspectionKind kind) =>
@@ -245,6 +221,4 @@ else
             @text
         </span>
     };
-
-    private sealed record AgencyChoice(Guid Id, string Name);
 }

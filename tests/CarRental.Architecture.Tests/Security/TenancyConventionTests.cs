@@ -30,31 +30,6 @@ public sealed partial class TenancyConventionTests
     /// </summary>
     private static readonly HashSet<string> NotYetClassified = new(StringComparer.Ordinal)
     {
-        // Accounting
-        "AccountMapping", "AccountingPeriod", "JournalEntry", "JournalLine", "LedgerAccount", "MerchantStatement",
-        "PeriodClosing", "ReconciliationJustification", "StatementLine",
-        // Billing
-        "Claim", "ClaimCost", "ClaimDocument", "ClaimReimbursement", "CreditNote", "CreditNoteLine",
-        "Fine", "Invoice", "InvoiceLine",
-        // Bookings
-        "Booking", "BookingAccessGrant", "BookingCustomerProfile", "BookingEvent", "BookingPaymentTrack", "DamageMark",
-        "FunnelSession", "FunnelUpload", "Inspection", "InspectionPhoto", "InspectionSignature", "Quote",
-        "QuoteLine", "RentalContract", "ReturnCharge",
-        // Cash
-        "CashMovement", "CashSession", "Expense", "ExpenseSequence",
-        // Customers
-        "BlacklistEntry", "Consent", "Customer", "DriverSubmission", "IdentityDocument", "Person",
-        "StagedDocumentImage", "SubmittedDocument",
-        // Fleet
-        "DeadlineAlert", "MaintenanceEvent", "MaintenancePlan", "Vehicle", "VehicleCategory", "VehicleCost",
-        "VehicleDocument", "VehicleEconomics", "VehicleHistoryEntry", "VehiclePhoto",
-        // Payments
-        "DepositHold", "GatewayCallLog", "Payment",
-        // Pricing
-        "CategoryPrice", "ChannelRule", "DurationTier", "Extra", "PriorityEvent", "Promotion",
-        "RatePlan", "Season", "TierCategoryDiscount",
-        // Reporting
-        "FunnelEvent", "SnapshotDay", "VehicleDayRental", "VehicleDaySnapshot",
     };
 
     private static readonly IModel Model = BuildModel();

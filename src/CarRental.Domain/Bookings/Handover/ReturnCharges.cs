@@ -383,7 +383,7 @@ public static class ReturnCharges
 }
 
 /// <summary>A return charge of an inspection (ADR-0042): kept with who recorded it and when.</summary>
-public sealed class ReturnCharge : Entity
+public sealed class ReturnCharge : Entity, IAgencyOwned
 {
     public const int DescriptionMaxLength = 200;
 
@@ -391,10 +391,11 @@ public sealed class ReturnCharge : Entity
     {
     }
 
-    internal ReturnCharge(Guid inspectionId, int position, ReturnChargeLine line, BookingActor actor, DateTimeOffset at)
+    internal ReturnCharge(Guid inspectionId, Guid agencyId, int position, ReturnChargeLine line, BookingActor actor, DateTimeOffset at)
         : base(NewId())
     {
         InspectionId = inspectionId;
+        AgencyId = agencyId;
         Position = position;
         Kind = line.Kind;
         Quantity = line.Quantity;
@@ -414,6 +415,9 @@ public sealed class ReturnCharge : Entity
     }
 
     public Guid InspectionId { get; private set; }
+
+    /// <summary>The agency of the inspection (given by the inspection).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Order of the line, from 1.</summary>
     public int Position { get; private set; }

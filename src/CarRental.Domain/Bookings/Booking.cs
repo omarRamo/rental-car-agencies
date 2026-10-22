@@ -16,8 +16,9 @@ namespace CarRental.Domain.Bookings;
 /// each timeline row: two concurrent commands on the same file cannot both succeed.</para>
 /// <para>The price is a frozen <c>Quote</c> (its own aggregate); the file references its current version and keeps its
 /// totals for lists and payments. Instants are UTC; calendar rules use Africa/Tunis.</para>
+/// <para>A file belongs to one agency (ADR-0067): its timeline rows carry that agency too.</para>
 /// </remarks>
-public sealed class Booking : AggregateRoot
+public sealed class Booking : AggregateRoot, IAgencyOwned
 {
     public const int ReasonMaxLength = 500;
     public const int ChannelReferenceMaxLength = 64;
@@ -61,12 +62,12 @@ public sealed class Booking : AggregateRoot
 
     public Guid AgencyId { get; private set; }
 
-    /// <summary>Readable number <c>LOC-YYYY-NNNNNN</c>, gapless per Tunis year (ADR-0016).</summary>
+    /// <summary>Readable number <c>LOC-YYYY-NNNNNN</c>, gapless per agency and Tunis year (ADR-0016, ADR-0067).</summary>
     public string Number { get; private set; } = null!;
 
     public SalesChannel Channel { get; private set; }
 
-    /// <summary>Reference of the booking in its channel (e.g. Booking.com), unique per channel.</summary>
+    /// <summary>Reference of the booking in its channel (e.g. Booking.com), unique per agency and channel.</summary>
     public string? ChannelReference { get; private set; }
 
     public BookingAttribution Attribution { get; private set; } = BookingAttribution.None;
@@ -1004,7 +1005,7 @@ public sealed class Booking : AggregateRoot
         IReadOnlyDictionary<string, string>? facts = null)
     {
         LastEventSequence++;
-        _events.Add(BookingEvent.Create(Id, LastEventSequence, at, type, before, Status, actor, reason, facts));
+        _events.Add(BookingEvent.Create(Id, AgencyId, LastEventSequence, at, type, before, Status, actor, reason, facts));
     }
 
     private void ApplyParties(BookingParties parties)

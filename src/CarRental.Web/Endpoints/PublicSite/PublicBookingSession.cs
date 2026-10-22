@@ -1,5 +1,6 @@
 using System.Globalization;
 using CarRental.Application.Common.Security;
+using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Hosting;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -8,7 +9,9 @@ namespace CarRental.Web.Endpoints.PublicSite;
 
 /// <summary>
 /// The actors of the public booking pages: their writes run in a DI scope of their own, as a system actor that keeps
-/// the address of the visitor (audit), once the endpoint checked its own token or session (ADR-0049, ADR-0051).
+/// the address of the visitor (audit), once the endpoint checked its own token or session (ADR-0049, ADR-0051). The
+/// actor works for the agency of the public site only (ADR-0067): a session, a link or a booking of another agency is
+/// unknown to it, and it writes nothing for another agency.
 /// </summary>
 public static class PublicActors
 {
@@ -16,14 +19,21 @@ public static class PublicActors
 
     public const string MyBooking = "system:my-booking";
 
-    /// <summary>A scope acting as <paramref name="actor"/>, with the client address and the correlation of the request.</summary>
+    /// <summary>
+    /// A scope acting as <paramref name="actor"/> for the agency of the public site of the request, with the client
+    /// address and the correlation of the request. Outside a public site (no agency), the actor is a visitor of no
+    /// agency: it sees and writes nothing.
+    /// </summary>
     public static AsyncServiceScope CreateScope(HttpContext context, string actor)
     {
         ArgumentNullException.ThrowIfNull(context);
         var scope = context.RequestServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope();
         var ip = context.RequestServices.GetRequiredService<ClientIpResolver>().Resolve(context);
-        scope.ServiceProvider.GetRequiredService<ScopedUserContext>()
-            .Initialize(UserContextSnapshot.System(actor, CorrelationIds.Current(context)) with { IpAddress = ip });
+        var correlationId = CorrelationIds.Current(context);
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(
+            PublicSiteAgency.Of(context) is { } agencyId
+                ? UserContextSnapshot.System(actor, correlationId, agencyId) with { IpAddress = ip }
+                : UserContextSnapshot.Anonymous(ip, correlationId));
         return scope;
     }
 

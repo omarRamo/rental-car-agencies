@@ -172,8 +172,9 @@ internal sealed class FakeMessagingBookings : IBookingsQueries
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
         Task.FromResult(Bookings.GetValueOrDefault(bookingId));
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Bookings.Values.FirstOrDefault(b => string.Equals(b.Number, number.Trim(), StringComparison.OrdinalIgnoreCase)));
+    /// <summary>The file with this number in <paramref name="agencyId"/> (numbers are unique within an agency only); any agency when null.</summary>
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Bookings.Values.FirstOrDefault(b => (agencyId is null || b.AgencyId == agencyId) && string.Equals(b.Number, number.Trim(), StringComparison.OrdinalIgnoreCase)));
 
     public Task<IReadOnlyList<PersonBookingInfo>> GetBookingsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<PersonBookingInfo>>(

@@ -1,4 +1,5 @@
 using CarRental.Domain.Customers;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Persistence.Auditing;
 using CarRental.Infrastructure.Persistence.Conventions;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace CarRental.Infrastructure.Persistence.Configurations.Customers;
 /// <summary>
 /// Person aggregate: persons (temporal), identity documents (temporal), consents and blacklist entries. Personal data
 /// and document numbers are masked in the audit log; the normalized keys (phone, e-mail, search name, document number
-/// key) are indexed for the search and the deduplication (ADR-0027).
+/// key) are indexed for the search and the deduplication (ADR-0027), within the agency of the person (ADR-0067).
 /// </summary>
 internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
 {
@@ -17,6 +18,7 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
     {
         builder.ToTemporalTable("Persons", Schemas.Customers);
         builder.HasKey(p => p.Id);
+        builder.HasOne<Agency>().WithMany().HasForeignKey(p => p.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(p => p.FirstName).HasMaxLength(Person.NameMaxLength).IsRequired().IsAuditSensitive();
         builder.Property(p => p.LastName).HasMaxLength(Person.NameMaxLength).IsRequired().IsAuditSensitive();
         builder.Property(p => p.SearchName).HasMaxLength(Person.SearchNameMaxLength).IsRequired().IsAuditSensitive();
@@ -42,10 +44,11 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
         builder.Navigation(p => p.Consents).HasField("_consents").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
         builder.Navigation(p => p.BlacklistEntries).HasField("_blacklistEntries").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 
-        builder.HasIndex(p => p.Phone);
-        builder.HasIndex(p => p.Email);
-        builder.HasIndex(p => p.SearchName);
-        builder.HasIndex(p => new { p.LastName, p.FirstName });
+        // Every read of an agency's staff is limited to its agency (query filter): the keys of the search lead with it.
+        builder.HasIndex(p => new { p.AgencyId, p.Phone });
+        builder.HasIndex(p => new { p.AgencyId, p.Email });
+        builder.HasIndex(p => new { p.AgencyId, p.SearchName });
+        builder.HasIndex(p => new { p.AgencyId, p.LastName, p.FirstName });
     }
 }
 
@@ -65,11 +68,12 @@ internal sealed class IdentityDocumentConfiguration : IEntityTypeConfiguration<I
         builder.Ignore(d => d.IsCurrent);
         builder.Ignore(d => d.IsVerified);
 
-        // One current document per number: the deduplication key of a person, also guaranteed by the database.
-        builder.HasIndex(d => new { d.Type, d.IssuingCountry, d.NumberKey })
+        // One current document per number in an agency: the deduplication key of a person, also guaranteed by the
+        // database. The same document may be on file in two agencies, each for its own customer (ADR-0067).
+        builder.HasIndex(d => new { d.AgencyId, d.Type, d.IssuingCountry, d.NumberKey })
             .IsUnique()
             .HasFilter("[SupersededAtUtc] IS NULL");
-        builder.HasIndex(d => d.NumberKey);
+        builder.HasIndex(d => new { d.AgencyId, d.NumberKey });
     }
 
     private static void ImageColumns(ComplexPropertyBuilder<DocumentImage> image, string prefix)
@@ -107,13 +111,14 @@ internal sealed class BlacklistEntryConfiguration : IEntityTypeConfiguration<Bla
     }
 }
 
-/// <summary>Payers (temporal): one individual customer per person, one company per tax identifier.</summary>
+/// <summary>Payers (temporal): one individual customer per person, one company per tax identifier and agency.</summary>
 internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 {
     public void Configure(EntityTypeBuilder<Customer> builder)
     {
         builder.ToTemporalTable("Customers", Schemas.Customers);
         builder.HasKey(c => c.Id);
+        builder.HasOne<Agency>().WithMany().HasForeignKey(c => c.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(c => c.LegalName).HasMaxLength(Customer.LegalNameMaxLength);
         builder.Property(c => c.SearchName).HasMaxLength(Customer.LegalNameMaxLength);
         builder.Property(c => c.TaxIdentifier).HasMaxLength(TaxIdentifiers.MaxLength).IsUnicode(false);
@@ -125,9 +130,10 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.ComplexProperty(c => c.BillingAddress, address => AddressColumns.Configure(address, "BillingAddress", sensitive: false));
         builder.HasOne<Person>().WithMany().HasForeignKey(c => c.PersonId).OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(c => c.PersonId).IsUnique().HasFilter("[PersonId] IS NOT NULL");
-        builder.HasIndex(c => c.TaxIdentifierKey).IsUnique().HasFilter("[Kind] = 2 AND [TaxIdentifierKey] IS NOT NULL");
-        builder.HasIndex(c => c.SearchName);
+        // Per agency (ADR-0067): a company is a payer of each agency it rents from, with the same tax identifier.
+        builder.HasIndex(c => new { c.AgencyId, c.PersonId }).IsUnique().HasFilter("[PersonId] IS NOT NULL");
+        builder.HasIndex(c => new { c.AgencyId, c.TaxIdentifierKey }).IsUnique().HasFilter("[Kind] = 2 AND [TaxIdentifierKey] IS NOT NULL");
+        builder.HasIndex(c => new { c.AgencyId, c.SearchName });
     }
 }
 

@@ -1,7 +1,9 @@
+using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Reporting.Indicators;
 using CarRental.Domain.Common;
 using CarRental.Web.Resources.Admin.Reports;
+using CarRental.Web.Security;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -9,10 +11,10 @@ using Microsoft.Extensions.Localization;
 namespace CarRental.Web.Components.Admin.Reports;
 
 /// <summary>
-/// Excel exports of the reports screen (ADR-0046): <c>GET /admin/reports/export/{table}?agency=&amp;from=&amp;to=</c>, with
-/// an MFA session and <c>reports.read</c>. The workbook is built on the server from the same indicators as the screen
-/// (<see cref="ReportQueries"/>, which checks the permission again), in the user's language, and sent as an attachment
-/// that no cache keeps (<c>no-store</c>).
+/// Excel exports of the reports screen (ADR-0046): <c>GET /admin/reports/export/{table}?from=&amp;to=</c>, with an MFA
+/// session, <c>reports.read</c> and the reports module on for the agency of the session, whose report it is (ADR-0067).
+/// The workbook is built on the server from the same indicators as the screen (<see cref="ReportQueries"/>, which checks
+/// the permission again), in the user's language, and sent as an attachment that no cache keeps (<c>no-store</c>).
 /// </summary>
 internal static class ReportExportEndpoints
 {
@@ -20,17 +22,17 @@ internal static class ReportExportEndpoints
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapGet(ReportExport.Route, ExportAsync)
-            .RequireAuthorization(PermissionPolicy.For(Permissions.ReportsRead))
+            .RequireAuthorization(PermissionPolicy.For(Permissions.ReportsRead), ModulePolicy.For(AgencyModules.Reports))
             .ExcludeFromDescription();
         return endpoints;
     }
 
     private static async Task<IResult> ExportAsync(
         string table,
-        [FromQuery] Guid? agency,
         [FromQuery] string? from,
         [FromQuery] string? to,
         [FromServices] ReportQueries queries,
+        [FromServices] IUserContext user,
         [FromServices] IStringLocalizer<ReportsResources> localizer,
         HttpContext context,
         CancellationToken cancellationToken)
@@ -40,9 +42,15 @@ internal static class ReportExportEndpoints
             return TypedResults.NotFound();
         }
 
-        if (agency is not { } agencyId || !ReportExport.TryParseDay(from, out var start) || !ReportExport.TryParseDay(to, out var end))
+        if (!ReportExport.TryParseDay(from, out var start) || !ReportExport.TryParseDay(to, out var end))
         {
             return TypedResults.Problem(detail: "reporting.export.query_invalid", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        // The module policy guarantees an agency; the report is the one of the agency the session works for.
+        if (user.AgencyId is not { } agencyId)
+        {
+            return TypedResults.NotFound();
         }
 
         var report = await queries.GetDashboardAsync(new ReportRequest(agencyId, start, end), cancellationToken);

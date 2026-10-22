@@ -40,11 +40,14 @@ public sealed record RegisterAgencyRequest(
 /// <summary>A registered agency: its id, the address of its public site and its first manager.</summary>
 public sealed record AgencyRegistration(Guid AgencyId, string Slug, Guid ManagerId);
 
+/// <summary>The identity of an agency as the support edits it: name, city and contact details (blank ones are cleared).</summary>
+public sealed record AgencyDetailsRequest(string Name, string City, string? Address, string? Phone, string? Email);
+
 /// <summary>
 /// The agencies of the platform, for the support (permission <c>platform.agencies</c>, from the platform pages: the
-/// operation works across agencies, ADR-0067): list them, register one with its first manager, change the address of its
-/// public site, switch its modules, suspend it or lift the suspension, invite another manager. Every change is audited
-/// in the journal of the agency concerned (row diff plus a readable event).
+/// operation works across agencies, ADR-0067): list them, register one with its first manager, change its name and
+/// contact details or the address of its public site, switch its modules, suspend it or lift the suspension, invite
+/// another manager. Every change is audited in the journal of the agency concerned (row diff plus a readable event).
 /// </summary>
 public sealed class AgencyPlatformService(
     IAppDbContext db,
@@ -149,6 +152,43 @@ public sealed class AgencyPlatformService(
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Changes the name, city, address, phone and e-mail of the agency; its legal identity (invoices) and the coordinates
+    /// of its office are kept. Nothing to change is a success.
+    /// </summary>
+    public Task<Result> UpdateDetailsAsync(Guid agencyId, AgencyDetailsRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ChangeAsync(
+            agencyId,
+            async (agency, ct) =>
+            {
+                if (Same(request.Name, agency.Name)
+                    && Same(request.City, agency.City)
+                    && Same(request.Address, agency.Address)
+                    && Same(request.Phone, agency.Phone)
+                    && Same(request.Email, agency.Email))
+                {
+                    return Result.Success();
+                }
+
+                var updated = agency.UpdateDetails(new AgencyDetails(
+                    request.Name,
+                    request.City,
+                    agency.LegalName,
+                    agency.TaxIdentifier,
+                    request.Address,
+                    request.Phone,
+                    request.Email,
+                    agency.Latitude,
+                    agency.Longitude));
+                return updated.IsFailure
+                    ? updated
+                    : await AuditedAsync(ReferentialAuditActions.AgencyDetailsUpdated, agency, $"{agency.Name} ({agency.City})", ct);
+            },
+            cancellationToken);
+    }
+
     /// <summary>Changes the address of the agency's public site: the links with the previous address stop working.</summary>
     public Task<Result> ChangeSlugAsync(Guid agencyId, string slug, CancellationToken cancellationToken = default) =>
         ChangeAsync(
@@ -230,6 +270,10 @@ public sealed class AgencyPlatformService(
                 : Result.Failure<Guid>(PlatformErrors.AgencyNotFound),
             cancellationToken: cancellationToken);
     }
+
+    /// <summary>A requested field equals the stored one (as the agency stores it: trimmed, blank as none).</summary>
+    private static bool Same(string? requested, string? current) =>
+        string.Equals(string.IsNullOrWhiteSpace(requested) ? null : requested.Trim(), current, StringComparison.Ordinal);
 
     /// <summary>The support, from the platform pages (across agencies); otherwise the error to return.</summary>
     private Error? Denied() =>

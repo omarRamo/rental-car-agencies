@@ -33,6 +33,19 @@ public sealed class CreditNoteTests
     }
 
     [Fact]
+    public void An_invoice_a_credit_note_and_their_lines_belong_to_the_agency_of_the_invoice()
+    {
+        var invoice = Issued(ReferenceQuote());
+
+        var note = Credit(invoice, [], new CreditNoteRequest(CreditNoteScope.Total, "Facture établie au mauvais client")).Value;
+
+        (invoice.AgencyId, note.AgencyId).ShouldBe((AgencyId, AgencyId));
+        invoice.Lines.ShouldAllBe(l => l.AgencyId == AgencyId);
+        note.Lines.ShouldAllBe(l => l.AgencyId == AgencyId);
+        note.DomainEvents.OfType<CreditNoteIssued>().ShouldHaveSingleItem().AgencyId.ShouldBe(AgencyId);
+    }
+
+    [Fact]
     public void A_credit_note_states_its_reason()
     {
         var invoice = Issued(ReferenceQuote());

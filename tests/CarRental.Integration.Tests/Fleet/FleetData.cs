@@ -26,11 +26,12 @@ internal static class FleetData
 
     public static string NewPlate() => $"{100 + (Interlocked.Increment(ref _plateSequence) % 900)} TU {Random.Shared.Next(1000, 9999)}";
 
-    public static async Task<Guid> NewAgencyAsync(IntegrationHost host, CancellationToken cancellationToken)
+    /// <summary>A new agency with the default modules, or <paramref name="modules"/>.</summary>
+    public static async Task<Guid> NewAgencyAsync(IntegrationHost host, CancellationToken cancellationToken, CarRental.Domain.Common.AgencyModules? modules = null)
     {
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var agency = Agency.Register(new AgencyDetails($"Agence flotte {Guid.NewGuid():N}", "Sousse")).Value;
+        var agency = Agency.Register(new AgencyDetails($"Agence flotte {Guid.NewGuid():N}", "Sousse"), modules: modules).Value;
         db.Set<Agency>().Add(agency);
         await db.SaveChangesAsync(cancellationToken);
         return agency.Id;

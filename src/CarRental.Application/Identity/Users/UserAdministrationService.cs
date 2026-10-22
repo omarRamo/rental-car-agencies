@@ -14,7 +14,8 @@ namespace CarRental.Application.Identity.Users;
 /// User administration (back office <c>/admin/users</c>): list, create with a role (invitation e-mail), lock and unlock,
 /// extra permissions on top of the role presets. A manager administers the users of their agency only (ADR-0067): the
 /// users of another agency and the support accounts do not exist for them. The support administers the users of the
-/// agency they entered, creates the first manager of an agency and the support accounts. Every change is audited
+/// agency they entered, lists the users of any agency and creates its managers from the platform pages, and manages the
+/// support accounts. Every change is audited
 /// (explicit event plus the automatic entity diff).
 /// </summary>
 public sealed class UserAdministrationService(
@@ -46,6 +47,31 @@ public sealed class UserAdministrationService(
         }
 
         return await directory.ListAsync(agencyId, string.IsNullOrWhiteSpace(search) ? null : search.Trim(), page, cancellationToken);
+    }
+
+    /// <summary>
+    /// The users of <paramref name="agencyId"/> as the page of that agency on the platform lists them (support only, from
+    /// the platform pages: across agencies), its managers among them.
+    /// </summary>
+    public async Task<Result<PagedResult<UserSummary>>> ListAgencyUsersAsync(Guid agencyId, PageRequest page, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        if (!userContext.HasPermission(Permissions.PlatformAgencies))
+        {
+            return IdentityErrors.Forbidden;
+        }
+
+        if (!userContext.IsAcrossAgencies)
+        {
+            return IdentityErrors.PlatformScopeRequired;
+        }
+
+        if (agencyId == Guid.Empty)
+        {
+            return IdentityErrors.AgencyRequired;
+        }
+
+        return await directory.ListAsync(agencyId, search: null, page, cancellationToken);
     }
 
     /// <summary>The support accounts (support only).</summary>

@@ -22,7 +22,10 @@ internal interface IRatePlanStore : IPublishedPlanSource
     /// <summary>The highest version ever published for the agency and channel (0 when none).</summary>
     Task<int> GetLastVersionAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken);
 
-    /// <summary>Plans (header only, no content) of an agency, or of every agency; archived plans only when asked.</summary>
+    /// <summary>
+    /// Plans (header only, no content) of an agency, or of every agency the operation sees (its own for an operation of
+    /// one agency, ADR-0067); archived plans only when asked.
+    /// </summary>
     Task<IReadOnlyList<RatePlan>> ListAsync(Guid? agencyId, bool includeArchived, CancellationToken cancellationToken);
 
     /// <summary>Every plan (header only) of an agency and channel: its drafts, then its versions, newest first.</summary>

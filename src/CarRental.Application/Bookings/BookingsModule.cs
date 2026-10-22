@@ -104,6 +104,7 @@ public static class BookingsModule
         services.AddRecurringJob<BookingExpiryJob>();
         services.AddRecurringJob<BookingEscalationJob>();
         services.AddDataSeeder<BookingsDemoSeeder>();
+        services.AddScoped<BookingsDemoAgencySeeder>();
 
         // Public booking funnel, "Ma réservation" and the booking ↔ payment wiring (phase 2C, ADR-0049 to ADR-0051).
         services.AddScoped<FunnelService>();

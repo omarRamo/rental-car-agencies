@@ -14,7 +14,8 @@ namespace CarRental.Application.Customers.Privacy;
 
 /// <summary>
 /// Data subject rights (law 2004-63, GDPR-compatible design, SPEC Â§14): export of the data held about a person and
-/// anonymization. Manager only (permission <c>customers.privacy</c>); both are written to the audit log (ADR-0027).
+/// anonymization. Manager only (permission <c>customers.privacy</c>); both are written to the audit log (ADR-0027) of
+/// the agency of the person, the only one that holds that data (ADR-0067).
 /// </summary>
 public sealed class PersonalDataService(
     IAppDbContext db,
@@ -121,6 +122,7 @@ public sealed class PersonalDataService(
                 EntityType = PersonEntityType,
                 EntityId = personId.ToString(),
                 Details = includeInternalRecords ? "with internal records" : null,
+                AgencyId = person.AgencyId,
             },
             cancellationToken);
 
@@ -180,6 +182,7 @@ public sealed class PersonalDataService(
                         EntityType = PersonEntityType,
                         EntityId = personId.ToString(),
                         Details = cleanReason,
+                        AgencyId = person.AgencyId,
                     },
                     ct);
                 return Result.Success();

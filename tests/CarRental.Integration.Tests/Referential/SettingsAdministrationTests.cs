@@ -161,6 +161,25 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
         HttpSignIn.PathAndQuery(accountantPage.Headers.Location!).ShouldContain("/account/access-denied");
     }
 
+    [Fact]
+    public async Task A_manager_reads_the_platform_values_and_the_support_edits_them_on_the_platform_settings()
+    {
+        var (_, managerEmail) = await TestStaff.CreateAsync(host, Roles.Manager);
+        var (_, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        using var managerClient = host.CreateClient();
+        using var supportClient = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(managerClient, managerEmail, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(supportClient, supportEmail, "/admin/platform", Ct);
+
+        var agencySettings = await managerClient.GetStringAsync(new Uri("/admin/settings", UriKind.Relative), Ct);
+        var platformSettings = await supportClient.GetStringAsync(new Uri("/admin/platform/settings", UriKind.Relative), Ct);
+
+        agencySettings.ShouldContain("data-setting-scope=\"agency\"");
+        agencySettings.ShouldNotContain("Modifier la valeur de la plateforme", Case.Sensitive, "the platform values are the support's (ADR-0067)");
+        platformSettings.ShouldContain("Modifier la valeur de la plateforme");
+        platformSettings.ShouldNotContain("data-setting-scope=\"agency\"");
+    }
+
     private async Task<T> ReadAsync<T>(SettingDefinition<T> definition, Guid? agencyId)
     {
         await using var scope = host.CreateScope();

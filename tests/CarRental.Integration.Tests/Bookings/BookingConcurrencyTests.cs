@@ -26,8 +26,8 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
     public async Task Two_simultaneous_requests_for_the_last_vehicle_of_a_category_one_succeeds()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 1);
-        var phoneDriver = await NewDriverAsync(host, Ct);
-        var webDriver = await NewDriverAsync(host, Ct);
+        var phoneDriver = await NewDriverAsync(host, agency.AgencyId, Ct);
+        var webDriver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var pickup = InDays(40);
 
         var phone = RunAsync<QuickBookingService, Result<QuickBookingResult>>(
@@ -57,7 +57,7 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
         var drivers = new List<Guid>();
         for (var i = 0; i < 8; i++)
         {
-            drivers.Add(await NewDriverAsync(host, Ct));
+            drivers.Add(await NewDriverAsync(host, agency.AgencyId, Ct));
         }
 
         var outcomes = await Task.WhenAll(drivers.Select((driver, i) => RunAsync<QuickBookingService, Result<QuickBookingResult>>(
@@ -78,7 +78,7 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
         var drivers = new List<Guid>();
         for (var i = 0; i < 40; i++)
         {
-            drivers.Add(await NewDriverAsync(host, Ct));
+            drivers.Add(await NewDriverAsync(host, agency.AgencyId, Ct));
         }
 
         // A request draws its number after the availability lock, like a phone booking: neither waits on the other.
@@ -104,7 +104,7 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
     public async Task Committed_booking_numbers_of_the_year_are_gapless_even_when_an_operation_is_replayed()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 2);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var attempts = 0;
         string? number = null;
 
@@ -141,11 +141,12 @@ public sealed class BookingConcurrencyTests(IntegrationHost host)
         (await db.Set<Booking>().CountAsync(b => b.MainDriverId == driver, Ct)).ShouldBe(1, "the first attempt was rolled back");
         var year = TunisTime.Today(TimeProvider.System).Year;
         var prefix = string.Create(CultureInfo.InvariantCulture, $"LOC-{year}-");
-        var sequences = (await db.Set<Booking>().AsNoTracking().Where(b => b.Number.StartsWith(prefix)).Select(b => b.Number).ToListAsync(Ct))
+        // The numbers are drawn per agency (ADR-0067): the test agency numbers its own files only.
+        var sequences = (await db.Set<Booking>().AsNoTracking().Where(b => b.AgencyId == agency.AgencyId && b.Number.StartsWith(prefix)).Select(b => b.Number).ToListAsync(Ct))
             .Select(n => long.Parse(n[prefix.Length..], CultureInfo.InvariantCulture))
             .Order()
             .ToList();
-        sequences.ShouldBe(Enumerable.Range(1, sequences.Count).Select(i => (long)i), "committed numbers never leave a gap");
+        sequences.ShouldBe(Enumerable.Range(1, sequences.Count).Select(i => (long)i), "committed numbers never leave a gap within an agency");
         sequences.ShouldContain(long.Parse(number![prefix.Length..], CultureInfo.InvariantCulture));
     }
 

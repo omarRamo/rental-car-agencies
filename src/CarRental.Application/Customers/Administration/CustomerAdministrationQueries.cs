@@ -139,7 +139,7 @@ public sealed class CustomerAdministrationQueries(
                 CanManagePrivacy: userContext.HasPermission(Permissions.CustomersPrivacy)));
     }
 
-    /// <summary>Eligibility of the person for the given rental dates (platform settings).</summary>
+    /// <summary>Eligibility of the person for the given rental dates (settings of the agency of the operation).</summary>
     public async Task<Result<DriverEligibilityInfo>> CheckEligibilityAsync(
         Guid personId,
         DateTimeOffset pickupAt,
@@ -151,7 +151,7 @@ public sealed class CustomerAdministrationQueries(
             return CustomersErrors.Forbidden;
         }
 
-        return await customers.CheckDriverEligibilityAsync(personId, pickupAt, returnAt, agencyId: null, cancellationToken);
+        return await customers.CheckDriverEligibilityAsync(personId, pickupAt, returnAt, userContext.AgencyId, cancellationToken);
     }
 
     /// <summary>Company payers matching <paramref name="term"/> (legal name, tax identifier), or all when blank.</summary>

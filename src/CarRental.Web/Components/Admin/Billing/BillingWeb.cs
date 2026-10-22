@@ -7,6 +7,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Billing;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Admin.Handovers;
+using CarRental.Web.Security;
 using Microsoft.Net.Http.Headers;
 
 namespace CarRental.Web.Components.Admin.Billing;
@@ -37,8 +38,12 @@ internal static class BillingWeb
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapGet("/admin/invoices/{invoiceId:guid}/pdf", GetInvoicePdfAsync).RequireAuthorization(PermissionPolicy.For(Permissions.InvoicesRead)).ExcludeFromDescription();
         endpoints.MapGet("/admin/credit-notes/{creditNoteId:guid}/pdf", GetCreditNotePdfAsync).RequireAuthorization(PermissionPolicy.For(Permissions.InvoicesRead)).ExcludeFromDescription();
-        endpoints.MapGet("/admin/fines/{fineId:guid}/designation", GetDesignationAsync).RequireAuthorization(PermissionPolicy.For(Permissions.FinesManage)).ExcludeFromDescription();
-        endpoints.MapGet("/admin/claims/files/{documentId:guid}", GetClaimFileAsync).RequireAuthorization(PermissionPolicy.For(Permissions.ClaimsManage)).ExcludeFromDescription();
+        endpoints.MapGet("/admin/fines/{fineId:guid}/designation", GetDesignationAsync)
+            .RequireAuthorization(PermissionPolicy.For(Permissions.FinesManage), ModulePolicy.For(AgencyModules.ClaimsAndFines))
+            .ExcludeFromDescription();
+        endpoints.MapGet("/admin/claims/files/{documentId:guid}", GetClaimFileAsync)
+            .RequireAuthorization(PermissionPolicy.For(Permissions.ClaimsManage), ModulePolicy.For(AgencyModules.ClaimsAndFines))
+            .ExcludeFromDescription();
         return endpoints;
     }
 

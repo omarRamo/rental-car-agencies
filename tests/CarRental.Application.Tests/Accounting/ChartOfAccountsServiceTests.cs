@@ -1,4 +1,3 @@
-using CarRental.Application.Accounting.Chart;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Tests.Accounting.Fakes;
@@ -32,17 +31,44 @@ public sealed class ChartOfAccountsServiceTests
     }
 
     [Fact]
-    public async Task Seeding_again_adds_nothing_and_keeps_what_the_accountant_changed()
+    public async Task Provisioning_again_adds_nothing_and_keeps_what_the_accountant_changed()
     {
         var chart = _harness.Chart(Accountant());
         (await chart.CreateAccountAsync("70611", "Locations courte durée", Ct)).IsSuccess.ShouldBeTrue();
         (await chart.MapAsync(AccountingMappingCatalog.SalesRental, "70611", Ct)).IsSuccess.ShouldBeTrue();
 
-        await new AccountingChartSeeder(_harness.Db, _harness.Clock).SeedAsync(Ct);
+        _harness.Provision(_harness.AgencyId);
 
         _harness.Db.Rows<LedgerAccount>().Count.ShouldBe(AccountingMappingCatalog.DefaultChart.Count + 1);
         _harness.Db.Rows<AccountMapping>().Count.ShouldBe(AccountingMappingCatalog.All.Count);
         _harness.Db.Rows<AccountMapping>().Single(m => m.Key == AccountingMappingCatalog.SalesRental).AccountNumber.ShouldBe("70611");
+    }
+
+    [Fact]
+    public async Task Each_agency_has_its_own_chart_and_mapping()
+    {
+        var other = Guid.CreateVersion7();
+        _harness.Provision(other);
+        var chart = _harness.Chart(Accountant());
+
+        (await chart.CreateAccountAsync("70611", "Locations courte durée", Ct)).IsSuccess.ShouldBeTrue();
+        (await chart.MapAsync(AccountingMappingCatalog.SalesRental, "70611", Ct)).IsSuccess.ShouldBeTrue();
+        var bankOfOther = _harness.Db.Rows<LedgerAccount>().Single(a => a.AgencyId == other && a.Number == "532");
+
+        (await chart.ListAccountsAsync(Ct)).Value.Count.ShouldBe(AccountingMappingCatalog.DefaultChart.Count + 1, "the accounts of the agency of the user only");
+        _harness.Db.Rows<LedgerAccount>().Count(a => a.AgencyId == other).ShouldBe(AccountingMappingCatalog.DefaultChart.Count);
+        _harness.Db.Rows<AccountMapping>().Single(m => m.AgencyId == other && m.Key == AccountingMappingCatalog.SalesRental).AccountNumber.ShouldBe("7061");
+        (await chart.RenameAccountAsync(bankOfOther.Id, "Banque d'une autre agence", Ct)).Error.ShouldBe(AccountingErrors.AccountNotFound);
+        bankOfOther.Label.ShouldBe("Banque");
+    }
+
+    [Fact]
+    public async Task The_support_outside_any_agency_has_no_chart()
+    {
+        var chart = _harness.Chart(AccountingHarness.User(Roles.Support));
+
+        (await chart.ListAccountsAsync(Ct)).Error.ShouldBe(AccountingErrors.AgencyNotFound);
+        (await chart.CreateAccountAsync("6063", "Fournitures", Ct)).Error.ShouldBe(AccountingErrors.AgencyNotFound);
     }
 
     [Fact]

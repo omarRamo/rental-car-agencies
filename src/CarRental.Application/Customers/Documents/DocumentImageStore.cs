@@ -61,10 +61,10 @@ internal sealed partial class DocumentImageStore(IFileStorage storage, TimeProvi
     }
 
     /// <summary>
-    /// Uploads a prepared image sent by a visitor under a new staging path (<c>staged/{id}.{ext}</c>) and returns the
-    /// staging record to add to the unit of work (ADR-0050).
+    /// Uploads a prepared image sent by a visitor on the site of <paramref name="agencyId"/> under a new staging path
+    /// (<c>staged/{id}.{ext}</c>) and returns the staging record to add to the unit of work (ADR-0050).
     /// </summary>
-    public async Task<StagedDocumentImage> StageAsync(PreparedDocumentImage image, CancellationToken cancellationToken)
+    public async Task<StagedDocumentImage> StageAsync(Guid agencyId, PreparedDocumentImage image, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
         var id = Guid.CreateVersion7();
@@ -73,7 +73,7 @@ internal sealed partial class DocumentImageStore(IFileStorage storage, TimeProvi
         using var stream = new MemoryStream(image.Content, writable: false);
         var stored = await storage.UploadAsync(FileContainers.Documents, path, stream, contentType, cancellationToken);
         var reference = DocumentImage.Create(path, contentType, stored.Length, timeProvider.GetUtcNow()).Value;
-        return StagedDocumentImage.Create(id, reference).Value;
+        return StagedDocumentImage.Create(agencyId, id, reference).Value;
     }
 
     /// <summary>

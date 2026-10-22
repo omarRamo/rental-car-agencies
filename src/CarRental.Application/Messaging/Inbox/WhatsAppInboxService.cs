@@ -145,7 +145,11 @@ public sealed class WhatsAppInboxService(
             cancellationToken);
     }
 
-    /// <summary>Links the conversation to the rental file of <paramref name="bookingNumber"/>, or unlinks it (blank).</summary>
+    /// <summary>
+    /// Links the conversation to the rental file of <paramref name="bookingNumber"/> in the agency of the conversation
+    /// (numbers are unique within an agency only, ADR-0067 — also for the support working across agencies), or unlinks
+    /// it (blank).
+    /// </summary>
     public async Task<Result> LinkBookingAsync(Guid conversationId, string? bookingNumber, CancellationToken cancellationToken)
     {
         if (!user.HasPermission(Permissions.BookingsRead))
@@ -153,25 +157,20 @@ public sealed class WhatsAppInboxService(
             return MessagingErrors.Forbidden;
         }
 
-        BookingSummaryInfo? booking = null;
-        if (!string.IsNullOrWhiteSpace(bookingNumber))
-        {
-            booking = await bookings.FindByNumberAsync(bookingNumber, cancellationToken);
-            if (booking is null)
-            {
-                return MessagingErrors.BookingNotFound;
-            }
-        }
-
-        var bookingId = booking?.Id;
         return await ChangeAsync(
             conversationId,
             async (conversation, _, _, ct) =>
             {
-                // Numbers are unique within an agency only (ADR-0067): a file of another agency is no file of this conversation.
-                if (booking is not null && booking.AgencyId != conversation.AgencyId)
+                Guid? bookingId = null;
+                if (!string.IsNullOrWhiteSpace(bookingNumber))
                 {
-                    return MessagingErrors.BookingNotFound;
+                    var booking = await bookings.FindByNumberAsync(conversation.AgencyId, bookingNumber, ct);
+                    if (booking is null || booking.AgencyId != conversation.AgencyId)
+                    {
+                        return MessagingErrors.BookingNotFound;
+                    }
+
+                    bookingId = booking.Id;
                 }
 
                 conversation.LinkBooking(bookingId);

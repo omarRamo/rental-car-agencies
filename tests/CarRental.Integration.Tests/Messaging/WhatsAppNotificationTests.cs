@@ -26,7 +26,7 @@ public sealed class WhatsAppNotificationTests(IntegrationHost host)
     public async Task A_confirmed_booking_sends_the_confirmation_template_to_a_consenting_driver()
     {
         var agency = await AgencyWithWhatsAppAsync();
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         await ConsentAsync(driver);
         var waId = await WaIdOfAsync(driver);
 
@@ -58,7 +58,7 @@ public sealed class WhatsAppNotificationTests(IntegrationHost host)
     public async Task Without_the_consent_of_the_driver_no_notification_is_sent()
     {
         var agency = await AgencyWithWhatsAppAsync();
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var waId = await WaIdOfAsync(driver);
 
         var booking = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(12), InDays(15)), Ct);
@@ -74,7 +74,7 @@ public sealed class WhatsAppNotificationTests(IntegrationHost host)
     {
         // A new agency: its WhatsApp module is off until the support switches it on.
         var agency = await BookingWorld.CreateAsync(host, Ct);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         await ConsentAsync(driver);
         var waId = await WaIdOfAsync(driver);
 

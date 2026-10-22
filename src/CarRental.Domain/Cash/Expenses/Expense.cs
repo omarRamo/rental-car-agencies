@@ -15,7 +15,7 @@ namespace CarRental.Domain.Cash.Expenses;
 /// <para>Deleting is logical, with a reason, the user and the instant (the audit log and the temporal history keep every
 /// version); the movement of a cash expense is reversed in a cash session.</para>
 /// </remarks>
-public sealed class Expense : AggregateRoot, ISoftDeletable
+public sealed class Expense : AggregateRoot, ISoftDeletable, IAgencyOwned
 {
     public const int SupplierMinLength = 2;
     public const int SupplierMaxLength = 120;
@@ -443,7 +443,7 @@ public sealed record ExpenseNumber(int Year, int Sequence)
 /// <c>rowversion</c> refuses two numbers given at once (the second expense is recorded again). Unlike the invoices, a gap
 /// is harmless (a refused expense does not give its number back when it fails after the save).
 /// </summary>
-public sealed class ExpenseSequence : AggregateRoot
+public sealed class ExpenseSequence : AggregateRoot, IAgencyOwned
 {
     private ExpenseSequence()
     {

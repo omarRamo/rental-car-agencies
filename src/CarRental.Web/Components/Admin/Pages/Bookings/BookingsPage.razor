@@ -130,7 +130,7 @@
                 .OfType<BookingStatus>()];
         }
 
-        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetCurrentAgencyAsync(ct));
         if (agency.IsSuccess)
         {
             var agencyId = agency.Value.Id;

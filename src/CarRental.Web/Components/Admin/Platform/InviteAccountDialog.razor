@@ -1,0 +1,63 @@
+@* Invitation of an account from the platform pages (support only, ADR-0067): a manager of the agency AgencyId, or a
+   support account when it is null. The person receives a link to choose a password, then enrolls an authenticator. *@
+@using CarRental.Application.Identity.Users
+@using CarRental.Application.Referential.Platform
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IStringLocalizer<IdentityAdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_email" Label="@L["Users.Field.Email"]" InputType="InputType.Email" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" autocomplete="off" data-testid="invite-email" />
+        <MudTextField T="string" @bind-Value="_displayName" Label="@L["Users.Field.DisplayName"]" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" MaxLength="UserAdministrationService.DisplayNameMaxLength" data-testid="invite-name" />
+        <MudText Typo="Typo.body2" Class="mt-3">@L["Users.Create.Hint"]</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_busy" data-testid="invite-submit">@L["Users.Create.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _email;
+    private string? _displayName;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>The agency of the manager to invite; a support account when <see langword="null"/>.</summary>
+    [Parameter]
+    public Guid? AgencyId { get; set; }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var email = _email ?? string.Empty;
+        var displayName = _displayName ?? string.Empty;
+        var result = AgencyId is { } agencyId
+            ? await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<Guid>>((service, ct) => service.InviteManagerAsync(agencyId, email, displayName, ct))
+            : await Runner.RunAcrossAgenciesAsync<UserAdministrationService, Result<Guid>>((service, ct) => service.CreateSupportAccountAsync(email, displayName, ct));
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

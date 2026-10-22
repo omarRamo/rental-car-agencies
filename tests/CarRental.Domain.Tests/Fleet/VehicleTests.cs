@@ -274,6 +274,33 @@ public sealed class VehicleTests
     }
 
     [Fact]
+    public void Every_part_of_a_vehicle_belongs_to_the_agency_of_the_vehicle()
+    {
+        var vehicle = NewVehicle();
+        vehicle.SetMaintenancePlan(new MaintenancePlanDetails(MaintenanceType.OilChange, 10_000, 12), Stamp()).IsSuccess.ShouldBeTrue();
+        vehicle.ScheduleMaintenance(Maintenance(Tunis(2026, 11, 2, 8), Tunis(2026, 11, 2, 18)), Stamp()).IsSuccess.ShouldBeTrue();
+        vehicle.SetEconomics(new VehicleEconomicsDetails(Money.Tnd(50_000m), new DateOnly(2024, 3, 1), FinancingType.Cash, null, null, 5, Money.Tnd(15_000m)), Stamp()).IsSuccess.ShouldBeTrue();
+        vehicle.AddCost(new DateOnly(2026, 10, 1), "Traceur GPS", Money.Tnd(300m), Stamp()).IsSuccess.ShouldBeTrue();
+        vehicle.AddPhoto(Guid.CreateVersion7(), StoredPhoto.Create("vehicles/v/p.jpg", StoredPhoto.Jpeg, new string('b', 64), 10).Value, Stamp()).IsSuccess.ShouldBeTrue();
+        var alert = DeadlineAlert.Record(vehicle.CurrentDocument(VehicleDocumentType.Insurance)!, DeadlineAlertLevel.Within30Days, Now, 1);
+
+        IEnumerable<Guid> parts =
+        [
+            .. vehicle.Documents.Select(d => d.AgencyId),
+            .. vehicle.MaintenancePlans.Select(p => p.AgencyId),
+            .. vehicle.MaintenanceEvents.Select(e => e.AgencyId),
+            .. vehicle.Costs.Select(c => c.AgencyId),
+            .. vehicle.Photos.Select(p => p.AgencyId),
+            .. vehicle.History.Select(h => h.AgencyId),
+            vehicle.Economics!.AgencyId,
+            alert.AgencyId,
+        ];
+
+        vehicle.AgencyId.ShouldBe(AgencyId);
+        parts.ShouldAllBe(agencyId => agencyId == AgencyId);
+    }
+
+    [Fact]
     public void Change_stamps_are_utc_and_trim_the_author()
     {
         var stamp = new ChangeStamp(new DateTimeOffset(2026, 10, 20, 10, 0, 0, TimeSpan.FromHours(1)), "  ");

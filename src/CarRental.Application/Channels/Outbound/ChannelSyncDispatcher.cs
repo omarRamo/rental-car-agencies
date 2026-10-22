@@ -104,7 +104,19 @@ public sealed partial class ChannelSyncDispatcher
             return new ChannelSyncRunResult(enqueued, 0, 0, 0, 0);
         }
 
-        var (priceUpdates, reminders) = await CheckPricesAsync(agencies, cancellationToken);
+        int priceUpdates, reminders;
+        try
+        {
+            (priceUpdates, reminders) = await CheckPricesAsync(agencies, cancellationToken);
+        }
+        catch (DbUpdateException exception)
+        {
+            // Another run (from the screen, which does not wait for the pump's lock) recorded the first price check of the
+            // same channel meanwhile: this run stops here and the next one compares again on fresh data.
+            LogPriceCheckConflict(exception);
+            return new ChannelSyncRunResult(enqueued, 0, 0, 0, 0);
+        }
+
         var (sent, failed, skipped) = await SendDueAsync(agencies, cancellationToken);
         var result = new ChannelSyncRunResult(enqueued + priceUpdates, sent, failed, skipped, reminders);
         if (result != new ChannelSyncRunResult(0, 0, 0, 0, 0))
@@ -433,6 +445,9 @@ public sealed partial class ChannelSyncDispatcher
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Channel sync items were taken by another run; this run leaves them.")]
     private partial void LogClaimConflict();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Channel price check met a concurrent run; this run stops and the next one compares again.")]
+    private partial void LogPriceCheckConflict(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Push {Operation} to channel {ChannelCode} failed; it is retried.")]
     private partial void LogPushFailed(Exception exception, string channelCode, string operation);

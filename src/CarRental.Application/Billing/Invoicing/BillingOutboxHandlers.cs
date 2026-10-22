@@ -58,6 +58,7 @@ internal sealed partial class BookingInvoicingHandler(
 
         var issued = await scopes.RunAsync<InvoicingService, Result<IssuedDocument>>(
             (service, ct) => kind == InvoiceKind.Rental ? service.IssueRentalInvoiceAsync(message.BookingId, ct) : service.IssueCancellationInvoiceAsync(message.BookingId, ct),
+            message.AgencyId,
             context.CorrelationId,
             cancellationToken);
         if (issued.IsSuccess)
@@ -82,13 +83,17 @@ internal sealed partial class BookingInvoicingHandler(
     private partial void LogNotInvoiced(string number, string errorCode);
 }
 
-/// <summary>An accountant asked for the steps of a document to run again (a failed TTN transmission, from the invoices screen).</summary>
-public sealed record BillingDocumentRetryRequested(BillingDocumentType Type, Guid DocumentId);
+/// <summary>
+/// An accountant asked for the steps of a document to run again (a failed TTN transmission, from the invoices screen).
+/// <paramref name="AgencyId"/> is the agency of the document (absent from the requests queued before the agencies were
+/// separated: they run across agencies).
+/// </summary>
+public sealed record BillingDocumentRetryRequested(BillingDocumentType Type, Guid DocumentId, Guid? AgencyId = null);
 
 /// <summary>
-/// Runs <see cref="BillingDocumentPipeline"/> after the issue of an invoice or a credit note, and on a retry request: a
-/// failed TTN transmission is thrown back to the outbox, which retries it with its back-off and lists it when it keeps
-/// failing (the document shows its failure on the invoices screen).
+/// Runs <see cref="BillingDocumentPipeline"/> after the issue of an invoice or a credit note, and on a retry request, for
+/// the agency of the document: a failed TTN transmission is thrown back to the outbox, which retries it with its back-off
+/// and lists it when it keeps failing (the document shows its failure on the invoices screen).
 /// </summary>
 internal sealed class BillingDocumentHandler(BillingScopes scopes) :
     IOutboxHandler<InvoiceIssued>,
@@ -99,26 +104,26 @@ internal sealed class BillingDocumentHandler(BillingScopes scopes) :
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
-        return RunAsync(BillingDocumentType.Invoice, message.InvoiceId, message.Number, context, cancellationToken);
+        return RunAsync(BillingDocumentType.Invoice, message.InvoiceId, message.AgencyId, message.Number, context, cancellationToken);
     }
 
     public Task HandleAsync(CreditNoteIssued message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
-        return RunAsync(BillingDocumentType.CreditNote, message.CreditNoteId, message.Number, context, cancellationToken);
+        return RunAsync(BillingDocumentType.CreditNote, message.CreditNoteId, message.AgencyId, message.Number, context, cancellationToken);
     }
 
     public Task HandleAsync(BillingDocumentRetryRequested message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
-        return RunAsync(message.Type, message.DocumentId, message.DocumentId.ToString("D"), context, cancellationToken);
+        return RunAsync(message.Type, message.DocumentId, message.AgencyId, message.DocumentId.ToString("D"), context, cancellationToken);
     }
 
-    private async Task RunAsync(BillingDocumentType type, Guid documentId, string number, OutboxMessageContext context, CancellationToken cancellationToken)
+    private async Task RunAsync(BillingDocumentType type, Guid documentId, Guid? agencyId, string number, OutboxMessageContext context, CancellationToken cancellationToken)
     {
-        var outcome = await scopes.RunAsync<BillingDocumentPipeline, Result>((pipeline, ct) => pipeline.RunAsync(type, documentId, ct), context.CorrelationId, cancellationToken);
+        var outcome = await scopes.RunAsync<BillingDocumentPipeline, Result>((pipeline, ct) => pipeline.RunAsync(type, documentId, ct), agencyId, context.CorrelationId, cancellationToken);
         if (outcome.IsFailure)
         {
             throw new BillingRetryException($"The steps of {number} did not complete ({outcome.Error.Code}); the outbox retries them.");

@@ -5,7 +5,6 @@ using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Paging;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Payments.Contracts;
-using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Billing;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +25,6 @@ public sealed class BillingAdministrationQueries
     private readonly BillingStore _store;
     private readonly IBookingsBillingQueries _bookings;
     private readonly IPaymentsBillingQueries _payments;
-    private readonly IReferentialQueries _referential;
     private readonly IOutbox _outbox;
     private readonly IFileStorage _storage;
 
@@ -34,28 +32,14 @@ public sealed class BillingAdministrationQueries
         BillingStore store,
         IBookingsBillingQueries bookings,
         IPaymentsBillingQueries payments,
-        IReferentialQueries referential,
         IOutbox outbox,
         IFileStorage storage)
     {
         _store = store;
         _bookings = bookings;
         _payments = payments;
-        _referential = referential;
         _outbox = outbox;
         _storage = storage;
-    }
-
-    /// <summary>The active agencies, by name (the first one is shown by default).</summary>
-    public async Task<Result<IReadOnlyList<AgencyInfo>>> GetAgenciesAsync(CancellationToken cancellationToken = default)
-    {
-        if (!_store.User.HasPermission(Permissions.InvoicesRead))
-        {
-            return BillingErrors.Forbidden;
-        }
-
-        var agencies = await _referential.GetAgenciesAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<AgencyInfo>>([.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.Ordinal)]);
     }
 
     /// <summary>The invoices matching <paramref name="filter"/>, the most recent number first.</summary>
@@ -315,6 +299,12 @@ public sealed class BillingAdministrationQueries
             return BillingErrors.Forbidden;
         }
 
+        // The files of the agency the operation works for only (ADR-0067).
+        if (!_store.WorksFor(agencyId))
+        {
+            return Result.Success<IReadOnlyList<FileToInvoice>>([]);
+        }
+
         var files = await _bookings.GetFilesToInvoiceAsync(agencyId, _store.Now() - ToInvoiceWindow, 500, cancellationToken);
         if (files.Count == 0)
         {
@@ -385,20 +375,20 @@ public sealed class BillingAdministrationQueries
             return BillingErrors.Forbidden;
         }
 
-        var status = type == BillingDocumentType.Invoice
-            ? await _store.Db.Set<Invoice>().AsNoTracking().IgnoreAutoIncludes().Where(i => i.Id == documentId).Select(i => (EInvoiceStatus?)i.EInvoiceStatus).FirstOrDefaultAsync(cancellationToken)
-            : await _store.Db.Set<CreditNote>().AsNoTracking().IgnoreAutoIncludes().Where(c => c.Id == documentId).Select(c => (EInvoiceStatus?)c.EInvoiceStatus).FirstOrDefaultAsync(cancellationToken);
-        if (status is null)
+        var document = type == BillingDocumentType.Invoice
+            ? await _store.Db.Set<Invoice>().AsNoTracking().IgnoreAutoIncludes().Where(i => i.Id == documentId).Select(i => new { i.AgencyId, i.EInvoiceStatus }).FirstOrDefaultAsync(cancellationToken)
+            : await _store.Db.Set<CreditNote>().AsNoTracking().IgnoreAutoIncludes().Where(c => c.Id == documentId).Select(c => new { c.AgencyId, c.EInvoiceStatus }).FirstOrDefaultAsync(cancellationToken);
+        if (document is null)
         {
             return type == BillingDocumentType.Invoice ? BillingErrors.InvoiceNotFound : BillingErrors.CreditNoteNotFound;
         }
 
-        if (status != EInvoiceStatus.Failed)
+        if (document.EInvoiceStatus != EInvoiceStatus.Failed)
         {
             return BillingErrors.EInvoiceNotFailed;
         }
 
-        _outbox.Enqueue(new BillingDocumentRetryRequested(type, documentId));
+        _outbox.Enqueue(new BillingDocumentRetryRequested(type, documentId, document.AgencyId));
         await _store.Db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

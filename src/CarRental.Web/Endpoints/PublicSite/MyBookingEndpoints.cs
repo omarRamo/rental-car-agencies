@@ -4,6 +4,7 @@ using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Public.Booking;
+using CarRental.Web.Components.Public.Site;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -18,7 +19,8 @@ namespace CarRental.Web.Endpoints.PublicSite;
 /// <remarks>
 /// The session is a Data Protection cookie (<see cref="PublicBookingCookies.MyBookingCookie"/>) naming a grant and its
 /// booking; every request checks the grant again on the server (revoked, expired, other booking) and slides it.
-/// Writes run as the system actor <see cref="PublicActors.MyBooking"/>, for the booking of the session only.
+/// Writes run as the system actor <see cref="PublicActors.MyBooking"/> of the agency of the site, for the booking of the
+/// session only.
 /// </remarks>
 public static partial class MyBookingEndpoints
 {
@@ -101,9 +103,16 @@ public static partial class MyBookingEndpoints
             return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(page, FunnelErrors.VerificationFailed.Code));
         }
 
+        // A booking is looked for among the bookings of the agency of the site only (ADR-0067).
+        if (PublicSiteAgency.Of(context) is not { } agencyId)
+        {
+            return PublicForms.SeeOther(context, page);
+        }
+
         await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         var outcome = await service.RequestAccessAsync(
+            agencyId,
             PublicForms.Text(form, EmailField),
             PublicForms.Text(form, NumberField),
             lang,

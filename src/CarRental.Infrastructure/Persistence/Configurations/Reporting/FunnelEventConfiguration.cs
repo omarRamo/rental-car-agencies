@@ -1,3 +1,4 @@
+using CarRental.Domain.Referential;
 using CarRental.Domain.Reporting;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ namespace CarRental.Infrastructure.Persistence.Configurations.Reporting;
 
 /// <summary>
 /// Funnel measurement (<c>reporting.FunnelEvents</c>): append-only, anonymous, high volume, so neither temporal nor
-/// audited; rows only leave through the retention purge.
+/// audited; rows only leave through the retention purge. Each row belongs to the agency of the public site (ADR-0067).
 /// </summary>
 internal sealed class FunnelEventConfiguration : IEntityTypeConfiguration<FunnelEvent>
 {
@@ -24,7 +25,11 @@ internal sealed class FunnelEventConfiguration : IEntityTypeConfiguration<Funnel
         builder.Property(e => e.UtmTerm).HasMaxLength(FunnelEvent.UtmMaxLength);
         builder.Property(e => e.UtmContent).HasMaxLength(FunnelEvent.UtmMaxLength);
 
-        // Purge and period reports scan by time; per-visit analysis joins on the visit.
+        builder.HasOne<Agency>().WithMany().HasForeignKey(e => e.AgencyId).OnDelete(DeleteBehavior.Restrict);
+
+        // The period reports of an agency scan its days; the purge scans by time over every agency; per-visit analysis
+        // joins on the visit.
+        builder.HasIndex(e => new { e.AgencyId, e.OccurredAtUtc, e.Step });
         builder.HasIndex(e => new { e.OccurredAtUtc, e.Step });
         builder.HasIndex(e => e.VisitId).HasFilter("[VisitId] IS NOT NULL");
     }

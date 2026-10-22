@@ -104,7 +104,7 @@ public abstract class ChannelContractBench(IntegrationHost host)
         var driver = DriverFor(channel);
         var booking = new BenchBooking(Reference(), "ECMR", TestChannel.OfficeCode, InDays(40), InDays(42), 320m);
         (await driver.CreateAsync(booking, Ct)).Accepted.ShouldBeTrue();
-        var blocker = await NewDriverAsync(host, Ct);
+        var blocker = await NewDriverAsync(host, channel.Agency.AgencyId, Ct);
         await BookingWorld.CreateAsync(host, Quick(channel.Agency, blocker, InDays(50), InDays(52)), Ct);
 
         var moved = await driver.ModifyAsync(booking with { PickupAt = InDays(44), ReturnAt = InDays(47), Gross = 480m }, Ct);
@@ -202,7 +202,7 @@ public abstract class ChannelContractBench(IntegrationHost host)
     {
         var channel = await ConnectAsync(ecmrVehicles: 1);
         var driver = DriverFor(channel);
-        var webDriver = await NewDriverAsync(host, Ct);
+        var webDriver = await NewDriverAsync(host, channel.Agency.AgencyId, Ct);
         var pickup = InDays(110);
 
         // The channel and the website at once.
@@ -261,7 +261,7 @@ public abstract class ChannelContractBench(IntegrationHost host)
     private protected Task<TestChannel> ConnectAsync(int ecmrVehicles) => ChannelTestWorld.CreateAsync(host, Ct, ecmrVehicles, Adapter);
 
     private protected Task<BookingSummaryInfo?> BookingOfAsync(TestChannel channel, string reference) =>
-        RunAsync<IChannelBookings, BookingSummaryInfo?>(host, Manager, b => b.FindByChannelReferenceAsync(SalesChannel.BookingCom, reference, Ct));
+        RunAsync<IChannelBookings, BookingSummaryInfo?>(host, Manager, b => b.FindByChannelReferenceAsync(channel.Agency.AgencyId, SalesChannel.BookingCom, reference, Ct));
 
     protected Task<ChannelBookingInfo?> ChannelSideAsync(Guid bookingId) =>
         RunAsync<IChannelsQueries, ChannelBookingInfo?>(host, Manager, q => q.GetChannelBookingAsync(bookingId, Ct));

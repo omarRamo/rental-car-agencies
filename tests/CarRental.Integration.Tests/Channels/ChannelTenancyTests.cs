@@ -7,6 +7,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
+using CarRental.Infrastructure.BackgroundJobs;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Support;
 using CarRental.Testing;
@@ -144,17 +145,18 @@ public sealed class ChannelTenancyTests(IntegrationHost host)
             await Task.Delay(wait, Ct);
         }
 
-        await RunJobAsync<ChannelSyncJob>();
-        await RunJobAsync<ChannelFullResyncJob>();
+        await RunSyncJobAsync();
+        var resyncsQueued = await ResyncForAgencyAsync(channel.Agency.AgencyId);
         var waiting = await ItemAsync(itemId);
         var fullResyncsWhileOff = await CountAsync(channel, ChannelSyncOperation.FullResync);
         await TestModules.EnableAsync(host.Factory.Services, channel.Agency.AgencyId, AgencyModules.Channels, Ct);
-        await RunJobAsync<ChannelSyncJob>();
+        await RunSyncJobAsync();
         var sent = await WaitForAsync(() => ItemAsync(itemId), i => i.Status == ChannelSyncStatus.Sent, "the update sent once the module is back");
 
         waiting.Status.ShouldBe(ChannelSyncStatus.Pending, "nothing is sent to the channel of an agency without its module");
         waiting.Attempts.ShouldBe(0);
-        fullResyncsWhileOff.ShouldBe(fullResyncs, "the nightly resynchronization skips the agency");
+        resyncsQueued.ShouldBe(0, "the nightly resynchronization skips the agency");
+        fullResyncsWhileOff.ShouldBe(fullResyncs);
         sent.AgencyId.ShouldBe(channel.Agency.AgencyId);
     }
 
@@ -186,7 +188,8 @@ public sealed class ChannelTenancyTests(IntegrationHost host)
 
     private static async Task<T> WaitForAsync<T>(Func<Task<T>> read, Func<T, bool> done, string what)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
+        // Beyond the idle interval of the pump (30 seconds), should the job have been skipped.
+        var deadline = DateTime.UtcNow.AddSeconds(60);
         while (true)
         {
             var value = await read();
@@ -223,12 +226,21 @@ public sealed class ChannelTenancyTests(IntegrationHost host)
         return await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<ChannelSyncItem>().CountAsync(i => i.ChannelId == channel.Id && i.Operation == operation, Ct);
     }
 
-    /// <summary>Runs a job of the module as the scheduler does: the system across agencies.</summary>
-    private async Task RunJobAsync<TJob>()
-        where TJob : CarRental.Application.Common.BackgroundJobs.IRecurringJob
+    /// <summary>
+    /// Runs the synchronization job as the scheduler does: the system across agencies, under the lock it shares with the
+    /// in-process pump (a run that cannot take it is skipped, the pump then does the same work).
+    /// </summary>
+    private async Task RunSyncJobAsync()
     {
-        await using var scope = host.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<TJob>().ExecuteAsync(Ct);
+        await using var scope = host.Factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<RecurringJobRunner>().RunAsync(ChannelSyncJob.JobId, Ct);
+    }
+
+    /// <summary>The nightly full resynchronization, run for one agency only (the others' channels are left alone).</summary>
+    private async Task<int> ResyncForAgencyAsync(Guid agencyId)
+    {
+        await using var scope = host.CreateScope(TestActors.SystemFor(agencyId, "system:job:channels.full_resync"));
+        return await scope.ServiceProvider.GetRequiredService<ChannelSyncDispatcher>().EnqueueFullResyncAsync("nightly", Ct);
     }
 
     /// <summary>Suspends the agency or lifts its suspension, as the support does.</summary>

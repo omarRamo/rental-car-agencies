@@ -40,7 +40,15 @@
                 }
 
                 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
-                    @Body
+                    @* A page starts once the agency of the session is known: it reads it from its first initialization. *@
+                    @if (_resolved)
+                    {
+                        @Body
+                    }
+                    else
+                    {
+                        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+                    }
                 </MudContainer>
             </main>
         </MudMainContent>
@@ -52,6 +60,7 @@
     private ElementReference _main;
     private AgencySummary? _agency;
     private bool _support;
+    private bool _resolved;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationState { get; set; }
@@ -60,6 +69,7 @@
     {
         if (AuthenticationState is null)
         {
+            _resolved = true;
             return;
         }
 
@@ -67,11 +77,16 @@
         _support = user.IsSupport();
         _agency = await Current.GetAsync(user);
 
-        // The back office of an agency needs an agency: the support outside any agency starts from the platform pages.
-        if (_support && _agency is null && !PlatformPaths.IsPlatformPath(Navigation.ToBaseRelativePath(Navigation.Uri)))
+        // The back office of an agency needs an agency: the support outside any agency works from the platform pages
+        // (the settings and the journal of an agency lead to their platform counterparts).
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (_support && _agency is null && !PlatformPaths.IsPlatformPath(path))
         {
-            Navigation.NavigateTo(PlatformPaths.Agencies);
+            Navigation.NavigateTo(PlatformPaths.PlatformPageFor(path));
+            return;
         }
+
+        _resolved = true;
     }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;

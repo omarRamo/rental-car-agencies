@@ -24,6 +24,11 @@ internal sealed class BookingRequestService(
     public async Task<Result<LockedQuoteInfo>> CreateLockedQuoteAsync(PriceRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (!writer.WorksFor(request.AgencyId))
+        {
+            return BookingErrors.Forbidden;
+        }
+
         var extras = BookingPricing.ChoicesOf(request.Extras);
         if (extras.IsFailure)
         {
@@ -242,8 +247,9 @@ internal sealed class BookingRequestService(
                 return normalized.Error;
             }
 
+            // Found within the agency of the operation only (a quote of another agency's site is unknown here).
             var locked = await quotes.FindLockedAsync(normalized.Value, cancellationToken);
-            if (locked is null)
+            if (locked is null || !writer.WorksFor(locked.AgencyId))
             {
                 return BookingErrors.QuoteNotFound;
             }
@@ -271,6 +277,11 @@ internal sealed class BookingRequestService(
         }
 
         var price = draft.Price!;
+        if (!writer.WorksFor(price.AgencyId))
+        {
+            return BookingErrors.Forbidden;
+        }
+
         var extras = BookingPricing.ChoicesOf(price.Extras);
         if (extras.IsFailure)
         {

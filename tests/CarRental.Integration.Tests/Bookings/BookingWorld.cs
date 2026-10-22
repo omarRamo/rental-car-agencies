@@ -11,6 +11,7 @@ using CarRental.Domain.Pricing;
 using CarRental.Domain.Referential;
 using CarRental.Integration.Tests.Fleet;
 using CarRental.Integration.Tests.Pricing;
+using CarRental.Integration.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Integration.Tests.Bookings;
@@ -99,8 +100,19 @@ internal static class BookingWorld
         return new BookingAgency(agencyId, officeId, airportId, ecmr, cdmr, ecmrIds, cdmrIds);
     }
 
-    /// <summary>An eligible Tunisian driver (CIN and a licence held for ten years), created by an agent.</summary>
-    public static async Task<Guid> NewDriverAsync(IntegrationHost host, CancellationToken cancellationToken)
+    /// <summary>
+    /// An eligible Tunisian driver (CIN and a licence held for ten years), created by an agent: a customer of the main
+    /// demo agency. A driver of a file of a test agency is a customer of that agency: prefer
+    /// <see cref="NewDriverAsync(IntegrationHost, Guid, CancellationToken)"/>.
+    /// </summary>
+    public static async Task<Guid> NewDriverAsync(IntegrationHost host, CancellationToken cancellationToken) =>
+        await NewDriverAsync(host, await TestStaff.DemoAgencyIdAsync(host), cancellationToken);
+
+    /// <summary>
+    /// An eligible Tunisian driver (CIN and a licence held for ten years), created by an agent: a customer of
+    /// <paramref name="agencyId"/> (the customers of an agency are its own, ADR-0067).
+    /// </summary>
+    public static async Task<Guid> NewDriverAsync(IntegrationHost host, Guid agencyId, CancellationToken cancellationToken)
     {
         await using var scope = host.CreateScope(Agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
@@ -116,7 +128,10 @@ internal static class BookingWorld
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            },
             cancellationToken);
         person.IsSuccess.ShouldBeTrue(person.IsFailure ? person.Error.ToString() : null);
         var license = await registration.AddOrReplaceDocumentAsync(

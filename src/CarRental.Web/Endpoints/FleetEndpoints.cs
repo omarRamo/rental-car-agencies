@@ -10,8 +10,9 @@ namespace CarRental.Web.Endpoints;
 
 /// <summary>
 /// Web parts of the Fleet module (ADR-0022): the photo streams and the deadline e-mail factory. Category photos are
-/// public and cacheable (their URL carries the content version); vehicle photos need <c>fleet.read</c> and are never
-/// stored by shared caches. Both are streamed from the private container with an entity tag (content hash).
+/// public and cacheable (their URL carries the content version), whatever the agency; vehicle photos need
+/// <c>fleet.read</c>, are served to the staff of the agency of the vehicle only (another agency's: not found, ADR-0067)
+/// and are never stored by shared caches. Both are streamed from the private container with an entity tag (content hash).
 /// </summary>
 internal static class FleetEndpoints
 {

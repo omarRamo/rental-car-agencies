@@ -8,7 +8,7 @@ namespace CarRental.Domain.Accounting;
 /// <see cref="PeriodClosing"/> named by <see cref="CurrentClosingId"/> —, reopened only by a manager with a reason (audited,
 /// the frozen closing is kept). A month without a row is open.
 /// </summary>
-public sealed class AccountingPeriod : AggregateRoot
+public sealed class AccountingPeriod : AggregateRoot, IAgencyOwned
 {
     public const int ReasonMinLength = 10;
     public const int ReasonMaxLength = 500;
@@ -136,7 +136,7 @@ public sealed class AccountingPeriod : AggregateRoot
 /// The journals of a month as they were when it was closed (stored, so that a closed month always exports exactly the
 /// same lines): its entries and their totals. Never changed; a reopened month keeps its earlier closings for the audit.
 /// </summary>
-public sealed class PeriodClosing : AggregateRoot
+public sealed class PeriodClosing : AggregateRoot, IAgencyOwned
 {
     public const int ConfirmedChecksMaxLength = 2000;
 
@@ -222,7 +222,7 @@ public sealed class PeriodClosing : AggregateRoot
         var sequence = 0;
         foreach (var entry in JournalOrder.Sort(entries))
         {
-            closing._entries.Add(entry.FreezeCopy(closing.Id, ++sequence));
+            closing._entries.Add(entry.FreezeCopy(closing.Id, agencyId, ++sequence));
         }
 
         closing.EntryCount = closing._entries.Count;

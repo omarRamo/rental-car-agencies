@@ -363,8 +363,8 @@
   <data name="Plans.Action.Label" xml:space="preserve">
     <value>{0}: {1}</value>
   </data>
-  <data name="Plans.Agency" xml:space="preserve">
-    <value>Agency</value>
+  <data name="Plans.NoAgency" xml:space="preserve">
+    <value>Rate plans belong to the agency of the session: enter an agency from the platform to see them.</value>
   </data>
   <data name="Plans.Column.Actions" xml:space="preserve">
     <value>Actions</value>
@@ -632,9 +632,6 @@
   </data>
   <data name="Seasons.Title" xml:space="preserve">
     <value>Seasons</value>
-  </data>
-  <data name="Simulator.Agency" xml:space="preserve">
-    <value>Agency</value>
   </data>
   <data name="Simulator.ArchivedPlan" xml:space="preserve">
     <value>{0} — archived v{1} ({2})</value>

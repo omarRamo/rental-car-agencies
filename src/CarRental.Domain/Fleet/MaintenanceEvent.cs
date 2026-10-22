@@ -7,7 +7,7 @@ namespace CarRental.Domain.Fleet;
 /// during which the vehicle cannot be rented. A completed maintenance blocks until its actual completion; a cancelled one
 /// blocks nothing.
 /// </summary>
-public sealed class MaintenanceEvent : Entity
+public sealed class MaintenanceEvent : Entity, IAgencyOwned
 {
     public const int DescriptionMaxLength = 500;
     public const int ProviderMaxLength = 120;
@@ -19,10 +19,11 @@ public sealed class MaintenanceEvent : Entity
     {
     }
 
-    private MaintenanceEvent(Guid id, Guid vehicleId, MaintenanceDetails details)
+    private MaintenanceEvent(Guid id, Vehicle vehicle, MaintenanceDetails details)
         : base(id)
     {
-        VehicleId = vehicleId;
+        VehicleId = vehicle.Id;
+        AgencyId = vehicle.AgencyId;
         Type = details.Type;
         Description = details.Description;
         Provider = details.Provider;
@@ -33,6 +34,9 @@ public sealed class MaintenanceEvent : Entity
     }
 
     public Guid VehicleId { get; private set; }
+
+    /// <summary>The agency of the vehicle (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public MaintenanceType Type { get; private set; }
 
@@ -113,7 +117,7 @@ public sealed class MaintenanceEvent : Entity
     internal static bool IsValidBlock(DateTimeOffset start, DateTimeOffset end) =>
         end > start && end - start <= MaxBlockDuration;
 
-    internal static MaintenanceEvent Create(Guid vehicleId, MaintenanceDetails validated) => new(NewId(), vehicleId, validated);
+    internal static MaintenanceEvent Create(Vehicle vehicle, MaintenanceDetails validated) => new(NewId(), vehicle, validated);
 
     internal void Reschedule(DateTimeOffset start, DateTimeOffset end)
     {

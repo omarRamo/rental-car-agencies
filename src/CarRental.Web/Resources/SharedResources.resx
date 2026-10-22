@@ -2079,4 +2079,28 @@
   <data name="Error.identity.not_support_account" xml:space="preserve">
     <value>Seul un compte support ouvre et quitte les agences.</value>
   </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les lieux de l'agence.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>Ce lieu n'existe pas.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Un autre lieu de l'agence utilise déjà ce code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Gardez au moins un lieu actif : sans lieu, l'agence ne peut plus prendre de réservation.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>Le lieu a été modifié entre-temps : rechargez la page puis recommencez.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>Une étape du parcours est mesurée pour l'agence de la vitrine consultée.</value>
+  </data>
+  <data name="Error.cash.module_off" xml:space="preserve">
+    <value>Le module caisse n'est pas activé pour cette agence : aucune caisse ne reçoit d'espèces. Choisissez un autre moyen de paiement.</value>
+  </data>
+  <data name="Error.customers.agency_required" xml:space="preserve">
+    <value>Les clients sont enregistrés pour une agence : ouvrez d'abord l'agence concernée.</value>
+  </data>
 </root>

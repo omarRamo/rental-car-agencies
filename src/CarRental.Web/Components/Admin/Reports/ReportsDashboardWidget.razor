@@ -1,85 +1,94 @@
-@* Reports tile of the daily dashboard (reports.read only): the manager's main indicator, revenue per available vehicle
-   and per day, with the utilization and the average price per rented day of the month so far (the previous month on
-   the first day of a month), compared with the same days of the previous month, and a link to the reports. *@
+@* Reports tile of the daily dashboard (reports.read, and the reports module on for the agency of the session, ADR-0067):
+   the manager's main indicator, revenue per available vehicle and per day, with the utilization and the average price
+   per rented day of the month so far (the previous month on the first day of a month), compared with the same days of
+   the previous month, and a link to the reports. *@
 @using CarRental.Application.Referential.Contracts
 @inject IOperationRunner Runner
+@inject CurrentAgency Current
 @inject IStringLocalizer<ReportsResources> L
 
 <AuthorizeView Policy="@PermissionPolicy.For(Permissions.ReportsRead)">
     <Authorized>
-        <ReportsStyles />
-        <section aria-labelledby="reports-widget-title" class="mt-6" data-testid="reports-widget">
-            <MudPaper Elevation="1" Class="pa-4">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-                    <MudText Typo="Typo.h6" HtmlTag="h2" id="reports-widget-title">@L["Widget.Title"]</MudText>
-                    <MudLink Underline="Underline.Always" Href="@ReportsUrl">@L["Widget.Open"]</MudLink>
-                </MudStack>
-                @if (_headline is { } headline)
-                {
-                    <MudText Typo="Typo.body2" Class="report-muted mt-1">
-                        @L["Widget.Period", headline.AgencyName, ReportFormat.Date(headline.Period.From), ReportFormat.Date(headline.Period.CoveredTo ?? headline.Period.To)]
-                    </MudText>
-                    <dl class="report-widget-figures">
-                        <div class="report-widget-hero">
-                            <dt>@L["Kpi.RevPav"]</dt>
-                            <dd>@ReportFormat.Amount(headline.Fleet.RevenuePerAvailableDay)</dd>
-                            @if (ReportFormat.Change(headline.Fleet.RevenuePerAvailableDay, headline.PreviousFleet.RevenuePerAvailableDay) is { } change)
-                            {
-                                <dd class="report-kpi__delta"><span aria-hidden="true">@(change.Direction > 0 ? "▲" : change.Direction < 0 ? "▼" : "=")</span> @change.Text <span class="report-muted">@L["Kpi.Versus"]</span></dd>
-                            }
-                        </div>
-                        <div>
-                            <dt>@L["Kpi.Utilization"]</dt>
-                            <dd>@ReportFormat.Percent(headline.Fleet.Utilization)</dd>
-                        </div>
-                        <div>
-                            <dt>@L["Kpi.AverageRentedDayPrice"]</dt>
-                            <dd>@ReportFormat.Amount(headline.Fleet.AverageRentedDayPrice)</dd>
-                        </div>
-                    </dl>
-                    @if (!headline.Coverage.IsComplete)
+        @if (Shown)
+        {
+            <ReportsStyles />
+            <section aria-labelledby="reports-widget-title" class="mt-6" data-testid="reports-widget">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" id="reports-widget-title">@L["Widget.Title"]</MudText>
+                        <MudLink Underline="Underline.Always" Href="@ReportsUrl">@L["Widget.Open"]</MudLink>
+                    </MudStack>
+                    @if (_headline is { } headline)
                     {
-                        <MudText Typo="Typo.body2" Class="mt-2">@L["Coverage.Incomplete", headline.Coverage.ComputedDays, headline.Coverage.ExpectedDays]</MudText>
+                        <MudText Typo="Typo.body2" Class="report-muted mt-1">
+                            @L["Widget.Period", headline.AgencyName, ReportFormat.Date(headline.Period.From), ReportFormat.Date(headline.Period.CoveredTo ?? headline.Period.To)]
+                        </MudText>
+                        <dl class="report-widget-figures">
+                            <div class="report-widget-hero">
+                                <dt>@L["Kpi.RevPav"]</dt>
+                                <dd>@ReportFormat.Amount(headline.Fleet.RevenuePerAvailableDay)</dd>
+                                @if (ReportFormat.Change(headline.Fleet.RevenuePerAvailableDay, headline.PreviousFleet.RevenuePerAvailableDay) is { } change)
+                                {
+                                    <dd class="report-kpi__delta"><span aria-hidden="true">@(change.Direction > 0 ? "▲" : change.Direction < 0 ? "▼" : "=")</span> @change.Text <span class="report-muted">@L["Kpi.Versus"]</span></dd>
+                                }
+                            </div>
+                            <div>
+                                <dt>@L["Kpi.Utilization"]</dt>
+                                <dd>@ReportFormat.Percent(headline.Fleet.Utilization)</dd>
+                            </div>
+                            <div>
+                                <dt>@L["Kpi.AverageRentedDayPrice"]</dt>
+                                <dd>@ReportFormat.Amount(headline.Fleet.AverageRentedDayPrice)</dd>
+                            </div>
+                        </dl>
+                        @if (!headline.Coverage.IsComplete)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-2">@L["Coverage.Incomplete", headline.Coverage.ComputedDays, headline.Coverage.ExpectedDays]</MudText>
+                        }
                     }
-                }
-                else if (_failed)
-                {
-                    <MudText Typo="Typo.body2" Class="mt-2">@L["Widget.Error"]</MudText>
-                }
-                else
-                {
-                    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" Class="mt-3" />
-                }
-            </MudPaper>
-        </section>
+                    else if (_failed)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@L["Widget.Error"]</MudText>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" Class="mt-3" />
+                    }
+                </MudPaper>
+            </section>
+        }
     </Authorized>
 </AuthorizeView>
 
 @code {
+    private const string ReportsUrl = "/admin/reports";
+
+    private AgencySummary? _agency;
     private ReportHeadline? _headline;
     private bool _failed;
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
-    private string ReportsUrl => _headline is { } headline ? $"/admin/reports?agency={headline.AgencyId}" : "/admin/reports";
+    /// <summary>The agency of the session has the reports on: its own headline; otherwise no tile at all.</summary>
+    private bool Shown => _agency is not null && CurrentAgency.Offers(_agency, AgencyModules.Reports);
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RendererInfo.IsInteractive || !(await AuthenticationState).User.HasPermission(Permissions.ReportsRead))
+        var user = (await AuthenticationState).User;
+        if (!user.HasPermission(Permissions.ReportsRead))
         {
             return;
         }
 
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        var agency = agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault();
-        if (agency is null)
+        _agency = await Current.GetAsync(user);
+        if (!RendererInfo.IsInteractive || !Shown)
         {
-            _failed = true;
             return;
         }
 
-        var result = await Runner.RunAsync<ReportQueries, Result<ReportHeadline>>((queries, ct) => queries.GetHeadlineAsync(agency.Id, ct));
+        var agencyId = _agency!.Id;
+        var result = await Runner.RunAsync<ReportQueries, Result<ReportHeadline>>((queries, ct) => queries.GetHeadlineAsync(agencyId, ct));
         _headline = result.IsSuccess ? result.Value : null;
         _failed = result.IsFailure;
     }

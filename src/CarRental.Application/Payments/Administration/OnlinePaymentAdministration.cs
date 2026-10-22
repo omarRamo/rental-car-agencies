@@ -189,7 +189,7 @@ public sealed record OnlinePaymentListFilter(
     bool NeedsAttention = false,
     bool AwaitingApproval = false);
 
-/// <summary>A page of online payments, with the number of flagged payments and of refunds awaiting approval (whole platform).</summary>
+/// <summary>A page of online payments, with the number of flagged payments and of refunds awaiting approval (of the agency of the operation).</summary>
 public sealed record OnlinePaymentList(PagedResult<OnlinePaymentInfo> Page, int AttentionCount, int AwaitingApprovalCount);
 
 /// <summary>An online payment and the calls made to the gateway for its order, most recent first.</summary>

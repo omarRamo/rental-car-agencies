@@ -148,6 +148,7 @@ internal static class WhatsAppTestData
     /// <summary>A person with this phone (E.164 or <c>wa_id</c>), created by an agent, with the WhatsApp notifications consent when asked.</summary>
     public static async Task<Guid> NewPersonAsync(IntegrationHost host, string phone, bool consent, CancellationToken cancellationToken)
     {
+        // A customer of the main demo agency, served by the number (the customers of an agency are its own, ADR-0067).
         await using var scope = host.CreateScope(Agent(host));
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
         var person = await registration.FindOrCreatePersonAsync(

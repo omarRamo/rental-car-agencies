@@ -1,8 +1,10 @@
 using CarRental.Application.Accounting.Journals;
 using CarRental.Application.Cash.Expenses;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Accounting;
 using CarRental.Domain.Common;
+using CarRental.Web.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Net.Http.Headers;
@@ -11,9 +13,9 @@ namespace CarRental.Web.Components.Admin.Accounting;
 
 /// <summary>
 /// Web parts of the expenses and the pre-accounting (ADR-0063 to ADR-0065): the labels of the journal entries and the Excel
-/// exporter, the export of the journals (<c>GET /admin/accounting/export?agency=&amp;from=yyyy-MM&amp;to=yyyy-MM&amp;journal=&amp;format=csv|xlsx</c>,
-/// <c>accounting.manage</c>, never cached) and the receipts of the expenses (<c>GET /admin/expenses/{id}/receipt</c>,
-/// <c>expenses.manage</c>), always with an MFA session.
+/// exporter, the export of the journals of the agency of the session (<c>GET /admin/accounting/export?from=yyyy-MM&amp;to=yyyy-MM&amp;journal=&amp;format=csv|xlsx</c>,
+/// <c>accounting.manage</c> and the accounting module, never cached) and the receipts of the expenses
+/// (<c>GET /admin/expenses/{id}/receipt</c>, <c>expenses.manage</c> and the cash module), always with an MFA session.
 /// </summary>
 internal static class AccountingWeb
 {
@@ -30,14 +32,18 @@ internal static class AccountingWeb
     public static IEndpointRouteBuilder MapAccountingEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
-        endpoints.MapGet(ExportRoute, ExportAsync).RequireAuthorization(PermissionPolicy.For(Permissions.AccountingManage)).ExcludeFromDescription();
-        endpoints.MapGet("/admin/expenses/{expenseId:guid}/receipt", GetReceiptAsync).RequireAuthorization(PermissionPolicy.For(Permissions.ExpensesManage)).ExcludeFromDescription();
+        endpoints.MapGet(ExportRoute, ExportAsync)
+            .RequireAuthorization(PermissionPolicy.For(Permissions.AccountingManage), ModulePolicy.For(AgencyModules.Accounting))
+            .ExcludeFromDescription();
+        endpoints.MapGet("/admin/expenses/{expenseId:guid}/receipt", GetReceiptAsync)
+            .RequireAuthorization(PermissionPolicy.For(Permissions.ExpensesManage), ModulePolicy.For(AgencyModules.Cash))
+            .ExcludeFromDescription();
         return endpoints;
     }
 
-    /// <summary>The address of an export.</summary>
-    public static string ExportUrl(Guid agencyId, AccountingMonth from, AccountingMonth to, Journal? journal, string format) =>
-        $"{ExportRoute}?agency={agencyId}&from={from}&to={to}&journal={(journal is { } j ? JournalCatalog.CodeOf(j) : "all")}&format={format}";
+    /// <summary>The address of an export of the journals of the agency of the session.</summary>
+    public static string ExportUrl(AccountingMonth from, AccountingMonth to, Journal? journal, string format) =>
+        $"{ExportRoute}?from={from}&to={to}&journal={(journal is { } j ? JournalCatalog.CodeOf(j) : "all")}&format={format}";
 
     /// <summary>A journal from its code (<c>VT</c>, <c>AC</c>…), none for <c>all</c>; false when unknown.</summary>
     public static bool TryParseJournal(string? code, out Journal? journal)
@@ -61,20 +67,26 @@ internal static class AccountingWeb
     }
 
     private static async Task<IResult> ExportAsync(
-        [FromQuery] Guid? agency,
         [FromQuery] string? from,
         [FromQuery] string? to,
         [FromQuery] string? journal,
         [FromQuery] string? format,
         [FromServices] JournalService journals,
+        [FromServices] IUserContext user,
         HttpContext context,
         CancellationToken cancellationToken)
     {
         var start = AccountingMonth.Parse(from);
         var end = AccountingMonth.Parse(to ?? from);
-        if (agency is not { } agencyId || start.IsFailure || end.IsFailure || !TryParseJournal(journal, out var wanted))
+        if (start.IsFailure || end.IsFailure || !TryParseJournal(journal, out var wanted))
         {
             return TypedResults.Problem(detail: "accounting.export.query_invalid", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        // The journals of the agency of the session only (ADR-0067): the module policy already requires one.
+        if (user.AgencyId is not { } agencyId)
+        {
+            return TypedResults.Problem(detail: AccountingErrors.AgencyNotFound.Code, statusCode: StatusCodes.Status404NotFound);
         }
 
         var file = await journals.ExportAsync(agencyId, start.Value, end.Value, wanted, format ?? GenericCsvJournalExporter.FormatName, cancellationToken);

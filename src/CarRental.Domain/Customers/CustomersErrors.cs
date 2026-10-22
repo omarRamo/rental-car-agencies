@@ -175,6 +175,11 @@ public static class CustomersErrors
     // Application.
     public static readonly Error Forbidden = Error.Forbidden("customers.forbidden", "The current user lacks the required permission.");
 
+    /// <summary>Persons, payers and submissions belong to an agency (ADR-0067): the operation names none.</summary>
+    public static readonly Error AgencyRequired = Error.Validation(
+        "customers.agency_required",
+        "Customers are registered for an agency: the operation does not work for one.");
+
     public static readonly Error ConcurrentUpdate = Error.Conflict(
         "customers.concurrent_update",
         "The record was changed by someone else in the meantime; reload it and try again.");

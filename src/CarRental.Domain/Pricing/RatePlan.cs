@@ -15,7 +15,7 @@ namespace CarRental.Domain.Pricing;
 /// <para>Every edit replaces one section as a whole, checks the invariants of that section, increments
 /// <see cref="Revision"/> (optimistic check of the editor) and raises <see cref="RatePlanDraftUpdated"/>.</para>
 /// </remarks>
-public sealed class RatePlan : AggregateRoot
+public sealed class RatePlan : AggregateRoot, IAgencyOwned
 {
     public const int NameMaxLength = 120;
 
@@ -186,7 +186,7 @@ public sealed class RatePlan : AggregateRoot
             }
         }
 
-        MergeById(_seasons, definitions, d => d.Id, d => Season.Create(Id, d), (season, definition) => season.Apply(definition));
+        MergeById(_seasons, definitions, d => d.Id, d => Season.Create(this, d), (season, definition) => season.Apply(definition));
         Touch(RatePlanSection.Seasons, now);
         return Result.Success();
     }
@@ -221,7 +221,7 @@ public sealed class RatePlan : AggregateRoot
             }
         }
 
-        MergeById(_events, definitions, d => d.Id, d => PriorityEvent.Create(Id, d), (priorityEvent, definition) => priorityEvent.Apply(definition));
+        MergeById(_events, definitions, d => d.Id, d => PriorityEvent.Create(this, d), (priorityEvent, definition) => priorityEvent.Apply(definition));
         var eventIds = _events.Select(e => e.Id).ToHashSet();
         _prices.RemoveAll(p => p.PeriodKind == RatePeriodKind.Event && !eventIds.Contains(p.EventId!.Value));
         Touch(RatePlanSection.Events, now);
@@ -272,7 +272,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                var created = CategoryPrice.Create(Id, definition);
+                var created = CategoryPrice.Create(this, definition);
                 _prices.Add(created);
                 kept.Add(created);
             }
@@ -342,7 +342,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                _tiers.Add(DurationTier.Create(Id, definition));
+                _tiers.Add(DurationTier.Create(this, definition));
             }
         }
 
@@ -357,7 +357,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                _tierCategoryDiscounts.Add(TierCategoryDiscount.Create(Id, definition));
+                _tierCategoryDiscounts.Add(TierCategoryDiscount.Create(this, definition));
             }
         }
 
@@ -417,7 +417,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                result.Add(Extra.Create(Id, definition, position));
+                result.Add(Extra.Create(this, definition, position));
             }
         }
 
@@ -461,7 +461,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                result.Add(Promotion.Create(Id, definition, position));
+                result.Add(Promotion.Create(this, definition, position));
             }
         }
 
@@ -502,7 +502,7 @@ public sealed class RatePlan : AggregateRoot
             }
             else
             {
-                _channelRules.Add(ChannelRule.Create(Id, definition));
+                _channelRules.Add(ChannelRule.Create(this, definition));
             }
         }
 
@@ -677,12 +677,12 @@ public sealed class RatePlan : AggregateRoot
         }
 
         var copy = new RatePlan(NewId(), AgencyId, channel, normalized, Id, now);
-        copy._seasons.AddRange(_seasons.Select(s => s.CopyForNewPlan(copy.Id)));
+        copy._seasons.AddRange(_seasons.Select(s => s.CopyForNewPlan(copy)));
 
         var eventIds = new Dictionary<Guid, Guid>();
         foreach (var priorityEvent in _events)
         {
-            var copied = priorityEvent.CopyForNewPlan(copy.Id);
+            var copied = priorityEvent.CopyForNewPlan(copy);
             eventIds[priorityEvent.Id] = copied.Id;
             copy._events.Add(copied);
         }
@@ -690,16 +690,16 @@ public sealed class RatePlan : AggregateRoot
         foreach (var price in _prices)
         {
             var period = price.Period.EventId is { } eventId ? RatePeriodKey.ForEvent(eventIds[eventId]) : price.Period;
-            copy._prices.Add(CategoryPrice.Create(copy.Id, new CategoryPriceDefinition(price.CategoryId, period, price.DailyPrice)));
+            copy._prices.Add(CategoryPrice.Create(copy, new CategoryPriceDefinition(price.CategoryId, period, price.DailyPrice)));
         }
 
-        copy._tiers.AddRange(_tiers.Select(t => t.CopyForNewPlan(copy.Id)));
-        copy._tierCategoryDiscounts.AddRange(_tierCategoryDiscounts.Select(d => d.CopyForNewPlan(copy.Id)));
-        copy._extras.AddRange(_extras.Select(e => e.CopyForNewPlan(copy.Id)));
-        copy._promotions.AddRange(_promotions.Select(p => p.CopyForNewPlan(copy.Id)));
+        copy._tiers.AddRange(_tiers.Select(t => t.CopyForNewPlan(copy)));
+        copy._tierCategoryDiscounts.AddRange(_tierCategoryDiscounts.Select(d => d.CopyForNewPlan(copy)));
+        copy._extras.AddRange(_extras.Select(e => e.CopyForNewPlan(copy)));
+        copy._promotions.AddRange(_promotions.Select(p => p.CopyForNewPlan(copy)));
         if (channel is null)
         {
-            copy._channelRules.AddRange(_channelRules.Select(r => r.CopyForNewPlan(copy.Id)));
+            copy._channelRules.AddRange(_channelRules.Select(r => r.CopyForNewPlan(copy)));
         }
 
         copy.Raise(new RatePlanCreated(copy.Id, AgencyId, channel, Id));

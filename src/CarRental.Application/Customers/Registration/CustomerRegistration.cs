@@ -44,17 +44,23 @@ internal sealed partial class CustomerRegistration(
             return details.Error;
         }
 
+        var agency = AgencyFor(request.AgencyId);
+        if (agency.IsFailure)
+        {
+            return agency.Error;
+        }
+
         var document = request.Document?.ToDomain();
 
         // Invalid input fails before any database access; the person is built again inside the unit of work (replayed
         // on a transient failure).
-        var validation = Probe(details.Value, document, timeProvider.GetUtcNow());
+        var validation = Probe(agency.Value, details.Value, document, timeProvider.GetUtcNow());
         if (validation.IsFailure)
         {
             return validation.Error;
         }
 
-        return await unitOfWork.ExecuteGuardedAsync(ct => RegisterAsync(details.Value, document, ct), cancellationToken);
+        return await unitOfWork.ExecuteGuardedAsync(ct => RegisterAsync(agency.Value, details.Value, document, ct), cancellationToken);
     }
 
     public async Task<Result<Guid>> GetOrCreateIndividualCustomerAsync(Guid personId, CancellationToken cancellationToken = default)
@@ -70,7 +76,7 @@ internal sealed partial class CustomerRegistration(
                 var person = await db.Set<Person>()
                     .AsNoTracking()
                     .Where(p => p.Id == personId)
-                    .Select(p => new { p.AnonymizedAtUtc })
+                    .Select(p => new { p.AgencyId, p.AnonymizedAtUtc })
                     .FirstOrDefaultAsync(ct);
                 if (person is null)
                 {
@@ -83,7 +89,7 @@ internal sealed partial class CustomerRegistration(
                 }
 
                 var existing = await db.Set<Customer>()
-                    .Where(c => c.PersonId == personId)
+                    .Where(c => c.AgencyId == person.AgencyId && c.PersonId == personId)
                     .Select(c => (Guid?)c.Id)
                     .FirstOrDefaultAsync(ct);
                 if (existing is { } customerId)
@@ -91,7 +97,8 @@ internal sealed partial class CustomerRegistration(
                     return customerId;
                 }
 
-                var customer = Customer.ForPerson(personId, timeProvider.GetUtcNow()).Value;
+                // The payer of a person belongs to the agency of the person.
+                var customer = Customer.ForPerson(person.AgencyId, personId, timeProvider.GetUtcNow()).Value;
                 db.Set<Customer>().Add(customer);
                 return customer.Id;
             },
@@ -156,7 +163,7 @@ internal sealed partial class CustomerRegistration(
                         return CustomersErrors.PersonNotFound;
                     }
 
-                    if (await db.IsDocumentNumberUsedByAnotherPersonAsync(personId, details, ct))
+                    if (await db.IsDocumentNumberUsedByAnotherPersonAsync(person, details, ct))
                     {
                         return CustomersErrors.DocumentNumberInUse;
                     }
@@ -218,13 +225,13 @@ internal sealed partial class CustomerRegistration(
             return owner.Error.Code == CustomersErrors.PersonNotFound.Code ? CustomersErrors.DocumentNotFound : owner.Error;
         }
 
-        var image = await imageStore.StoreAsync(owner.Value, prepared.Value, cancellationToken);
+        var image = await imageStore.StoreAsync(owner.Value.Id, prepared.Value, cancellationToken);
         try
         {
             var result = await unitOfWork.ExecuteGuardedAsync(
                 async ct =>
                 {
-                    var person = await db.LoadPersonAsync(owner.Value, ct);
+                    var person = await db.LoadPersonAsync(owner.Value.Id, ct);
                     return person is null
                         ? CustomersErrors.DocumentNotFound
                         : person.AttachDocumentImage(documentId, domainSide, image, timeProvider.GetUtcNow());
@@ -259,17 +266,25 @@ internal sealed partial class CustomerRegistration(
             return details.Error;
         }
 
+        var agency = AgencyFor(request.AgencyId);
+        if (agency.IsFailure)
+        {
+            return agency.Error;
+        }
+
+        var agencyId = agency.Value;
         return await unitOfWork.ExecuteGuardedAsync<Guid>(
             async ct =>
             {
-                var company = Customer.ForCompany(details.Value, timeProvider.GetUtcNow());
+                var company = Customer.ForCompany(agencyId, details.Value, timeProvider.GetUtcNow());
                 if (company.IsFailure)
                 {
                     return company.Error;
                 }
 
+                // A tax identifier is unique among the companies of the agency (another agency may rent to the same one).
                 var key = company.Value.TaxIdentifierKey;
-                if (await db.Set<Customer>().AnyAsync(c => c.Kind == CustomerKind.Company && c.TaxIdentifierKey == key, ct))
+                if (await db.Set<Customer>().AnyAsync(c => c.AgencyId == agencyId && c.Kind == CustomerKind.Company && c.TaxIdentifierKey == key, ct))
                 {
                     return CustomersErrors.CompanyAlreadyExists;
                 }
@@ -324,15 +339,29 @@ internal sealed partial class CustomerRegistration(
             },
             cancellationToken);
 
-    private static Result Probe(PersonDetails details, IdentityDocumentDetails? document, DateTimeOffset now)
+    private static Result Probe(Guid agencyId, PersonDetails details, IdentityDocumentDetails? document, DateTimeOffset now)
     {
-        var person = Person.Register(details, now);
+        var person = Person.Register(agencyId, details, now);
         if (person.IsFailure)
         {
             return person.Error;
         }
 
         return document is null ? Result.Success() : person.Value.AddDocument(document, now);
+    }
+
+    /// <summary>
+    /// The agency a new person, payer or staged image is registered for (ADR-0067): the one the caller names — an
+    /// operation restricted to an agency may only name its own — else the agency of the operation.
+    /// </summary>
+    private Result<Guid> AgencyFor(Guid? requested)
+    {
+        if (requested is { } named && named != Guid.Empty)
+        {
+            return userContext.IsAcrossAgencies || userContext.AgencyId == named ? named : CustomersErrors.Forbidden;
+        }
+
+        return userContext.AgencyId is { } own ? own : CustomersErrors.AgencyRequired;
     }
 
     private static async Task<Result<PreparedDocumentImage?>> PrepareAsync(Stream? content, CancellationToken cancellationToken)
@@ -347,12 +376,13 @@ internal sealed partial class CustomerRegistration(
     }
 
     private async Task<Result<PersonRegistrationResult>> RegisterAsync(
+        Guid agencyId,
         PersonDetails details,
         IdentityDocumentDetails? documentDetails,
         CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var probe = Person.Register(details, now);
+        var probe = Person.Register(agencyId, details, now);
         if (probe.IsFailure)
         {
             return probe.Error;
@@ -391,15 +421,18 @@ internal sealed partial class CustomerRegistration(
         return new PersonRegistrationResult(probe.Value.Id, PersonMatchKindInfo.Created, NameDiffers: false, match.SimilarPersonIds);
     }
 
+    /// <summary>The persons of the agency of <paramref name="probe"/> sharing a key with it: never a person of another agency.</summary>
     private async Task<List<Person>> FindCandidatesAsync(Person probe, IdentityDocument? document, CancellationToken cancellationToken)
     {
+        var agencyId = probe.AgencyId;
         var phone = probe.Phone;
         var email = probe.Email;
         var type = document?.Type;
         var country = document?.IssuingCountry;
         var key = document?.NumberKey;
         return await db.Set<Person>()
-            .Where(p => p.AnonymizedAtUtc == null
+            .Where(p => p.AgencyId == agencyId
+                        && p.AnonymizedAtUtc == null
                         && ((phone != null && p.Phone == phone)
                             || (email != null && p.Email == email)
                             || (key != null && p.Documents.Any(d => d.SupersededAtUtc == null
@@ -411,20 +444,20 @@ internal sealed partial class CustomerRegistration(
             .ToListAsync(cancellationToken);
     }
 
-    /// <summary>The id of the (not anonymized) person matching <paramref name="predicate"/>.</summary>
-    private async Task<Result<Guid>> CheckOwnerAsync(System.Linq.Expressions.Expression<Func<Person, bool>> predicate, CancellationToken cancellationToken)
+    /// <summary>The (not anonymized) person matching <paramref name="predicate"/>, and its agency.</summary>
+    private async Task<Result<PersonOwner>> CheckOwnerAsync(System.Linq.Expressions.Expression<Func<Person, bool>> predicate, CancellationToken cancellationToken)
     {
         var owner = await db.Set<Person>()
             .AsNoTracking()
             .Where(predicate)
-            .Select(p => new { p.Id, p.AnonymizedAtUtc })
+            .Select(p => new { p.Id, p.AgencyId, p.AnonymizedAtUtc })
             .FirstOrDefaultAsync(cancellationToken);
         if (owner is null)
         {
             return CustomersErrors.PersonNotFound;
         }
 
-        return owner.AnonymizedAtUtc is null ? owner.Id : CustomersErrors.PersonAnonymized;
+        return owner.AnonymizedAtUtc is null ? new PersonOwner(owner.Id, owner.AgencyId) : CustomersErrors.PersonAnonymized;
     }
 
     private async Task DeleteAsync(IEnumerable<DocumentImage> images)
@@ -434,4 +467,7 @@ internal sealed partial class CustomerRegistration(
             await imageStore.DeleteUnreferencedAsync(image.Path);
         }
     }
+
+    /// <summary>A person found by <see cref="CheckOwnerAsync"/>: its id and its agency.</summary>
+    private sealed record PersonOwner(Guid Id, Guid AgencyId);
 }

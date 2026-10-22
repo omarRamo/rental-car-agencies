@@ -94,12 +94,21 @@ internal sealed class PublishedPlanCache(IServiceScopeFactory scopeFactory, Time
 
 /// <summary>
 /// Published plans for the quote calculator: from the <see cref="PublishedPlanCache"/>, except inside a transaction, where
-/// the plan is read with the transaction (a writer sees its own changes; nothing uncommitted is cached).
+/// the plan is read with the transaction (a writer sees its own changes; nothing uncommitted is cached). The cache holds
+/// the plans of every agency: an operation of one agency only gets the plans of that agency (ADR-0067).
 /// </summary>
-internal sealed class CachedPublishedPlanSource(PublishedPlanCache cache, IRatePlanStore store, IUnitOfWork unitOfWork) : IPublishedPlanSource
+internal sealed class CachedPublishedPlanSource(PublishedPlanCache cache, IRatePlanStore store, IUnitOfWork unitOfWork, IUserContext userContext)
+    : IPublishedPlanSource
 {
-    public Task<RatePlan?> FindPublishedAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken) =>
-        unitOfWork.HasActiveTransaction
+    public Task<RatePlan?> FindPublishedAsync(Guid agencyId, SalesChannel? channel, CancellationToken cancellationToken)
+    {
+        if (!userContext.IsAcrossAgencies && userContext.AgencyId != agencyId)
+        {
+            return Task.FromResult<RatePlan?>(null);
+        }
+
+        return unitOfWork.HasActiveTransaction
             ? store.FindPublishedAsync(agencyId, channel, cancellationToken)
             : cache.GetAsync(agencyId, channel, cancellationToken);
+    }
 }

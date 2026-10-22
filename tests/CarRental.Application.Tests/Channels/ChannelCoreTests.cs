@@ -266,13 +266,13 @@ public sealed class ChannelCoreTests
             return step.IsSuccess ? result : step.Error;
         }
 
-        public Task<BookingSummaryInfo?> FindByChannelReferenceAsync(SalesChannel channel, string channelReference, CancellationToken cancellationToken = default) =>
+        public Task<BookingSummaryInfo?> FindByChannelReferenceAsync(Guid agencyId, SalesChannel channel, string channelReference, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byReference.GetValueOrDefault(channelReference));
 
         public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byReference.Values.FirstOrDefault(b => b.Id == bookingId));
 
-        public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<IReadOnlyList<PersonBookingInfo>> GetBookingsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

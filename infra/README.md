@@ -117,7 +117,7 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `Email__AcsEndpoint` | `https://<acs>.<zone>.communication.azure.com` (nom d'hôte de la ressource Communication Services) |
 | `Email__SenderAddress` | `DoNotReply@<guid>.azurecomm.net`, puis `noreply@<domaine de l'agence>` |
 | `Seed__Demo` | `true` en recette, `false` en prod |
-| `Identity__InitialManagerEmail` | paramètre `initialManagerEmail` : si aucun gérant n'existe, ce compte est créé au démarrage sans mot de passe ; le gérant le définit par « mot de passe oublié », puis enrôle sa double authentification |
+| `Identity__InitialSupportEmail` | paramètre `initialSupportEmail` : si aucun compte support n'existe, ce compte (l'exploitant de la plateforme, [ADR-0067](../docs/adr/0067-plateforme-multi-agences-cloisonnement-support-modules.md)) est créé au démarrage sans mot de passe ; il le définit par « mot de passe oublié », enrôle sa double authentification, puis crée les agences et invite leurs gérants |
 | `HostFiltering__CustomDomains` | paramètre `customDomains` (`www.agence.tn;agence.tn`) : l'application n'accepte que `*.azurewebsites.net`, `localhost` et ces domaines (réponse 400 sinon, sauf `/health*`) |
 | `ReverseProxy__TrustCloudflareHeader` | `true` seulement avec `restrictToCloudflare` : l'adresse du client (limitation de débit, journal d'audit) est alors lue dans `CF-Connecting-IP`, qu'aucun client ne peut plus forger ; `false` sinon, adresse de connexion ([section 8](#8-cloudflare-devant-lapp-service)) |
 | `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
@@ -342,7 +342,7 @@ az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoUserPassw
 az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoAuthenticatorKey" --file ./demo-totp-key.txt
 ```
 
-**Production : premier gérant.** Ne pas activer `Seed__Demo`. Renseigner `initialManagerEmail` au déploiement Bicep : au premier démarrage sans gérant, ce compte est créé sans mot de passe ; utiliser « mot de passe oublié » sur `/account/forgot-password`, puis enrôler l'application d'authentification (la double authentification est obligatoire pour accéder à `/admin`).
+**Production : premier compte support.** Ne pas activer `Seed__Demo`. Renseigner `initialSupportEmail` au déploiement Bicep : au premier démarrage sans compte support, ce compte est créé sans mot de passe ; utiliser « mot de passe oublié » sur `/account/forgot-password`, puis enrôler l'application d'authentification (la double authentification est obligatoire pour accéder à `/admin`). Le support crée ensuite chaque agence depuis `/admin/platform` (adresse de sa vitrine, modules, premier gérant invité par e-mail).
 
 ### 5.8 Premier déploiement de l'application
 

@@ -77,7 +77,7 @@ public static class DriverSubmissionRules
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(documents);
-        var person = Person.Register(details, now);
+        var person = Person.Transient(details, now);
         if (person.IsFailure)
         {
             return person.Error;

@@ -55,12 +55,16 @@ public static class AdminNavigation
         [
             new("/admin/users", "Nav.Users", Icons.Material.Outlined.ManageAccounts, Permissions.UsersManage),
             new("/admin/agency", "Nav.Agency", Icons.Material.Outlined.Storefront, Permissions.SettingsManage),
+            new("/admin/locations", "Nav.Locations", Icons.Material.Outlined.Place, Permissions.SettingsManage),
             new("/admin/settings", "Nav.Settings", Icons.Material.Outlined.Settings, Permissions.SettingsManage),
             new("/admin/audit", "Nav.Audit", Icons.Material.Outlined.History, Permissions.AuditRead),
         ]),
         new("Nav.Group.Platform", Icons.Material.Outlined.Domain,
         [
             new(PlatformPaths.Agencies, "Nav.Agencies", Icons.Material.Outlined.Business, Permissions.PlatformAgencies),
+            new(PlatformPaths.SupportAccounts, "Nav.SupportAccounts", Icons.Material.Outlined.SupportAgent, Permissions.PlatformAgencies),
+            new(PlatformPaths.Settings, "Nav.PlatformSettings", Icons.Material.Outlined.Tune, Permissions.PlatformAgencies),
+            new(PlatformPaths.Audit, "Nav.PlatformAudit", Icons.Material.Outlined.ManageHistory, Permissions.PlatformAgencies),
             new("/admin/outbox", "Nav.Outbox", Icons.Material.Outlined.Outbox, Permissions.OutboxManage),
             new("/admin/jobs", "Nav.Jobs", Icons.Material.Outlined.Schedule, Permissions.JobsDashboard, ForceLoad: true),
         ]),

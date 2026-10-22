@@ -6,6 +6,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Administration;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Integration.Tests.Bookings;
+using CarRental.Integration.Tests.Support;
 using CarRental.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Public.PublicTestData;
@@ -84,10 +85,11 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
     private static string Snapshot(IdentityDocumentInfo document) =>
         string.Create(CultureInfo.InvariantCulture, $"{document.Type}|{document.Number}|{document.IssuingCountry}|{document.IssuedOn}|{document.ExpiresOn}|{document.HasFrontImage}|{document.HasBackImage}|{document.VerifiedAtUtc}");
 
-    /// <summary>A Tunisian person entered at the counter, CIN and licence verified, with a photo of the licence.</summary>
+    /// <summary>A Tunisian person entered at the counter of the agency of the site, CIN and licence verified, with a photo of the licence.</summary>
     private async Task<Guid> KnownPersonAsync(string suffix, string cin)
     {
         var today = Domain.Common.TunisTime.Today(TimeProvider.System);
+        var siteAgencyId = await TestStaff.DemoAgencyIdAsync(host);
         Guid personId;
         await using (var scope = host.CreateScope(BookingWorld.Agent))
         {
@@ -100,7 +102,10 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
                     new DateOnly(1980, 1, 1),
                     $"+2169{RandomNumberGenerator.GetInt32(1_000_000, 9_999_999)}",
                     $"connue.{suffix.ToLowerInvariant()}@example.test",
-                    Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, cin, "TN", today.AddYears(-5))),
+                    Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, cin, "TN", today.AddYears(-5)))
+                {
+                    AgencyId = siteAgencyId,
+                },
                 Ct);
             person.IsSuccess.ShouldBeTrue(person.IsFailure ? person.Error.ToString() : null);
             personId = person.Value.PersonId;

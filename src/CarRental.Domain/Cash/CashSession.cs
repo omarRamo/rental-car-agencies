@@ -18,7 +18,7 @@ namespace CarRental.Domain.Cash;
 /// <para>Every movement updates the root (expected cash, <see cref="LastSequence"/>), so the <c>rowversion</c> of the
 /// root guards the whole session against concurrent changes.</para>
 /// </remarks>
-public sealed class CashSession : AggregateRoot
+public sealed class CashSession : AggregateRoot, IAgencyOwned
 {
     public const int JustificationMinLength = 3;
     public const int JustificationMaxLength = 500;
@@ -414,7 +414,7 @@ public sealed class CashSession : AggregateRoot
         foreach (var movement in planned)
         {
             LastSequence++;
-            var line = CashMovement.Create(Id, LastSequence, movement, by, at);
+            var line = CashMovement.Create(Id, AgencyId, LastSequence, movement, by, at);
             _movements.Add(line);
             ExpectedRevenueCash += movement.RevenueEffect;
             ExpectedDepositCash += movement.DepositEffect;

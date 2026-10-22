@@ -82,38 +82,16 @@ internal sealed class BookingStatusTool(IBookingsQueries bookings, ICustomersQue
     }
 
     /// <summary>
-    /// The file of the agency of the conversation with this number, when the WhatsApp number of the conversation belongs
-    /// to it. The scope of the turn works for the agency of the conversation, and the agency of the file is checked as
-    /// well. Numbers are unique within an agency only: when the number names a file of another agency, the file of this
-    /// agency with the same number is looked for among the files of the persons of this WhatsApp number.
+    /// The file with this number in the agency of the conversation (numbers are unique within an agency only; the scope
+    /// of the turn works for that agency, and the agency of the file is checked as well), when the WhatsApp number of the
+    /// conversation belongs to it.
     /// </summary>
-    private async Task<BookingSummaryInfo?> FindAsync(string reference, ConversationTurn turn, CancellationToken cancellationToken)
-    {
-        var byNumber = await bookings.FindByNumberAsync(reference, cancellationToken);
-        if (byNumber is null)
-        {
-            return null;
-        }
-
-        if (byNumber.AgencyId == turn.AgencyId)
-        {
-            return await BelongsToAsync(byNumber, turn.WhatsAppNumber, cancellationToken) ? byNumber : null;
-        }
-
-        var number = reference.Trim();
-        foreach (var person in await customers.FindPersonsByPhoneAsync(turn.WhatsAppNumber, cancellationToken))
-        {
-            var file = (await bookings.GetBookingsOfPersonAsync(person.Id, cancellationToken))
-                .Select(b => b.Booking)
-                .FirstOrDefault(b => b.AgencyId == turn.AgencyId && string.Equals(b.Number, number, StringComparison.OrdinalIgnoreCase));
-            if (file is not null)
-            {
-                return file;
-            }
-        }
-
-        return null;
-    }
+    private async Task<BookingSummaryInfo?> FindAsync(string reference, ConversationTurn turn, CancellationToken cancellationToken) =>
+        await bookings.FindByNumberAsync(turn.AgencyId, reference, cancellationToken) is { } booking
+        && booking.AgencyId == turn.AgencyId
+        && await BelongsToAsync(booking, turn.WhatsAppNumber, cancellationToken)
+            ? booking
+            : null;
 
     /// <summary>Whether the number belongs to a driver of the file or to its payer (persons with this phone; a company payer by its phone).</summary>
     private async Task<bool> BelongsToAsync(BookingSummaryInfo booking, string whatsAppNumber, CancellationToken cancellationToken)

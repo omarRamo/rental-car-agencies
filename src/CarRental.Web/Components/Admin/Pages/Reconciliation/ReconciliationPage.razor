@@ -1,5 +1,6 @@
 @page "/admin/reconciliation"
 @attribute [HasPermission(Permissions.ReconciliationManage)]
+@attribute [RequiresModule(AgencyModules.Accounting)]
 @using CarRental.Application.Accounting.Contracts
 @using CarRental.Application.Accounting.Reconciliation
 @using CarRental.Application.Cash.Contracts
@@ -25,17 +26,6 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2">
-        @if (_agencies.Count > 1)
-        {
-            <MudItem xs="12" sm="6">
-                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-        }
         <MudItem xs="12" sm="4">
             <MudTextField T="string" Value="_monthValue" ValueChanged="MonthChangedAsync" Label="@L["Field.Month"]" InputType="InputType.Month" ShrinkLabel="true"
                           InputId="reconciliation-month" />
@@ -275,7 +265,6 @@
 </MudTabs>
 
 @code {
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private Guid _agencyId;
     private AccountingMonth _month;
     private string? _monthValue;
@@ -288,24 +277,27 @@
     private bool _busy;
     private bool _loaded;
     private int _tab;
-    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    /// <summary>The agency of the session (cascaded by the layout): its reconciliations and statements (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+
+    protected override void OnInitialized()
     {
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
-
         // The month just over by default: the one to reconcile before closing it.
         _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();
         _monthValue = AccountingFormat.MonthValue(_month);
-        await LoadAsync();
-        _loaded = true;
     }
 
-    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Agency is { } agency && agency.Id != _agencyId)
+        {
+            _agencyId = agency.Id;
+            await LoadAsync();
+            _loaded = true;
+        }
+    }
 
     private static FinanceTone ToneOf(StatementMatch match) => match switch
     {
@@ -313,12 +305,6 @@
         StatementMatch.NoStatement => FinanceTone.Neutral,
         _ => FinanceTone.Danger,
     };
-
-    private async Task AgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
-        await LoadAsync();
-    }
 
     private async Task MonthChangedAsync(string? value)
     {

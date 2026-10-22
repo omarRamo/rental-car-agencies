@@ -12,7 +12,7 @@ namespace CarRental.Domain.Payments;
 /// A retained amount stops being owed to the customer; it is not a payment of the rental and does not count in the paid
 /// amounts. Phase 3 bills the damages and applies the retained amount to that invoice.
 /// </remarks>
-public sealed class DepositHold : AggregateRoot
+public sealed class DepositHold : AggregateRoot, IAgencyOwned
 {
     public const int ReferenceMaxLength = 100;
     public const int NotesMaxLength = 500;

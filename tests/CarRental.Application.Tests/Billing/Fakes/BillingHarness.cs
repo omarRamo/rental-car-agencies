@@ -136,7 +136,7 @@ internal sealed class BillingHarness
     public BillingDocumentPipeline Pipeline =>
         new(Db, UnitOfWork, Storage, Renderer, Texts, EmailFactory, Emails, new EInvoiceProviders([new PaperTransitionalEInvoiceProvider(), Ttn]), Referential, Clock);
 
-    public BillingAdministrationQueries Administration => new(Store, Bookings, Payments, Referential, Outbox, Storage);
+    public BillingAdministrationQueries Administration => new(Store, Bookings, Payments, Outbox, Storage);
 
     public FineService Fines => new(Store, Bookings, Fleet, Customers, new FakeDesignationRenderer(), AccessLog, Audit, Invoicing);
 
@@ -148,15 +148,22 @@ internal sealed class BillingHarness
 
     public ClaimsVehicleCostsSource ClaimCosts => new(Db);
 
+    /// <summary>The actors the steps of the outbox handlers ran as, in order (one scope per step).</summary>
+    public List<UserContextSnapshot> StepActors { get; } = [];
+
     /// <summary>The handler of the invoicing moments, running each step in this harness (as the system).</summary>
     public BookingInvoicingHandler InvoicingHandler => new(new BillingScopes(new HarnessScopes(this)), Settings, NullLogger<BookingInvoicingHandler>.Instance);
 
     public BillingDocumentHandler DocumentHandler => new(new BillingScopes(new HarnessScopes(this)));
 
+    /// <summary>Acts as a member of the staff of <see cref="AgencyId"/> with the presets of <paramref name="role"/>.</summary>
     public BillingHarness As(string role)
     {
         var user = new ScopedUserContext([]);
-        user.Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"{role.ToLowerInvariant()}@tests.local", RolePresets.PermissionsOf(role), "203.0.113.10", "corr-billing"));
+        user.Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"{role.ToLowerInvariant()}@tests.local", RolePresets.PermissionsOf(role), "203.0.113.10", "corr-billing") with
+        {
+            AgencyId = AgencyId,
+        });
         _user = user;
         return this;
     }
@@ -286,11 +293,13 @@ internal sealed class BillingHarness
                 {
                     if (serviceType == typeof(InvoicingService))
                     {
+                        harness.StepActors.Add(_user.Snapshot);
                         return harness.Invoicing;
                     }
 
                     if (serviceType == typeof(BillingDocumentPipeline))
                     {
+                        harness.StepActors.Add(_user.Snapshot);
                         return harness.Pipeline;
                     }
                 }
@@ -360,7 +369,7 @@ internal sealed class FakeBookingNumbers(FakeBookingsBilling bookings) : IBookin
 {
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) => Task.FromResult<BookingSummaryInfo?>(null);
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default)
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default)
     {
         var file = bookings.Files.Values.FirstOrDefault(f => string.Equals(f.Number, number.Trim(), StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(file is null

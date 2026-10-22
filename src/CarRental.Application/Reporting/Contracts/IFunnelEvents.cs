@@ -10,7 +10,9 @@ namespace CarRental.Application.Reporting.Contracts;
 /// <remarks>
 /// Measurement must never break a page: <see cref="RecordAsync"/> never throws (an invalid record or a database failure is
 /// logged and dropped), bounds its own duration, and writes in its own DI scope, so it is safe to call without awaiting
-/// it. Callers awaiting it get a deterministic write (tests, pages). No personal data: the visit is an anonymous id.
+/// it. Callers awaiting it get a deterministic write (tests, pages). No personal data: the visit is an anonymous id. The
+/// step is recorded for the agency the caller works for, the agency of the public site (ADR-0067); a caller without
+/// agency records nothing.
 /// </remarks>
 public interface IFunnelEvents
 {

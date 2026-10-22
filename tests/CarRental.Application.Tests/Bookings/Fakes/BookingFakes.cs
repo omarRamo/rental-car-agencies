@@ -474,7 +474,7 @@ internal sealed class FakeCustomers : ICustomersQueries, ICustomerRegistration
     public Task<IReadOnlyList<DriverSubmissionInfo>> GetDriverSubmissionsAsync(Guid personId, Guid? bookingId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<DriverSubmissionInfo>>([.. Submissions.Where(s => s.PersonId == personId && (bookingId == null || s.BookingId == bookingId))]);
 
-    public Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default) =>
+    public Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
     public Task<Result<SubmittedDriverResult>> RegisterSubmittedDriverAsync(SubmittedDriverRequest request, CancellationToken cancellationToken = default) =>
@@ -577,7 +577,7 @@ internal sealed class FakeBookingsQueries : IBookingsQueries
 
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<PersonBookingInfo>> GetBookingsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

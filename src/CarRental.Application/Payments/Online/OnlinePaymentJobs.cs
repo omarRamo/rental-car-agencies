@@ -1,7 +1,9 @@
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Payments;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Payments.Online;
@@ -14,11 +16,12 @@ namespace CarRental.Application.Payments.Online;
 /// releases left without answer and flags what stays unconfirmed. Orders closed as expired are read for a day more
 /// (late payments). A pending payment still unresolved a day after its validity (status code unknown, gateway silent)
 /// is left to the daily reconciliation, so that it never crowds out the newer ones; the newest come first. Each payment
-/// is processed on its own.
+/// is processed on its own. The orders of every agency are read (one merchant account for the platform), each agency's in
+/// a scope working for that agency only (ADR-0067).
 /// </summary>
 internal sealed partial class OnlinePaymentCatchUpJob(
     IAppDbContext db,
-    OnlinePayments online,
+    IOnlinePaymentAgencyScopes scopes,
     IClicToPayGateway gateway,
     TimeProvider timeProvider,
     ILogger<OnlinePaymentCatchUpJob> logger) : IRecurringJob
@@ -58,7 +61,7 @@ internal sealed partial class OnlinePaymentCatchUpJob(
                             || (p.Status == PaymentStatus.Pending && (p.OnlineExpiresAtUtc == null || p.OnlineExpiresAtUtc >= lately))
                             || (p.Status == PaymentStatus.Cancelled && p.ExpiredAtUtc != null && p.ExpiredAtUtc >= lately)))
             .OrderByDescending(p => p.RecordedAtUtc)
-            .Select(p => p.Id)
+            .Select(p => new AgencyPayment(p.AgencyId, p.Id))
             .Take(MaxPerRun)
             .ToListAsync(cancellationToken);
         var refunded = await db.Set<Payment>()
@@ -67,22 +70,31 @@ internal sealed partial class OnlinePaymentCatchUpJob(
                         && r.PendingGatewayOperation == PendingGatewayOperation.Refund && r.PendingGatewaySinceUtc <= before
                         && r.OriginalPaymentId != null)
             .OrderByDescending(r => r.PendingGatewaySinceUtc)
-            .Select(r => r.OriginalPaymentId!.Value)
+            .Select(r => new AgencyPayment(r.AgencyId, r.OriginalPaymentId!.Value))
             .Take(MaxPerRun)
             .ToListAsync(cancellationToken);
 
-        foreach (var paymentId in incoming.Concat(refunded).Distinct())
+        foreach (var agency in incoming.Concat(refunded).Distinct().GroupBy(p => p.AgencyId))
         {
-            try
-            {
-                await online.CatchUpAsync(paymentId, cancellationToken);
-            }
+            await scopes.RunAsync(
+                agency.Key,
+                async (online, ct) =>
+                {
+                    foreach (var payment in agency)
+                    {
+                        try
+                        {
+                            await online.CatchUpAsync(payment.PaymentId, ct);
+                        }
 #pragma warning disable CA1031 // One payment that cannot be processed must not stop the others; the next run retries it.
-            catch (Exception exception) when (exception is not OperationCanceledException)
+                        catch (Exception exception) when (exception is not OperationCanceledException)
 #pragma warning restore CA1031
-            {
-                LogFailed(exception, paymentId);
-            }
+                        {
+                            LogFailed(exception, payment.PaymentId);
+                        }
+                    }
+                },
+                cancellationToken);
         }
     }
 
@@ -93,13 +105,14 @@ internal sealed partial class OnlinePaymentCatchUpJob(
 /// <summary>
 /// Daily reconciliation of the online payments with the gateway (SPEC §9): the status of every online payment of the
 /// last days, newest first, is read and compared with the recorded one (status, captured and refunded amounts when
-/// reported) — including the pending ones the catch-up left aside; differences are flagged for the back office.
+/// reported) — including the pending ones the catch-up left aside; differences are flagged for the back office. Every
+/// agency's payments, each agency's in a scope working for that agency only (ADR-0067).
 /// TODO(spec): no merchant statement format of SMT is known yet, so the statement itself is not imported (settlements
 /// and commissions are reconciled in Phase 3).
 /// </summary>
 internal sealed partial class OnlinePaymentReconciliationJob(
     IAppDbContext db,
-    OnlinePayments online,
+    IOnlinePaymentAgencyScopes scopes,
     IClicToPayGateway gateway,
     TimeProvider timeProvider,
     ILogger<OnlinePaymentReconciliationJob> logger) : IRecurringJob
@@ -122,34 +135,43 @@ internal sealed partial class OnlinePaymentReconciliationJob(
         }
 
         var since = timeProvider.GetUtcNow() - Window;
-        var ids = await db.Set<Payment>()
+        var payments = await db.Set<Payment>()
             .AsNoTracking()
             .Where(p => p.Method == PaymentMethod.ClicToPay && p.Direction == PaymentDirection.Incoming && p.RecordedAtUtc >= since)
             .OrderByDescending(p => p.RecordedAtUtc)
-            .Select(p => p.Id)
+            .Select(p => new AgencyPayment(p.AgencyId, p.Id))
             .Take(BatchSize)
             .ToListAsync(cancellationToken);
 
         var unreadable = 0;
-        foreach (var paymentId in ids)
+        foreach (var agency in payments.GroupBy(p => p.AgencyId))
         {
-            try
-            {
-                if ((await online.ReconcileAsync(paymentId, cancellationToken)).IsFailure)
+            await scopes.RunAsync(
+                agency.Key,
+                async (online, ct) =>
                 {
-                    unreadable++;
-                }
-            }
+                    foreach (var payment in agency)
+                    {
+                        try
+                        {
+                            if ((await online.ReconcileAsync(payment.PaymentId, ct)).IsFailure)
+                            {
+                                unreadable++;
+                            }
+                        }
 #pragma warning disable CA1031 // One payment that cannot be compared must not stop the others.
-            catch (Exception exception) when (exception is not OperationCanceledException)
+                        catch (Exception exception) when (exception is not OperationCanceledException)
 #pragma warning restore CA1031
-            {
-                unreadable++;
-                LogFailed(exception, paymentId);
-            }
+                        {
+                            unreadable++;
+                            LogFailed(exception, payment.PaymentId);
+                        }
+                    }
+                },
+                cancellationToken);
         }
 
-        LogDone(ids.Count, unreadable);
+        LogDone(payments.Count, unreadable);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Reconciliation of online payment {PaymentId} failed.")]
@@ -158,3 +180,36 @@ internal sealed partial class OnlinePaymentReconciliationJob(
     [LoggerMessage(Level = LogLevel.Information, Message = "Online payments reconciled: {Count} compared, {Unreadable} could not be read.")]
     private partial void LogDone(int count, int unreadable);
 }
+
+/// <summary>Runs the online payment flows of one agency for a job of the platform (ADR-0067).</summary>
+internal interface IOnlinePaymentAgencyScopes
+{
+    /// <summary>Runs <paramref name="work"/> on the online payments of <paramref name="agencyId"/>, working for that agency only.</summary>
+    Task RunAsync(Guid agencyId, Func<OnlinePayments, CancellationToken, Task> work, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// <see cref="IOnlinePaymentAgencyScopes"/> in a DI scope of its own, as the system actor of the job (its name and
+/// correlation id) working for the agency only.
+/// </summary>
+internal sealed class OnlinePaymentAgencyScopes(IServiceScopeFactory scopeFactory, IUserContext userContext) : IOnlinePaymentAgencyScopes
+{
+    public const string ActorName = "system:payments";
+
+    public async Task RunAsync(Guid agencyId, Func<OnlinePayments, CancellationToken, Task> work, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        if (!userContext.IsSystem)
+        {
+            throw new InvalidOperationException("The online payments of an agency are processed for a job of the platform only.");
+        }
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(
+            UserContextSnapshot.System(userContext.UserName ?? ActorName, userContext.CorrelationId, agencyId));
+        await work(scope.ServiceProvider.GetRequiredService<OnlinePayments>(), cancellationToken);
+    }
+}
+
+/// <summary>An online payment to process and its agency.</summary>
+internal sealed record AgencyPayment(Guid AgencyId, Guid PaymentId);

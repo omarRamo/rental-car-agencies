@@ -97,7 +97,7 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         confirmation.ShouldContain("data-state=\"Held\"");
 
         await using var scope = host.CreateScope();
-        var booking = await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync(number, Ct);
+        var booking = await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync((await DemoAgencyAsync(host, Ct)).Agency.Id, number, Ct);
         booking.ShouldNotBeNull();
         booking.Status.ShouldBe(BookingStatusInfo.PendingValidation);
         booking.Channel.ShouldBe(Domain.Common.SalesChannel.Web);

@@ -56,6 +56,69 @@ public sealed class UserAdministrationServiceTests
     }
 
     [Fact]
+    public async Task The_support_lists_the_users_of_an_agency_from_the_platform_pages_only()
+    {
+        var otherAgency = Guid.CreateVersion7();
+        _directory.AddTo(otherAgency, "gerant.sousse@demo.local", Roles.Manager);
+        _directory.AddTo(otherAgency, "agent.sousse@demo.local", Roles.Agent);
+        _directory.Add("support@demo.local", Roles.Support);
+        var support = ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "support@demo.local", Roles.Support));
+        var supportInside = new ScopedUserContext([]);
+        supportInside.Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), "support@demo.local", RolePresets.PermissionsOf(Roles.Support)) with
+        {
+            AgencyId = otherAgency,
+            AllAgencies = true,
+        });
+
+        var users = (await support.ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Value;
+
+        users.Items.Select(u => u.Email).ShouldBe(["gerant.sousse@demo.local", "agent.sousse@demo.local"], ignoreOrder: true);
+        users.Items.ShouldAllBe(u => u.AgencyId == otherAgency);
+        (await AsManager().ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await ServiceFor(supportInside).ListAgencyUsersAsync(otherAgency, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.PlatformScopeRequired);
+        (await support.ListAgencyUsersAsync(Guid.Empty, new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.AgencyRequired);
+    }
+
+    [Fact]
+    public async Task The_support_invites_lists_and_locks_the_support_accounts_but_never_the_last_active_one()
+    {
+        var supportId = _directory.Add("support@demo.local", Roles.Support).Id;
+        var support = ServiceFor(TestUsers.ContextFor(supportId, "support@demo.local", Roles.Support));
+
+        var invited = await support.CreateSupportAccountAsync(" second.support@demo.local ", "Second support", Ct);
+
+        invited.IsSuccess.ShouldBeTrue();
+        _directory.Created.ShouldHaveSingleItem().ShouldBe(new NewUser("second.support@demo.local", "Second support", Roles.Support, AgencyId: null));
+        _invitations.Invited.ShouldBe([invited.Value]);
+        var created = _audit.Events.ShouldHaveSingleItem();
+        (created.Action, created.Details, created.AgencyId).ShouldBe((AuditActions.UserCreated, "second.support@demo.local (Support)", (Guid?)null));
+        (await support.ListSupportAccountsAsync(new PageRequest(), Ct)).Value.Items.Select(u => u.Email)
+            .ShouldBe(["support@demo.local", "second.support@demo.local"], ignoreOrder: true, "the members of the agencies are not support accounts");
+
+        (await support.LockAsync(invited.Value, Ct)).IsSuccess.ShouldBeTrue();
+        (await support.LockAsync(supportId, Ct)).Error.ShouldBe(IdentityErrors.CannotLockSelf);
+        (await ServiceFor(TestUsers.ContextFor(invited.Value, "second.support@demo.local", Roles.Support)).LockAsync(supportId, Ct)).Error
+            .ShouldBe(IdentityErrors.LastSupport, "nobody could administer the platform any more");
+        (await support.UnlockAsync(invited.Value, Ct)).IsSuccess.ShouldBeTrue();
+        _directory.LockChanges.ShouldBe([(invited.Value, true), (invited.Value, false)]);
+    }
+
+    [Fact]
+    public async Task A_manager_neither_lists_nor_creates_nor_locks_support_accounts()
+    {
+        var supportId = _directory.Add("support@demo.local", Roles.Support).Id;
+
+        (await AsManager().ListSupportAccountsAsync(new PageRequest(), Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await AsManager().CreateSupportAccountAsync("intrus@demo.local", "Intrus", Ct)).Error.ShouldBe(IdentityErrors.Forbidden);
+        (await AsManager().LockAsync(supportId, Ct)).Error.ShouldBe(IdentityErrors.UserNotFound, "a support account does not exist for an agency");
+        (await AsManager().CreateUserAsync(new CreateUserRequest("faux.support@demo.local", "Faux", Roles.Support), Ct)).Error
+            .ShouldBe(IdentityErrors.RoleUnknown, "an agency gives agency roles only");
+
+        _directory.Created.ShouldBeEmpty();
+        _directory.LockChanges.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Create_user_assigns_the_role_sends_an_invitation_and_audits()
     {
         var result = await AsManager().CreateUserAsync(new CreateUserRequest(" agent2@demo.local ", " Agent Deux ", Roles.Agent), Ct);

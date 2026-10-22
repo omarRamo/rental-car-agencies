@@ -22,15 +22,52 @@ public static class PlatformPaths
     /// <summary>POST: the support leaves the agency they entered and comes back to the platform pages.</summary>
     public const string Leave = "/admin/platform/leave";
 
+    /// <summary>The support accounts of the platform.</summary>
+    public const string SupportAccounts = "/admin/platform/support";
+
+    /// <summary>The platform values of the settings, read by every agency without its own value.</summary>
+    public const string Settings = "/admin/platform/settings";
+
+    /// <summary>The journals of every agency and of the platform itself.</summary>
+    public const string Audit = "/admin/platform/audit";
+
+    /// <summary>The page of one agency: identity, public site address, modules, suspension, users.</summary>
+    public static string Agency(Guid agencyId) => $"/admin/platform/agencies/{agencyId:D}";
+
+    /// <summary>The home page of an agency's public site, in French (<c>/{slug}/fr</c>, ADR-0067).</summary>
+    public static string PublicSite(string slug)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slug);
+        return $"/{slug}/fr";
+    }
+
     /// <summary>True for an address of the pages that work outside any agency (platform pages, outbox, background jobs).</summary>
     public static bool IsPlatformPath(string relativePath)
     {
-        ArgumentNullException.ThrowIfNull(relativePath);
-        var path = "/" + relativePath.Split('?', '#')[0].TrimStart('/');
+        var path = PathOf(relativePath);
         return path.Equals(Agencies, StringComparison.OrdinalIgnoreCase)
             || path.StartsWith(Agencies + "/", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/admin/outbox", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/admin/jobs", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Where the support outside any agency goes instead of an agency page: the platform values of the settings for the
+    /// agency's settings, the journals of the platform for the agency's journal, otherwise the agencies of the platform.
+    /// </summary>
+    public static string PlatformPageFor(string relativePath)
+    {
+        var path = PathOf(relativePath).TrimEnd('/');
+        return path.Equals("/admin/settings", StringComparison.OrdinalIgnoreCase) ? Settings
+            : path.Equals("/admin/audit", StringComparison.OrdinalIgnoreCase) ? Audit
+            : Agencies;
+    }
+
+    /// <summary>The path of a base-relative address, with its leading slash, without query nor fragment.</summary>
+    private static string PathOf(string relativePath)
+    {
+        ArgumentNullException.ThrowIfNull(relativePath);
+        return "/" + relativePath.Split('?', '#')[0].TrimStart('/');
     }
 }
 

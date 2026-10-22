@@ -13,7 +13,7 @@ namespace CarRental.Application.Customers.Documents;
 /// <summary>
 /// The only way to read an identity document image (invariant 9): permission <c>customers.documents.read</c>, and every
 /// access — streamed view or 5-minute read link (user delegation SAS in Azure) — is written to the document access log
-/// with the user, the time, the document and the purpose before anything is returned (ADR-0026).
+/// with the user, the time, the document, the purpose and the agency before anything is returned (ADR-0026, ADR-0067).
 /// </summary>
 public sealed class DocumentImageAccess(
     IAppDbContext db,
@@ -83,7 +83,9 @@ public sealed class DocumentImageAccess(
 
     private async Task<Result<ImageTarget>> FindAsync(Guid documentId, DocumentImageSideInfo side, string? purpose, CancellationToken cancellationToken)
     {
-        if (!userContext.HasPermission(Permissions.IdentityDocumentsRead))
+        // Viewed only within the agency of its customer, whose journal records the access (ADR-0067): an operation
+        // across agencies (the support outside any agency) enters the agency first.
+        if (!userContext.HasPermission(Permissions.IdentityDocumentsRead) || userContext.AgencyId is null)
         {
             return CustomersErrors.Forbidden;
         }
@@ -98,17 +100,19 @@ public sealed class DocumentImageAccess(
             return CustomersErrors.AccessPurposeInvalid;
         }
 
-        // A document of a person, or of a public submission waiting for an agent (ADR-0050): same viewer, same log.
+        // A document of a person, or of a public submission waiting for an agent (ADR-0050): same viewer, same log. Of the
+        // agency of the operation only, which the log records.
+        var agencyId = userContext.AgencyId.Value;
         var document = await db.Set<Person>()
             .AsNoTracking()
-            .Where(p => p.AnonymizedAtUtc == null)
+            .Where(p => p.AgencyId == agencyId && p.AnonymizedAtUtc == null)
             .SelectMany(p => p.Documents)
             .Where(d => d.Id == documentId)
             .Select(d => new { d.Type, d.FrontImage, d.BackImage })
             .FirstOrDefaultAsync(cancellationToken)
             ?? await db.Set<DriverSubmission>()
                 .AsNoTracking()
-                .Where(s => s.State == DriverSubmissionState.Pending)
+                .Where(s => s.AgencyId == agencyId && s.State == DriverSubmissionState.Pending)
                 .SelectMany(s => s.Documents)
                 .Where(d => d.Id == documentId)
                 .Select(d => new { d.Type, d.FrontImage, d.BackImage })

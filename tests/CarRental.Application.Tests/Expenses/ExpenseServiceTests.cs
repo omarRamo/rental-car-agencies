@@ -270,7 +270,6 @@ public sealed class ExpenseServiceTests
         var expenses = _harness.Expenses(AccountingHarness.User(Roles.Agent));
         var id = (await _harness.Expenses(Accountant()).RecordAsync(BankForm(119m), Ct)).Value;
 
-        (await expenses.GetAgenciesAsync(Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
         (await expenses.ListAsync(new ExpenseFilter(AgencyId), new PageRequest(1, 25), Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
         (await expenses.GetAsync(id, Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
         (await expenses.GetVehiclesAsync(AgencyId, Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
@@ -280,7 +279,6 @@ public sealed class ExpenseServiceTests
         (await expenses.DeleteAsync(id, "Saisie en double", Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
         (await expenses.UploadReceiptAsync(id, "ticket.png", new MemoryStream(Png), Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
         (await expenses.FindReceiptAsync(id, Ct)).Error.ShouldBe(ExpenseErrors.Forbidden);
-        (await _harness.Expenses(Accountant()).GetAgenciesAsync(Ct)).Value.ShouldHaveSingleItem().Id.ShouldBe(AgencyId);
     }
 
     private static ScopedUserContext Accountant() => AccountingHarness.User(Roles.Accountant);

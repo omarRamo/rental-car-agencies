@@ -6,6 +6,7 @@
 @using CarRental.Web.Components.Admin.Pricing
 @using CarRental.Web.Resources.Admin.Pricing
 @inject IOperationRunner Runner
+@inject CurrentAgency Current
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -32,15 +33,6 @@
 <MudText Typo="Typo.body2" Class="mb-4">@L["Plans.Intro"]</MudText>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="4" Class="mb-4">
-    @if (_agencies.Count > 1)
-    {
-        <MudSelect T="Guid" Value="_agencyId" ValueChanged="OnAgencyChangedAsync" Label="@L["Plans.Agency"]" Variant="Variant.Outlined" Style="min-inline-size: 16rem">
-            @foreach (var agency in _agencies)
-            {
-                <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-            }
-        </MudSelect>
-    }
     <MudSwitch T="bool" Value="_includeArchived" ValueChanged="OnArchivedChangedAsync" Color="Color.Primary" Label="@L["Plans.ShowArchived"]" />
 </MudStack>
 
@@ -81,7 +73,6 @@
 </MudTable>
 
 @code {
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private IReadOnlyList<RatePlanListItem> _plans = [];
     private Guid _agencyId;
     private bool _includeArchived;
@@ -97,15 +88,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _canManage = (await AuthenticationState).User.HasPermission(Permissions.PricingManage);
-        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((q, ct) => q.GetAgenciesAsync(ct));
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
-        await LoadAsync();
-    }
+        var user = (await AuthenticationState).User;
+        _canManage = user.HasPermission(Permissions.PricingManage);
 
-    private async Task OnAgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
+        // The plans of the agency of the session only (ADR-0067).
+        _agencyId = (await Current.GetAsync(user))?.Id ?? Guid.Empty;
         await LoadAsync();
     }
 
@@ -118,9 +105,15 @@
     private async Task LoadAsync()
     {
         _loading = true;
+        if (_agencyId == Guid.Empty)
+        {
+            (_loading, _plans, _error) = (false, [], L["Plans.NoAgency"].Value);
+            return;
+        }
+
         var (agencyId, includeArchived) = (_agencyId, _includeArchived);
         var result = await Runner.RunAsync<RatePlanAdministrationService, Result<IReadOnlyList<RatePlanListItem>>>(
-            (service, ct) => service.ListAsync(agencyId == Guid.Empty ? null : agencyId, includeArchived, ct));
+            (service, ct) => service.ListAsync(agencyId, includeArchived, ct));
         _loading = false;
         _error = null;
         if (result.IsFailure)

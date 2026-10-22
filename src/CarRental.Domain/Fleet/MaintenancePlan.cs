@@ -6,7 +6,7 @@ namespace CarRental.Domain.Fleet;
 /// A recurring maintenance of a vehicle (e.g. oil change every 10 000 km or 12 months, whichever comes first), with
 /// the last time it was done. One plan per maintenance type; completing a maintenance of that type moves the baseline.
 /// </summary>
-public sealed class MaintenancePlan : Entity
+public sealed class MaintenancePlan : Entity, IAgencyOwned
 {
     public const int MinIntervalKm = 100;
     public const int MaxIntervalKm = 200_000;
@@ -17,14 +17,18 @@ public sealed class MaintenancePlan : Entity
     {
     }
 
-    private MaintenancePlan(Guid id, Guid vehicleId, MaintenanceType type)
+    private MaintenancePlan(Guid id, Vehicle vehicle, MaintenanceType type)
         : base(id)
     {
-        VehicleId = vehicleId;
+        VehicleId = vehicle.Id;
+        AgencyId = vehicle.AgencyId;
         Type = type;
     }
 
     public Guid VehicleId { get; private set; }
+
+    /// <summary>The agency of the vehicle (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public MaintenanceType Type { get; private set; }
 
@@ -87,10 +91,11 @@ public sealed class MaintenancePlan : Entity
         return details with { Label = label };
     }
 
-    internal static MaintenancePlan Create(Guid vehicleId, MaintenancePlanDetails validated, int currentMileage, DateOnly today)
+    /// <summary>A plan of <paramref name="vehicle"/>; the baseline defaults to its current mileage and <paramref name="today"/>.</summary>
+    internal static MaintenancePlan Create(Vehicle vehicle, MaintenancePlanDetails validated, DateOnly today)
     {
-        var plan = new MaintenancePlan(NewId(), vehicleId, validated.Type);
-        plan.Apply(validated, currentMileage, today);
+        var plan = new MaintenancePlan(NewId(), vehicle, validated.Type);
+        plan.Apply(validated, vehicle.Mileage, today);
         return plan;
     }
 

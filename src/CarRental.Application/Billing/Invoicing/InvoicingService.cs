@@ -267,6 +267,12 @@ public sealed class InvoicingService
         Guid? fineId,
         CancellationToken cancellationToken)
     {
+        // A file of another agency than the one the operation works for is unknown to it (ADR-0067).
+        if (!_store.WorksFor(facts.AgencyId))
+        {
+            return BillingErrors.BookingNotFound;
+        }
+
         var seller = await _store.SellerAsync(facts.AgencyId, cancellationToken);
         if (seller.IsFailure)
         {

@@ -2079,4 +2079,28 @@
   <data name="Error.identity.not_support_account" xml:space="preserve">
     <value>Only a support account opens and leaves the agencies.</value>
   </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>You may not manage the locations of the agency.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>This location does not exist.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Another location of the agency already uses this code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Keep at least one active location: without one, the agency can take no booking.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>The location was changed meanwhile: reload the page and try again.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>A funnel step is measured for the agency of the public site being browsed.</value>
+  </data>
+  <data name="Error.cash.module_off" xml:space="preserve">
+    <value>The cash module is not enabled for this agency: no cash session takes cash. Choose another means of payment.</value>
+  </data>
+  <data name="Error.customers.agency_required" xml:space="preserve">
+    <value>Customers are registered for an agency: open the agency concerned first.</value>
+  </data>
 </root>

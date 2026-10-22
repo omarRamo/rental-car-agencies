@@ -9,11 +9,13 @@ using Microsoft.Extensions.Logging;
 namespace CarRental.Application.Pricing.Seeding;
 
 /// <summary>
-/// Demo rate plan v1 (published) of the demo agency: seasons from November 2026 to December 2028 (low November–March,
+/// Demo rate plans v1 (published) of the demo agencies: seasons from November 2026 to December 2028 (low November–March,
 /// mid April–June and September–October, high July–August with 3 days minimum), Aïd and year-end events, the daily
-/// prices of the five demo categories (ECMR matches the SPEC §7 example), tiers 0/5/10/15/20 %, the demo extras and
-/// promotions, Booking.com at +15 %. Categories are found through the Fleet contract by ACRISS code (missing codes are
-/// skipped with a warning). Runs once: nothing is done when the agency already has a plan.
+/// prices of the demo categories (ECMR of the main agency matches the SPEC §7 example), tiers 0/5/10/15/20 %, the demo
+/// extras (with a delivery to each airport of the agency) and promotions, Booking.com at +15 %. The second demo agency
+/// gets the same structure, a little cheaper, for its two categories (ADR-0067). Categories are found through the Fleet
+/// contract by ACRISS code (missing codes are skipped with a warning). Runs once per agency: nothing is done for an agency
+/// that already has a plan.
 /// </summary>
 internal sealed partial class PricingDemoSeeder(
     IAppDbContext db,
@@ -28,6 +30,11 @@ internal sealed partial class PricingDemoSeeder(
 
     public const string DemoPlanName = "Grille démo 2026-2028";
 
+    /// <summary>Name of the second demo agency created by the Referential demo seeder.</summary>
+    public const string SecondDemoAgencyName = "Agence Démo Sousse";
+
+    public const string SecondDemoPlanName = "Grille démo Sousse 2026-2028";
+
     /// <summary>Daily prices TTC (low, mid, high season) of the demo categories.</summary>
     private static readonly (string Code, decimal Low, decimal Mid, decimal High)[] DemoPrices =
     [
@@ -38,56 +45,83 @@ internal sealed partial class PricingDemoSeeder(
         ("IFMR", 170m, 200m, 250m),
     ];
 
+    /// <summary>Daily prices TTC (low, mid, high season) of the categories of the second demo agency.</summary>
+    private static readonly (string Code, decimal Low, decimal Mid, decimal High)[] SecondAgencyPrices =
+    [
+        ("ECMR", 90m, 100m, 130m),
+        ("CDMR", 120m, 135m, 175m),
+    ];
+
+    /// <summary>The airports of each demo agency with their free delivery extra.</summary>
+    private static readonly (string Code, string Name, string NameEn)[] DemoAirports =
+    [
+        ("TUN", "Livraison aéroport Tunis-Carthage", "Tunis-Carthage airport delivery"),
+        ("NBE", "Livraison aéroport Enfidha-Hammamet", "Enfidha-Hammamet airport delivery"),
+    ];
+
+    private static readonly (string Code, string Name, string NameEn)[] SecondAgencyAirports =
+    [
+        ("MIR", "Livraison aéroport Monastir", "Monastir airport delivery"),
+    ];
+
     public SeedStage Stage => SeedStage.Demo;
 
     public int Order => 500;
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Name == DemoAgencyName);
-        if (agency is null)
+        var agencies = await referential.GetAgenciesAsync(cancellationToken);
+        foreach (var (agencyName, planName, prices, airports) in new[]
         {
-            LogMissingAgency(DemoAgencyName);
-            return;
-        }
-
-        if (await store.AnyForAgencyAsync(agency.Id, cancellationToken))
+            (DemoAgencyName, DemoPlanName, DemoPrices, DemoAirports),
+            (SecondDemoAgencyName, SecondDemoPlanName, SecondAgencyPrices, SecondAgencyAirports),
+        })
         {
-            return;
-        }
-
-        var categories = new List<(Guid Id, decimal Low, decimal Mid, decimal High)>();
-        foreach (var (code, low, mid, high) in DemoPrices)
-        {
-            if (await fleet.FindCategoryByCodeAsync(agency.Id, code, cancellationToken) is { } category)
+            if (agencies.FirstOrDefault(a => a.Name == agencyName) is not { } agency)
             {
-                categories.Add((category.Id, low, mid, high));
+                LogMissingAgency(agencyName);
+                continue;
             }
-            else
+
+            if (await store.AnyForAgencyAsync(agency.Id, cancellationToken))
             {
-                LogMissingCategory(code);
+                continue;
             }
+
+            var categories = new List<(Guid Id, decimal Low, decimal Mid, decimal High)>();
+            foreach (var (code, low, mid, high) in prices)
+            {
+                if (await fleet.FindCategoryByCodeAsync(agency.Id, code, cancellationToken) is { } category)
+                {
+                    categories.Add((category.Id, low, mid, high));
+                }
+                else
+                {
+                    LogMissingCategory(code, agencyName);
+                }
+            }
+
+            if (categories.Count == 0)
+            {
+                LogNoPlan(agencyName);
+                continue;
+            }
+
+            var locations = await referential.GetLocationsAsync(agency.Id, cancellationToken);
+            store.Add(Build(agency.Id, planName, categories, Extras(locations, airports), clock.GetUtcNow()));
         }
 
-        if (categories.Count == 0)
-        {
-            LogNoPlan();
-            return;
-        }
-
-        var locations = await referential.GetLocationsAsync(agency.Id, cancellationToken);
-        var plan = Build(agency.Id, categories, locations, clock.GetUtcNow());
-        store.Add(plan);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     private static RatePlan Build(
         Guid agencyId,
+        string name,
         IReadOnlyList<(Guid Id, decimal Low, decimal Mid, decimal High)> categories,
-        IReadOnlyList<LocationInfo> locations,
+        IReadOnlyList<ExtraDefinition> extras,
         DateTimeOffset now)
     {
-        var plan = Expect(RatePlan.CreateDraft(agencyId, null, DemoPlanName, now));
+        var plan = Expect(RatePlan.CreateDraft(agencyId, null, name, now));
         Expect(plan.ReplaceSeasons(Seasons(), now));
         Expect(plan.ReplaceEvents(Events(), now));
 
@@ -106,7 +140,7 @@ internal sealed partial class PricingDemoSeeder(
             [new(1, 0m), new(3, 5m), new(7, 10m), new(14, 15m), new(30, 20m)],
             [],
             now));
-        Expect(plan.ReplaceExtras(Extras(locations), now));
+        Expect(plan.ReplaceExtras(extras, now));
         Expect(plan.ReplacePromotions(
             [
                 new PromotionDefinition("Bienvenue 10 %", PromotionKind.Code, PromotionDiscountType.Percentage, DiscountPercent: 10m, Code: "BIENVENUE10"),
@@ -148,7 +182,7 @@ internal sealed partial class PricingDemoSeeder(
         new("Fin d'année 2028", new DateOnly(2028, 12, 24), new DateOnly(2029, 1, 2)),
     ];
 
-    private static List<ExtraDefinition> Extras(IReadOnlyList<LocationInfo> locations)
+    private static List<ExtraDefinition> Extras(IReadOnlyList<LocationInfo> locations, IReadOnlyList<(string Code, string Name, string NameEn)> airports)
     {
         var extras = new List<ExtraDefinition>
         {
@@ -160,11 +194,7 @@ internal sealed partial class PricingDemoSeeder(
             new("HOTEL_DELIVERY", "Livraison à l'hôtel", ExtraKind.Optional, ExtraPricingMode.PerRental, Money.Tnd(30m), NameEn: "Hotel delivery"),
         };
 
-        foreach (var (code, name, nameEn) in new[]
-        {
-            ("TUN", "Livraison aéroport Tunis-Carthage", "Tunis-Carthage airport delivery"),
-            ("NBE", "Livraison aéroport Enfidha-Hammamet", "Enfidha-Hammamet airport delivery"),
-        })
+        foreach (var (code, name, nameEn) in airports)
         {
             if (locations.FirstOrDefault(l => l.Code == code) is { } airport)
             {
@@ -191,9 +221,9 @@ internal sealed partial class PricingDemoSeeder(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo agency {AgencyName} not found: no demo rate plan.")]
     private partial void LogMissingAgency(string agencyName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Demo category {AcrissCode} not found in the fleet: it is left out of the demo rate plan.")]
-    private partial void LogMissingCategory(string acrissCode);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Demo category {AcrissCode} not found in the fleet of {AgencyName}: it is left out of the demo rate plan.")]
+    private partial void LogMissingCategory(string acrissCode, string agencyName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No demo category found in the fleet: no demo rate plan.")]
-    private partial void LogNoPlan();
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No demo category found in the fleet of {AgencyName}: no demo rate plan.")]
+    private partial void LogNoPlan(string agencyName);
 }

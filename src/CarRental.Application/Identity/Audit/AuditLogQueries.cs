@@ -8,7 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Application.Identity.Audit;
 
-/// <summary>Read side of the audit log for the back office (<c>/admin/audit</c>, permission <c>audit.read</c>).</summary>
+/// <summary>
+/// Read side of the audit log for the back office (<c>/admin/audit</c>, permission <c>audit.read</c>): the journal of the
+/// agency the operation works for (the persistence layer hides the others, ADR-0067), or, across agencies (the support on
+/// the platform pages), the journals of every agency and of the platform itself.
+/// </summary>
 public sealed class AuditLogQueries(IAppDbContext db, IUserContext userContext)
 {
     public async Task<Result<PagedResult<AuditLogEntry>>> SearchAsync(
@@ -41,7 +45,8 @@ public sealed class AuditLogQueries(IAppDbContext db, IUserContext userContext)
                 a.EntityId,
                 a.Before,
                 a.After,
-                a.Details))
+                a.Details,
+                a.AgencyId))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<AuditLogEntry>(items, total, page.Page, page.PageSize);
@@ -109,6 +114,15 @@ public sealed class AuditLogQueries(IAppDbContext db, IUserContext userContext)
             query = query.Where(a => a.CorrelationId == correlationId);
         }
 
+        if (filter.PlatformOnly)
+        {
+            query = query.Where(a => a.AgencyId == null);
+        }
+        else if (filter.AgencyId is { } agencyId)
+        {
+            query = query.Where(a => a.AgencyId == agencyId);
+        }
+
         return query;
     }
 
@@ -133,8 +147,15 @@ public sealed record AuditLogFilter
     public string? EntityId { get; init; }
 
     public string? CorrelationId { get; init; }
+
+    /// <summary>The entries of one agency (meaningful across agencies: an agency only reads its own journal).</summary>
+    public Guid? AgencyId { get; init; }
+
+    /// <summary>The entries of the platform itself only (no agency); takes precedence over <see cref="AgencyId"/>.</summary>
+    public bool PlatformOnly { get; init; }
 }
 
+/// <summary>An entry of the audit log; <c>AgencyId</c> is the agency it concerns, <see langword="null"/> for the platform itself.</summary>
 public sealed record AuditLogEntry(
     long Id,
     DateTimeOffset OccurredAtUtc,
@@ -147,4 +168,5 @@ public sealed record AuditLogEntry(
     string? EntityId,
     string? Before,
     string? After,
-    string? Details);
+    string? Details,
+    Guid? AgencyId = null);

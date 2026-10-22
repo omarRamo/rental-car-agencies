@@ -1,6 +1,7 @@
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Tests.Customers.Fakes;
+using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Common;
 using CarRental.Domain.Customers;
 
@@ -16,7 +17,7 @@ public sealed class CustomersQueriesTests
         var harness = new CustomersHarness();
         harness.AddTunisian("Hédi", "Ben Salah", phone: "98 123 456", email: "hedi.bensalah@example.com", cin: "08123456");
         harness.AddTunisian("Amel", "Ben Salah", phone: "22 222 002", cin: "09234567");
-        var julien = Person.Register(new PersonDetails("Julien", "Moreau", "FR", new DateOnly(1983, 6, 5), "+33 6 39 98 00 07", "julien.moreau@example.org"), CustomersHarness.Start).Value;
+        var julien = Person.Register(TestUsers.AgencyId, new PersonDetails("Julien", "Moreau", "FR", new DateOnly(1983, 6, 5), "+33 6 39 98 00 07", "julien.moreau@example.org"), CustomersHarness.Start).Value;
         julien.AddDocument(
             new IdentityDocumentDetails(IdentityDocumentType.Passport, "21AB12345", "FR", new DateOnly(2020, 1, 1), new DateOnly(2030, 1, 1)),
             CustomersHarness.Start).IsSuccess.ShouldBeTrue();

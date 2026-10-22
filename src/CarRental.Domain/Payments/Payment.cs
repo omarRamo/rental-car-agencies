@@ -26,7 +26,7 @@ namespace CarRental.Domain.Payments;
 /// reserved on the original until the gateway confirms it (paid back) or refuses it (released); above the approval
 /// threshold it waits for a manager first.</para>
 /// </remarks>
-public sealed class Payment : AggregateRoot
+public sealed class Payment : AggregateRoot, IAgencyOwned
 {
     public const int ReferenceMaxLength = 100;
     public const int NotesMaxLength = 500;

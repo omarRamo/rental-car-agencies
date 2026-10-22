@@ -70,7 +70,6 @@ public static class BillingModule
             sp.GetRequiredService<BillingStore>(),
             sp.GetRequiredService<IBookingsBillingQueries>(),
             sp.GetRequiredService<IPaymentsBillingQueries>(),
-            sp.GetRequiredService<IReferentialQueries>(),
             sp.GetRequiredService<IOutbox>(),
             sp.GetRequiredService<IFileStorage>()));
         services.AddScoped(sp => new FineService(
