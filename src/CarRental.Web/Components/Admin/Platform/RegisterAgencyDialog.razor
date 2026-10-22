@@ -1,0 +1,155 @@
+@* Registration of an agency by the support (ADR-0067): its identity, the address of its public site (proposed from the
+   name while it is typed, editable), its modules (WhatsApp and the sales channels need the agency's partner accounts:
+   off by default) and its first manager, invited by e-mail. Runs across agencies; business errors are shown as they come. *@
+@using CarRental.Application.Identity.Users
+@using CarRental.Application.Referential.Platform
+@using CarRental.Domain.Referential
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="8">
+                <MudTextField T="string" @bind-Value="_name" Label="@L["Platform.Register.Name"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="Agency.NameMaxLength" Immediate="true" DebounceInterval="300"
+                              OnDebounceIntervalElapsed="ProposeSlugAsync" autocomplete="off" data-testid="register-name" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" @bind-Value="_city" Label="@L["Platform.Agencies.City"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                              MaxLength="Agency.CityMaxLength" data-testid="register-city" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_address" Label="@L["Platform.Register.Address"]" MaxLength="Agency.AddressMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_phone" Label="@L["Platform.Register.Phone"]" InputType="InputType.Telephone" MaxLength="Agency.PhoneMaxLength" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_email" Label="@L["Platform.Register.Email"]" InputType="InputType.Email" MaxLength="Agency.EmailMaxLength" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" Value="_slug" ValueChanged="SlugChanged" Label="@L["Platform.Register.Slug"]" Immediate="true"
+                              HelperText="@SlugHelp" Error="@(_slugError is not null)" ErrorText="@_slugError" MaxLength="AgencySlug.MaxLength"
+                              autocomplete="off" spellcheck="false" data-testid="register-slug" />
+            </MudItem>
+        </MudGrid>
+
+        <fieldset class="permissions-area mt-4" data-testid="register-modules">
+            <legend>@L["Platform.Register.Modules"]</legend>
+            @foreach (var module in AgencyModuleCatalog.All)
+            {
+                var current = module;
+                <MudCheckBox T="bool" Value="@((_modules & current) == current)" ValueChanged="@(on => Toggle(current, on))" Dense="true" Color="Color.Primary"
+                             Label="@L[$"Module.{current}"]" data-module="@current" />
+                @if ((AgencyModuleCatalog.Defaults & current) != current)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block ms-9 mb-1">@L["Platform.Register.PartnerHint"]</MudText>
+                }
+            }
+        </fieldset>
+
+        <MudText Typo="Typo.h6" HtmlTag="h3" Class="mt-2">@L["Platform.Register.Manager"]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_managerEmail" Label="@L["Platform.Register.ManagerEmail"]" InputType="InputType.Email" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" autocomplete="off" data-testid="register-manager-email" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" @bind-Value="_managerName" Label="@L["Platform.Register.ManagerName"]" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" MaxLength="UserAdministrationService.DisplayNameMaxLength" data-testid="register-manager-name" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Platform.Register.ManagerHint"]</MudText>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" role="alert">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || _slugError is not null)"
+                   data-testid="register-submit">@L["Platform.Register.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _name;
+    private string? _city;
+    private string? _address;
+    private string? _phone;
+    private string? _email;
+    private string? _slug;
+    private string? _slugError;
+    private bool _slugEdited;
+    private AgencyModules _modules = AgencyModuleCatalog.Defaults;
+    private string? _managerEmail;
+    private string? _managerName;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    private string SlugHelp => string.IsNullOrWhiteSpace(_slug)
+        ? L["Platform.Register.Slug.Empty"]
+        : L["Platform.Register.Slug.Help", PlatformPaths.PublicSite(_slug.Trim().ToLowerInvariant())];
+
+    /// <summary>A free address proposed from the name, while the support has not typed one of their own.</summary>
+    private async Task ProposeSlugAsync(string? name)
+    {
+        if (_slugEdited || string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var proposed = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<string>>((service, ct) => service.ProposeSlugAsync(name, ct));
+        if (proposed.IsSuccess && !_slugEdited)
+        {
+            _slug = proposed.Value;
+            _slugError = null;
+        }
+    }
+
+    private void SlugChanged(string? slug)
+    {
+        _slug = slug;
+        _slugEdited = !string.IsNullOrWhiteSpace(slug);
+        var normalized = AgencySlug.Normalize(slug);
+        _slugError = string.IsNullOrWhiteSpace(slug) || normalized.IsSuccess ? null : ErrorMessages.For(Shared, normalized.Error);
+    }
+
+    private void Toggle(AgencyModules module, bool on) => _modules = on ? _modules | module : _modules & ~module;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var name = _name ?? string.Empty;
+        var request = new RegisterAgencyRequest(
+            name,
+            _city ?? string.Empty,
+            string.IsNullOrWhiteSpace(_slug) ? null : _slug,
+            _address,
+            _phone,
+            _email,
+            _modules,
+            _managerEmail ?? string.Empty,
+            _managerName ?? string.Empty);
+        var result = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<AgencyRegistration>>((service, ct) => service.RegisterAsync(request, ct));
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(new RegisteredAgency(result.Value.AgencyId, name.Trim(), result.Value.Slug)));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

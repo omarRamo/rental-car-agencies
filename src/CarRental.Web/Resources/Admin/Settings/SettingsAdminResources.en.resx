@@ -18,11 +18,17 @@
   <data name="Settings.Intro" xml:space="preserve">
     <value>The platform value applies to every agency; an agency may have its own value, which replaces it. Every change is recorded in the audit log.</value>
   </data>
-  <data name="Settings.Agency" xml:space="preserve">
-    <value>Agency</value>
+  <data name="Settings.Platform.ReadOnly" xml:space="preserve">
+    <value>The platform values are set by the support: you set the values of your agency.</value>
   </data>
-  <data name="Settings.NoAgency" xml:space="preserve">
-    <value>No agency is registered: only the platform values can be changed.</value>
+  <data name="Settings.Platform.SupportNote" xml:space="preserve">
+    <value>As the support, you also set the platform values, shared by every agency.</value>
+  </data>
+  <data name="Settings.Platform.Title" xml:space="preserve">
+    <value>Platform settings</value>
+  </data>
+  <data name="Settings.Platform.Intro" xml:space="preserve">
+    <value>The values shared by every agency. An agency can replace those that allow it with its own value, from its settings. Every change is recorded in the audit log.</value>
   </data>
   <data name="Settings.Column.Setting" xml:space="preserve">
     <value>Setting</value>
@@ -101,6 +107,9 @@
   </data>
   <data name="Settings.Dialog.Platform.Current" xml:space="preserve">
     <value>Platform value: {0}</value>
+  </data>
+  <data name="Settings.Dialog.Platform.Scope" xml:space="preserve">
+    <value>This value applies to every agency without one of its own.</value>
   </data>
   <data name="Settings.Dialog.Save" xml:space="preserve">
     <value>Save</value>

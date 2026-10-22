@@ -1,5 +1,6 @@
 @* Extra permissions of a user, on top of the presets of their roles (SPEC §3): role permissions are shown checked and
-   disabled, the ones included by a ticked permission likewise; the rest can be ticked. *@
+   disabled, the ones included by a ticked permission likewise; the rest can be ticked. Only the permissions of an agency
+   are offered: those of the platform are never given to a member of an agency (ADR-0067). *@
 @using CarRental.Application.Identity.Users
 @using CarRental.Web.Resources.Admin.Identity
 @inject IOperationRunner Runner
@@ -12,7 +13,7 @@
         @if (_permissions is { } permissions)
         {
             <MudText Typo="Typo.body2" Class="mb-3">@L["Users.Permissions.Intro", string.Join(", ", permissions.Roles.Select(r => L[$"Role.{r}"].Value))]</MudText>
-            @foreach (var area in Permissions.Catalog.GroupBy(p => p.Area))
+            @foreach (var area in Permissions.AgencyCatalog.GroupBy(p => p.Area))
             {
                 <fieldset class="permissions-area" data-permission-area="@area.Key">
                     <legend>@P[$"PermissionArea.{area.Key}"]</legend>
@@ -73,7 +74,9 @@
         }
 
         _permissions = result.Value;
-        _selected.UnionWith(result.Value.ExtraPermissions);
+
+        // A platform permission granted by mistake is not offered: saving takes it back.
+        _selected.UnionWith(result.Value.ExtraPermissions.Where(Permissions.IsAgencyPermission));
         UpdateIncluded();
     }
 

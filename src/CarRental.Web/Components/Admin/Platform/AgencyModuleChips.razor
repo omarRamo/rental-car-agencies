@@ -1,0 +1,21 @@
+@* The optional modules switched on for an agency (ADR-0067), as chips in display order. *@
+@inject IStringLocalizer<AdminResources> L
+
+@if (AgencyModuleCatalog.All.Any(m => (Modules & m) == m))
+{
+    <div class="d-flex flex-wrap gap-1" data-agency-modules>
+        @foreach (var module in AgencyModuleCatalog.All.Where(m => (Modules & m) == m))
+        {
+            <MudChip T="string" Size="Size.Small" data-module="@module">@L[$"Module.{module}"]</MudChip>
+        }
+    </div>
+}
+else
+{
+    <MudText Typo="Typo.body2" data-agency-modules>@L["Platform.Modules.None"]</MudText>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public AgencyModules Modules { get; set; }
+}

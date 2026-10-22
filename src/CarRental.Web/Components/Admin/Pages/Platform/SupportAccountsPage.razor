@@ -1,0 +1,152 @@
+@page "/admin/platform/support"
+@attribute [HasPermission(Permissions.PlatformAgencies)]
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Identity.Users
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<IdentityAdminResources> Users
+@inject IStringLocalizer<SharedResources> Shared
+
+@* The accounts of the operator of the platform (ADR-0067): they belong to no agency and see every agency. Invited from
+   here; locked and unlocked like the users of an agency, the last active one excepted. Runs across agencies. *@
+<PageTitle>@L["Platform.Support.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["Platform.Support.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="InviteAsync">@L["Platform.Support.Invite"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Platform.Support.Intro"]</MudText>
+
+<MudTable @ref="_table" T="UserSummary" ServerData="LoadAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Platform.Support.Title"].Value })">
+    <HeaderContent>
+        <MudTh>@Users["Users.Column.Name"]</MudTh>
+        <MudTh>@Users["Users.Column.Email"]</MudTh>
+        <MudTh>@Users["Users.Column.Roles"]</MudTh>
+        <MudTh>@Users["Users.Column.TwoFactor"]</MudTh>
+        <MudTh>@Users["Users.Column.Status"]</MudTh>
+        <MudTh>@Users["Users.Column.Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@Users["Users.Column.Name"]" data-user-email="@context.Email">@context.DisplayName</MudTd>
+        <MudTd DataLabel="@Users["Users.Column.Email"]">@context.Email</MudTd>
+        <MudTd DataLabel="@Users["Users.Column.Roles"]">
+            @* An account of no agency without the support role (created before the agencies were separated) shows here as it is. *@
+            @foreach (var role in context.Roles)
+            {
+                <MudChip T="string" Size="Size.Small">@Users[$"Role.{role}"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@Users["Users.Column.TwoFactor"]">
+            @if (context.TwoFactorEnabled)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.VerifiedUser">@Users["Users.TwoFactor.On"]</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.GppMaybe">@Users["Users.TwoFactor.Off"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@Users["Users.Column.Status"]">@(context.IsLockedOut ? Users["Users.Status.Locked"] : Users["Users.Status.Active"])</MudTd>
+        <MudTd DataLabel="@Users["Users.Column.Actions"]">
+            @if (context.Id == _currentUserId)
+            {
+                <MudText Typo="Typo.body2">@L["Platform.Support.You"]</MudText>
+            }
+            else if (context.IsLockedOut)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => UnlockAsync(context)"
+                           aria-label="@L["Platform.Support.UnlockOne", context.DisplayName]">@Users["Users.Unlock"]</MudButton>
+            }
+            else
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="() => LockAsync(context)"
+                           aria-label="@L["Platform.Support.LockOne", context.DisplayName]">@Users["Users.Lock"]</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>@Users["Users.Empty"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <AdminTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<UserSummary>? _table;
+    private Guid? _currentUserId;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = AuthenticationState is null ? null : (await AuthenticationState).User.GetUserId();
+    }
+
+    private async Task<TableData<UserSummary>> LoadAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAcrossAgenciesAsync<UserAdministrationService, Result<PagedResult<UserSummary>>>(
+            (service, ct) => service.ListSupportAccountsAsync(page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<UserSummary> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<UserSummary> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private Task ReloadAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
+
+    private async Task InviteAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<InviteAccountDialog>(L["Platform.Support.Invite"], new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Platform.Support.Invited"], Severity.Success);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task LockAsync(UserSummary user)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            Users["Users.Lock.Confirm.Title"],
+            Users["Users.Lock.Confirm.Message", user.DisplayName],
+            yesText: Users["Users.Lock"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await NotifyAsync(
+            await Runner.RunAcrossAgenciesAsync<UserAdministrationService, Result>((service, ct) => service.LockAsync(user.Id, ct)),
+            Users["Users.Locked"]);
+    }
+
+    private async Task UnlockAsync(UserSummary user) =>
+        await NotifyAsync(
+            await Runner.RunAcrossAgenciesAsync<UserAdministrationService, Result>((service, ct) => service.UnlockAsync(user.Id, ct)),
+            Users["Users.Unlocked"]);
+
+    private async Task NotifyAsync(Result result, string success)
+    {
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(success, Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+        }
+    }
+}

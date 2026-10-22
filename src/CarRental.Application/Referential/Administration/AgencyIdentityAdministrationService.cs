@@ -30,24 +30,30 @@ public sealed record AgencyIdentityForm(
 /// <summary>
 /// The seller identity form of the Referential agency screen (<c>/admin/agency</c>, permission <c>settings.manage</c>,
 /// re-checked here): legal name, tax identifier (matricule fiscal), trade register number, legal address and invoice
-/// footer of each agency, printed on its invoices and credit notes. Each change is audited with the row.
+/// footer of the agency the operation works for (ADR-0067), printed on its invoices and credit notes. Each change is
+/// audited with the row.
 /// </summary>
 public sealed class AgencyIdentityAdministrationService(IAppDbContext db, IUserContext userContext)
 {
-    /// <summary>The agencies and their legal identity, by name.</summary>
-    public async Task<Result<IReadOnlyList<AgencyIdentityForm>>> ListAsync(CancellationToken cancellationToken = default)
+    /// <summary>The legal identity of the agency the operation works for.</summary>
+    public async Task<Result<AgencyIdentityForm>> GetAsync(CancellationToken cancellationToken = default)
     {
         if (!userContext.HasPermission(Permissions.SettingsManage))
         {
             return SettingErrors.Forbidden;
         }
 
-        var agencies = await db.Set<Agency>()
+        if (userContext.AgencyId is not { } agencyId)
+        {
+            return ReferentialErrors.AgencyRequired;
+        }
+
+        var agency = await db.Set<Agency>()
             .AsNoTracking()
-            .OrderBy(a => a.Name)
+            .Where(a => a.Id == agencyId)
             .Select(a => new AgencyIdentityForm(a.Id, a.Name, a.City, a.Address, a.LegalName, a.TaxIdentifier, a.TradeRegisterNumber, a.LegalAddress, a.InvoiceFooter))
-            .ToListAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<AgencyIdentityForm>>(agencies);
+            .FirstOrDefaultAsync(cancellationToken);
+        return agency is null ? SettingErrors.AgencyNotFound : agency;
     }
 
     /// <summary>Saves the legal identity of an agency (blank fields are cleared).</summary>

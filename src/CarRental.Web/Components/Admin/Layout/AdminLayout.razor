@@ -67,10 +67,12 @@
         _support = user.IsSupport();
         _agency = await Current.GetAsync(user);
 
-        // The back office of an agency needs an agency: the support outside any agency starts from the platform pages.
-        if (_support && _agency is null && !PlatformPaths.IsPlatformPath(Navigation.ToBaseRelativePath(Navigation.Uri)))
+        // The back office of an agency needs an agency: the support outside any agency works from the platform pages
+        // (the settings and the journal of an agency lead to their platform counterparts).
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (_support && _agency is null && !PlatformPaths.IsPlatformPath(path))
         {
-            Navigation.NavigateTo(PlatformPaths.Agencies);
+            Navigation.NavigateTo(PlatformPaths.PlatformPageFor(path));
         }
     }
 
