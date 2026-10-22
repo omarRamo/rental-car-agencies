@@ -29,4 +29,10 @@ public sealed record AuditEvent(string Action)
     public Guid? ActingUserId { get; init; }
 
     public string? ActingUserName { get; init; }
+
+    /// <summary>
+    /// The agency the event concerns (e.g. the agency of the user who has just signed in); the agency of the operation
+    /// when <see langword="null"/>, the platform itself when the operation works for none (ADR-0067).
+    /// </summary>
+    public Guid? AgencyId { get; init; }
 }

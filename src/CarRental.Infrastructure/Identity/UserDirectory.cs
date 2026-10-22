@@ -16,10 +16,10 @@ internal sealed class UserDirectory(
     CarRentalDbContext db,
     TimeProvider timeProvider) : IUserDirectory
 {
-    public async Task<PagedResult<UserSummary>> ListAsync(string? search, PageRequest page, CancellationToken cancellationToken)
+    public async Task<PagedResult<UserSummary>> ListAsync(Guid? agencyId, string? search, PageRequest page, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(page);
-        var query = db.Users.AsNoTracking();
+        var query = db.Users.AsNoTracking().Where(u => u.AgencyId == agencyId);
         if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(u => u.Email!.Contains(search) || u.DisplayName.Contains(search));
@@ -80,6 +80,32 @@ internal sealed class UserDirectory(
         return outcome.Succeeded ? Result.Success() : IdentityErrors.OperationFailed(Describe(outcome));
     }
 
+    public async Task<Guid?> FindSelectedAgencyAsync(Guid userId, CancellationToken cancellationToken) =>
+        await db.Users.AsNoTracking().Where(u => u.Id == userId && u.AgencyId == null).Select(u => u.SelectedAgencyId).FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<Result> SetSelectedAgencyAsync(Guid userId, Guid? agencyId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return IdentityErrors.UserNotFound;
+        }
+
+        if (user.AgencyId is not null)
+        {
+            return IdentityErrors.NotSupportAccount;
+        }
+
+        if (user.SelectedAgencyId == agencyId)
+        {
+            return Result.Success();
+        }
+
+        user.SelectedAgencyId = agencyId;
+        var outcome = await userManager.UpdateAsync(user);
+        return outcome.Succeeded ? Result.Success() : IdentityErrors.OperationFailed(Describe(outcome));
+    }
+
     public Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken)
     {
         var normalized = userManager.NormalizeEmail(email);
@@ -97,6 +123,7 @@ internal sealed class UserDirectory(
             DisplayName = user.DisplayName,
             LockoutEnabled = true,
             CreatedAtUtc = timeProvider.GetUtcNow(),
+            AgencyId = user.AgencyId,
         };
 
         var created = await userManager.CreateAsync(entity);
@@ -140,7 +167,7 @@ internal sealed class UserDirectory(
         return outcome.Succeeded ? Result.Success() : IdentityErrors.OperationFailed(Describe(outcome));
     }
 
-    public async Task<int> CountActiveUsersInRoleAsync(string role, CancellationToken cancellationToken)
+    public async Task<int> CountActiveUsersInRoleAsync(string role, Guid? agencyId, CancellationToken cancellationToken)
     {
         var normalizedRole = userManager.NormalizeName(role);
         var now = timeProvider.GetUtcNow();
@@ -148,7 +175,9 @@ internal sealed class UserDirectory(
                 from user in db.Users
                 join userRole in db.UserRoles on user.Id equals userRole.UserId
                 join r in db.Roles on userRole.RoleId equals r.Id
-                where r.NormalizedName == normalizedRole && (user.LockoutEnd == null || user.LockoutEnd <= now)
+                where r.NormalizedName == normalizedRole
+                    && user.AgencyId == agencyId
+                    && (user.LockoutEnd == null || user.LockoutEnd <= now)
                 select user.Id)
             .Distinct()
             .CountAsync(cancellationToken);
@@ -171,7 +200,8 @@ internal sealed class UserDirectory(
         HasPassword: user.PasswordHash is not null,
         user.CreatedAtUtc,
         user.LastSignInAtUtc,
-        extraPermissions);
+        extraPermissions,
+        user.AgencyId);
 
     private static string Describe(IdentityResult result) => string.Join(" ", result.Errors.Select(e => e.Description));
 

@@ -5,6 +5,8 @@ using CarRental.Web.Components.Account;
 using CarRental.Web.Components.Admin.Accounting;
 using CarRental.Web.Components.Admin.Billing;
 using CarRental.Web.Components.Admin.Handovers;
+using CarRental.Web.Components.Admin.Platform;
+using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Components.Admin.Reports;
 using CarRental.Web.Endpoints;
 using CarRental.Web.Endpoints.PublicSite;
@@ -50,6 +52,7 @@ internal static class WebApplicationExtensions
         app.UseRequestLocalization();
         app.UseRouting();
         app.UseMiddleware<PublicCultureMiddleware>();
+        app.UseMiddleware<PublicSiteAgencyMiddleware>();
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -58,6 +61,7 @@ internal static class WebApplicationExtensions
         app.MapStaticAssets();
         app.MapCultureEndpoints();
         app.MapAccountEndpoints();
+        app.MapPlatformEndpoints();
         app.MapCustomerEndpoints();
         app.MapFleetEndpoints();
         app.MapReportExportEndpoints();

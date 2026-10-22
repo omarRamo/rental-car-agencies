@@ -201,4 +201,7 @@
   <data name="Users.Permissions.Saved" xml:space="preserve">
     <value>Permissions saved: they apply from the user's next action.</value>
   </data>
+  <data name="Role.Support" xml:space="preserve">
+    <value>Platform support</value>
+  </data>
 </root>

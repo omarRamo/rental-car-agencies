@@ -261,4 +261,79 @@
   <data name="Nav.Agency" xml:space="preserve">
     <value>Identité de l'agence</value>
   </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement…</value>
+  </data>
+  <data name="Nav.Group.Platform" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Nav.Agencies" xml:space="preserve">
+    <value>Agences</value>
+  </data>
+  <data name="Platform.Title" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Platform.SupportIn" xml:space="preserve">
+    <value>Vous intervenez dans l'agence {0} en tant que support.</value>
+  </data>
+  <data name="Platform.Leave" xml:space="preserve">
+    <value>Quitter l'agence</value>
+  </data>
+  <data name="Platform.Agencies.Title" xml:space="preserve">
+    <value>Agences de la plateforme</value>
+  </data>
+  <data name="Platform.Agencies.Empty" xml:space="preserve">
+    <value>Aucune agence pour l'instant.</value>
+  </data>
+  <data name="Platform.Agencies.Name" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Platform.Agencies.City" xml:space="preserve">
+    <value>Ville</value>
+  </data>
+  <data name="Platform.Agencies.Site" xml:space="preserve">
+    <value>Adresse de la vitrine</value>
+  </data>
+  <data name="Platform.Agencies.Modules" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="Platform.Agencies.Status" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Platform.Agencies.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Platform.Agencies.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Platform.Agencies.Suspended" xml:space="preserve">
+    <value>Suspendue</value>
+  </data>
+  <data name="Platform.Agencies.Enter" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Platform.Agencies.EnterOne" xml:space="preserve">
+    <value>Ouvrir le back office de {0}</value>
+  </data>
+  <data name="Module.PublicSite" xml:space="preserve">
+    <value>Vitrine</value>
+  </data>
+  <data name="Module.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Module.Channels" xml:space="preserve">
+    <value>Booking.com et canaux</value>
+  </data>
+  <data name="Module.Cash" xml:space="preserve">
+    <value>Caisse et dépenses</value>
+  </data>
+  <data name="Module.ClaimsAndFines" xml:space="preserve">
+    <value>Sinistres et amendes</value>
+  </data>
+  <data name="Module.Accounting" xml:space="preserve">
+    <value>Pré-comptabilité</value>
+  </data>
+  <data name="Module.Reports" xml:space="preserve">
+    <value>Rapports</value>
+  </data>
 </root>

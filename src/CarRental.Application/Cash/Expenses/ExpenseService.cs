@@ -99,7 +99,7 @@ public sealed class ExpenseService
         }
 
         var query = filter.IncludeDeleted
-            ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters()
+            ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters([QueryFilters.SoftDelete])
             : _db.Set<Expense>().AsNoTracking().Where(e => !e.IsDeleted);
         query = query.Where(e => e.AgencyId == filter.AgencyId);
         if (filter.From is { } from)
@@ -164,7 +164,7 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
-        var expense = await _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == expenseId, cancellationToken);
+        var expense = await _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters([QueryFilters.SoftDelete]).FirstOrDefaultAsync(e => e.Id == expenseId, cancellationToken);
         if (expense is null)
         {
             return ExpenseErrors.NotFound;
@@ -297,7 +297,7 @@ public sealed class ExpenseService
 
         var current = await _db.Set<Expense>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Where(e => e.Id == expenseId)
             .Select(e => new { e.AgencyId, e.IsDeleted })
             .FirstOrDefaultAsync(cancellationToken);
@@ -370,7 +370,7 @@ public sealed class ExpenseService
                 var expense = await _db.Set<Expense>().FirstOrDefaultAsync(e => e.Id == expenseId, ct);
                 if (expense is null)
                 {
-                    return await _db.Set<Expense>().IgnoreQueryFilters().AnyAsync(e => e.Id == expenseId, ct) ? ExpenseErrors.Deleted : ExpenseErrors.NotFound;
+                    return await _db.Set<Expense>().IgnoreQueryFilters([QueryFilters.SoftDelete]).AnyAsync(e => e.Id == expenseId, ct) ? ExpenseErrors.Deleted : ExpenseErrors.NotFound;
                 }
 
                 if (expense.IsDeleted)
@@ -482,7 +482,7 @@ public sealed class ExpenseService
 
         var receipt = await _db.Set<Expense>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Where(e => e.Id == expenseId)
             .Select(e => new { e.Number, e.ReceiptPath, e.ReceiptContentType, e.ReceiptHash, e.ReceiptFileName })
             .FirstOrDefaultAsync(cancellationToken);

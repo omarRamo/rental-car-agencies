@@ -363,4 +363,7 @@
   <data name="Validation.Required" xml:space="preserve">
     <value>Ce champ est obligatoire.</value>
   </data>
+  <data name="Login.AgencySuspended" xml:space="preserve">
+    <value>L'accès de votre agence à la plateforme est suspendu. Contactez le support.</value>
+  </data>
 </root>

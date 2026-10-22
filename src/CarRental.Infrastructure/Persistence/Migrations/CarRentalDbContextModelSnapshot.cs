@@ -5618,6 +5618,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<string>("After")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Before")
                         .HasColumnType("nvarchar(max)");
 
@@ -5663,6 +5666,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("AgencyId", "OccurredAtUtc");
+
                     b.HasIndex("EntityType", "EntityId");
 
                     b.ToTable("AuditLogs", "audit", t =>
@@ -5688,6 +5693,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .IsUnicode(false)
                         .HasColumnType("varchar(32)");
+
+                    b.Property<Guid?>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(64)
@@ -5727,6 +5735,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasIndex("DocumentId");
 
                     b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("AgencyId", "OccurredAtUtc");
 
                     b.ToTable("DocumentAccessLogs", "audit", t =>
                         {
@@ -7316,6 +7326,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
+                    b.Property<int>("Modules")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -7330,6 +7343,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(60)");
 
                     b.Property<string>("TaxIdentifier")
                         .HasMaxLength(32)
@@ -7350,6 +7369,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasColumnName("ValidTo");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Agencies", "referential");
 
@@ -7768,6 +7790,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("CarRental:Audit:Ignore", true);
 
+                    b.Property<Guid?>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)")
@@ -7822,6 +7847,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("CarRental:Audit:Sensitive", true);
 
+                    b.Property<Guid?>("SelectedAgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -7831,6 +7859,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AgencyId");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -7838,6 +7868,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("SelectedAgencyId");
 
                     b.ToTable("Users", "identity");
 
@@ -7897,6 +7929,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarRental.Infrastructure.Persistence.Numbering.DocumentCounter", b =>
                 {
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("DocumentType")
                         .HasMaxLength(32)
                         .IsUnicode(false)
@@ -7908,7 +7943,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<long>("LastValue")
                         .HasColumnType("bigint");
 
-                    b.HasKey("DocumentType", "Year");
+                    b.HasKey("AgencyId", "DocumentType", "Year");
 
                     b.ToTable("DocumentCounters", "infra");
 
@@ -8824,6 +8859,19 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Infrastructure.Identity.ApplicationUser", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("SelectedAgencyId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

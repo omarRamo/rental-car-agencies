@@ -201,4 +201,7 @@
   <data name="Users.Permissions.Saved" xml:space="preserve">
     <value>Permissions enregistrées : elles s'appliquent à la prochaine action de l'utilisateur.</value>
   </data>
+  <data name="Role.Support" xml:space="preserve">
+    <value>Support de la plateforme</value>
+  </data>
 </root>

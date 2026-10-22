@@ -8,7 +8,7 @@ namespace CarRental.Domain.Referential;
 /// <see cref="AgencyId"/> is <see langword="null"/> for the platform-wide value; an agency may override it later.
 /// Typed reading and validation are done by setting definitions in the application layer.
 /// </summary>
-public sealed partial class Setting : AggregateRoot
+public sealed partial class Setting : AggregateRoot, IAgencyShared
 {
     public const int KeyMaxLength = 100;
     public const int ValueMaxLength = 1000;

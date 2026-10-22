@@ -55,23 +55,29 @@ internal sealed partial class DeadlineAlertJob(
             return;
         }
 
-        var managers = await identity.GetActiveUsersInRoleAsync(Roles.Manager, cancellationToken);
-        if (managers.Count == 0)
-        {
-            LogNoRecipient(due.Count);
-            return;
-        }
-
+        // Each agency's managers hear of their own vehicles only (ADR-0067).
         var sent = 0;
-        foreach (var alert in due)
+        var recipients = 0;
+        foreach (var agency in due.GroupBy(a => a.AgencyId))
         {
-            if (await SendAsync(alert, managers, now, cancellationToken))
+            var managers = await identity.GetActiveUsersInRoleAsync(agency.Key, Roles.Manager, cancellationToken);
+            if (managers.Count == 0)
             {
-                sent++;
+                LogNoRecipient(agency.Count());
+                continue;
+            }
+
+            recipients += managers.Count;
+            foreach (var alert in agency)
+            {
+                if (await SendAsync(alert, managers, now, cancellationToken))
+                {
+                    sent++;
+                }
             }
         }
 
-        LogSent(sent, managers.Count);
+        LogSent(sent, recipients);
     }
 
     /// <summary>Records the alert and queues its e-mails atomically; false when it was already sent.</summary>

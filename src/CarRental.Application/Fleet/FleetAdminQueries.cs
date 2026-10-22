@@ -126,7 +126,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
 
         var category = await db.Set<VehicleCategory>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Where(c => c.Id == vehicle.CategoryId)
             .Select(c => new { c.Code, c.Name })
             .FirstOrDefaultAsync(cancellationToken);
@@ -364,7 +364,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
     {
         var categories = await db.Set<VehicleCategory>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Select(c => new { c.Id, c.Code, c.Name })
             .ToListAsync(cancellationToken);
         return categories.ToDictionary(c => c.Id, c => (c.Code.Value, c.Name));

@@ -116,4 +116,10 @@ public static class TestAccounts
     public const string ManagerEmail = "gerant@demo.local";
     public const string AgentEmail = "agent@demo.local";
     public const string AccountantEmail = "comptable@demo.local";
+
+    /// <summary>Manager of the second demo agency (Sousse): never sees the main demo agency (ADR-0067).</summary>
+    public const string SecondAgencyManagerEmail = "gerant.sousse@demo.local";
+
+    /// <summary>The support of the platform: every agency, outside any agency until they enter one.</summary>
+    public const string SupportEmail = "support@demo.local";
 }

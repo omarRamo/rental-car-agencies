@@ -123,10 +123,17 @@ public sealed class AuthenticationTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task The_manager_opens_the_jobs_dashboard()
+    public async Task Only_the_support_opens_the_jobs_dashboard()
     {
+        // The background jobs of every agency: not even an agency's manager sees them (ADR-0067).
+        using var manager = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(manager, TestAccounts.ManagerEmail, "/admin", Ct);
+        var denied = await manager.GetAsync(new Uri("/admin/jobs", UriKind.Relative), Ct);
+        denied.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        HttpSignIn.PathAndQuery(denied.Headers.Location!).ShouldContain("/account/access-denied");
+
         using var client = host.CreateClient();
-        await HttpSignIn.SignInWithTwoFactorAsync(client, TestAccounts.ManagerEmail, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(client, TestAccounts.SupportEmail, "/admin", Ct);
 
         var jobs = await client.GetAsync(new Uri("/admin/jobs", UriKind.Relative), Ct);
 

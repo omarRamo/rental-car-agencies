@@ -72,15 +72,15 @@ public sealed class OutboxOperationsTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task A_manager_sees_a_failed_message_and_retries_it_until_it_is_processed()
+    public async Task The_support_sees_a_failed_message_and_retries_it_until_it_is_processed()
     {
         var agencyId = Guid.CreateVersion7();
         var failed = await InsertAsync(
             occurredAt: DateTimeOffset.UtcNow.AddHours(-20),
             attempts: MaxAttempts,
             lastError: "System.InvalidOperationException: smtp down",
-            message: new AgencyRegistered(agencyId, $"Retry {agencyId:N}"));
-        var manager = await ManagerAsync();
+            message: new AgencyRegistered(agencyId, $"Retry {agencyId:N}", $"retry-{agencyId:N}"));
+        var manager = await SupportAsync();
 
         await using (var scope = host.CreateScope(manager))
         {
@@ -114,19 +114,23 @@ public sealed class OutboxOperationsTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task Only_outbox_managers_read_and_retry_messages()
+    public async Task Only_the_support_reads_and_retries_messages()
     {
         var failed = await InsertAsync(occurredAt: DateTimeOffset.UtcNow, attempts: MaxAttempts, lastError: "boom");
         try
         {
-            var (agentId, agentEmail) = await TestStaff.CreateAsync(host, Roles.Agent);
-            var agent = UserContextSnapshot.ForUser(agentId, agentEmail, RolePresets.PermissionsOf(Roles.Agent));
-            await using var scope = host.CreateScope(agent);
-            var administration = scope.ServiceProvider.GetRequiredService<OutboxAdministrationService>();
+            // The messages of every agency go through the outbox: not even an agency's manager reads them (ADR-0067).
+            foreach (var role in new[] { Roles.Agent, Roles.Manager })
+            {
+                var (staffId, staffEmail) = await TestStaff.CreateAsync(host, role);
+                await using var scope = host.CreateScope(await TestStaff.ActorAsync(host, staffId, staffEmail, role));
+                var administration = scope.ServiceProvider.GetRequiredService<OutboxAdministrationService>();
 
-            (await administration.GetOverviewAsync(Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
-            (await administration.ListAsync(OutboxListFilter.All, new PageRequest(), Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
-            (await administration.RetryAsync(failed, Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
+                (await administration.GetOverviewAsync(Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
+                (await administration.ListAsync(OutboxListFilter.All, new PageRequest(), Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
+                (await administration.RetryAsync(failed, Ct)).Error.ShouldBe(OutboxErrors.Forbidden);
+            }
+
             (await StateOfAsync(failed))!.AttemptCount.ShouldBe(MaxAttempts);
         }
         finally
@@ -136,30 +140,30 @@ public sealed class OutboxOperationsTests(IntegrationHost host)
     }
 
     [Fact]
-    public async Task The_outbox_screen_is_reserved_to_outbox_managers()
+    public async Task The_outbox_screen_is_reserved_to_the_support()
     {
+        var (_, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
         var (_, managerEmail) = await TestStaff.CreateAsync(host, Roles.Manager);
-        var (_, agentEmail) = await TestStaff.CreateAsync(host, Roles.Agent);
+        using var supportClient = host.CreateClient();
         using var managerClient = host.CreateClient();
-        using var agentClient = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(supportClient, supportEmail, "/admin", Ct);
         await HttpSignIn.SignInWithTwoFactorAsync(managerClient, managerEmail, "/admin", Ct);
-        await HttpSignIn.SignInWithTwoFactorAsync(agentClient, agentEmail, "/admin", Ct);
 
+        var supportPage = await supportClient.GetAsync(new Uri("/admin/outbox", UriKind.Relative), Ct);
         var managerPage = await managerClient.GetAsync(new Uri("/admin/outbox", UriKind.Relative), Ct);
-        var agentPage = await agentClient.GetAsync(new Uri("/admin/outbox", UriKind.Relative), Ct);
 
-        managerPage.StatusCode.ShouldBe(HttpStatusCode.OK);
-        agentPage.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        HttpSignIn.PathAndQuery(agentPage.Headers.Location!).ShouldContain("/account/access-denied");
+        supportPage.StatusCode.ShouldBe(HttpStatusCode.OK);
+        managerPage.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        HttpSignIn.PathAndQuery(managerPage.Headers.Location!).ShouldContain("/account/access-denied");
     }
 
     private static async Task<IReadOnlyList<OutboxEntry>> ListAllAsync(OutboxAdministrationService administration, OutboxListFilter filter) =>
         (await administration.ListAsync(filter, new PageRequest(1, 100), Ct)).Value.Items;
 
-    private async Task<UserContextSnapshot> ManagerAsync()
+    private async Task<UserContextSnapshot> SupportAsync()
     {
-        var (id, email) = await TestStaff.CreateAsync(host, Roles.Manager);
-        return UserContextSnapshot.ForUser(id, email, RolePresets.PermissionsOf(Roles.Manager), "198.51.100.20", $"corr-{Guid.NewGuid():N}");
+        var (id, email) = await TestStaff.CreateAsync(host, Roles.Support);
+        return await TestStaff.ActorAsync(host, id, email, Roles.Support, "198.51.100.20");
     }
 
     /// <summary>

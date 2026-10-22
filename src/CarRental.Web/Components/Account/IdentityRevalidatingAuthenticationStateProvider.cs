@@ -1,4 +1,5 @@
 using CarRental.Application.Identity.Users;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Infrastructure.Identity;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -37,7 +38,8 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
                 scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
                 scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
                 authenticationState.User,
-                options.Value);
+                options.Value,
+                scope.ServiceProvider.GetRequiredService<IAgencyDirectory>());
         if (!valid && authenticationState.User.GetUserId() is { } userId)
         {
             // The reload must not wait for the validation interval of the cookie.

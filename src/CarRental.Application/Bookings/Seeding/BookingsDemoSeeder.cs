@@ -328,7 +328,7 @@ internal sealed partial class BookingsDemoSeeder(
             async (touched, ct) =>
             {
                 var id = Entity.NewId();
-                var number = await writer.NextNumberAsync(file.CreatedAt, ct);
+                var number = await writer.NextNumberAsync(context.Agency.Id, file.CreatedAt, ct);
                 var quote = await quotes.AddVersionAsync(id, 1, QuoteOrigin.Initial, content, writer.Actor(file.Channel).Name, file.CreatedAt, ct);
                 if (quote.IsFailure)
                 {

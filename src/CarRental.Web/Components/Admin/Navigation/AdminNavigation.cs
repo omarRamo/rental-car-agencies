@@ -1,10 +1,15 @@
 using CarRental.Application.Identity.Contracts;
+using CarRental.Domain.Common;
+using CarRental.Web.Components.Admin.Platform;
 using MudBlazor;
 
 namespace CarRental.Web.Components.Admin.Navigation;
 
-/// <summary>An entry of the back office menu, visible when the user holds <see cref="Permission"/> (or always when null).</summary>
-public sealed record AdminNavItem(string Href, string TitleKey, string Icon, string? Permission, bool ForceLoad = false);
+/// <summary>
+/// An entry of the back office menu, visible when the user holds <see cref="Permission"/> (or always when null) and, for
+/// an optional module of the agencies, while <see cref="Module"/> is on for the agency of the session (ADR-0067).
+/// </summary>
+public sealed record AdminNavItem(string Href, string TitleKey, string Icon, string? Permission, bool ForceLoad = false, AgencyModules? Module = null);
 
 public sealed record AdminNavGroup(string TitleKey, string Icon, IReadOnlyList<AdminNavItem> Items);
 
@@ -31,20 +36,20 @@ public static class AdminNavigation
         new("Nav.Group.Commercial", Icons.Material.Outlined.Storefront,
         [
             new("/admin/pricing", "Nav.Pricing", Icons.Material.Outlined.Sell, Permissions.PricingRead),
-            new("/admin/whatsapp", "Nav.WhatsApp", Icons.Material.Outlined.Chat, Permissions.WhatsAppInbox),
-            new("/admin/channels", "Nav.Channels", Icons.Material.Outlined.Hub, Permissions.ChannelsManage),
+            new("/admin/whatsapp", "Nav.WhatsApp", Icons.Material.Outlined.Chat, Permissions.WhatsAppInbox, Module: AgencyModules.WhatsApp),
+            new("/admin/channels", "Nav.Channels", Icons.Material.Outlined.Hub, Permissions.ChannelsManage, Module: AgencyModules.Channels),
         ]),
         new("Nav.Group.Finance", Icons.Material.Outlined.AccountBalance,
         [
             new("/admin/payments", "Nav.Payments", Icons.Material.Outlined.Payments, Permissions.PaymentsRead),
             new("/admin/invoices", "Nav.Invoices", Icons.Material.Outlined.ReceiptLong, Permissions.InvoicesRead),
-            new("/admin/fines", "Nav.Fines", Icons.Material.Outlined.Gavel, Permissions.FinesManage),
-            new("/admin/claims", "Nav.Claims", Icons.Material.Outlined.CarCrash, Permissions.ClaimsManage),
-            new("/admin/cash", "Nav.Cash", Icons.Material.Outlined.PointOfSale, Permissions.CashOwn),
-            new("/admin/expenses", "Nav.Expenses", Icons.Material.Outlined.MoneyOff, Permissions.ExpensesManage),
-            new("/admin/reconciliation", "Nav.Reconciliation", Icons.Material.Outlined.CompareArrows, Permissions.ReconciliationManage),
-            new("/admin/accounting", "Nav.Accounting", Icons.Material.Outlined.FileDownload, Permissions.AccountingManage),
-            new("/admin/reports", "Nav.Reports", Icons.Material.Outlined.Insights, Permissions.ReportsRead),
+            new("/admin/fines", "Nav.Fines", Icons.Material.Outlined.Gavel, Permissions.FinesManage, Module: AgencyModules.ClaimsAndFines),
+            new("/admin/claims", "Nav.Claims", Icons.Material.Outlined.CarCrash, Permissions.ClaimsManage, Module: AgencyModules.ClaimsAndFines),
+            new("/admin/cash", "Nav.Cash", Icons.Material.Outlined.PointOfSale, Permissions.CashOwn, Module: AgencyModules.Cash),
+            new("/admin/expenses", "Nav.Expenses", Icons.Material.Outlined.MoneyOff, Permissions.ExpensesManage, Module: AgencyModules.Cash),
+            new("/admin/reconciliation", "Nav.Reconciliation", Icons.Material.Outlined.CompareArrows, Permissions.ReconciliationManage, Module: AgencyModules.Accounting),
+            new("/admin/accounting", "Nav.Accounting", Icons.Material.Outlined.FileDownload, Permissions.AccountingManage, Module: AgencyModules.Accounting),
+            new("/admin/reports", "Nav.Reports", Icons.Material.Outlined.Insights, Permissions.ReportsRead, Module: AgencyModules.Reports),
         ]),
         new("Nav.Group.Administration", Icons.Material.Outlined.AdminPanelSettings,
         [
@@ -52,10 +57,17 @@ public static class AdminNavigation
             new("/admin/agency", "Nav.Agency", Icons.Material.Outlined.Storefront, Permissions.SettingsManage),
             new("/admin/settings", "Nav.Settings", Icons.Material.Outlined.Settings, Permissions.SettingsManage),
             new("/admin/audit", "Nav.Audit", Icons.Material.Outlined.History, Permissions.AuditRead),
+        ]),
+        new("Nav.Group.Platform", Icons.Material.Outlined.Domain,
+        [
+            new(PlatformPaths.Agencies, "Nav.Agencies", Icons.Material.Outlined.Business, Permissions.PlatformAgencies),
             new("/admin/outbox", "Nav.Outbox", Icons.Material.Outlined.Outbox, Permissions.OutboxManage),
             new("/admin/jobs", "Nav.Jobs", Icons.Material.Outlined.Schedule, Permissions.JobsDashboard, ForceLoad: true),
         ]),
     ];
+
+    /// <summary>The group of the platform pages (support only): they work across agencies, outside any agency.</summary>
+    public const string PlatformGroupKey = "Nav.Group.Platform";
 
     public static IEnumerable<AdminNavItem> AllItems => Groups.SelectMany(g => g.Items);
 }

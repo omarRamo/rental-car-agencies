@@ -1,10 +1,10 @@
-using CarRental.Application.Common.Security;
 using CarRental.Application.Identity;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Identity.Users;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Identity;
 using CarRental.Infrastructure.Identity;
+using CarRental.Integration.Tests.Support;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Testing;
 using Microsoft.AspNetCore.Identity;
@@ -60,7 +60,7 @@ public sealed class SeedAndAdministrationTests(IntegrationHost host)
         await using var scope = host.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        foreach (var (email, _, role) in DemoUsers.All)
+        foreach (var (email, _, role, _) in DemoUsers.All)
         {
             var user = await users.FindByEmailAsync(email);
             user.ShouldNotBeNull(email);
@@ -80,7 +80,7 @@ public sealed class SeedAndAdministrationTests(IntegrationHost host)
             managerId = (await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(TestAccounts.ManagerEmail))!.Id;
         }
 
-        var manager = UserContextSnapshot.ForUser(managerId, TestAccounts.ManagerEmail, RolePresets.PermissionsOf(Roles.Manager), "203.0.113.9", "corr-users");
+        var manager = await TestStaff.ActorAsync(host, managerId, TestAccounts.ManagerEmail, Roles.Manager, "203.0.113.9");
         Guid newUserId;
         await using (var scope = host.CreateScope(manager))
         {
@@ -121,14 +121,23 @@ public sealed class SeedAndAdministrationTests(IntegrationHost host)
         await using (var scope = host.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = "À verrouiller", CreatedAtUtc = DateTimeOffset.UtcNow };
+            var demoManager = (await users.FindByEmailAsync(TestAccounts.ManagerEmail))!;
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                DisplayName = "À verrouiller",
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+                AgencyId = demoManager.AgencyId,
+            };
             (await users.CreateAsync(user)).Succeeded.ShouldBeTrue();
             await users.AddToRoleAsync(user, Roles.Agent);
             userId = user.Id;
-            managerId = (await users.FindByEmailAsync(TestAccounts.ManagerEmail))!.Id;
+            managerId = demoManager.Id;
         }
 
-        var manager = UserContextSnapshot.ForUser(managerId, TestAccounts.ManagerEmail, RolePresets.PermissionsOf(Roles.Manager));
+        var manager = await TestStaff.ActorAsync(host, managerId, TestAccounts.ManagerEmail, Roles.Manager);
         await using (var scope = host.CreateScope(manager))
         {
             var administration = scope.ServiceProvider.GetRequiredService<UserAdministrationService>();

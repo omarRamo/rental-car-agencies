@@ -134,7 +134,7 @@ internal sealed class ChannelBookingService(
                     }
 
                     var now = writer.Now();
-                    var number = await writer.NextNumberAsync(now, ct);
+                    var number = await writer.NextNumberAsync(request.AgencyId, now, ct);
                     var actor = writer.Actor(request.Channel);
                     var quote = await quotes.AddVersionAsync(bookingId, 1, QuoteOrigin.Initial, content, actor.Name, now, ct);
                     if (quote.IsFailure)

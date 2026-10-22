@@ -26,7 +26,8 @@ internal sealed class AuditTrail(CarRentalDbContext db, IUserContext userContext
             auditEvent.Action,
             auditEvent.EntityType,
             auditEvent.EntityId,
-            details: auditEvent.Details));
+            details: auditEvent.Details,
+            agencyId: auditEvent.AgencyId ?? userContext.AgencyId));
         await db.SaveChangesAsync(cancellationToken);
     }
 }
@@ -46,7 +47,8 @@ internal sealed class DocumentAccessLogger(CarRentalDbContext db, IUserContext u
             documentId,
             documentKind,
             access,
-            reason));
+            reason,
+            userContext.AgencyId));
         await db.SaveChangesAsync(cancellationToken);
     }
 }

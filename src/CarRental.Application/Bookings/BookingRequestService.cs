@@ -291,7 +291,7 @@ internal sealed class BookingRequestService(
     {
         var now = writer.Now();
         var bookingId = request.Draft.BookingId is { } chosen && chosen != Guid.Empty ? chosen : Entity.NewId();
-        var number = await writer.NextNumberAsync(now, cancellationToken);
+        var number = await writer.NextNumberAsync(request.Content.AgencyId, now, cancellationToken);
         var actor = writer.Actor(request.Draft.Channel);
         var quote = await quotes.AddVersionAsync(bookingId, 1, request.Origin, request.Content, actor.Name, now, cancellationToken, request.SourceQuoteId);
         if (quote.IsFailure)

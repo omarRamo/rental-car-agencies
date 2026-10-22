@@ -94,9 +94,12 @@ internal sealed class BookingWriter(
     public Task<Booking?> LoadAsync(Guid bookingId, CancellationToken cancellationToken) =>
         db.Set<Booking>().FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
 
-    /// <summary>The next <c>LOC</c> number of the Tunis year of <paramref name="at"/>, inside the transaction (ADR-0016).</summary>
-    public Task<DocumentNumber> NextNumberAsync(DateTimeOffset at, CancellationToken cancellationToken) =>
-        numbers.NextForDateAsync(DocumentType.Booking, at, cancellationToken);
+    /// <summary>
+    /// The next <c>LOC</c> number of <paramref name="agencyId"/> for the Tunis year of <paramref name="at"/>, inside the
+    /// transaction (ADR-0016, one series per agency).
+    /// </summary>
+    public Task<DocumentNumber> NextNumberAsync(Guid agencyId, DateTimeOffset at, CancellationToken cancellationToken) =>
+        numbers.NextForDateAsync(agencyId, DocumentType.Booking, at, cancellationToken);
 
     /// <summary>Publishes the status change of a file to the outbox (same transaction).</summary>
     public void PublishStatusChange(Booking booking, BookingStatus? previousStatus, DateTimeOffset at)

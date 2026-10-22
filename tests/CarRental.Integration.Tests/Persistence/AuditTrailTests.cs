@@ -16,8 +16,9 @@ namespace CarRental.Integration.Tests.Persistence;
 /// <summary>Entity changes are audited in the same save; the audit log is append-only (interceptor and database trigger).</summary>
 public sealed class AuditTrailTests(IntegrationHost host)
 {
-    private static readonly UserContextSnapshot Actor = UserContextSnapshot.ForUser(
-        Guid.CreateVersion7(), "auditor@tests.local", [], "198.51.100.23", "corr-audit");
+    /// <summary>The support (across agencies): it registers the agencies these tests change (ADR-0067).</summary>
+    private static readonly UserContextSnapshot Actor =
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "auditor@tests.local", [], "198.51.100.23", "corr-audit") with { AllAgencies = true };
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

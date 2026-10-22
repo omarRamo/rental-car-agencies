@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Common;
 using CarRental.Domain.Pricing;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,8 @@ internal sealed class PublishedPlanCache(IServiceScopeFactory scopeFactory, Time
             RatePlan? plan;
             await using (var scope = scopeFactory.CreateAsyncScope())
             {
+                // Read across agencies whoever triggers the load: the copies are shared by every reader (ADR-0067).
+                scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System("system:published-plan-cache"));
                 // Loaded tracked by a throw-away context (so that its collections fix up), then detached with it.
                 plan = await scope.ServiceProvider.GetRequiredService<IRatePlanStore>().FindPublishedAsync(agencyId, channel, cancellationToken);
             }

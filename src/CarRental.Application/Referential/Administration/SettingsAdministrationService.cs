@@ -14,7 +14,8 @@ namespace CarRental.Application.Referential.Administration;
 /// <summary>
 /// The settings screen (<c>/admin/settings</c>, permission <c>settings.manage</c>, re-checked here): every setting declared
 /// in <see cref="ISettingDefinitionCatalog"/> with its default, its platform value and the values of the agencies that
-/// override it; edit and reset of the platform value, set and removal of an agency value. Values are validated by their
+/// override it (a manager sees and sets the values of their own agency only, ADR-0067); edit and reset of the platform
+/// value (support only, <c>platform.agencies</c>), set and removal of an agency value. Values are validated by their
 /// definition; every change is audited (row diff plus a readable event) and drops the availability cache.
 /// </summary>
 /// <remarks>
@@ -121,6 +122,11 @@ public sealed class SettingsAdministrationService(
         if (!userContext.HasPermission(Permissions.SettingsManage))
         {
             return SettingErrors.Forbidden;
+        }
+
+        if (agencyId is null && !userContext.HasPermission(Permissions.PlatformAgencies))
+        {
+            return SettingErrors.PlatformValueForbidden;
         }
 
         var definition = catalog.Find(key);

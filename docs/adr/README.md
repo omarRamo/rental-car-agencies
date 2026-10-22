@@ -72,6 +72,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0064](0064-rapprochements-caisse-clic-to-pay-booking-com.md) | Rapprochements : caisse, Clic to Pay, Booking.com et justification des écarts | Acceptée (formats des relevés à fournir) |
 | [0065](0065-plan-de-comptes-journaux-exports-et-cloture.md) | Plan de comptes, journaux, exports et clôture mensuelle | Acceptée (plan et format d'export à valider par l'expert-comptable) |
 | [0066](0066-revue-de-securite-passe-2.md) | Revue de sécurité, passe 2 : journaux sans jeton, Turnstile lié au site, documents jamais conservés, santé du bot | Acceptée |
+| [0067](0067-plateforme-multi-agences-cloisonnement-support-modules.md) | Plateforme multi-agences : cloisonnement par agence, rôle Support, vitrine par adresse et modules activables | Acceptée |
 
 ## Modèle
 

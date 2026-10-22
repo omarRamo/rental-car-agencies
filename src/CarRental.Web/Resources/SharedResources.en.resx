@@ -2031,4 +2031,49 @@
   <data name="Error.accounting.export.format_unknown" xml:space="preserve">
     <value>Unknown export format.</value>
   </data>
+  <data name="Error.referential.agency_slug_invalid" xml:space="preserve">
+    <value>The public site address has 3 to 60 characters: lower-case letters and digits separated by single hyphens.</value>
+  </data>
+  <data name="Error.referential.agency_slug_reserved" xml:space="preserve">
+    <value>This address is used by the platform itself: choose another one.</value>
+  </data>
+  <data name="Error.referential.agency_slug_taken" xml:space="preserve">
+    <value>Another agency already uses this address.</value>
+  </data>
+  <data name="Error.referential.agency_modules_invalid" xml:space="preserve">
+    <value>Unknown module.</value>
+  </data>
+  <data name="Error.referential.platform_value_forbidden" xml:space="preserve">
+    <value>Only the support changes the value shared by the whole platform; set the value of your agency instead.</value>
+  </data>
+  <data name="Error.referential.platform_forbidden" xml:space="preserve">
+    <value>Only the support manages the agencies of the platform.</value>
+  </data>
+  <data name="Error.referential.platform_leave_agency_first" xml:space="preserve">
+    <value>Leave the agency you opened to manage the agencies of the platform.</value>
+  </data>
+  <data name="Error.referential.platform_agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.referential.platform_concurrent_update" xml:space="preserve">
+    <value>The agency was changed meanwhile: reload it and try again.</value>
+  </data>
+  <data name="Error.identity.last_support" xml:space="preserve">
+    <value>The last active support account cannot be locked.</value>
+  </data>
+  <data name="Error.identity.agency_required" xml:space="preserve">
+    <value>Open an agency first: its users are managed from its back office.</value>
+  </data>
+  <data name="Error.identity.permission_not_for_agency" xml:space="preserve">
+    <value>A platform permission cannot be given to a member of an agency.</value>
+  </data>
+  <data name="Error.identity.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.identity.platform_scope_required" xml:space="preserve">
+    <value>This operation is done from the platform pages, outside any agency.</value>
+  </data>
+  <data name="Error.identity.not_support_account" xml:space="preserve">
+    <value>Only a support account opens and leaves the agencies.</value>
+  </data>
 </root>

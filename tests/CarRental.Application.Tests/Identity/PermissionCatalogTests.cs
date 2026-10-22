@@ -34,7 +34,10 @@ public sealed partial class PermissionCatalogTests
     public void Every_permission_belongs_to_a_defined_area()
     {
         Permissions.Catalog.ShouldAllBe(p => Enum.IsDefined(p.Area));
-        Permissions.Catalog.Select(p => p.Area).Distinct().Count().ShouldBe(4);
+        Permissions.Catalog.Select(p => p.Area).Distinct().Count().ShouldBe(5);
+        Permissions.Catalog.Where(p => p.Area == PermissionArea.Platform).Select(p => p.Name)
+            .ShouldBe([Permissions.PlatformAgencies, Permissions.JobsDashboard, Permissions.OutboxManage], ignoreOrder: true);
+        Permissions.AgencyCatalog.ShouldNotContain(p => p.Area == PermissionArea.Platform);
     }
 
     [Fact]

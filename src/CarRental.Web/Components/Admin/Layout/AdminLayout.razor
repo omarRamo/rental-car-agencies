@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject IStringLocalizer<AdminResources> L
-@inject IOptions<PublicSiteOptions> Site
+@inject CurrentAgency Current
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="AdminTheme.Theme" />
 <MudPopoverProvider />
@@ -10,31 +11,68 @@
 @* The interactive router only scrolls to same-page links: once interactive, the skip link moves the focus itself. *@
 <a class="skip-link" href="#admin-main" @onclick="SkipToMainAsync" @onclick:preventDefault>@L["SkipToContent"]</a>
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" aria-label="@L["Menu.Toggle"]" />
-        <MudText Typo="Typo.h6" Class="ms-2">@Site.Value.AgencyName</MudText>
-        <MudSpacer />
-        <CultureMenu />
-        <UserMenu />
-    </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1" Variant="DrawerVariant.Responsive">
-        <AdminNavMenu />
-    </MudDrawer>
-    <MudMainContent>
-        @* data-interactive: "true" once the circuit renders the page (the prerendered HTML says "false"); browser tests
-           wait for it before clicking. *@
-        <main id="admin-main" tabindex="-1" @ref="_main" data-interactive="@(RendererInfo.IsInteractive ? "true" : "false")">
-            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
-                @Body
-            </MudContainer>
-        </main>
-    </MudMainContent>
-</MudLayout>
+<CascadingValue Value="_agency">
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" aria-label="@L["Menu.Toggle"]" />
+            <MudText Typo="Typo.h6" Class="ms-2" data-testid="admin-agency">@(_agency?.Name ?? L["Platform.Title"])</MudText>
+            <MudSpacer />
+            <CultureMenu />
+            <UserMenu />
+        </MudAppBar>
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1" Variant="DrawerVariant.Responsive">
+            <AdminNavMenu />
+        </MudDrawer>
+        <MudMainContent>
+            @* data-interactive: "true" once the circuit renders the page (the prerendered HTML says "false"); browser tests
+               wait for it before clicking. *@
+            <main id="admin-main" tabindex="-1" @ref="_main" data-interactive="@(RendererInfo.IsInteractive ? "true" : "false")">
+                @if (_support && _agency is not null)
+                {
+                    @* The support works in an agency they entered (ADR-0067): said on every page, with the way out. *@
+                    <MudAlert Severity="Severity.Info" Dense="true" Square="true" Class="support-banner" role="status">
+                        <span>@L["Platform.SupportIn", _agency.Name]</span>
+                        <form method="post" action="@PlatformPaths.Leave" class="d-inline ms-4">
+                            <AntiforgeryToken />
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Size="Size.Small" Color="Color.Primary">@L["Platform.Leave"]</MudButton>
+                        </form>
+                    </MudAlert>
+                }
+
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+                    @Body
+                </MudContainer>
+            </main>
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
 
 @code {
     private bool _drawerOpen = true;
     private ElementReference _main;
+    private AgencySummary? _agency;
+    private bool _support;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationState is null)
+        {
+            return;
+        }
+
+        var user = (await AuthenticationState).User;
+        _support = user.IsSupport();
+        _agency = await Current.GetAsync(user);
+
+        // The back office of an agency needs an agency: the support outside any agency starts from the platform pages.
+        if (_support && _agency is null && !PlatformPaths.IsPlatformPath(Navigation.ToBaseRelativePath(Navigation.Uri)))
+        {
+            Navigation.NavigateTo(PlatformPaths.Agencies);
+        }
+    }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 

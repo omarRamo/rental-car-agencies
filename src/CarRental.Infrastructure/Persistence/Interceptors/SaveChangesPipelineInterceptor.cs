@@ -1,6 +1,7 @@
 using CarRental.Application.Common.Security;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,8 @@ namespace CarRental.Infrastructure.Persistence.Interceptors;
 /// <summary>
 /// The persistence pipeline run before every save, in this order:
 /// <list type="number">
+/// <item>agency guard (ADR-0067): an operation that works for one agency only writes the rows of that agency, and no
+/// row ever moves to another agency;</item>
 /// <item>append-only guard: audit tables can only receive inserts;</item>
 /// <item>soft delete: removing an <see cref="ISoftDeletable"/> entity marks it deleted instead;</item>
 /// <item>domain events of tracked aggregates are copied to <see cref="OutboxMessage"/> rows;</item>
@@ -75,6 +78,70 @@ internal sealed class SaveChangesPipelineInterceptor(
         return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
+    /// <summary>
+    /// Refuses the save when a written row belongs to another agency than the one the operation works for, when a row
+    /// would move to another agency, when agency data has no agency, or when a platform row (shared value, agency
+    /// registration) is written by an actor who does not work for the whole platform. Records of an agency or of the
+    /// platform (<see cref="IAgencyOrPlatform"/>, the audit journals) are written by the platform's own code for the
+    /// agency they concern — a sign-in, still anonymous, is recorded for the agency of the account — and never change.
+    /// </summary>
+    private void EnforceAgencyBoundaries(DbContext context)
+    {
+        var restricted = !userContext.IsAcrossAgencies;
+        var agencyId = userContext.AgencyId;
+        foreach (var entry in context.ChangeTracker.Entries())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            switch (entry.Entity)
+            {
+                case IAgencyOwned owned:
+                    if (owned.AgencyId == Guid.Empty)
+                    {
+                        throw AgencyBoundaryException.Missing(entry.Metadata.ClrType);
+                    }
+
+                    EnsureNotMoved(entry, nameof(IAgencyOwned.AgencyId));
+                    if (restricted && owned.AgencyId != agencyId)
+                    {
+                        throw AgencyBoundaryException.OtherAgency(entry.Metadata.ClrType);
+                    }
+
+                    break;
+                case IAgencyShared shared:
+                    EnsureNotMoved(entry, nameof(IAgencyShared.AgencyId));
+                    if (shared.AgencyId is null ? !userContext.AllAgencies : restricted && shared.AgencyId != agencyId)
+                    {
+                        throw AgencyBoundaryException.OtherAgency(entry.Metadata.ClrType);
+                    }
+
+                    break;
+                case IAgencyOrPlatform:
+                    EnsureNotMoved(entry, nameof(IAgencyOrPlatform.AgencyId));
+                    break;
+                case Agency agency:
+                    if (restricted && (entry.State != EntityState.Modified || agency.Id != agencyId))
+                    {
+                        throw AgencyBoundaryException.OtherAgency(entry.Metadata.ClrType);
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    private static void EnsureNotMoved(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string propertyName)
+    {
+        if (entry.State == EntityState.Modified
+            && !Equals(entry.Property(propertyName).OriginalValue, entry.Property(propertyName).CurrentValue))
+        {
+            throw AgencyBoundaryException.Moved(entry.Metadata.ClrType);
+        }
+    }
+
     private static void EnforceAppendOnly(DbContext context)
     {
         foreach (var entry in context.ChangeTracker.Entries())
@@ -110,6 +177,7 @@ internal sealed class SaveChangesPipelineInterceptor(
             .Select(e => e.Metadata.ClrType));
         var now = timeProvider.GetUtcNow();
 
+        EnforceAgencyBoundaries(context);
         EnforceAppendOnly(context);
         ApplySoftDelete(context, now);
         WriteDomainEventsToOutbox(context, now);
@@ -154,7 +222,7 @@ internal sealed class SaveChangesPipelineInterceptor(
         var actor = userContext.ToAuditActor();
         foreach (var entry in entries)
         {
-            if (AuditEntryFactory.Create(entry, actor, now) is { } auditLog)
+            if (AuditEntryFactory.Create(entry, actor, now, userContext.AgencyId) is { } auditLog)
             {
                 context.Set<AuditLog>().Add(auditLog);
             }

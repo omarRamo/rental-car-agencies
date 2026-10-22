@@ -98,14 +98,22 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.IdentityDocumentsRead, false },
         { Roles.Preparer, Permissions.IdentityDocumentsRead, false },
 
-        // Additions: audit log, background jobs and messages for the manager only; WhatsApp inbox for agents; channels for the manager.
+        // Additions: audit log for the manager only; WhatsApp inbox for agents; channels for the manager.
         { Roles.Agent, Permissions.AuditRead, false },
         { Roles.Accountant, Permissions.AuditRead, false },
+        { Roles.Manager, Permissions.AuditRead, true },
+
+        // Platform (ADR-0067): the background jobs and messages of every agency, and the agencies themselves, for the support only.
         { Roles.Agent, Permissions.JobsDashboard, false },
-        { Roles.Manager, Permissions.OutboxManage, true },
+        { Roles.Manager, Permissions.JobsDashboard, false },
+        { Roles.Manager, Permissions.OutboxManage, false },
         { Roles.Agent, Permissions.OutboxManage, false },
         { Roles.Accountant, Permissions.OutboxManage, false },
         { Roles.Preparer, Permissions.OutboxManage, false },
+        { Roles.Manager, Permissions.PlatformAgencies, false },
+        { Roles.Support, Permissions.PlatformAgencies, true },
+        { Roles.Support, Permissions.JobsDashboard, true },
+        { Roles.Support, Permissions.OutboxManage, true },
         { Roles.Agent, Permissions.WhatsAppInbox, true },
 
         // Knowledge base of the WhatsApp bot (answers the bot may give): the manager validates them; grantable per user.
@@ -149,9 +157,25 @@ public sealed class RolePresetTests
     }
 
     [Fact]
-    public void Manager_holds_every_permission()
+    public void Manager_holds_every_permission_of_an_agency()
     {
-        RolePresets.PermissionsOf(Roles.Manager).ShouldBe(Permissions.All, ignoreOrder: true);
+        RolePresets.PermissionsOf(Roles.Manager).ShouldBe(Permissions.Agency, ignoreOrder: true);
+        RolePresets.PermissionsOf(Roles.Manager).ShouldNotContain(p => Permissions.PlatformOnly.Contains(p));
+    }
+
+    [Fact]
+    public void Support_holds_every_permission()
+    {
+        RolePresets.PermissionsOf(Roles.Support).ShouldBe(Permissions.All, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Agency_roles_never_hold_a_platform_permission()
+    {
+        foreach (var role in Roles.AgencyRoles)
+        {
+            RolePresets.PermissionsOf(role).ShouldAllBe(p => Permissions.IsAgencyPermission(p), role);
+        }
     }
 
     [Fact]
@@ -165,10 +189,14 @@ public sealed class RolePresetTests
     }
 
     [Fact]
-    public void Roles_are_the_four_internal_profiles()
+    public void Roles_are_the_four_agency_profiles_and_the_support()
     {
-        Roles.All.ShouldBe([Roles.Manager, Roles.Agent, Roles.Accountant, Roles.Preparer]);
+        Roles.AgencyRoles.ShouldBe([Roles.Manager, Roles.Agent, Roles.Accountant, Roles.Preparer]);
+        Roles.All.ShouldBe([Roles.Manager, Roles.Agent, Roles.Accountant, Roles.Preparer, Roles.Support]);
         Roles.IsKnown(Roles.Preparer).ShouldBeTrue();
+        Roles.IsKnown(Roles.Support).ShouldBeTrue();
+        Roles.IsAgencyRole(Roles.Support).ShouldBeFalse();
+        Roles.IsAgencyRole(Roles.Manager).ShouldBeTrue();
         Roles.IsKnown("manager").ShouldBeFalse();
         Roles.IsKnown(null).ShouldBeFalse();
     }

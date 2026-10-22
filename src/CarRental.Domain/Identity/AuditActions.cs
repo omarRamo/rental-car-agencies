@@ -34,6 +34,10 @@ public static class AuditActions
     public const string PermissionGranted = "identity.permission_granted";
     public const string PermissionRevoked = "identity.permission_revoked";
 
+    // Support of the platform (ADR-0067): recorded in the journal of the agency concerned.
+    public const string SupportEnteredAgency = "identity.support_entered_agency";
+    public const string SupportLeftAgency = "identity.support_left_agency";
+
     // Operations (background messages of the outbox).
     public const string OutboxMessageRetried = "outbox.message_retried";
 }

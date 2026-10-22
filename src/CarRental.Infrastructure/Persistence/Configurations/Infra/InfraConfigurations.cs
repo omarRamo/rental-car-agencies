@@ -37,7 +37,7 @@ internal sealed class DocumentCounterConfiguration : IEntityTypeConfiguration<Do
     {
         builder.ToTable("DocumentCounters", Schemas.Infra);
         builder.ExcludeFromAudit();
-        builder.HasKey(c => new { c.DocumentType, c.Year });
+        builder.HasKey(c => new { c.AgencyId, c.DocumentType, c.Year });
         builder.Property(c => c.DocumentType).HasConversion<string>().HasMaxLength(32).IsUnicode(false);
     }
 }

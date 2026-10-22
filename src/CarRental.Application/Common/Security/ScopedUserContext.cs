@@ -27,6 +27,12 @@ public sealed class ScopedUserContext(IEnumerable<IAmbientUserContextProvider> a
 
     public string? CorrelationId => Snapshot.CorrelationId;
 
+    public Guid? AgencyId => Snapshot.AgencyId;
+
+    public bool AllAgencies => Snapshot.AllAgencies;
+
+    public bool IsAcrossAgencies => Snapshot.IsAcrossAgencies;
+
     /// <summary>
     /// Sets the actor of this scope (replacing an ambient snapshot resolved earlier). Setting a different actor twice is a bug.
     /// </summary>

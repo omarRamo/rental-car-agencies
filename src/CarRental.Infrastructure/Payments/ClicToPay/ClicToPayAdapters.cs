@@ -1,3 +1,4 @@
+using CarRental.Application.Common.Security;
 using CarRental.Application.Payments.Online;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
@@ -20,6 +21,7 @@ internal sealed partial class EfGatewayCallLog(IServiceScopeFactory scopes, ILog
         try
         {
             await using var scope = scopes.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:gateway-log"));
             var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
             db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry));
 

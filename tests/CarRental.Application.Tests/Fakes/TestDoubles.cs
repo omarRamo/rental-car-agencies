@@ -13,10 +13,22 @@ namespace CarRental.Application.Tests.Fakes;
 
 internal static class TestUsers
 {
+    /// <summary>The agency of the staff members of these tests (ADR-0067).</summary>
+    public static readonly Guid AgencyId = Guid.CreateVersion7();
+
+    /// <summary>
+    /// The actor of a test: a member of <see cref="AgencyId"/> with the presets of <paramref name="role"/>, or the support
+    /// (outside any agency, across agencies) for <see cref="Roles.Support"/>.
+    /// </summary>
     public static ScopedUserContext ContextFor(Guid userId, string userName, string role)
     {
         var context = new ScopedUserContext([]);
-        context.Initialize(UserContextSnapshot.ForUser(userId, userName, RolePresets.PermissionsOf(role), "203.0.113.10", "corr-1"));
+        var support = role == Roles.Support;
+        context.Initialize(UserContextSnapshot.ForUser(userId, userName, RolePresets.PermissionsOf(role), "203.0.113.10", "corr-1") with
+        {
+            AgencyId = support ? null : AgencyId,
+            AllAgencies = support,
+        });
         return context;
     }
 }
@@ -31,7 +43,12 @@ internal sealed class FakeUserDirectory : IUserDirectory
 
     public List<(Guid UserId, string Permission, bool Granted)> PermissionChanges { get; } = [];
 
-    public UserSummary Add(string email, string role, bool locked = false, params string[] extraPermissions)
+    /// <summary>Adds a member of <see cref="TestUsers.AgencyId"/> (a support account for <see cref="Roles.Support"/>).</summary>
+    public UserSummary Add(string email, string role, bool locked = false, params string[] extraPermissions) =>
+        AddTo(role == Roles.Support ? null : TestUsers.AgencyId, email, role, locked, extraPermissions);
+
+    /// <summary>Adds a member of <paramref name="agencyId"/> (a support account when <see langword="null"/>).</summary>
+    public UserSummary AddTo(Guid? agencyId, string email, string role, bool locked = false, params string[] extraPermissions)
     {
         var user = new UserSummary(
             Guid.CreateVersion7(),
@@ -44,7 +61,8 @@ internal sealed class FakeUserDirectory : IUserDirectory
             HasPassword: true,
             CreatedAtUtc: DateTimeOffset.UnixEpoch,
             LastSignInAtUtc: null,
-            ExtraPermissions: extraPermissions);
+            ExtraPermissions: extraPermissions,
+            AgencyId: agencyId);
         Users.Add(user);
         return user;
     }
@@ -69,9 +87,9 @@ internal sealed class FakeUserDirectory : IUserDirectory
         return Task.FromResult(Result.Success());
     }
 
-    public Task<PagedResult<UserSummary>> ListAsync(string? search, PageRequest page, CancellationToken cancellationToken)
+    public Task<PagedResult<UserSummary>> ListAsync(Guid? agencyId, string? search, PageRequest page, CancellationToken cancellationToken)
     {
-        var matches = Users.Where(u => search is null || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+        var matches = Users.Where(u => u.AgencyId == agencyId && (search is null || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase))).ToList();
         return Task.FromResult(new PagedResult<UserSummary>(matches.Skip(page.Skip).Take(page.PageSize).ToList(), matches.Count, page.Page, page.PageSize));
     }
 
@@ -84,7 +102,7 @@ internal sealed class FakeUserDirectory : IUserDirectory
     public Task<Result<Guid>> CreateAsync(NewUser user, CancellationToken cancellationToken)
     {
         Created.Add(user);
-        var added = Add(user.Email, user.Role);
+        var added = AddTo(user.AgencyId, user.Email, user.Role);
         return Task.FromResult(Result.Success(added.Id));
     }
 
@@ -96,8 +114,19 @@ internal sealed class FakeUserDirectory : IUserDirectory
         return Task.FromResult(Result.Success());
     }
 
-    public Task<int> CountActiveUsersInRoleAsync(string role, CancellationToken cancellationToken) =>
-        Task.FromResult(Users.Count(u => !u.IsLockedOut && u.Roles.Contains(role)));
+    public Dictionary<Guid, Guid?> SelectedAgencies { get; } = [];
+
+    public Task<Guid?> FindSelectedAgencyAsync(Guid userId, CancellationToken cancellationToken) =>
+        Task.FromResult(SelectedAgencies.GetValueOrDefault(userId));
+
+    public Task<Result> SetSelectedAgencyAsync(Guid userId, Guid? agencyId, CancellationToken cancellationToken)
+    {
+        SelectedAgencies[userId] = agencyId;
+        return Task.FromResult(Result.Success());
+    }
+
+    public Task<int> CountActiveUsersInRoleAsync(string role, Guid? agencyId, CancellationToken cancellationToken) =>
+        Task.FromResult(Users.Count(u => !u.IsLockedOut && u.AgencyId == agencyId && u.Roles.Contains(role)));
 
     public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyDictionary<Guid, string>>(Users.Where(u => userIds.Contains(u.Id)).ToDictionary(u => u.Id, u => u.DisplayName));

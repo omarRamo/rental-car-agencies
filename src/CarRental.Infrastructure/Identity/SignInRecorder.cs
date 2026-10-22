@@ -41,6 +41,7 @@ public sealed partial class SignInRecorder(
                 Details = method,
                 ActingUserId = user.Id,
                 ActingUserName = user.UserName,
+                AgencyId = user.AgencyId,
             },
             cancellationToken);
     }
@@ -54,6 +55,7 @@ public sealed partial class SignInRecorder(
                 EntityType = UserEntityType,
                 EntityId = user?.Id.ToString(),
                 Details = user is null ? $"{reason} ({MaskAttemptedLogin(attemptedEmail)})" : reason,
+                AgencyId = user?.AgencyId,
             },
             cancellationToken);
     }
@@ -101,6 +103,7 @@ public sealed partial class SignInRecorder(
                 EntityId = user.Id.ToString(),
                 ActingUserId = user.Id,
                 ActingUserName = user.UserName,
+                AgencyId = user.AgencyId,
             },
             cancellationToken);
     }

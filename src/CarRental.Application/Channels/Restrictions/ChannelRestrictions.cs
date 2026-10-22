@@ -3,6 +3,7 @@ using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Availability;
 using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,9 @@ internal sealed class ChannelRestrictionsCache(IServiceScopeFactory scopeFactory
     private async Task<FrozenDictionary<(Guid CategoryId, SalesChannel Channel), IReadOnlyList<ChannelRestrictionRule>>> LoadAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
+
+        // Every agency's restrictions, whoever triggers the load: the snapshot is shared by every reader (ADR-0067).
+        scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System("system:channel-restrictions"));
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var yesterday = TunisTime.DateOf(timeProvider.GetUtcNow()).AddDays(-1);
         var rows = await ChannelRestrictionReader.Query(db, yesterday).ToListAsync(cancellationToken);

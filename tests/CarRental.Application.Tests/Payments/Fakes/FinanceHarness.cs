@@ -114,6 +114,6 @@ internal sealed class FakeIdentityQueries : IIdentityQueries
     public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyDictionary<Guid, string>>(DisplayNames.Where(n => userIds.Contains(n.Key)).ToDictionary(n => n.Key, n => n.Value));
 
-    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(string role, CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(Guid agencyId, string role, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<UserContactInfo>>([.. UsersInRoles.Where(u => u.Role == role).Select(u => u.User)]);
 }

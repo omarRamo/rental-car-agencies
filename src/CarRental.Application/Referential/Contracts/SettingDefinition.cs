@@ -354,6 +354,11 @@ public static class SettingErrors
 
     public static readonly Error Forbidden = Error.Forbidden("referential.forbidden", "The current user may not manage the settings.");
 
+    /// <summary>The platform value of a setting is changed by the support only (ADR-0067).</summary>
+    public static readonly Error PlatformValueForbidden = Error.Forbidden(
+        "referential.platform_value_forbidden",
+        "Only the support changes the value of a setting for the whole platform; set the value of your agency instead.");
+
     public static readonly Error AgencyNotFound = Error.NotFound("referential.agency_not_found", "The agency does not exist.");
 
     public static readonly Error PlatformOnly = Error.Validation(

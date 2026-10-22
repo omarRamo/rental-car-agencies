@@ -1,19 +1,30 @@
 using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Referential.Administration;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Referential.Platform;
 using CarRental.Application.Referential.Seeding;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarRental.Application.Referential;
 
-/// <summary>Referential module: agencies, pick-up/return locations and business settings (SPEC §13 "Référentiel").</summary>
+/// <summary>
+/// Referential module: agencies (the tenants of the platform, ADR-0067), pick-up/return locations and business settings
+/// (SPEC §13 "Référentiel").
+/// </summary>
 public static class ReferentialModule
 {
     public static IServiceCollection AddReferentialModule(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IReferentialQueries, ReferentialQueries>();
+        services.AddSingleton<AgencyDirectory>();
+        services.AddSingleton<IAgencyDirectory>(serviceProvider => serviceProvider.GetRequiredService<AgencyDirectory>());
+        services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<AgencyDirectory>());
+        services.AddScoped<AgencyProvisioning>();
+        services.AddScoped<AgencyPlatformService>();
+        services.AddAgencyInitializer<ReferentialAgencyInitializer>();
         services.AddSingleton<SettingsCache>();
         services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<SettingsCache>());
         services.AddScoped<ISettingsReader, SettingsReader>();
@@ -21,6 +32,7 @@ public static class ReferentialModule
         services.AddScoped<AgencyIdentityAdministrationService>();
         services.AddSettingDefinitions(WellKnownSettings.All);
         services.AddDataSeeder<ReferentialSettingsSeeder>();
+        services.AddDataSeeder<AgencyProvisioningSeeder>();
         services.AddDataSeeder<ReferentialDemoSeeder>();
         return services;
     }

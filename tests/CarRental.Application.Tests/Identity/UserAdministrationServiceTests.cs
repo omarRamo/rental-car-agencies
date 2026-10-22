@@ -61,7 +61,7 @@ public sealed class UserAdministrationServiceTests
         var result = await AsManager().CreateUserAsync(new CreateUserRequest(" agent2@demo.local ", " Agent Deux ", Roles.Agent), Ct);
 
         result.IsSuccess.ShouldBeTrue();
-        _directory.Created.ShouldHaveSingleItem().ShouldBe(new NewUser("agent2@demo.local", "Agent Deux", Roles.Agent));
+        _directory.Created.ShouldHaveSingleItem().ShouldBe(new NewUser("agent2@demo.local", "Agent Deux", Roles.Agent, TestUsers.AgencyId));
         _invitations.Invited.ShouldBe([result.Value]);
         var audit = _audit.Events.ShouldHaveSingleItem();
         audit.Action.ShouldBe(AuditActions.UserCreated);

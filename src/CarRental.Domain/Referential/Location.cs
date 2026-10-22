@@ -6,7 +6,7 @@ namespace CarRental.Domain.Referential;
 /// A pick-up / return place of an agency: the agency office, an airport (TUN, NBE…) or a delivery point.
 /// Codes are short and stable because channel mappings (Booking.com) reference them.
 /// </summary>
-public sealed class Location : AggregateRoot, ISoftDeletable
+public sealed class Location : AggregateRoot, ISoftDeletable, IAgencyOwned
 {
     public const int CodeMinLength = 2;
     public const int CodeMaxLength = 16;

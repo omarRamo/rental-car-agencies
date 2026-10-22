@@ -5,6 +5,8 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
+using CarRental.Domain.Referential;
+using CarRental.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -20,7 +22,11 @@ internal static class AuditEntryFactory
         Indented = false,
     };
 
-    public static AuditLog? Create(EntityEntry entry, AuditActor actor, DateTimeOffset now)
+    /// <summary>
+    /// The audit row of a change, for the agency of the changed row (ADR-0067): its own agency, the agency itself, the
+    /// agency of a user, else <paramref name="operationAgencyId"/> (the agency of the operation, none for the platform).
+    /// </summary>
+    public static AuditLog? Create(EntityEntry entry, AuditActor actor, DateTimeOffset now, Guid? operationAgencyId = null)
     {
         var entityType = entry.Metadata;
         string action;
@@ -55,8 +61,18 @@ internal static class AuditEntryFactory
                 return null;
         }
 
-        return AuditLog.Record(now, actor, action, entityType.GetAuditName(), KeyOf(entry), before, after);
+        return AuditLog.Record(now, actor, action, entityType.GetAuditName(), KeyOf(entry), before, after, agencyId: AgencyOf(entry.Entity) ?? operationAgencyId);
     }
+
+    private static Guid? AgencyOf(object entity) => entity switch
+    {
+        IAgencyOwned owned => owned.AgencyId,
+        IAgencyShared shared => shared.AgencyId,
+        IAgencyOrPlatform record => record.AgencyId,
+        Agency agency => agency.Id,
+        ApplicationUser user => user.AgencyId,
+        _ => null,
+    };
 
     private static bool IsSoftDeletion(EntityEntry entry) =>
         entry.Entity is ISoftDeletable

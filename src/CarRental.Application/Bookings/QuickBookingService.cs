@@ -155,7 +155,7 @@ public sealed class QuickBookingService
                     return available.Error;
                 }
 
-                var number = await _writer.NextNumberAsync(now, ct);
+                var number = await _writer.NextNumberAsync(request.AgencyId, now, ct);
                 var actor = _writer.Actor(request.Channel);
                 var quote = await _quotes.AddVersionAsync(bookingId, 1, QuoteOrigin.Initial, content, actor.Name, now, ct);
                 if (quote.IsFailure)

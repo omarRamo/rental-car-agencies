@@ -147,4 +147,10 @@
   <data name="Permission.accounting.reopen" xml:space="preserve">
     <value>Reopen a closed month (reason, audit)</value>
   </data>
+  <data name="Permission.platform.agencies" xml:space="preserve">
+    <value>Agencies of the platform (support)</value>
+  </data>
+  <data name="PermissionArea.Platform" xml:space="preserve">
+    <value>Platform</value>
+  </data>
 </root>

@@ -3,7 +3,8 @@ using CarRental.Domain.Common;
 namespace CarRental.Domain.Referential;
 
 /// <summary>
-/// A rental agency (legal entity and main office). One agency at launch; the model is ready for several.
+/// A rental agency: legal entity, main office and tenant of the platform (ADR-0067). The support registers it, gives it
+/// the address of its public site (<see cref="Slug"/>) and its optional <see cref="Modules"/>; its staff then manage it.
 /// </summary>
 public sealed class Agency : AggregateRoot, ISoftDeletable
 {
@@ -25,14 +26,22 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     {
     }
 
-    private Agency(Guid id, AgencyDetails details)
+    private Agency(Guid id, AgencyDetails details, string slug, AgencyModules modules)
         : base(id)
     {
         Apply(details);
+        Slug = slug;
+        Modules = modules;
         IsActive = true;
     }
 
     public string Name { get; private set; } = null!;
+
+    /// <summary>Address of the public site (<c>/{slug}/{culture}</c>), unique on the platform (see <see cref="AgencySlug"/>).</summary>
+    public string Slug { get; private set; } = null!;
+
+    /// <summary>The optional modules switched on by the support (see <see cref="AgencyModules"/>).</summary>
+    public AgencyModules Modules { get; private set; }
 
     public string? LegalName { get; private set; }
 
@@ -62,13 +71,22 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
     /// <summary>Free text printed at the bottom of invoices and credit notes (capital, bank details…).</summary>
     public string? InvoiceFooter { get; private set; }
 
+    /// <summary>
+    /// False while the agency is suspended by the support: its public site is offline and its staff cannot sign in. Its
+    /// data and background work are kept.
+    /// </summary>
     public bool IsActive { get; private set; }
 
     public bool IsDeleted { get; private set; }
 
     public DateTimeOffset? DeletedAtUtc { get; private set; }
 
-    public static Result<Agency> Register(AgencyDetails details)
+    /// <summary>
+    /// Registers an agency, active. <paramref name="slug"/> defaults to the one proposed from the name
+    /// (<see cref="AgencySlug.FromName"/>) and <paramref name="modules"/> to <see cref="AgencyModuleCatalog.Defaults"/>; the
+    /// caller checks that the slug is free.
+    /// </summary>
+    public static Result<Agency> Register(AgencyDetails details, string? slug = null, AgencyModules? modules = null)
     {
         ArgumentNullException.ThrowIfNull(details);
         var normalized = details.Normalize();
@@ -78,8 +96,20 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
             return validation.Error;
         }
 
-        var agency = new Agency(NewId(), normalized);
-        agency.Raise(new AgencyRegistered(agency.Id, agency.Name));
+        var normalizedSlug = AgencySlug.Normalize(slug ?? AgencySlug.FromName(normalized.Name));
+        if (normalizedSlug.IsFailure)
+        {
+            return normalizedSlug.Error;
+        }
+
+        var enabled = modules ?? AgencyModuleCatalog.Defaults;
+        if (!AgencyModuleCatalog.AreDefined(enabled))
+        {
+            return ReferentialErrors.AgencyModulesInvalid;
+        }
+
+        var agency = new Agency(NewId(), normalized, normalizedSlug.Value, enabled);
+        agency.Raise(new AgencyRegistered(agency.Id, agency.Name, agency.Slug));
         return agency;
     }
 
@@ -129,9 +159,67 @@ public sealed class Agency : AggregateRoot, ISoftDeletable
         return Result.Success();
     }
 
-    public void Deactivate() => IsActive = false;
+    /// <summary>Changes the address of the public site; the caller checks that the new slug is free.</summary>
+    public Result ChangeSlug(string slug)
+    {
+        var normalized = AgencySlug.Normalize(slug);
+        if (normalized.IsFailure)
+        {
+            return normalized.Error;
+        }
 
-    public void Activate() => IsActive = true;
+        if (string.Equals(normalized.Value, Slug, StringComparison.Ordinal))
+        {
+            return Result.Success();
+        }
+
+        var previous = Slug;
+        Slug = normalized.Value;
+        Raise(new AgencySlugChanged(Id, previous, Slug));
+        return Result.Success();
+    }
+
+    /// <summary>Switches the optional modules: exactly <paramref name="modules"/> are on afterwards.</summary>
+    public Result SetModules(AgencyModules modules)
+    {
+        if (!AgencyModuleCatalog.AreDefined(modules))
+        {
+            return ReferentialErrors.AgencyModulesInvalid;
+        }
+
+        if (modules == Modules)
+        {
+            return Result.Success();
+        }
+
+        var previous = Modules;
+        Modules = modules;
+        Raise(new AgencyModulesChanged(Id, previous, modules));
+        return Result.Success();
+    }
+
+    /// <summary>True when every module of <paramref name="module"/> is on.</summary>
+    public bool HasModule(AgencyModules module) => (Modules & module) == module;
+
+    /// <summary>Suspends the agency (public site offline, staff sign-in refused).</summary>
+    public void Deactivate()
+    {
+        if (IsActive)
+        {
+            IsActive = false;
+            Raise(new AgencyActivationChanged(Id, IsActive: false));
+        }
+    }
+
+    /// <summary>Lifts the suspension.</summary>
+    public void Activate()
+    {
+        if (!IsActive)
+        {
+            IsActive = true;
+            Raise(new AgencyActivationChanged(Id, IsActive: true));
+        }
+    }
 
     /// <summary>Validates normalized details (trimmed, blank optional fields set to null).</summary>
     private static Result Validate(AgencyDetails details)

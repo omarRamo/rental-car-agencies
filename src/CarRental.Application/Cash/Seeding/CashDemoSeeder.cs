@@ -37,8 +37,8 @@ internal sealed partial class CashDemoSeeder(
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
         var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Name == DemoAgencyName);
-        var agent = await FindAsync(Roles.Agent, DemoAgentEmail, cancellationToken);
-        var manager = await FindAsync(Roles.Manager, DemoManagerEmail, cancellationToken);
+        var agent = agency is null ? null : await FindAsync(agency.Id, Roles.Agent, DemoAgentEmail, cancellationToken);
+        var manager = agency is null ? null : await FindAsync(agency.Id, Roles.Manager, DemoManagerEmail, cancellationToken);
         if (agency is null || agent is null || manager is null)
         {
             LogMissingDemoData();
@@ -83,8 +83,8 @@ internal sealed partial class CashDemoSeeder(
         }
     }
 
-    private async Task<UserContactInfo?> FindAsync(string role, string email, CancellationToken cancellationToken) =>
-        (await identity.GetActiveUsersInRoleAsync(role, cancellationToken))
+    private async Task<UserContactInfo?> FindAsync(Guid agencyId, string role, string email, CancellationToken cancellationToken) =>
+        (await identity.GetActiveUsersInRoleAsync(agencyId, role, cancellationToken))
             .FirstOrDefault(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo agency, agent or manager not found: no demo cash session.")]
