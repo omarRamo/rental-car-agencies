@@ -56,7 +56,7 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | S15–S17 | Lot 4 — WhatsApp IA : bot, boîte partagée, modèles Meta, jeu de tests | Bot WhatsApp en ligne |
 | S18–S20 | Lot 5 — Booking.com : module Canaux, connecteur XML/API, certification | Vente sur Booking.com |
 
-### État d'avancement (21 octobre 2026)
+### État d'avancement (22 octobre 2026)
 
 | Lot | Livré | En cours ou à venir |
 |---|---|---|
@@ -66,7 +66,7 @@ Six lots sur environ 20 semaines. Les démarches de l'agence partent toutes en s
 | 3 — Finance et pilotage | Instantané quotidien, indicateurs, exports Excel ; factures et avoirs (numérotation continue, TVA par taux, timbre, PDF, envoi), facture électronique en régime papier transitoire (port TTN prêt), amendes et fiche de désignation, sinistres ; dépenses et justificatifs, rapprochements (caisse, Clic to Pay, Booking.com), plan de comptes, journaux VT/AC/BQ/CA/OD équilibrés, exports CSV et Excel, clôture mensuelle (mois simulé : 29 écritures, débit = crédit) | Schéma TEIF, barème du timbre, plan de comptes et format d'export de l'expert-comptable, formats des relevés SMT et Booking.com |
 | 4 — WhatsApp IA | Webhook signé, conversations, fenêtre de 24 h, boîte partagée avec reprise humaine, notifications par modèles approuvés, agent IA (Claude Haiku 5.5 : exécuteur hors outbox, 5 outils, garde-fous dans le code, cache du prompt, coûts et plafonds, base de connaissances validée, 30 conversations d'évaluation sur modèle scripté) | Évaluation contre le vrai modèle (clé de l'agence), ouverture à des numéros pilotes |
 | 5 — Canaux | Module Canaux : correspondances, quotas et arrêts de vente dans le moteur, adaptateur manuel, point d'entrée authentifié, synchronisation et rejeu, commissions, banc de contrat | Connecteur Booking.com (attend le cahier des charges du fournisseur) |
-| Durcissement | En-têtes et CSP, limitation de débit des pages de compte et des sondes, sessions de 12 h, alertes Azure Monitor (santé publiée par l'application), sauvegarde annuelle gardée 10 ans, factures immuables, restriction de l'origine à Cloudflare (à activer), revue OWASP passe 1, [`docs/runbook.md`](docs/runbook.md) | Seconde passe de la revue sur le tunnel, l'agent IA et la facturation |
+| Durcissement | En-têtes et CSP, limitation de débit des pages de compte et des sondes, sessions de 12 h, alertes Azure Monitor (santé publiée par l'application), sauvegarde annuelle gardée 10 ans, factures immuables, restriction de l'origine à Cloudflare (à activer), revue OWASP en deux passes ([`docs/securite/`](docs/securite/revue-owasp-2026-10.md)), [`docs/runbook.md`](docs/runbook.md) | Activation en production : domaine derrière Cloudflare et `restrictToCloudflare`, destinataires des alertes, clés Turnstile, secrets dans le Key Vault (runbook, « Avant la mise en production ») |
 
 
 ## Structure du dépôt
