@@ -336,6 +336,9 @@
   <data name="Reply.Disabled" xml:space="preserve">
     <value>WhatsApp is not configured: no message can be sent.</value>
   </data>
+  <data name="Reply.NotServed" xml:space="preserve">
+    <value>The platform's WhatsApp number serves another agency: sending is disabled for your agency.</value>
+  </data>
   <data name="Reply.TakeOverFirst" xml:space="preserve">
     <value>The bot answers this customer. Take over to write to them.</value>
   </data>

@@ -11,7 +11,7 @@
     <MudText Typo="Typo.subtitle1" HtmlTag="h3" id="whatsapp-reply-title">@L["Reply.Title"]</MudText>
     @if (!Enabled)
     {
-        <MudAlert Severity="Severity.Warning" Dense="true">@L["Reply.Disabled"]</MudAlert>
+        <MudAlert Severity="Severity.Warning" Dense="true">@(Served ? L["Reply.Disabled"] : L["Reply.NotServed"])</MudAlert>
     }
     else if (Details.Mode != ConversationModeInfo.Human)
     {
@@ -91,6 +91,10 @@
 
     [Parameter]
     public bool Enabled { get; set; }
+
+    /// <summary>Whether the platform's WhatsApp number serves the agency (ADR-0067): it sends nothing otherwise.</summary>
+    [Parameter]
+    public bool Served { get; set; } = true;
 
     /// <summary>Whether the current agent holds the conversation (only that agent answers).</summary>
     [Parameter]
