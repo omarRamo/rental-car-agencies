@@ -301,6 +301,42 @@ public sealed class TenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_support_changing_its_own_account_inside_an_agency_writes_to_the_journal_of_the_platform()
+    {
+        var agency = await NewAgencyAsync("Compte du support");
+        var (supportId, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        var key = supportId.ToString();
+
+        // Inside the agency, the support changes its own account: an Identity row (a token), the account itself (its
+        // security stamp) and an account event of the account pages.
+        await using (var scope = host.CreateScope(TestActors.Support(agency.Id, supportEmail, supportId)))
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = (await users.FindByIdAsync(key))!;
+            (await users.SetAuthenticationTokenAsync(user, "tests", "probe", Guid.NewGuid().ToString("N"))).Succeeded.ShouldBeTrue();
+            (await users.UpdateSecurityStampAsync(user)).Succeeded.ShouldBeTrue();
+            var principal = await scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>().CreateAsync(user);
+            await scope.ServiceProvider.GetRequiredService<SignInRecorder>().AccountEventAsync(AuditActions.AuthenticatorReset, principal, cancellationToken: Ct);
+        }
+
+        await using (var check = host.CreateScope())
+        {
+            var rows = await check.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<AuditLog>()
+                .Where(a => a.EntityId != null && a.EntityId.StartsWith(key))
+                .Select(a => new { a.EntityType, a.Action, a.AgencyId })
+                .ToListAsync(Ct);
+            rows.ShouldContain(r => r.EntityType == "UserToken" && r.Action == AuditActions.EntityCreated);
+            rows.ShouldContain(r => r.EntityType == "User" && r.Action == AuditActions.EntityUpdated);
+            rows.ShouldContain(r => r.Action == AuditActions.AuthenticatorReset);
+            rows.ShouldAllBe(r => r.AgencyId == null, "the support's account is the platform's, whatever agency it works in");
+        }
+
+        await using var manager = host.CreateScope(TestActors.Staff(agency.Id, Roles.Manager));
+        (await manager.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<AuditLog>().AnyAsync(a => a.EntityId != null && a.EntityId.StartsWith(key), Ct))
+            .ShouldBeFalse("the manager of the agency never reads the support's own account events");
+    }
+
+    [Fact]
     public async Task A_member_of_an_agency_never_receives_a_platform_permission()
     {
         var agency = await NewAgencyAsync("Permissions");

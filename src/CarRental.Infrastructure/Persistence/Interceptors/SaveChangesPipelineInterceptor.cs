@@ -2,6 +2,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 using CarRental.Domain.Referential;
+using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
@@ -223,13 +224,31 @@ internal sealed class SaveChangesPipelineInterceptor(
         }
 
         var actor = userContext.ToAuditActor();
+        var users = new Dictionary<Guid, Guid?>();
         foreach (var entry in entries)
         {
-            if (AuditEntryFactory.Create(entry, actor, now, userContext.AgencyId) is { } auditLog)
+            if (AuditEntryFactory.Create(entry, actor, now, userContext.AgencyId, userId => AgencyOfUser(context, users, userId)) is { } auditLog)
             {
                 context.Set<AuditLog>().Add(auditLog);
             }
         }
+    }
+
+    /// <summary>
+    /// The agency of the account whose Identity rows are saved (ADR-0067): the tracked account when the save carries it,
+    /// else the database (users are a platform table, never filtered by agency); read once per user and save.
+    /// </summary>
+    private static Guid? AgencyOfUser(DbContext context, Dictionary<Guid, Guid?> known, Guid userId)
+    {
+        if (!known.TryGetValue(userId, out var agencyId))
+        {
+            agencyId = context.ChangeTracker.Entries<ApplicationUser>().FirstOrDefault(e => e.Entity.Id == userId) is { } tracked
+                ? tracked.Entity.AgencyId
+                : context.Set<ApplicationUser>().AsNoTracking().Where(u => u.Id == userId).Select(u => u.AgencyId).FirstOrDefault();
+            known[userId] = agencyId;
+        }
+
+        return agencyId;
     }
 
     private void DispatchIfCommitted(DbContext? context)
