@@ -30,6 +30,7 @@ internal sealed partial class IdentityDemoSeeder(
     UserManager<ApplicationUser> userManager,
     IUserStore<ApplicationUser> userStore,
     IOptions<SeedOptions> options,
+    IOptions<TwoFactorOptions> twoFactor,
     TimeProvider timeProvider,
     ILogger<IdentityDemoSeeder> logger) : IDataSeeder
 {
@@ -71,8 +72,12 @@ internal sealed partial class IdentityDemoSeeder(
             };
             Ensure(await userManager.CreateAsync(user, settings.DemoUserPassword), email);
             Ensure(await userManager.AddToRoleAsync(user, role), email);
-            await keyStore.SetAuthenticatorKeyAsync(user, settings.DemoAuthenticatorKey, cancellationToken);
-            Ensure(await userManager.SetTwoFactorEnabledAsync(user, true), email);
+            if (twoFactor.Value.Required)
+            {
+                await keyStore.SetAuthenticatorKeyAsync(user, settings.DemoAuthenticatorKey, cancellationToken);
+                Ensure(await userManager.SetTwoFactorEnabledAsync(user, true), email);
+            }
+
             LogCreated(email, role);
         }
     }

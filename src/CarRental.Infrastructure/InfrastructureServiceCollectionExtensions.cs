@@ -117,6 +117,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddOptions<SeedOptions>().Bind(configuration.GetSection(SeedOptions.SectionName)).ValidateOnStart();
         services.AddSingleton<IValidateOptions<SeedOptions>, SeedOptionsValidator>();
 
+        services.AddOptions<TwoFactorOptions>().Bind(configuration.GetSection(TwoFactorOptions.SectionName)).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<TwoFactorOptions>, TwoFactorOptionsValidator>();
+
         services.AddOptions<BackgroundJobsOptions>().Bind(configuration.GetSection(BackgroundJobsOptions.SectionName)).ValidateOnStart();
         services.AddOptions<OutboxOptions>()
             .Bind(configuration.GetSection(OutboxOptions.SectionName))

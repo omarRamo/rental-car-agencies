@@ -29,12 +29,16 @@ public sealed class PermissionRequirement(string permission) : IAuthorizationReq
     public string Permission { get; } = permission;
 }
 
-internal sealed class MfaAuthorizationHandler : AuthorizationHandler<MfaRequirement>
+/// <summary>
+/// Met by a sign-in with the second factor; by any signed-in user when <c>Identity:TwoFactor:Required</c> is off (a
+/// developer's machine only, see <see cref="TwoFactorOptions"/>).
+/// </summary>
+internal sealed class MfaAuthorizationHandler(IOptions<TwoFactorOptions> options) : AuthorizationHandler<MfaRequirement>
 {
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MfaRequirement requirement)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (context.User.HasClaim(MfaRequirement.AuthenticationMethodClaimType, MfaRequirement.MfaValue))
+        if (!options.Value.Required || context.User.HasClaim(MfaRequirement.AuthenticationMethodClaimType, MfaRequirement.MfaValue))
         {
             context.Succeed(requirement);
         }

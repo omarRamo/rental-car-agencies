@@ -37,8 +37,11 @@ L'application tourne avec l'environnement « Development » : c'est le seul qui 
 ```
 
 - Vitrine : https://localhost:7180/fr — back office : https://localhost:7180/admin.
-- Comptes `gerant@demo.local`, `agent@demo.local`, `comptable@demo.local` : mot de passe et clé de double authentification
-  dans `src\CarRental.Web\appsettings.Development.json` (section `Seed`).
+- Comptes `gerant@demo.local`, `agent@demo.local`, `comptable@demo.local` : mot de passe dans
+  `src\CarRental.Web\appsettings.Development.json` (section `Seed`). La double authentification est désactivée en local
+  (`Identity:TwoFactor:Required=false`). Une base créée avant ce réglage garde l'authentificateur de ses comptes : le
+  désactiver en base (`UPDATE [identity].[Users] SET TwoFactorEnabled = 0`, puis supprimer les jetons `AuthenticatorKey`
+  et `RecoveryCodes` de `[identity].[UserTokens]`).
 - Les données vivent dans le dossier `carrental-local` à côté du dépôt (paramètre `-DataRoot` pour un autre dossier) :
   `app\` (application publiée), `azurite\` (fichiers), `mail\` (e-mails), `logs\` (journaux de l'application et d'Azurite).
 - Après un `git pull`, relancer `stop.ps1`, `install.ps1` puis `start.ps1` : la nouvelle version est publiée, les nouvelles

@@ -130,17 +130,24 @@ AddStep("Réservation", "La demande est reçue et la garantie est bloquée sur l
 });
 
 // ---------------------------------------------------------------- 2. The back office
-AddStep("Back office", "Côté agence, un membre de l'équipe se connecte au back office. La double authentification est obligatoire pour tout le personnel.", async page =>
+AddStep("Back office", "Côté agence, un membre de l'équipe se connecte au back office ; en production, la double authentification est obligatoire pour tout le personnel.", async page =>
 {
     await page.GotoAsync($"{baseUrl}/account/login?ReturnUrl=%2Fadmin");
     await Pause(800);
     await Type(page.Locator("#email"), ManagerEmail);
     await Type(page.Locator("#password"), Password, delay: 40);
     await Click(page.Locator("button[type=submit]"));
-    await page.Locator("#code").WaitForAsync();
-    await Pause(700);
-    await Type(page.Locator("#code"), Totp.Compute(AuthenticatorKey), delay: 120);
-    await Click(page.Locator("button[type=submit]"));
+
+    // The code page comes only when the second factor is on (it is off on a developer's machine).
+    var code = page.Locator("#code");
+    await page.WaitForFunctionAsync("() => location.pathname === '/admin' || document.querySelector('#code') !== null");
+    if (await code.CountAsync() > 0)
+    {
+        await Pause(700);
+        await Type(code, Totp.Compute(AuthenticatorKey), delay: 120);
+        await Click(page.Locator("button[type=submit]"));
+    }
+
     await page.WaitForURLAsync(new Regex("/admin$"));
 });
 
