@@ -3,6 +3,7 @@ using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Public.Booking;
+using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Resources;
 using CarRental.Web.Resources.Public;
 using Microsoft.AspNetCore.Antiforgery;
@@ -91,6 +92,7 @@ public static partial class BookingFunnelEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         var quantities = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var (key, value) in form)
         {
@@ -111,7 +113,7 @@ public static partial class BookingFunnelEndpoints
         }
 
         var next = PublicForms.Text(form, "action") == ContinueAction ? FunnelStep.Drivers : FunnelStep.Options;
-        return PublicForms.SeeOther(context, BookingRoutes.Step(lang, token, next));
+        return PublicForms.SeeOther(context, BookingRoutes.Step(site, lang, token, next));
     }
 
     /// <summary>Step 2: the drivers as typed; valid ones lead to step 3, otherwise step 2 shows the errors.</summary>
@@ -123,6 +125,7 @@ public static partial class BookingFunnelEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         var hasSecond = PublicForms.Checked(form, SecondDriverField);
         var input = new FunnelDriversInput(
             ReadDriver(form, FunnelFields.Main),
@@ -141,8 +144,8 @@ public static partial class BookingFunnelEndpoints
         }
 
         return saved.Value.IsValid
-            ? PublicForms.SeeOther(context, BookingRoutes.Step(lang, token, FunnelStep.Payment))
-            : PublicForms.SeeOther(context, BookingRoutes.Step(lang, token, FunnelStep.Drivers));
+            ? PublicForms.SeeOther(context, BookingRoutes.Step(site, lang, token, FunnelStep.Payment))
+            : PublicForms.SeeOther(context, BookingRoutes.Step(site, lang, token, FunnelStep.Drivers));
     }
 
     /// <summary>
@@ -152,6 +155,7 @@ public static partial class BookingFunnelEndpoints
     internal static async Task<IResult> UploadAsync(string culture, string token, HttpContext context)
     {
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         var json = PublicForms.WantsJson(context.Request);
         if (!json)
         {
@@ -183,7 +187,7 @@ public static partial class BookingFunnelEndpoints
 
         if (!json)
         {
-            return PublicForms.SeeOther(context, BookingRoutes.Step(lang, token, FunnelStep.Drivers));
+            return PublicForms.SeeOther(context, BookingRoutes.Step(site, lang, token, FunnelStep.Drivers));
         }
 
         return uploaded.IsSuccess
@@ -203,7 +207,8 @@ public static partial class BookingFunnelEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
-        var paymentStep = BookingRoutes.Step(lang, token, FunnelStep.Payment);
+        var site = PublicSiteAgency.SlugOf(context);
+        var paymentStep = BookingRoutes.Step(site, lang, token, FunnelStep.Payment);
         if (!await PublicForms.IsHumanAsync(context, form, SubmitAction))
         {
             return PublicForms.SeeOther(context, WithError(paymentStep, FunnelErrors.VerificationFailed.Code));
@@ -221,7 +226,7 @@ public static partial class BookingFunnelEndpoints
         cookies.SetRequest(context, request.BookingId);
         return request.Guarantee.Mode == FunnelGuaranteeMode.PreAuthorization
             ? await GuaranteeAsync(context, funnel, lang, request.BookingId, request.Number)
-            : PublicForms.SeeOther(context, BookingRoutes.Confirmation(lang, request.Number));
+            : PublicForms.SeeOther(context, BookingRoutes.Confirmation(site, lang, request.Number));
     }
 
     /// <summary>A new attempt of the guarantee of the request sent from this browser (failed or expired payment page).</summary>
@@ -233,7 +238,8 @@ public static partial class BookingFunnelEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
-        var page = BookingRoutes.Confirmation(lang, number);
+        var site = PublicSiteAgency.SlugOf(context);
+        var page = BookingRoutes.Confirmation(site, lang, number);
         if (cookies.ReadRequest(context) is not { } bookingId)
         {
             return PublicForms.SeeOther(context, page);
@@ -253,7 +259,8 @@ public static partial class BookingFunnelEndpoints
     /// <summary>The pre-authorization of the request (outside any unit of work): the page leading to the bank, or the confirmation.</summary>
     private static async Task<IResult> GuaranteeAsync(HttpContext context, FunnelService funnel, string lang, Guid bookingId, string number)
     {
-        var confirmation = BookingRoutes.Confirmation(lang, number);
+        var site = PublicSiteAgency.SlugOf(context);
+        var confirmation = BookingRoutes.Confirmation(site, lang, number);
         var started = await funnel.StartGuaranteeAsync(bookingId, lang, confirmation, confirmation, context.RequestAborted);
         if (started.IsFailure || started.Value is not { } redirect)
         {
@@ -261,7 +268,7 @@ public static partial class BookingFunnelEndpoints
             return PublicForms.SeeOther(context, confirmation);
         }
 
-        return PublicForms.SeeOther(context, BookingRoutes.PaymentRedirect(lang, redirect.PaymentId));
+        return PublicForms.SeeOther(context, BookingRoutes.PaymentRedirect(site, lang, redirect.PaymentId));
     }
 
     /// <summary>
@@ -270,8 +277,9 @@ public static partial class BookingFunnelEndpoints
     /// </summary>
     private static async Task<IResult> FailedAsync(HttpContext context, FunnelService funnel, string lang, string token, FunnelStep step, Error error)
     {
-        var fallback = await BookingSelectionEndpoint.FallbackForAsync(lang, token, error.Code, funnel, context.RequestAborted);
-        return PublicForms.SeeOther(context, fallback ?? WithError(BookingRoutes.Step(lang, token, step), PublicForms.VisibleCode(error)));
+        var site = PublicSiteAgency.SlugOf(context);
+        var fallback = await BookingSelectionEndpoint.FallbackForAsync(site, lang, token, error.Code, funnel, context.RequestAborted);
+        return PublicForms.SeeOther(context, fallback ?? WithError(BookingRoutes.Step(site, lang, token, step), PublicForms.VisibleCode(error)));
     }
 
     internal static string WithError(string path, string code) => QueryHelpersAdd(path, ErrorParameter, code);

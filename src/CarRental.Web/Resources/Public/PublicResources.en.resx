@@ -231,6 +231,33 @@
   <data name="Nav.Faq" xml:space="preserve">
     <value>FAQ</value>
   </data>
+  <data name="Platform.Agencies.Text" xml:space="preserve">
+    <value>Each partner agency has its own booking site, at its own address: search, quotes at a guaranteed price, booking request and follow-up in “My booking”. To book, follow the link your agency gave you.</value>
+  </data>
+  <data name="Platform.Agencies.Title" xml:space="preserve">
+    <value>One agency, one site</value>
+  </data>
+  <data name="Platform.Description" xml:space="preserve">
+    <value>Online booking platform of car rental agencies in Tunisia: each agency has its own site.</value>
+  </data>
+  <data name="Platform.Heading" xml:space="preserve">
+    <value>Car rental, agency by agency</value>
+  </data>
+  <data name="Platform.Lead" xml:space="preserve">
+    <value>{0} brings together the car rental agencies that offer online booking.</value>
+  </data>
+  <data name="Platform.Staff.Link" xml:space="preserve">
+    <value>Go to the back office</value>
+  </data>
+  <data name="Platform.Staff.Text" xml:space="preserve">
+    <value>The staff of the agencies and the support of the platform sign in to the back office.</value>
+  </data>
+  <data name="Platform.Staff.Title" xml:space="preserve">
+    <value>Do you work at an agency?</value>
+  </data>
+  <data name="Platform.Title" xml:space="preserve">
+    <value>Online booking of rental agencies</value>
+  </data>
   <data name="Privacy.ContactFallback" xml:space="preserve">
     <value>the agency (details on the Agency and contact page)</value>
   </data>

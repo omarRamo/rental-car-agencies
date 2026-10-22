@@ -87,7 +87,7 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
 
         var text = (await SentAsync(waId, 2))[1].Content.ShouldBeOfType<TextContent>().Body;
         var link = new Uri(LinkPattern().Match(text).Value);
-        link.AbsolutePath.ShouldBe("/fr/reserver");
+        link.AbsolutePath.ShouldBe("/agence-demo-tunis/fr/reserver", "the site of the agency of the conversation (ADR-0067)");
         var query = QueryHelpers.ParseQuery(link.Query);
         query["lieu"].ToString().ShouldBe("TUN");
         query["depart"].ToString().ShouldBe(from);

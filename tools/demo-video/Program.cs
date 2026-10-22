@@ -36,7 +36,8 @@ void AddStep(string chapter, string text, Func<IPage, Task> action) => steps.Add
 // ---------------------------------------------------------------- 1. The public site
 AddStep("Vitrine", "Bienvenue dans la démonstration de la plateforme de location de voitures. Nous allons réserver comme un client sur la vitrine, puis traiter la demande dans le back office de l'agence.", async page =>
 {
-    await page.GotoAsync($"{baseUrl}/fr");
+    // The site of the demo agency, at its address (ADR-0067).
+    await page.GotoAsync($"{baseUrl}/agence-demo-tunis/fr");
     await Pause(1500);
 });
 

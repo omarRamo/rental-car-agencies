@@ -31,12 +31,12 @@ public sealed class EmptyResultsTests(PublicScenarioHost scenario)
     {
         var pickup = At(30, PublicScenarioHost.MinimumDurationMinute);
 
-        var html = await GetAsync($"/fr/reserver?lieu=TUN&depart={pickup}&retour={At(32, 0)}", "198.51.100.30");
+        var html = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={pickup}&retour={At(32, 0)}", "198.51.100.30");
 
         html.ShouldContain("Durée minimale non atteinte");
         html.ShouldContain($"une location dure au moins {PublicScenarioHost.RequiredMinimumDays} jours");
         var extended = SearchExtendedTo(pickup, PublicScenarioHost.RequiredMinimumDays);
-        html.ShouldContain($"href=\"/fr/reserver?lieu=TUN&depart={Escape(pickup)}&retour={Escape(extended)}\"");
+        html.ShouldContain($"href=\"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={Escape(pickup)}&retour={Escape(extended)}\"");
         html.ShouldContain($"Voir les prix pour {PublicScenarioHost.RequiredMinimumDays} jours");
         OfferCodes(html).ShouldBeEmpty();
     }
@@ -44,7 +44,7 @@ public sealed class EmptyResultsTests(PublicScenarioHost scenario)
     [Fact]
     public async Task Dates_without_any_available_car_say_so_and_offer_whatsapp()
     {
-        var html = await GetAsync($"/en/book?lieu=TUN&depart={At(31, PublicScenarioHost.NoAvailabilityMinute)}&retour={At(35, 0)}&cat=ECMR", "198.51.100.31");
+        var html = await GetAsync($"/agence-demo-tunis/en/book?lieu=TUN&depart={At(31, PublicScenarioHost.NoAvailabilityMinute)}&retour={At(35, 0)}&cat=ECMR", "198.51.100.31");
 
         html.ShouldContain("No car available for these dates");
         html.ShouldContain("https://wa.me/21600000000?text=Hello%2C%20I%20would%20like%20to%20book%20a%20car%20%28category%20ECMR%29");
@@ -54,10 +54,10 @@ public sealed class EmptyResultsTests(PublicScenarioHost scenario)
     [Fact]
     public async Task Filters_that_exclude_every_available_category_offer_to_reset_them()
     {
-        var html = await GetAsync($"/fr/reserver?lieu=TUN&depart={At(33, 0)}&retour={At(36, 0)}&places=9&boite=auto", "198.51.100.32");
+        var html = await GetAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={At(33, 0)}&retour={At(36, 0)}&places=9&boite=auto", "198.51.100.32");
 
         html.ShouldContain("Aucune voiture ne correspond à vos filtres");
-        html.ShouldContain($"href=\"/fr/reserver?lieu=TUN&depart={Escape(At(33, 0))}&retour={Escape(At(36, 0))}\"");
+        html.ShouldContain($"href=\"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={Escape(At(33, 0))}&retour={Escape(At(36, 0))}\"");
     }
 
     private static string SearchExtendedTo(string pickup, int days) =>

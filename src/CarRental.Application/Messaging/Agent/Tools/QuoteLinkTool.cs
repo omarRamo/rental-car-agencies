@@ -60,8 +60,9 @@ internal sealed class QuoteLinkTool(IBookingRequests requests, IOptions<AgentSit
         }
 
         var locked = quote.Value;
+        // The link leads to the site of the agency of the conversation (ADR-0067).
         var link = BookingDeepLink.Build(
-            baseUrl, context.Language, option.PickupLocationCode, option.ReturnLocationCode, option.PickupAt, option.ReturnAt, option.CategoryCode, locked.Code);
+            BookingDeepLink.SiteOf(baseUrl, context.Agency.SiteSlug), context.Language, option.PickupLocationCode, option.ReturnLocationCode, option.PickupAt, option.ReturnAt, option.CategoryCode, locked.Code);
         context.Remember(locked.TotalInclVat, locked.Deposit);
         context.State.RecordQuoteLink(link.AbsoluteUri, context.Now);
         context.QuoteLinkCreated = true;

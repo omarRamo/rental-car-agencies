@@ -19,7 +19,7 @@ public sealed class FunnelTrackingTests(IntegrationHost host)
         using var client = host.CreateClient();
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            new Uri($"/fr/reserver?lieu=TUN&depart={LocalDate(60)}&retour={LocalDate(63)}&cat=ECMR&src=whatsapp&utm_source=meta&utm_campaign={campaign}{extra}", UriKind.Relative));
+            new Uri($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(60)}&retour={LocalDate(63)}&cat=ECMR&src=whatsapp&utm_source=meta&utm_campaign={campaign}{extra}", UriKind.Relative));
         request.Headers.UserAgent.ParseAdd(BrowserUserAgent);
         configure?.Invoke(request);
         var response = await client.SendAsync(request, Ct);
@@ -93,7 +93,7 @@ public sealed class FunnelTrackingTests(IntegrationHost host)
             request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)");
         });
         using var client = host.CreateClient();
-        await client.GetAsync(new Uri($"/fr/reserver?lieu=TUN&depart=2020-01-01T10:00&retour=2020-01-03T10:00&utm_campaign={invalidCampaign}", UriKind.Relative), Ct);
+        await client.GetAsync(new Uri($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart=2020-01-01T10:00&retour=2020-01-03T10:00&utm_campaign={invalidCampaign}", UriKind.Relative), Ct);
 
         (await EventsAsync(robotCampaign)).ShouldBeEmpty();
         (await EventsAsync(invalidCampaign)).ShouldBeEmpty();

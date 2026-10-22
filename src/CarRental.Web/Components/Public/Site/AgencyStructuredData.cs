@@ -21,8 +21,8 @@ public static class AgencyStructuredData
     };
 
     /// <param name="agency">The agency of the site.</param>
-    /// <param name="brandName">Name shown to customers (<c>PublicSite:AgencyName</c>).</param>
-    /// <param name="siteUrl">Absolute base address of the site (with a trailing slash).</param>
+    /// <param name="brandName">Name shown to customers (the name of the agency).</param>
+    /// <param name="siteUrl">Absolute address of the agency's site (<c>https://rental.app/agence-1/</c>, with a trailing slash).</param>
     /// <param name="homeUrl">Absolute address of the home page in the current culture.</param>
     /// <param name="whatsAppNumber">International number without <c>+</c>, or <see langword="null"/>.</param>
     public static string Build(PublicAgency agency, string brandName, Uri siteUrl, Uri homeUrl, string? whatsAppNumber)

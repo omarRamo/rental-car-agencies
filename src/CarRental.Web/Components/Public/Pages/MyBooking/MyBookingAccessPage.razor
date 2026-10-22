@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/ma-reservation"
-@page "/{culture:length(2)}/my-booking"
+@page "/{agency}/{culture:length(2)}/ma-reservation"
+@page "/{agency}/{culture:length(2)}/my-booking"
 @* "Ma réservation" (ADR-0051): the e-mail and the booking number are asked; when they match a booking, a link and a
    six-digit code valid 30 minutes are e-mailed. The answer never tells whether the booking exists: the next page is the
    same in every case. Anti-robot check and rate limit on the form; at most a few e-mails per booking and per hour. *@
@@ -29,11 +29,11 @@
     }
     @if (_hasSession)
     {
-        <p class="notice notice--info" role="note">@L["Access.SessionOpen"] <a href="@BookingRoutes.MyBookingFile(Lang)">@L["Access.SessionOpen.Link"]</a></p>
+        <p class="notice notice--info" role="note">@L["Access.SessionOpen"] <a href="@BookingRoutes.MyBookingFile(Slug, Lang)">@L["Access.SessionOpen.Link"]</a></p>
     }
 
     <p>@L["Access.Intro"]</p>
-    <form method="post" action="@BookingRoutes.MyBooking(Lang)" class="card" novalidate>
+    <form method="post" action="@BookingRoutes.MyBooking(Slug, Lang)" class="card" novalidate>
         <AntiforgeryToken />
         <FunnelTextField Id="access-email" Name="@MyBookingEndpoints.EmailField" Label="@L["Access.Email"]" Type="email" Autocomplete="email"
                          InputMode="email" Spellcheck="false" AutoCapitalize="off" Hint="@L["Access.Email.Hint"]" MaxLength="254"
@@ -56,7 +56,7 @@
 
     protected override void OnInitialized()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.MyBooking(Lang)))
+        if (!EnsureCanonicalPath(BookingRoutes.MyBooking(Slug, Lang)))
         {
             return;
         }

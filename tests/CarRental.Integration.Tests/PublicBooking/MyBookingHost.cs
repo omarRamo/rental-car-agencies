@@ -1,4 +1,5 @@
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Referential;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Testing;
@@ -8,11 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CarRental.Integration.Tests.PublicBooking;
 
 /// <summary>
-/// The host of "Ma réservation" over HTTP (ADR-0051): the public site finds the bookings of its own agency only
-/// (ADR-0067), and the site of the shared host is the main demo agency, whose settings the other tests rely on. This
-/// host has a database of its own without the demo data: the agency of its site is <see cref="Agency"/>, the first agency
-/// created, at start-up. A scenario changes a setting of that agency with <see cref="SetAsync"/>, which takes it back at
-/// the end: the tests of the collection run one after the other.
+/// The host of "Ma réservation" over HTTP (ADR-0051): the site of an agency finds the bookings of its own agency only
+/// (ADR-0067), and the main demo agency of the shared host has settings the other tests rely on. This host has a
+/// database of its own without the demo data: its site is the site of <see cref="Agency"/>, created at start-up, at the
+/// address <see cref="Site"/>. A scenario changes a setting of that agency with <see cref="SetAsync"/>, which takes it
+/// back at the end: the tests of the collection run one after the other.
 /// </summary>
 /// <remarks>
 /// A database of its own, like the other dedicated hosts: on the shared one, its outbox pump and job server would process
@@ -43,11 +44,20 @@ public sealed class MyBookingHost : IAsyncLifetime
     /// <summary>The agency of the public site of this host: an office, an airport, ECMR and CDMR vehicles, a published plan.</summary>
     internal BookingAgency Agency { get; private set; } = null!;
 
+    /// <summary>The first segment of the addresses of the site of <see cref="Agency"/>: <c>/{slug}</c>.</summary>
+    public string Site { get; private set; } = string.Empty;
+
+    /// <summary>The name of <see cref="Agency"/>, the brand of its site and of the e-mails to its customers.</summary>
+    public string AgencyName { get; private set; } = string.Empty;
+
     public async ValueTask InitializeAsync()
     {
         // Starts the host (migrations and reference data), then creates the agency of its site.
         _ = Factory.Server;
         Agency = await BookingWorld.CreateAsync(Host, CancellationToken.None, ecmrVehicles: 3);
+        var site = await Factory.Services.GetRequiredService<IAgencyDirectory>().FindAsync(Agency.AgencyId);
+        Site = "/" + site.ShouldNotBeNull().Slug;
+        AgencyName = site.Name;
     }
 
     public async ValueTask DisposeAsync() => await Factory.DisposeAsync();

@@ -98,6 +98,7 @@ public sealed class CustomerLinkService(
     ICustomersQueries customers,
     IOutbox outbox,
     ISettingsReader settings,
+    IAgencyDirectory agencies,
     TimeProvider clock)
 {
     private static readonly BookingStatusInfo[] DocumentsExpected =
@@ -149,7 +150,7 @@ public sealed class CustomerLinkService(
             BookingNotificationKind.CompleteFileLink,
             culture,
             now,
-            ActionPath: PublicBookingPaths.AccessLink(culture, link.Token, documents: true),
+            ActionPath: PublicBookingPaths.AccessLink(await agencies.SlugAsync(booking.AgencyId, cancellationToken), culture, link.Token, documents: true),
             ActionExpiresAtUtc: link.Grant.ExpiresAtUtc,
             BaseUrl: profile.PublicBaseUrl));
         await db.SaveChangesAsync(cancellationToken);

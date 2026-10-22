@@ -7,12 +7,16 @@ using CarRental.Domain.Common;
 
 namespace CarRental.Application.Messaging.Agent;
 
-/// <summary>What the agent knows of its agency for a turn: the agency, its pick-up places, its opening hours and categories.</summary>
+/// <summary>
+/// What the agent knows of its agency for a turn: the agency, its pick-up places, its opening hours and categories, and
+/// the address of its public site (<paramref name="SiteSlug"/>, the first segment of the links it sends, ADR-0067).
+/// </summary>
 internal sealed record AgentAgencyContext(
     AgencyInfo Agency,
     IReadOnlyList<LocationInfo> Locations,
     OpeningHours OpeningHours,
-    IReadOnlyList<VehicleCategoryInfo> Categories)
+    IReadOnlyList<VehicleCategoryInfo> Categories,
+    string SiteSlug)
 {
     /// <summary>The address given to customers: the agency's, else its office's, else its city.</summary>
     public string Address =>
