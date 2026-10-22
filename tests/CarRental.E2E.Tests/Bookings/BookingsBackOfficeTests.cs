@@ -9,9 +9,7 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
-using CarRental.E2E.Tests.Fleet;
 using CarRental.E2E.Tests.Support;
-using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
@@ -27,11 +25,6 @@ namespace CarRental.E2E.Tests.Bookings;
 public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
 {
     private const string DemoAgencyName = "Agence Démo Tunis";
-    private const string QuickAgent = "agent-creation-e2e@demo.local";
-    private const string RequestsAgent = "agent-demandes-e2e@demo.local";
-    private const string PlanningManager = "gerant-planning-e2e@demo.local";
-    private const string ListManager = "gerant-dossiers-e2e@demo.local";
-    private const string DragManager = "gerant-glisser-e2e@demo.local";
 
     private static readonly LocatorAssertionsToBeVisibleOptions Slow = new() { Timeout = 30_000 };
 
@@ -44,7 +37,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     {
         var pickup = TunisTime.Today(TimeProvider.System).AddDays(44);
         var lastName = "Essai" + new string([.. Enumerable.Range(0, 8).Select(_ => (char)('a' + Random.Shared.Next(26)))]);
-        await SignInAsync(QuickAgent, Roles.Agent, "/admin/bookings/new");
+        await SignInAsync(Roles.Agent, "/admin/bookings/new");
 
         await Expect(Heading).ToHaveTextAsync("Nouvelle réservation");
         await Page.Locator("#booking-return").FillAsync(LocalInput(pickup.AddDays(3)));
@@ -84,7 +77,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     public async Task An_agent_validates_a_web_request_from_the_request_queue()
     {
         var request = await SubmitWebRequestAsync(TunisTime.Today(TimeProvider.System).AddDays(50));
-        await SignInAsync(RequestsAgent, Roles.Agent, "/admin/requests");
+        await SignInAsync(Roles.Agent, "/admin/requests");
 
         await Expect(Heading).ToHaveTextAsync("Demandes à valider");
         var item = Page.Locator($"li[data-request='{request.Number}']");
@@ -112,7 +105,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     {
         var pickupDay = TunisTime.Today(TimeProvider.System).AddDays(22);
         var booking = await CreateConfirmedAsync("IFMR", pickupDay);
-        await SignInAsync(PlanningManager, Roles.Manager, $"/admin/planning?from={pickupDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+        await SignInAsync(Roles.Manager, $"/admin/planning?from={pickupDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
 
         await Expect(Heading).ToHaveTextAsync("Planning");
         var unassigned = Page.Locator($"[data-lane='IFMR'] button[data-booking='{booking.Number}']");
@@ -138,7 +131,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     {
         var pickupDay = TunisTime.Today(TimeProvider.System).AddDays(52);
         var booking = await CreateConfirmedAsync("CDMR", pickupDay);
-        await SignInAsync(DragManager, Roles.Manager, $"/admin/planning?from={pickupDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+        await SignInAsync(Roles.Manager, $"/admin/planning?from={pickupDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
 
         var unassigned = Page.Locator($"[data-lane='CDMR'] button[data-booking='{booking.Number}']");
         await Expect(unassigned).ToBeVisibleAsync(Slow);
@@ -160,7 +153,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_list_a_file_and_the_dashboard_show_the_demo_bookings_accessibly()
     {
-        await SignInAsync(ListManager, Roles.Manager, "/admin/bookings");
+        await SignInAsync(Roles.Manager, "/admin/bookings");
 
         await Expect(Heading).ToHaveTextAsync("Réservations");
         var firstLink = Page.Locator("table a[href^='/admin/bookings/']").First;
@@ -254,15 +247,7 @@ public sealed class BookingsBackOfficeTests(E2EHost host) : BrowserTest(host)
         blocking.ShouldBeEmpty();
     }
 
-    private async Task SignInAsync(string email, string role, string returnUrl)
-    {
-        await FleetAccounts.EnsureAsync(Host.Factory.Services, email, role);
-        await Page.GotoAsync($"/account/login?ReturnUrl={Uri.EscapeDataString(returnUrl)}");
-        await Page.Locator("#email").FillAsync(email);
-        await Page.Locator("#password").FillAsync(TestAccounts.Password);
-        await Page.Locator("button[type=submit]").ClickAsync();
-        await Page.Locator("#code").FillAsync(Totp.Compute(TestAccounts.AuthenticatorKey));
-        await Page.Locator("button[type=submit]").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(Regex.Escape(returnUrl) + "$"));
-    }
+    /// <summary>Signs in a member of the demo agency with <paramref name="role"/>, an account of the test's own.</summary>
+    private async Task SignInAsync(string role, string returnUrl) =>
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, role), returnUrl);
 }

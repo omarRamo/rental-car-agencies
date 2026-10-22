@@ -37,7 +37,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
     {
         WatchConsole();
         var file = await HandoverE2EData.ConfirmedAsync(Host);
-        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
+        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent, file.AgencyId);
         await BackOfficeSession.SignInAsync(Page, email, $"/admin/handovers/{file.BookingId}/departure");
         await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Départ — {file.Number}", SlowText);
 
@@ -123,7 +123,7 @@ public sealed class HandoverBackOfficeTests(E2EHost host) : BrowserTest(host)
         WatchConsole();
         var file = await HandoverE2EData.ConfirmedAsync(Host);
         await HandoverE2EData.DepartAsync(Host, file);
-        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
+        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent, file.AgencyId);
         await BackOfficeSession.SignInAsync(Page, email, $"/admin/handovers/{file.BookingId}/return");
         await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync($"Retour — {file.Number}", SlowText);
 
@@ -242,7 +242,7 @@ public sealed class HandoverPreparerTests(E2EHost host) : BrowserTest(host)
     public async Task A_preparer_sees_the_inspection_steps_only_on_a_phone()
     {
         var file = await HandoverE2EData.ConfirmedAsync(Host);
-        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Preparer);
+        var email = await BackOfficeSession.NewStaffAsync(Host, Roles.Preparer, file.AgencyId);
         await BackOfficeSession.SignInAsync(Page, email, "/admin/handovers");
         await Expect(Page.Locator("h1[data-ready=true]")).ToHaveTextAsync("Départs et retours", new LocatorAssertionsToHaveTextOptions { Timeout = Patience });
         await HandoverAccessibility.AssertAsync(Page);
