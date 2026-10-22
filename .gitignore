@@ -502,3 +502,6 @@ TestResults/
 
 # Git worktrees of parallel agents (Claude Code)
 .claude/worktrees/
+
+# Demo video tool output (tools/demo-video/README.md)
+tools/demo-video/out/

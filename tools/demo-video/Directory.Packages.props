@@ -1,0 +1,6 @@
+<Project>
+  <!-- Versions are set in the project itself: the tool stays outside the central package management of the solution. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

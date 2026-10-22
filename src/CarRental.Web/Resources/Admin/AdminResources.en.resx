@@ -52,7 +52,7 @@
     <value>Today</value>
   </data>
   <data name="Nav.Expenses" xml:space="preserve">
-    <value>Expenses, fines, claims</value>
+    <value>Expenses</value>
   </data>
   <data name="Nav.Fleet" xml:space="preserve">
     <value>Fleet and deadlines</value>

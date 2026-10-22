@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CarRental.DemoVideo</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Same Playwright version as the E2E tests: the Chromium already installed is reused. -->
+    <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

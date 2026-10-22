@@ -97,7 +97,7 @@
     <value>Toutes les caisses (gérer, clôturer)</value>
   </data>
   <data name="Permission.expenses.manage" xml:space="preserve">
-    <value>Dépenses, amendes et sinistres</value>
+    <value>Dépenses</value>
   </data>
   <data name="Permission.reconciliation.manage" xml:space="preserve">
     <value>Rapprochements</value>

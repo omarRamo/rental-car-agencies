@@ -52,7 +52,7 @@
     <value>Tableau du jour</value>
   </data>
   <data name="Nav.Expenses" xml:space="preserve">
-    <value>Dépenses, amendes, sinistres</value>
+    <value>Dépenses</value>
   </data>
   <data name="Nav.Fleet" xml:space="preserve">
     <value>Flotte et échéances</value>

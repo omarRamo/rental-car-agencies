@@ -97,7 +97,7 @@
     <value>All cash sessions (manage, close)</value>
   </data>
   <data name="Permission.expenses.manage" xml:space="preserve">
-    <value>Expenses, fines and claims</value>
+    <value>Expenses</value>
   </data>
   <data name="Permission.reconciliation.manage" xml:space="preserve">
     <value>Reconciliations</value>
