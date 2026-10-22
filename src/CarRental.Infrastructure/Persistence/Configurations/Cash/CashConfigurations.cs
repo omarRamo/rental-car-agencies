@@ -1,4 +1,5 @@
 using CarRental.Domain.Cash;
+using CarRental.Domain.Cash.Expenses;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Domain.Referential;
@@ -59,8 +60,10 @@ internal sealed class CashMovementConfiguration : IEntityTypeConfiguration<CashM
         builder.HasOne<Payment>().WithMany().HasForeignKey(m => m.PaymentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<DepositHold>().WithMany().HasForeignKey(m => m.DepositId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<CashSession>().WithMany().HasForeignKey(m => m.RelatedSessionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Expense>().WithMany().HasForeignKey(m => m.ExpenseId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(m => new { m.SessionId, m.Sequence }).IsUnique();
         builder.HasIndex(m => m.BookingId);
+        builder.HasIndex(m => m.ExpenseId).HasFilter("[ExpenseId] IS NOT NULL");
     }
 }

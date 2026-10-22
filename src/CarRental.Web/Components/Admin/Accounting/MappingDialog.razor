@@ -1,0 +1,64 @@
+@* Maps an operation type to an active account of the chart. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">@L[$"Mapping.{Mapping.Key}"]</MudText>
+        <MudSelect T="string" @bind-Value="_account" Label="@L["Field.Account"]" ToStringFunc="AccountLabel">
+            @foreach (var account in Accounts.Where(a => a.IsActive))
+            {
+                <MudSelectItem T="string" Value="@account.Number">@AccountLabel(account.Number)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudText Typo="Typo.caption" Class="d-block mt-2">@L["Mapping.Default", Mapping.DefaultAccount]</MudText>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || _account is null)">@L["Mapping.Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _account;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public MappingView Mapping { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountView> Accounts { get; set; } = [];
+
+    protected override void OnInitialized() => _account = Mapping.AccountNumber;
+
+    private string AccountLabel(string? number) =>
+        number is null ? string.Empty : Accounts.FirstOrDefault(a => a.Number == number) is { } account ? $"{account.Number} — {account.Label}" : number;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (key, account) = (Mapping.Key, _account ?? string.Empty);
+        var mapped = await Runner.RunAsync<ChartOfAccountsService, Result>((service, ct) => service.MapAsync(key, account, ct));
+        _busy = false;
+        if (mapped.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, mapped.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

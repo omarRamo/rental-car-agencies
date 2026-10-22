@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -29,7 +30,8 @@ internal sealed partial class OnlinePayments(
     IReferentialQueries referential,
     ISettingsReader settings,
     TimeProvider timeProvider,
-    ILogger<OnlinePayments> logger) : IOnlinePayments
+    ILogger<OnlinePayments> logger,
+    IAccountingPeriods periods) : IOnlinePayments
 {
     /// <summary>A second start for the same booking within this delay returns the page of the first (double submission).</summary>
     public static readonly TimeSpan AttemptReuseWindow = TimeSpan.FromMinutes(10);
@@ -147,6 +149,13 @@ internal sealed partial class OnlinePayments(
         if (payment.ExternalReference is not { } gatewayOrderId)
         {
             return PaymentsErrors.OnlinePaymentNotFound;
+        }
+
+        // Monthly closing (ADR-0065): no capture dated in a closed month.
+        var open = await periods.EnsureOpenAsync(payment.AgencyId, TunisTime.Today(timeProvider), cancellationToken);
+        if (open.IsFailure)
+        {
+            return open.Error;
         }
 
         var marked = await MarkCaptureAsync(payment, target, cancellationToken);
@@ -270,6 +279,13 @@ internal sealed partial class OnlinePayments(
         if (current.IsFailure)
         {
             return current.Error;
+        }
+
+        // Monthly closing (ADR-0065): no refund dated in a closed month.
+        var open = await periods.EnsureOpenAsync(current.Value.Payment.AgencyId, TunisTime.Today(timeProvider), cancellationToken);
+        if (open.IsFailure)
+        {
+            return open.Error;
         }
 
         var threshold = await settings.GetAsync(PaymentSettings.OnlineRefundApprovalThreshold, current.Value.Payment.AgencyId, cancellationToken);

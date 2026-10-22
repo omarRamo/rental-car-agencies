@@ -43,6 +43,7 @@ public static class BookingsModule
         services.AddScoped<IBookingsQueries, BookingsQueries>();
         services.AddScoped<IBookingsReportingQueries, BookingsReportingQueries>();
         services.AddScoped<IBookingsBillingQueries, BookingsBillingQueries>();
+        services.AddScoped<IBookingNumbers, BookingNumbers>();
         services.AddScoped<IBookingRequests, BookingRequestService>();
         services.AddScoped<IBookingPaymentStatus, BookingPaymentStatus>();
         services.AddScoped<IChannelBookings, ChannelBookingService>();

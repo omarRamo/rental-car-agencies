@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -16,7 +17,8 @@ internal sealed class CashDrawer(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
     IUserContext userContext,
-    TimeProvider timeProvider) : ICashDrawer
+    TimeProvider timeProvider,
+    IAccountingPeriods periods) : ICashDrawer
 {
     public async Task<Result<Guid>> GetOpenSessionIdAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
@@ -122,7 +124,10 @@ internal sealed class CashDrawer(
         return recorded.IsSuccess ? Result.Success() : recorded.Error;
     }
 
-    /// <summary>The tracked session, which must be the acting user's (cash always goes through one's own drawer).</summary>
+    /// <summary>
+    /// The tracked session, which must be the acting user's (cash always goes through one's own drawer) and whose business
+    /// day must be in an open month: its movements are posted on that day (ADR-0065).
+    /// </summary>
     private async Task<Result<CashSession>> LoadOwnSessionAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         if (!userContext.HasPermission(Permissions.CashOwn))
@@ -136,7 +141,13 @@ internal sealed class CashDrawer(
             return CashErrors.SessionNotFound;
         }
 
-        return session.CashierId == userContext.UserId ? session : CashErrors.SessionNotOwned;
+        if (session.CashierId != userContext.UserId)
+        {
+            return CashErrors.SessionNotOwned;
+        }
+
+        var open = await periods.EnsureOpenAsync(session.AgencyId, session.BusinessDate, cancellationToken);
+        return open.IsFailure ? open.Error : session;
     }
 
     private void EnsureTransaction()

@@ -144,4 +144,7 @@
   <data name="Permission.claims.manage" xml:space="preserve">
     <value>Sinistres (gérer)</value>
   </data>
+  <data name="Permission.accounting.reopen" xml:space="preserve">
+    <value>Rouvrir un mois clos (motif, audit)</value>
+  </data>
 </root>

@@ -50,6 +50,16 @@ public sealed class RolePresetTests
         { Roles.Accountant, Permissions.PaymentsRefundsApprove, false },
         { Roles.Preparer, Permissions.PaymentsRefundsApprove, false },
 
+        // Clôture mensuelle (lot 3B) : le comptable clôture, seul le gérant rouvre un mois clos (motif, audit)
+        { Roles.Accountant, Permissions.AccountingManage, true },
+        { Roles.Manager, Permissions.AccountingReopen, true },
+        { Roles.Accountant, Permissions.AccountingReopen, false },
+        { Roles.Agent, Permissions.AccountingManage, false },
+        { Roles.Agent, Permissions.ExpensesManage, false },
+        { Roles.Accountant, Permissions.ExpensesManage, true },
+        { Roles.Accountant, Permissions.ReconciliationManage, true },
+        { Roles.Preparer, Permissions.AccountingManage, false },
+
         // Factures et avoirs: Agent émettre, Comptable gérer
         { Roles.Agent, Permissions.InvoicesIssue, true },
         { Roles.Agent, Permissions.InvoicesManage, false },

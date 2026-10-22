@@ -97,6 +97,7 @@ public static class ChannelsModule
         // Contracts for the other modules, and the mirror of the rental files.
         services.AddScoped<IChannelsQueries, ChannelsQueries>();
         services.AddScoped<IChannelCommissions, ChannelCommissions>();
+        services.AddScoped<IChannelPayouts, ChannelPayoutsQueries>();
         services.AddScoped<IChannelCommissionSource, ChannelCommissionReportingSource>();
         services.AddOutboxHandler<BookingStatusChanged, ChannelBookingStatusMirror>();
 

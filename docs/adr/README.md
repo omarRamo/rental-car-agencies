@@ -68,6 +68,9 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0060](0060-alertes-et-telemetrie-de-sante.md) | Alertes : télémétrie de santé publiée par l'application, règles Azure Monitor à faible coût | Acceptée |
 | [0061](0061-sauvegardes-retention-et-immuabilite.md) | Sauvegardes, rétention longue et factures immuables | Acceptée |
 | [0062](0062-origine-cloudflare-et-revue-de-securite.md) | Origine réservée à Cloudflare et décisions de la revue de sécurité (passe 1) | Acceptée |
+| [0063](0063-depenses-justificatifs-et-couts-des-vehicules.md) | Dépenses, justificatifs et coûts des véhicules sans double comptage | Acceptée |
+| [0064](0064-rapprochements-caisse-clic-to-pay-booking-com.md) | Rapprochements : caisse, Clic to Pay, Booking.com et justification des écarts | Acceptée (formats des relevés à fournir) |
+| [0065](0065-plan-de-comptes-journaux-exports-et-cloture.md) | Plan de comptes, journaux, exports et clôture mensuelle | Acceptée (plan et format d'export à valider par l'expert-comptable) |
 | [0066](0066-revue-de-securite-passe-2.md) | Revue de sécurité, passe 2 : journaux sans jeton, Turnstile lié au site, documents jamais conservés, santé du bot | Acceptée |
 
 ## Modèle

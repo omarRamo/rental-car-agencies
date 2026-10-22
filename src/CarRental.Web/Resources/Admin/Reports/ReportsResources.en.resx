@@ -852,4 +852,7 @@
   <data name="Source.Cost.claims" xml:space="preserve">
     <value>net costs of the claims (costs less reimbursements, amounts as paid)</value>
   </data>
+  <data name="Source.Cost.expenses" xml:space="preserve">
+    <value>expenses linked to the vehicles, excluding VAT (fuel, maintenance, repairs, other; never those paying a maintenance or a claim, nor insurance, road tax or leasing, already counted)</value>
+  </data>
 </root>

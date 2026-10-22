@@ -43,7 +43,8 @@ internal static class CashMapping
                 movement.DepositId,
                 movement.RelatedSessionId,
                 movement.RecordedAtUtc,
-                movement.RecordedByName));
+                movement.RecordedByName,
+                movement.ExpenseId));
         }
 
         return new CashSessionDetails(
@@ -86,7 +87,9 @@ internal static class CashMapping
             SumOf(CashMovementKind.ManualIn),
             SumOf(CashMovementKind.ManualOut),
             adjustments.Select(m => m.RevenueEffect).Sum(),
-            adjustments.Select(m => m.DepositEffect).Sum());
+            adjustments.Select(m => m.DepositEffect).Sum(),
+            SumOf(CashMovementKind.ExpensePaid),
+            SumOf(CashMovementKind.ExpenseReversed));
     }
 }
 

@@ -1,0 +1,102 @@
+@* The differences of a reconciliation of a month, each with its justifications (they stay visible) and a button to justify it. *@
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AccountingResources> L
+
+<section aria-labelledby="@HeadingId" class="mb-4">
+    <MudText Typo="Typo.h6" HtmlTag="h3" id="@HeadingId" GutterBottom="true">@L["Differences.Title"]</MudText>
+    @if (Differences.Count == 0)
+    {
+        <FinanceNotice Tone="FinanceTone.Success" Role="status">@L["Differences.None"]</FinanceNotice>
+    }
+    else
+    {
+        <div class="accounting-scroll" tabindex="0" role="region" aria-labelledby="@HeadingId">
+            <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="@HeadingId">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Column.Kind"]</th>
+                        <th scope="col">@L["Column.Subject"]</th>
+                        <th scope="col">@L["Column.Date"]</th>
+                        <th scope="col" class="accounting-number">@L["Column.Difference"]</th>
+                        <th scope="col">@L["Column.Justification"]</th>
+                        <th scope="col"><span class="visually-hidden">@L["Column.Actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var difference in Differences)
+                    {
+                        <tr data-testid="@($"difference-{difference.Key}")">
+                            <td>@L[$"DifferenceKind.{difference.Kind}"]</td>
+                            <td>@difference.Subject</td>
+                            <td>@(difference.Date is { } date ? PaymentsFormat.Date(date) : "—")</td>
+                            <td class="accounting-number">@PaymentsFormat.WithSign(difference.Amount)</td>
+                            <td>
+                                @if (difference.Current is { } current)
+                                {
+                                    <FinanceBadge Tone="FinanceTone.Success">@L["Difference.Justified"]</FinanceBadge>
+                                    <MudText Typo="Typo.body2" Class="d-block">@current.Reason</MudText>
+                                    <MudText Typo="Typo.caption" Class="d-block">@L["Justification.By", PaymentsFormat.Instant(current.JustifiedAtUtc), current.JustifiedByName ?? "—"]</MudText>
+                                }
+                                else
+                                {
+                                    <FinanceBadge Tone="FinanceTone.Danger">@L["Difference.Unjustified"]</FinanceBadge>
+                                }
+                                @foreach (var former in difference.Justifications.Where(j => j != difference.Current))
+                                {
+                                    <MudText Typo="Typo.caption" Class="d-block accounting-muted">
+                                        @L["Justification.Former", PaymentsFormat.WithSign(former.Amount), former.Reason, PaymentsFormat.Instant(former.JustifiedAtUtc), former.JustifiedByName ?? "—"]
+                                    </MudText>
+                                }
+                            </td>
+                            <td>
+                                @if (!difference.IsJustified && CanJustify)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="@(() => JustifyAsync(difference))"
+                                               aria-label="@L["Justify.Label", difference.Subject]" data-testid="@($"justify-{difference.Key}")">@L["Justify"]</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DifferenceView> Differences { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    [Parameter, EditorRequired]
+    public AccountingMonth Month { get; set; }
+
+    [Parameter, EditorRequired]
+    public string HeadingId { get; set; } = default!;
+
+    /// <summary>Hidden once the month is closed: what was justified stays visible.</summary>
+    [Parameter]
+    public bool CanJustify { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnJustified { get; set; }
+
+    private async Task JustifyAsync(DifferenceView difference)
+    {
+        var parameters = new DialogParameters<JustifyDialog>
+        {
+            { d => d.AgencyId, AgencyId },
+            { d => d.Month, Month },
+            { d => d.Difference, difference },
+        };
+        var dialog = await Dialogs.ShowAsync<JustifyDialog>(L["Justify.Title"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Justify.Done"], Severity.Success);
+            await OnJustified.InvokeAsync();
+        }
+    }
+}

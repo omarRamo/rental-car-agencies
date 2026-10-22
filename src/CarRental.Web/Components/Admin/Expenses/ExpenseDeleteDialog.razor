@@ -1,0 +1,56 @@
+@* Deletes an expense with a reason (it stays listed as deleted, audited); a cash expense puts its cash back into the open
+   cash session of the user. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<ExpensesResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">@L["Delete.Message", Expense.Number, Expense.Supplier, AccountingFormat.Amount(Expense.InclVat)]</MudText>
+        @if (Expense.IsPaidInCash)
+        {
+            <FinanceNotice Tone="FinanceTone.Warning" Class="mb-2">@L["Delete.Cash"]</FinanceNotice>
+        }
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.DeletionReason"]" Lines="2" MaxLength="ExpenseLimits.ReasonMaxLength" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" Immediate="true" InputId="expense-deletion-reason" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="DeleteAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_reason))">@L["Delete.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ExpenseView Expense { get; set; } = default!;
+
+    private async Task DeleteAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (id, reason) = (Expense.Id, _reason);
+        var deleted = await Runner.RunAsync<ExpenseService, Result>((service, ct) => service.DeleteAsync(id, reason, ct));
+        _busy = false;
+        if (deleted.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, deleted.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

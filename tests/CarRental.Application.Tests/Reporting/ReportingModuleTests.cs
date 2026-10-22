@@ -38,7 +38,13 @@ public sealed class ReportingModuleTests
         var services = new ServiceCollection().AddApplication();
 
         services.Where(d => d.ServiceType == typeof(IVehicleCostsSource)).Select(d => d.ImplementationType)
-            .ShouldBe([typeof(CarRental.Application.Billing.Queries.ClaimsVehicleCostsSource), typeof(FleetVehicleCostsSource)], ignoreOrder: true);
+            .ShouldBe(
+                [
+                    typeof(CarRental.Application.Billing.Queries.ClaimsVehicleCostsSource),
+                    typeof(CarRental.Application.Cash.Expenses.ExpensesVehicleCostsSource),
+                    typeof(FleetVehicleCostsSource),
+                ],
+                ignoreOrder: true);
         services.Single(d => d.ServiceType == typeof(IChannelCommissionSource)).ImplementationType.ShouldBe(typeof(CarRental.Application.Channels.Queries.ChannelCommissionReportingSource));
         services.Single(d => d.ServiceType == typeof(IInvoicedAmountsSource)).ImplementationType.ShouldBe(typeof(CarRental.Application.Billing.Queries.InvoicedAmountsSource));
         services.Single(d => d.ServiceType == typeof(IBookingChargesSource)).ImplementationType.ShouldBe(typeof(CarRental.Application.Bookings.Handover.ReturnChargesReportingSource));

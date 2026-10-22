@@ -3,6 +3,7 @@ using CarRental.Application.Payments.Administration;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
 using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Tests.Accounting.Fakes;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
@@ -69,8 +70,11 @@ internal sealed class OnlinePaymentsHarness
     /// <summary>An anonymous visitor (the public funnel, the return from the payment page).</summary>
     public static ScopedUserContext Visitor() => new([]);
 
+    /// <summary>The monthly closing hook: every month open until a test closes it.</summary>
+    public FakeAccountingPeriods Periods { get; } = new();
+
     public OnlinePayments Online(IUserContext? user = null, IClicToPayGateway? gateway = null) =>
-        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance);
+        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance, Periods);
 
     /// <summary>The status changes told to the other modules for one payment, in order.</summary>
     public IReadOnlyList<OnlinePaymentStatusChanged> StatusChangesOf(Guid paymentId) =>

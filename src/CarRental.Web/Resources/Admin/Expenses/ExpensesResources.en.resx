@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Expenses.Title" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="Expenses.Intro" xml:space="preserve">
+    <value>The expenses of the agency: amounts excluding VAT, VAT and VAT included, receipt and, for the fleet, the vehicle and the maintenance or claim they pay. A cash expense is taken from your open cash session. Editable until the month is closed; a deletion keeps its trace. Dates in Tunis time.</value>
+  </data>
+  <data name="Expenses.Table" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="Expenses.None" xml:space="preserve">
+    <value>No expense for these criteria.</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Filter.From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Filter.To" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Filter.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Filter.Method" xml:space="preserve">
+    <value>Means of payment</value>
+  </data>
+  <data name="Filter.Search" xml:space="preserve">
+    <value>Supplier, reference or number</value>
+  </data>
+  <data name="Filter.IncludeDeleted" xml:space="preserve">
+    <value>Show the deleted expenses</value>
+  </data>
+  <data name="Filter.Apply" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Filter.Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Expense.New" xml:space="preserve">
+    <value>New expense</value>
+  </data>
+  <data name="Totals.Count" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="Column.Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Column.Supplier" xml:space="preserve">
+    <value>Supplier</value>
+  </data>
+  <data name="Column.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Column.ExclVat" xml:space="preserve">
+    <value>Excl. VAT</value>
+  </data>
+  <data name="Column.Vat" xml:space="preserve">
+    <value>VAT</value>
+  </data>
+  <data name="Column.InclVat" xml:space="preserve">
+    <value>Incl. VAT</value>
+  </data>
+  <data name="Column.Method" xml:space="preserve">
+    <value>Payment</value>
+  </data>
+  <data name="Column.Receipt" xml:space="preserve">
+    <value>Receipt</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Receipt.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Receipt.Open.Label" xml:space="preserve">
+    <value>Open the receipt of expense {0}</value>
+  </data>
+  <data name="Status.Deleted" xml:space="preserve">
+    <value>Deleted</value>
+  </data>
+  <data name="Status.Closed" xml:space="preserve">
+    <value>Month closed</value>
+  </data>
+  <data name="Status.Open" xml:space="preserve">
+    <value>Editable</value>
+  </data>
+  <data name="Deleted.By" xml:space="preserve">
+    <value>On {0} by {1}: {2}</value>
+  </data>
+  <data name="Receipt.Add.Label" xml:space="preserve">
+    <value>Add or replace the receipt of expense {0}</value>
+  </data>
+  <data name="Expense.Edit.Label" xml:space="preserve">
+    <value>Change expense {0}</value>
+  </data>
+  <data name="Expense.Delete.Label" xml:space="preserve">
+    <value>Delete expense {0}</value>
+  </data>
+  <data name="Expense.Recorded" xml:space="preserve">
+    <value>Expense recorded.</value>
+  </data>
+  <data name="Expense.Saved" xml:space="preserve">
+    <value>Expense changed.</value>
+  </data>
+  <data name="Expense.Deleted" xml:space="preserve">
+    <value>Expense deleted.</value>
+  </data>
+  <data name="Expense.Edit" xml:space="preserve">
+    <value>Change expense {0}</value>
+  </data>
+  <data name="Expense.Record" xml:space="preserve">
+    <value>Record the expense</value>
+  </data>
+  <data name="Expense.Save" xml:space="preserve">
+    <value>Save the changes</value>
+  </data>
+  <data name="Receipt.Dialog.Title" xml:space="preserve">
+    <value>Receipt of expense {0}</value>
+  </data>
+  <data name="Receipt.Dialog.Help" xml:space="preserve">
+    <value>Photo or PDF of the invoice or ticket of expense {0} (JPEG, PNG, WebP or PDF, 10 MB at most). A replaced receipt is kept.</value>
+  </data>
+  <data name="Receipt.Uploaded" xml:space="preserve">
+    <value>Receipt stored.</value>
+  </data>
+  <data name="Receipt.Pick" xml:space="preserve">
+    <value>Choose the receipt</value>
+  </data>
+  <data name="Receipt.Help" xml:space="preserve">
+    <value>Photo or PDF, 10 MB at most (optional).</value>
+  </data>
+  <data name="Receipt.Picked" xml:space="preserve">
+    <value>File chosen: {0}</value>
+  </data>
+  <data name="Receipt.Upload" xml:space="preserve">
+    <value>Upload the receipt</value>
+  </data>
+  <data name="Delete.Title" xml:space="preserve">
+    <value>Delete expense {0}</value>
+  </data>
+  <data name="Delete.Message" xml:space="preserve">
+    <value>Expense {0} from {1} ({2}) will be marked deleted: it stays visible with the reason, the user and the date.</value>
+  </data>
+  <data name="Delete.Cash" xml:space="preserve">
+    <value>Paid in cash: its amount goes back into your open cash session.</value>
+  </data>
+  <data name="Delete.Submit" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Field.DeletionReason" xml:space="preserve">
+    <value>Reason for the deletion</value>
+  </data>
+  <data name="Field.Date" xml:space="preserve">
+    <value>Date of the receipt</value>
+  </data>
+  <data name="Field.Date.Help" xml:space="preserve">
+    <value>Date of the invoice or ticket of the supplier (Tunis time).</value>
+  </data>
+  <data name="Field.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Field.Supplier" xml:space="preserve">
+    <value>Supplier</value>
+  </data>
+  <data name="Field.Reference" xml:space="preserve">
+    <value>Reference of the receipt</value>
+  </data>
+  <data name="Field.Reference.Help" xml:space="preserve">
+    <value>Number of the invoice or ticket of the supplier.</value>
+  </data>
+  <data name="Field.SupplierTaxId" xml:space="preserve">
+    <value>Tax identifier of the supplier</value>
+  </data>
+  <data name="Field.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Field.AmountMode" xml:space="preserve">
+    <value>Amounts entered as</value>
+  </data>
+  <data name="AmountMode.InclVatAndRate" xml:space="preserve">
+    <value>Amount incl. VAT and VAT rate</value>
+  </data>
+  <data name="AmountMode.ExclVatAndRate" xml:space="preserve">
+    <value>Amount excl. VAT and VAT rate</value>
+  </data>
+  <data name="AmountMode.AsInvoiced" xml:space="preserve">
+    <value>Excl. VAT and VAT of the invoice</value>
+  </data>
+  <data name="Field.InclVat" xml:space="preserve">
+    <value>Amount incl. VAT</value>
+  </data>
+  <data name="Field.ExclVat" xml:space="preserve">
+    <value>Amount excl. VAT</value>
+  </data>
+  <data name="Field.Vat" xml:space="preserve">
+    <value>VAT amount</value>
+  </data>
+  <data name="Field.VatRate" xml:space="preserve">
+    <value>VAT rate</value>
+  </data>
+  <data name="Field.VatRate.Help" xml:space="preserve">
+    <value>19, 13, 7 or 0 %; rounded to the millime like the pricing engine.</value>
+  </data>
+  <data name="Amounts.Incomplete" xml:space="preserve">
+    <value>Enter the amounts to see the amounts excluding VAT, the VAT and the amount VAT included.</value>
+  </data>
+  <data name="Field.PaymentMethod" xml:space="preserve">
+    <value>Means of payment</value>
+  </data>
+  <data name="Field.PaymentReference" xml:space="preserve">
+    <value>Payment reference</value>
+  </data>
+  <data name="Field.PaymentReference.Help" xml:space="preserve">
+    <value>Cheque number (required) or transfer reference.</value>
+  </data>
+  <data name="Method.Cash.Help" xml:space="preserve">
+    <value>The expense is taken from your open cash session, which must hold the amount.</value>
+  </data>
+  <data name="Field.Vehicle" xml:space="preserve">
+    <value>Vehicle</value>
+  </data>
+  <data name="Field.Link" xml:space="preserve">
+    <value>Maintenance or claim paid</value>
+  </data>
+  <data name="Link.Maintenance" xml:space="preserve">
+    <value>Maintenance {0} of {1} — {2}</value>
+  </data>
+  <data name="Link.Claim" xml:space="preserve">
+    <value>Claim of {0} — {1} no. {2}</value>
+  </data>
+  <data name="Category.Fuel" xml:space="preserve">
+    <value>Fuel</value>
+  </data>
+  <data name="Category.Maintenance" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="Category.Repairs" xml:space="preserve">
+    <value>Repairs</value>
+  </data>
+  <data name="Category.Insurance" xml:space="preserve">
+    <value>Insurance</value>
+  </data>
+  <data name="Category.RoadTax" xml:space="preserve">
+    <value>Road tax</value>
+  </data>
+  <data name="Category.Leasing" xml:space="preserve">
+    <value>Leasing rent</value>
+  </data>
+  <data name="Category.CommissionBookingCom" xml:space="preserve">
+    <value>Booking.com commission</value>
+  </data>
+  <data name="Category.CommissionClicToPay" xml:space="preserve">
+    <value>Clic to Pay commission</value>
+  </data>
+  <data name="Category.PremisesRent" xml:space="preserve">
+    <value>Premises rent</value>
+  </data>
+  <data name="Category.Utilities" xml:space="preserve">
+    <value>Utilities (water, electricity, phone)</value>
+  </data>
+  <data name="Category.Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Method.Cash" xml:space="preserve">
+    <value>Cash</value>
+  </data>
+  <data name="Method.Card" xml:space="preserve">
+    <value>Bank card</value>
+  </data>
+  <data name="Method.BankTransfer" xml:space="preserve">
+    <value>Bank transfer</value>
+  </data>
+  <data name="Method.Cheque" xml:space="preserve">
+    <value>Cheque</value>
+  </data>
+  <data name="CostRule.Counted.Help" xml:space="preserve">
+    <value>Counted excluding VAT in the direct costs of the vehicle (margins of the reports).</value>
+  </data>
+  <data name="CostRule.NoVehicle.Help" xml:space="preserve">
+    <value>No vehicle: not a direct cost of a vehicle.</value>
+  </data>
+  <data name="CostRule.CountedByMaintenance.Help" xml:space="preserve">
+    <value>Linked to a maintenance: its cost counts once, through the maintenance (enter its actual cost when completing it).</value>
+  </data>
+  <data name="CostRule.CountedByClaim.Help" xml:space="preserve">
+    <value>Linked to a claim: its cost counts once, through the costs of the claim.</value>
+  </data>
+  <data name="CostRule.CountedByVehicleDocument.Help" xml:space="preserve">
+    <value>Insurance and road tax count through the price of the document of the vehicle (fleet), never twice.</value>
+  </data>
+  <data name="CostRule.CountedByDepreciation.Help" xml:space="preserve">
+    <value>Leasing counts in the depreciation of the vehicle (fleet), never twice.</value>
+  </data>
+  <data name="MaintenanceType.OilChange" xml:space="preserve">
+    <value>oil change</value>
+  </data>
+  <data name="MaintenanceType.Tyres" xml:space="preserve">
+    <value>tyres</value>
+  </data>
+  <data name="MaintenanceType.Brakes" xml:space="preserve">
+    <value>brakes</value>
+  </data>
+  <data name="MaintenanceType.Repair" xml:space="preserve">
+    <value>repair</value>
+  </data>
+  <data name="MaintenanceType.Other" xml:space="preserve">
+    <value>other</value>
+  </data>
+</root>

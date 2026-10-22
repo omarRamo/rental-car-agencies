@@ -144,4 +144,7 @@
   <data name="Permission.claims.manage" xml:space="preserve">
     <value>Claims (manage)</value>
   </data>
+  <data name="Permission.accounting.reopen" xml:space="preserve">
+    <value>Reopen a closed month (reason, audit)</value>
+  </data>
 </root>

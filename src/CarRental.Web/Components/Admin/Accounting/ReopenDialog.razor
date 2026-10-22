@@ -1,0 +1,54 @@
+@* Reopens a closed month (manager): the reason is mandatory and audited; the frozen journals are kept. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <FinanceNotice Tone="FinanceTone.Warning" Class="mb-3">@L["Reopen.Warning", AccountingFormat.Month(Month)]</FinanceNotice>
+        <MudTextField T="string" @bind-Value="_reason" Label="@L["Field.ReopenReason"]" Lines="3" MaxLength="AccountingPeriod.ReasonMaxLength" Required="true"
+                      RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.ReopenReason.Help"]" Immediate="true" InputId="reopen-reason" />
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_reason))">@L["Reopen.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _reason;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    [Parameter, EditorRequired]
+    public AccountingMonth Month { get; set; }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var (agencyId, month, reason) = (AgencyId, Month, _reason);
+        var reopened = await Runner.RunAsync<MonthlyClosingService, Result>((service, ct) => service.ReopenAsync(agencyId, month, reason, ct));
+        _busy = false;
+        if (reopened.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, reopened.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

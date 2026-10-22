@@ -852,4 +852,7 @@
   <data name="Source.Cost.claims" xml:space="preserve">
     <value>coûts nets des sinistres (coûts moins remboursements, montants payés)</value>
   </data>
+  <data name="Source.Cost.expenses" xml:space="preserve">
+    <value>dépenses rattachées aux véhicules, hors TVA (carburant, entretien, réparations, autres ; jamais celles qui paient un entretien ou un sinistre, ni assurance, vignette ou leasing, déjà comptés)</value>
+  </data>
 </root>

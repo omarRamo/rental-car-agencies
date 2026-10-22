@@ -2,6 +2,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Identity;
 using CarRental.Web.Components.Account;
+using CarRental.Web.Components.Admin.Accounting;
 using CarRental.Web.Components.Admin.Billing;
 using CarRental.Web.Components.Admin.Bookings;
 using CarRental.Web.Components.Admin.Handovers;
@@ -59,6 +60,7 @@ internal static class WebServiceCollectionExtensions
         services.AddChannelsWeb(configuration);
         services.AddHandoversWeb();
         services.AddBillingWeb();
+        services.AddAccountingWeb();
         services.AddScoped<IEmailSender<ApplicationUser>, IdentityEmailSender>();
         services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 

@@ -1,0 +1,1071 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Journal.Text.Invoice" xml:space="preserve">
+    <value>Invoice {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.CreditNote" xml:space="preserve">
+    <value>Credit note {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.SalesVat" xml:space="preserve">
+    <value>VAT collected {0} % — {1}</value>
+  </data>
+  <data name="Journal.Text.SalesStampDuty" xml:space="preserve">
+    <value>Stamp duty — {0}</value>
+  </data>
+  <data name="Journal.Text.SalesRevenue" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Journal.Text.Expense" xml:space="preserve">
+    <value>Expense {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.ExpenseCharge" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Journal.Text.ExpenseVat" xml:space="preserve">
+    <value>Deductible VAT — {0}</value>
+  </data>
+  <data name="Journal.Text.ExpensePayment" xml:space="preserve">
+    <value>Payment {0} — {1} ({2})</value>
+  </data>
+  <data name="Journal.Text.Payment" xml:space="preserve">
+    <value>Receipt {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.Refund" xml:space="preserve">
+    <value>Refund {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.ChannelPrepaid" xml:space="preserve">
+    <value>Prepaid to the channel — {0}</value>
+  </data>
+  <data name="Journal.Text.DepositTaken" xml:space="preserve">
+    <value>Deposit received ({0}) — {1}</value>
+  </data>
+  <data name="Journal.Text.DepositSettled" xml:space="preserve">
+    <value>Deposit settled ({0}) — {1}: retained {2}, returned {3}</value>
+  </data>
+  <data name="Journal.Text.DepositCollected" xml:space="preserve">
+    <value>Retained deposit collected ({0}) — {1}</value>
+  </data>
+  <data name="Journal.Text.CashPayment" xml:space="preserve">
+    <value>Cash receipt — {0}</value>
+  </data>
+  <data name="Journal.Text.CashRefund" xml:space="preserve">
+    <value>Cash refund — {0}</value>
+  </data>
+  <data name="Journal.Text.CashDepositReceived" xml:space="preserve">
+    <value>Cash deposit received — {0}</value>
+  </data>
+  <data name="Journal.Text.CashDepositReturned" xml:space="preserve">
+    <value>Cash deposit returned — {0}</value>
+  </data>
+  <data name="Journal.Text.CashDepositRetained" xml:space="preserve">
+    <value>Cash deposit retained — {0}</value>
+  </data>
+  <data name="Journal.Text.CashManualIn" xml:space="preserve">
+    <value>Cash in — {0}</value>
+  </data>
+  <data name="Journal.Text.CashManualOut" xml:space="preserve">
+    <value>Cash out — {0}</value>
+  </data>
+  <data name="Journal.Text.CashAdjustment" xml:space="preserve">
+    <value>Cash adjustment — {0}</value>
+  </data>
+  <data name="Journal.Text.CashExpensePaid" xml:space="preserve">
+    <value>Expense paid in cash — {0}</value>
+  </data>
+  <data name="Journal.Text.CashExpenseReversed" xml:space="preserve">
+    <value>Cash expense cancelled — {0}</value>
+  </data>
+  <data name="Journal.Text.CashVariance" xml:space="preserve">
+    <value>Cash difference of {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.Payout" xml:space="preserve">
+    <value>Payout {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.PayoutCommission" xml:space="preserve">
+    <value>Commissions deducted {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.PayoutDifference" xml:space="preserve">
+    <value>Payout difference {0} — {1}</value>
+  </data>
+  <data name="Journal.Text.ClicToPaySettlement" xml:space="preserve">
+    <value>Clic to Pay settlement of {0}</value>
+  </data>
+  <data name="Journal.Text.ClicToPayFee" xml:space="preserve">
+    <value>Clic to Pay fees of {0}</value>
+  </data>
+  <data name="Journal.Text.Correction" xml:space="preserve">
+    <value>Correction of “{0}” (frozen in {1})</value>
+  </data>
+  <data name="Journal.Nature.Rental" xml:space="preserve">
+    <value>Rental</value>
+  </data>
+  <data name="Journal.Nature.Discount" xml:space="preserve">
+    <value>Discount</value>
+  </data>
+  <data name="Journal.Nature.Extras" xml:space="preserve">
+    <value>Extras</value>
+  </data>
+  <data name="Journal.Nature.Protection" xml:space="preserve">
+    <value>Protection</value>
+  </data>
+  <data name="Journal.Nature.Delivery" xml:space="preserve">
+    <value>Delivery</value>
+  </data>
+  <data name="Journal.Nature.DailyContribution" xml:space="preserve">
+    <value>Daily contribution</value>
+  </data>
+  <data name="Journal.Nature.ExtraMileage" xml:space="preserve">
+    <value>Extra mileage</value>
+  </data>
+  <data name="Journal.Nature.Fuel" xml:space="preserve">
+    <value>Fuel</value>
+  </data>
+  <data name="Journal.Nature.LateReturn" xml:space="preserve">
+    <value>Late return</value>
+  </data>
+  <data name="Journal.Nature.Cleaning" xml:space="preserve">
+    <value>Cleaning</value>
+  </data>
+  <data name="Journal.Nature.OtherCharge" xml:space="preserve">
+    <value>Other charges</value>
+  </data>
+  <data name="Journal.Nature.Damage" xml:space="preserve">
+    <value>Damages</value>
+  </data>
+  <data name="Journal.Nature.CancellationFee" xml:space="preserve">
+    <value>Cancellation fee</value>
+  </data>
+  <data name="Journal.Nature.FineReinvoicing" xml:space="preserve">
+    <value>Fine re-invoiced</value>
+  </data>
+  <data name="Journal.Nature.ManagementFee" xml:space="preserve">
+    <value>Management fee</value>
+  </data>
+  <data name="Journal.Category.Fuel" xml:space="preserve">
+    <value>Fuel</value>
+  </data>
+  <data name="Journal.Category.Maintenance" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="Journal.Category.Repairs" xml:space="preserve">
+    <value>Repairs</value>
+  </data>
+  <data name="Journal.Category.Insurance" xml:space="preserve">
+    <value>Insurance</value>
+  </data>
+  <data name="Journal.Category.RoadTax" xml:space="preserve">
+    <value>Road tax</value>
+  </data>
+  <data name="Journal.Category.Leasing" xml:space="preserve">
+    <value>Leasing rent</value>
+  </data>
+  <data name="Journal.Category.CommissionBookingCom" xml:space="preserve">
+    <value>Booking.com commission</value>
+  </data>
+  <data name="Journal.Category.CommissionClicToPay" xml:space="preserve">
+    <value>Clic to Pay commission</value>
+  </data>
+  <data name="Journal.Category.PremisesRent" xml:space="preserve">
+    <value>Premises rent</value>
+  </data>
+  <data name="Journal.Category.Utilities" xml:space="preserve">
+    <value>Utilities</value>
+  </data>
+  <data name="Journal.Category.Other" xml:space="preserve">
+    <value>Other expense</value>
+  </data>
+  <data name="Journal.Method.Cash" xml:space="preserve">
+    <value>cash</value>
+  </data>
+  <data name="Journal.Method.CardTerminal" xml:space="preserve">
+    <value>card terminal</value>
+  </data>
+  <data name="Journal.Method.Cheque" xml:space="preserve">
+    <value>cheque</value>
+  </data>
+  <data name="Journal.Method.BankTransfer" xml:space="preserve">
+    <value>bank transfer</value>
+  </data>
+  <data name="Journal.Method.ChannelPrepaid" xml:space="preserve">
+    <value>prepaid to the channel</value>
+  </data>
+  <data name="Journal.Method.ClicToPay" xml:space="preserve">
+    <value>Clic to Pay</value>
+  </data>
+  <data name="Journal.DepositMode.CardImprint" xml:space="preserve">
+    <value>card imprint</value>
+  </data>
+  <data name="Journal.DepositMode.Cash" xml:space="preserve">
+    <value>cash</value>
+  </data>
+  <data name="Journal.DepositMode.Cheque" xml:space="preserve">
+    <value>cheque</value>
+  </data>
+  <data name="Journal.Sales" xml:space="preserve">
+    <value>Sales</value>
+  </data>
+  <data name="Journal.Purchases" xml:space="preserve">
+    <value>Purchases</value>
+  </data>
+  <data name="Journal.Bank" xml:space="preserve">
+    <value>Bank</value>
+  </data>
+  <data name="Journal.Cash" xml:space="preserve">
+    <value>Cash</value>
+  </data>
+  <data name="Journal.Miscellaneous" xml:space="preserve">
+    <value>Miscellaneous operations</value>
+  </data>
+  <data name="Accounting.Title" xml:space="preserve">
+    <value>Pre-accounting</value>
+  </data>
+  <data name="Accounting.Intro" xml:space="preserve">
+    <value>The sales, purchases, bank, cash and miscellaneous journals, generated from the invoices, credit notes, expenses, payments, deposits and cash sessions; every entry balances. CSV and Excel exports in the generic format (the format of the chartered accountant is to be defined), chart of accounts, mapping and monthly closing.</value>
+  </data>
+  <data name="Accounting.Tab.Journals" xml:space="preserve">
+    <value>Journals</value>
+  </data>
+  <data name="Accounting.Tab.Closing" xml:space="preserve">
+    <value>Monthly closing</value>
+  </data>
+  <data name="Accounting.Tab.Chart" xml:space="preserve">
+    <value>Chart of accounts</value>
+  </data>
+  <data name="Accounting.Tab.Mapping" xml:space="preserve">
+    <value>Mapping</value>
+  </data>
+  <data name="Field.Agency" xml:space="preserve">
+    <value>Agency</value>
+  </data>
+  <data name="Field.Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="Field.Journal" xml:space="preserve">
+    <value>Journal shown</value>
+  </data>
+  <data name="Period.Closed" xml:space="preserve">
+    <value>Month closed</value>
+  </data>
+  <data name="Period.Open" xml:space="preserve">
+    <value>Month open</value>
+  </data>
+  <data name="Journals.Frozen" xml:space="preserve">
+    <value>Journals frozen when the month was closed on {0} by {1}: they always export the same.</value>
+  </data>
+  <data name="Journals.Live" xml:space="preserve">
+    <value>Journals generated from the recorded facts: they change until the month is closed.</value>
+  </data>
+  <data name="Journals.Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="Journals.Unbalanced" xml:space="preserve">
+    <value>Unbalanced</value>
+  </data>
+  <data name="Journals.MissingMapping" xml:space="preserve">
+    <value>Operations without an account in the mapping: {0}.</value>
+  </data>
+  <data name="Journals.Errors" xml:space="preserve">
+    <value>Entries that cannot balance: {0}.</value>
+  </data>
+  <data name="Journals.Totals" xml:space="preserve">
+    <value>Totals per journal</value>
+  </data>
+  <data name="Journals.All" xml:space="preserve">
+    <value>All journals</value>
+  </data>
+  <data name="Journals.Lines" xml:space="preserve">
+    <value>Lines of the entries</value>
+  </data>
+  <data name="Journals.None" xml:space="preserve">
+    <value>No entry for this month.</value>
+  </data>
+  <data name="Journals.Balances" xml:space="preserve">
+    <value>Totals per account</value>
+  </data>
+  <data name="Export.Label" xml:space="preserve">
+    <value>Export {0} as {1}</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Column.Journal" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Column.Entries" xml:space="preserve">
+    <value>Entries</value>
+  </data>
+  <data name="Column.Debit" xml:space="preserve">
+    <value>Debit</value>
+  </data>
+  <data name="Column.Credit" xml:space="preserve">
+    <value>Credit</value>
+  </data>
+  <data name="Column.Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Column.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Column.Piece" xml:space="preserve">
+    <value>Piece</value>
+  </data>
+  <data name="Column.Account" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="Column.Label" xml:space="preserve">
+    <value>Label</value>
+  </data>
+  <data name="Column.Lettering" xml:space="preserve">
+    <value>Lettering</value>
+  </data>
+  <data name="Column.Balance" xml:space="preserve">
+    <value>Balance</value>
+  </data>
+  <data name="Column.Severity" xml:space="preserve">
+    <value>Severity</value>
+  </data>
+  <data name="Column.Check" xml:space="preserve">
+    <value>Check</value>
+  </data>
+  <data name="Column.Subject" xml:space="preserve">
+    <value>Subject</value>
+  </data>
+  <data name="Column.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Column.Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Column.ClosedBy" xml:space="preserve">
+    <value>Closed on, by</value>
+  </data>
+  <data name="Column.Reopened" xml:space="preserve">
+    <value>Reopening</value>
+  </data>
+  <data name="Column.Class" xml:space="preserve">
+    <value>Class</value>
+  </data>
+  <data name="Column.MappedTo" xml:space="preserve">
+    <value>Operations</value>
+  </data>
+  <data name="Column.OperationType" xml:space="preserve">
+    <value>Operation type</value>
+  </data>
+  <data name="Column.Default" xml:space="preserve">
+    <value>Default account</value>
+  </data>
+  <data name="Closing.Intro" xml:space="preserve">
+    <value>A month is closed once it is over: the cash sessions must be locked and the differences of the reconciliations justified; the files to invoice and the e-invoices not transmitted are to be confirmed. The journals are then frozen and nothing more can be dated in the month. Only a manager reopens a month, with a reason.</value>
+  </data>
+  <data name="Closing.Month" xml:space="preserve">
+    <value>Closing of {0}</value>
+  </data>
+  <data name="Closing.AlreadyClosed" xml:space="preserve">
+    <value>This month is closed: its journals are frozen.</value>
+  </data>
+  <data name="Closing.NotOver" xml:space="preserve">
+    <value>This month is not over: it will be closed once it has passed.</value>
+  </data>
+  <data name="Closing.NoCheck" xml:space="preserve">
+    <value>Nothing to settle nor to confirm.</value>
+  </data>
+  <data name="Closing.Checks" xml:space="preserve">
+    <value>Checks of the closing</value>
+  </data>
+  <data name="Closing.Blocked" xml:space="preserve">
+    <value>Settle the blocking points first (lock the cash sessions, justify the differences).</value>
+  </data>
+  <data name="Closing.Confirm" xml:space="preserve">
+    <value>I have seen the {0} points to confirm and I close anyway.</value>
+  </data>
+  <data name="Closing.Submit" xml:space="preserve">
+    <value>Close the month</value>
+  </data>
+  <data name="Closing.Done" xml:space="preserve">
+    <value>The month of {0} is closed.</value>
+  </data>
+  <data name="Closing.Periods" xml:space="preserve">
+    <value>Months of the agency</value>
+  </data>
+  <data name="Closing.Select" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Closing.Select.Label" xml:space="preserve">
+    <value>Show the month of {0}</value>
+  </data>
+  <data name="Period.ReopenedBy" xml:space="preserve">
+    <value>Reopened on {0} by {1}: {2}</value>
+  </data>
+  <data name="Reopen" xml:space="preserve">
+    <value>Reopen the month</value>
+  </data>
+  <data name="Reopen.Title" xml:space="preserve">
+    <value>Reopen {0}</value>
+  </data>
+  <data name="Reopen.Warning" xml:space="preserve">
+    <value>Reopening {0} allows invoices, payments, expenses and cash movements to be dated in it again; its journals will be generated again. The previous closing is kept.</value>
+  </data>
+  <data name="Reopen.Submit" xml:space="preserve">
+    <value>Reopen</value>
+  </data>
+  <data name="Reopen.Done" xml:space="preserve">
+    <value>The month is reopened.</value>
+  </data>
+  <data name="Field.ReopenReason" xml:space="preserve">
+    <value>Reason for the reopening</value>
+  </data>
+  <data name="Field.ReopenReason.Help" xml:space="preserve">
+    <value>10 characters at least; it is written to the audit log.</value>
+  </data>
+  <data name="Severity.Blocking" xml:space="preserve">
+    <value>Blocking</value>
+  </data>
+  <data name="Severity.Confirmable" xml:space="preserve">
+    <value>To confirm</value>
+  </data>
+  <data name="Check.UnlockedCashSession" xml:space="preserve">
+    <value>Cash session not locked</value>
+  </data>
+  <data name="Check.UnjustifiedDifference" xml:space="preserve">
+    <value>Reconciliation difference not justified</value>
+  </data>
+  <data name="Check.FileToInvoice" xml:space="preserve">
+    <value>File to invoice</value>
+  </data>
+  <data name="Check.EInvoiceNotTransmitted" xml:space="preserve">
+    <value>E-invoice not accepted by TTN</value>
+  </data>
+  <data name="PeriodStatus.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="PeriodStatus.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Chart.Intro" xml:space="preserve">
+    <value>The default chart of accounts is inspired by the Tunisian accounting system: its accounts are “to be validated by the chartered accountant” until someone confirms them. A number never changes; an account used by the mapping stays active.</value>
+  </data>
+  <data name="Chart.Accounts" xml:space="preserve">
+    <value>Accounts</value>
+  </data>
+  <data name="Account.Add" xml:space="preserve">
+    <value>Add an account</value>
+  </data>
+  <data name="Account.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Account.Saved" xml:space="preserve">
+    <value>Account saved.</value>
+  </data>
+  <data name="Account.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Account.Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Account.ToValidate" xml:space="preserve">
+    <value>To be validated by the chartered accountant</value>
+  </data>
+  <data name="Account.Rename" xml:space="preserve">
+    <value>Rename account {0}</value>
+  </data>
+  <data name="Account.Rename.Label" xml:space="preserve">
+    <value>Rename account {0}</value>
+  </data>
+  <data name="Account.Confirm.Label" xml:space="preserve">
+    <value>Confirm account {0} (validated by the chartered accountant)</value>
+  </data>
+  <data name="Account.Confirmed" xml:space="preserve">
+    <value>Account {0} confirmed.</value>
+  </data>
+  <data name="Account.Deactivate.Label" xml:space="preserve">
+    <value>Deactivate account {0}</value>
+  </data>
+  <data name="Account.Activate.Label" xml:space="preserve">
+    <value>Activate account {0}</value>
+  </data>
+  <data name="Field.AccountNumber" xml:space="preserve">
+    <value>Account number</value>
+  </data>
+  <data name="Field.AccountNumber.Help" xml:space="preserve">
+    <value>2 to 10 digits, the first one from 1 to 9; it never changes.</value>
+  </data>
+  <data name="Field.AccountLabel" xml:space="preserve">
+    <value>Label of the account</value>
+  </data>
+  <data name="Field.Account" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="Mapping.Intro" xml:space="preserve">
+    <value>The account of each operation type. Deposits always go to the liabilities (a debt to the customer): a retention only becomes revenue through the invoice of the damages.</value>
+  </data>
+  <data name="Mapping.Change" xml:space="preserve">
+    <value>Change the account</value>
+  </data>
+  <data name="Mapping.Change.Label" xml:space="preserve">
+    <value>Change the account of “{0}”</value>
+  </data>
+  <data name="Mapping.Default" xml:space="preserve">
+    <value>Default account: {0}</value>
+  </data>
+  <data name="Mapping.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Mapping.Saved" xml:space="preserve">
+    <value>Mapping saved.</value>
+  </data>
+  <data name="MappingGroup.Sales" xml:space="preserve">
+    <value>Sales (natures of the invoice lines)</value>
+  </data>
+  <data name="MappingGroup.Taxes" xml:space="preserve">
+    <value>Taxes</value>
+  </data>
+  <data name="MappingGroup.ThirdParties" xml:space="preserve">
+    <value>Third parties</value>
+  </data>
+  <data name="MappingGroup.Treasury" xml:space="preserve">
+    <value>Treasury</value>
+  </data>
+  <data name="MappingGroup.Expenses" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="MappingGroup.Differences" xml:space="preserve">
+    <value>Differences</value>
+  </data>
+  <data name="Mapping.sales.rental" xml:space="preserve">
+    <value>Vehicle rental</value>
+  </data>
+  <data name="Mapping.sales.discount" xml:space="preserve">
+    <value>Discounts granted</value>
+  </data>
+  <data name="Mapping.sales.extras" xml:space="preserve">
+    <value>Extras and equipment</value>
+  </data>
+  <data name="Mapping.sales.protection" xml:space="preserve">
+    <value>Protections and excess waivers</value>
+  </data>
+  <data name="Mapping.sales.delivery" xml:space="preserve">
+    <value>Deliveries and collections</value>
+  </data>
+  <data name="Mapping.sales.daily_contribution" xml:space="preserve">
+    <value>Daily contribution (collected for the State)</value>
+  </data>
+  <data name="Mapping.sales.extra_mileage" xml:space="preserve">
+    <value>Extra mileage</value>
+  </data>
+  <data name="Mapping.sales.fuel" xml:space="preserve">
+    <value>Fuel re-invoiced</value>
+  </data>
+  <data name="Mapping.sales.late_return" xml:space="preserve">
+    <value>Late returns</value>
+  </data>
+  <data name="Mapping.sales.cleaning" xml:space="preserve">
+    <value>Cleaning</value>
+  </data>
+  <data name="Mapping.sales.other_charge" xml:space="preserve">
+    <value>Other charges re-invoiced</value>
+  </data>
+  <data name="Mapping.sales.damage" xml:space="preserve">
+    <value>Damages re-invoiced</value>
+  </data>
+  <data name="Mapping.sales.cancellation_fee" xml:space="preserve">
+    <value>Cancellation fees</value>
+  </data>
+  <data name="Mapping.sales.fine_reinvoicing" xml:space="preserve">
+    <value>Fines re-invoiced (disbursements)</value>
+  </data>
+  <data name="Mapping.sales.management_fee" xml:space="preserve">
+    <value>Management fees</value>
+  </data>
+  <data name="Mapping.taxes.vat_collected" xml:space="preserve">
+    <value>VAT collected (other rates)</value>
+  </data>
+  <data name="Mapping.taxes.vat_collected.19" xml:space="preserve">
+    <value>VAT collected 19 %</value>
+  </data>
+  <data name="Mapping.taxes.vat_collected.13" xml:space="preserve">
+    <value>VAT collected 13 %</value>
+  </data>
+  <data name="Mapping.taxes.vat_collected.7" xml:space="preserve">
+    <value>VAT collected 7 %</value>
+  </data>
+  <data name="Mapping.taxes.vat_deductible" xml:space="preserve">
+    <value>Deductible VAT</value>
+  </data>
+  <data name="Mapping.taxes.stamp_duty" xml:space="preserve">
+    <value>Stamp duty</value>
+  </data>
+  <data name="Mapping.third_parties.customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Mapping.third_parties.suppliers" xml:space="preserve">
+    <value>Suppliers</value>
+  </data>
+  <data name="Mapping.third_parties.deposits_received" xml:space="preserve">
+    <value>Deposits received (debt to the customers)</value>
+  </data>
+  <data name="Mapping.third_parties.booking_com" xml:space="preserve">
+    <value>Booking.com — prepaid to receive</value>
+  </data>
+  <data name="Mapping.treasury.bank" xml:space="preserve">
+    <value>Bank (payouts, expenses paid by bank, settlements)</value>
+  </data>
+  <data name="Mapping.treasury.cash" xml:space="preserve">
+    <value>Cash — revenue cash</value>
+  </data>
+  <data name="Mapping.treasury.cash_deposits" xml:space="preserve">
+    <value>Cash — cash deposits</value>
+  </data>
+  <data name="Mapping.treasury.card_terminal" xml:space="preserve">
+    <value>Card terminal receipts</value>
+  </data>
+  <data name="Mapping.treasury.cheques" xml:space="preserve">
+    <value>Cheque receipts</value>
+  </data>
+  <data name="Mapping.treasury.bank_transfers" xml:space="preserve">
+    <value>Bank transfer receipts</value>
+  </data>
+  <data name="Mapping.treasury.clictopay_clearing" xml:space="preserve">
+    <value>Clic to Pay — receipts to collect</value>
+  </data>
+  <data name="Mapping.treasury.card_imprint_deposits" xml:space="preserve">
+    <value>Card imprint deposits</value>
+  </data>
+  <data name="Mapping.treasury.cheque_deposits" xml:space="preserve">
+    <value>Cheque deposits</value>
+  </data>
+  <data name="Mapping.treasury.internal_transfers" xml:space="preserve">
+    <value>Internal transfers (cash in and out)</value>
+  </data>
+  <data name="Mapping.expenses.fuel" xml:space="preserve">
+    <value>Fuel expenses</value>
+  </data>
+  <data name="Mapping.expenses.maintenance" xml:space="preserve">
+    <value>Maintenance expenses</value>
+  </data>
+  <data name="Mapping.expenses.repairs" xml:space="preserve">
+    <value>Repair expenses</value>
+  </data>
+  <data name="Mapping.expenses.insurance" xml:space="preserve">
+    <value>Insurance</value>
+  </data>
+  <data name="Mapping.expenses.road_tax" xml:space="preserve">
+    <value>Road tax</value>
+  </data>
+  <data name="Mapping.expenses.leasing" xml:space="preserve">
+    <value>Leasing rents</value>
+  </data>
+  <data name="Mapping.expenses.commission_booking_com" xml:space="preserve">
+    <value>Booking.com commissions (including those deducted from the payouts)</value>
+  </data>
+  <data name="Mapping.expenses.commission_clictopay" xml:space="preserve">
+    <value>Clic to Pay commissions (including those of the settlements)</value>
+  </data>
+  <data name="Mapping.expenses.premises_rent" xml:space="preserve">
+    <value>Premises rents</value>
+  </data>
+  <data name="Mapping.expenses.utilities" xml:space="preserve">
+    <value>Utilities (water, electricity, phone)</value>
+  </data>
+  <data name="Mapping.expenses.other" xml:space="preserve">
+    <value>Other expenses</value>
+  </data>
+  <data name="Mapping.differences.cash_shortage" xml:space="preserve">
+    <value>Cash differences (shortages)</value>
+  </data>
+  <data name="Mapping.differences.cash_surplus" xml:space="preserve">
+    <value>Cash differences (surpluses)</value>
+  </data>
+  <data name="Mapping.differences.suspense" xml:space="preserve">
+    <value>Payout differences to justify</value>
+  </data>
+  <data name="Reconciliation.Title" xml:space="preserve">
+    <value>Reconciliations</value>
+  </data>
+  <data name="Reconciliation.Intro" xml:space="preserve">
+    <value>Closed cash sessions against receipts, Clic to Pay payments against the statuses of the gateway and the merchant statement, Booking.com payouts against bookings and commissions. Each difference is justified (reason, user, date) and stays visible; an unjustified difference blocks the closing of the month.</value>
+  </data>
+  <data name="Reconciliation.MonthClosed" xml:space="preserve">
+    <value>This month is closed: its differences and their justifications stay visible.</value>
+  </data>
+  <data name="Reconciliation.Tab.Cash" xml:space="preserve">
+    <value>Cash</value>
+  </data>
+  <data name="Reconciliation.Tab.ClicToPay" xml:space="preserve">
+    <value>Clic to Pay</value>
+  </data>
+  <data name="Reconciliation.Tab.Channels" xml:space="preserve">
+    <value>Booking.com</value>
+  </data>
+  <data name="Reconciliation.Cash.Intro" xml:space="preserve">
+    <value>Each cash session of the month: the cash received and paid back recorded by the payments against the movements of the drawer, and the difference counted at the closing (with the justification of the cashier).</value>
+  </data>
+  <data name="Reconciliation.Cash.Sessions" xml:space="preserve">
+    <value>Cash sessions of the month</value>
+  </data>
+  <data name="Reconciliation.Cash.None" xml:space="preserve">
+    <value>No cash session this month.</value>
+  </data>
+  <data name="Reconciliation.ClicToPay.Intro" xml:space="preserve">
+    <value>The online payments settled in the month, the status read from Clic to Pay and the merchant statement imported (generic CSV) or typed by hand: matched, missing from the statement, lines without payment.</value>
+  </data>
+  <data name="Reconciliation.ClicToPay.Payments" xml:space="preserve">
+    <value>Online payments of the month</value>
+  </data>
+  <data name="Reconciliation.ClicToPay.Lines" xml:space="preserve">
+    <value>Lines of the statement of the month</value>
+  </data>
+  <data name="Reconciliation.ClicToPay.None" xml:space="preserve">
+    <value>No online payment settled this month.</value>
+  </data>
+  <data name="Reconciliation.ClicToPay.NoStatement" xml:space="preserve">
+    <value>No merchant statement for this month: only the statuses of the gateway are compared.</value>
+  </data>
+  <data name="Reconciliation.Channels.Intro" xml:space="preserve">
+    <value>The reconciliation of the channels (bookings, commissions and payout entered) is done in the channels screen; the payouts and the commissions they deduct go to the bank journal.</value>
+  </data>
+  <data name="Reconciliation.Channels.Open" xml:space="preserve">
+    <value>Open the reconciliation of the channels</value>
+  </data>
+  <data name="Reconciliation.Channels.Settlements" xml:space="preserve">
+    <value>Payouts of the channels of the month</value>
+  </data>
+  <data name="Reconciliation.Channels.None" xml:space="preserve">
+    <value>No channel for this agency.</value>
+  </data>
+  <data name="Statement.Title" xml:space="preserve">
+    <value>Clic to Pay merchant statement</value>
+  </data>
+  <data name="Statement.Format.Help" xml:space="preserve">
+    <value>Generic CSV format (until the one of SMT): a header line with the columns date, reference, type (payment or refund), amount, and optionally fee, settlement_date, note; semicolon or comma separator.</value>
+  </data>
+  <data name="Statement.Import" xml:space="preserve">
+    <value>Import a CSV statement</value>
+  </data>
+  <data name="Statement.Manual" xml:space="preserve">
+    <value>Enter a line</value>
+  </data>
+  <data name="Statement.Manual.Submit" xml:space="preserve">
+    <value>Save the line</value>
+  </data>
+  <data name="Statement.Manual.Done" xml:space="preserve">
+    <value>Statement line saved.</value>
+  </data>
+  <data name="Statement.Imported" xml:space="preserve">
+    <value>Statement imported: {0} lines.</value>
+  </data>
+  <data name="Statement.HeaderInvalid" xml:space="preserve">
+    <value>The header line of the file lacks the columns date, reference, type and amount.</value>
+  </data>
+  <data name="Statement.LinesInvalid" xml:space="preserve">
+    <value>Nothing is imported: unreadable lines {0}.</value>
+  </data>
+  <data name="Statement.List" xml:space="preserve">
+    <value>Statements recorded</value>
+  </data>
+  <data name="Statement.Delete" xml:space="preserve">
+    <value>Delete the statement</value>
+  </data>
+  <data name="Statement.Delete.Label" xml:space="preserve">
+    <value>Delete the statement imported on {0}</value>
+  </data>
+  <data name="Statement.Delete.Message" xml:space="preserve">
+    <value>Delete this statement and its {0} lines?</value>
+  </data>
+  <data name="Statement.Deleted" xml:space="preserve">
+    <value>Statement deleted.</value>
+  </data>
+  <data name="Field.TransactionDate" xml:space="preserve">
+    <value>Date of the transaction</value>
+  </data>
+  <data name="Field.LineKind" xml:space="preserve">
+    <value>Transaction</value>
+  </data>
+  <data name="Field.OrderReference" xml:space="preserve">
+    <value>Order number</value>
+  </data>
+  <data name="Field.OrderReference.Help" xml:space="preserve">
+    <value>Our order number (32 characters) or the order id of Clic to Pay.</value>
+  </data>
+  <data name="Field.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Field.Fee" xml:space="preserve">
+    <value>Fee</value>
+  </data>
+  <data name="Field.SettledOn" xml:space="preserve">
+    <value>Day paid to the bank</value>
+  </data>
+  <data name="Field.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Field.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Field.Reason.Help" xml:space="preserve">
+    <value>5 characters at least.</value>
+  </data>
+  <data name="Figure.Payments" xml:space="preserve">
+    <value>Payments</value>
+  </data>
+  <data name="Figure.Matched" xml:space="preserve">
+    <value>Matched</value>
+  </data>
+  <data name="Figure.Missing" xml:space="preserve">
+    <value>Missing from the statement</value>
+  </data>
+  <data name="Figure.Extra" xml:space="preserve">
+    <value>Lines without payment</value>
+  </data>
+  <data name="Column.BusinessDate" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="Column.Cashier" xml:space="preserve">
+    <value>Cashier</value>
+  </data>
+  <data name="Column.ReceivedRecorded" xml:space="preserve">
+    <value>Received (payments)</value>
+  </data>
+  <data name="Column.ReceivedInDrawer" xml:space="preserve">
+    <value>Received (drawer)</value>
+  </data>
+  <data name="Column.RefundsRecorded" xml:space="preserve">
+    <value>Refunded (payments)</value>
+  </data>
+  <data name="Column.RefundsInDrawer" xml:space="preserve">
+    <value>Refunded (drawer)</value>
+  </data>
+  <data name="Column.Expenses" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="Column.RevenueVariance" xml:space="preserve">
+    <value>Cash difference</value>
+  </data>
+  <data name="Column.DepositVariance" xml:space="preserve">
+    <value>Deposit difference</value>
+  </data>
+  <data name="Column.CashierJustification" xml:space="preserve">
+    <value>Justification of the cashier</value>
+  </data>
+  <data name="Column.ImportedAt" xml:space="preserve">
+    <value>Imported on, by</value>
+  </data>
+  <data name="Column.Origin" xml:space="preserve">
+    <value>Origin</value>
+  </data>
+  <data name="Column.File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Column.Lines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="Column.Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Column.SettledOn" xml:space="preserve">
+    <value>Settled on</value>
+  </data>
+  <data name="Column.Booking" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Column.Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="Column.Direction" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+  <data name="Column.GatewayStatus" xml:space="preserve">
+    <value>Gateway status</value>
+  </data>
+  <data name="Column.Match" xml:space="preserve">
+    <value>Match</value>
+  </data>
+  <data name="Column.StatementAmount" xml:space="preserve">
+    <value>Statement amount</value>
+  </data>
+  <data name="Column.TransactionDate" xml:space="preserve">
+    <value>Transaction of</value>
+  </data>
+  <data name="Column.Reference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Column.LineKind" xml:space="preserve">
+    <value>Transaction</value>
+  </data>
+  <data name="Column.Fee" xml:space="preserve">
+    <value>Fee</value>
+  </data>
+  <data name="Column.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Column.Bookings" xml:space="preserve">
+    <value>Bookings</value>
+  </data>
+  <data name="Column.Gross" xml:space="preserve">
+    <value>Gross</value>
+  </data>
+  <data name="Column.Commission" xml:space="preserve">
+    <value>Commission</value>
+  </data>
+  <data name="Column.Expected" xml:space="preserve">
+    <value>Expected payout</value>
+  </data>
+  <data name="Column.Payout" xml:space="preserve">
+    <value>Payout entered</value>
+  </data>
+  <data name="Column.Difference" xml:space="preserve">
+    <value>Difference</value>
+  </data>
+  <data name="Column.Kind" xml:space="preserve">
+    <value>Kind</value>
+  </data>
+  <data name="Column.Justification" xml:space="preserve">
+    <value>Justification</value>
+  </data>
+  <data name="Differences.Title" xml:space="preserve">
+    <value>Differences</value>
+  </data>
+  <data name="Differences.None" xml:space="preserve">
+    <value>No difference for this month.</value>
+  </data>
+  <data name="Difference.Justified" xml:space="preserve">
+    <value>Justified</value>
+  </data>
+  <data name="Difference.Unjustified" xml:space="preserve">
+    <value>Not justified</value>
+  </data>
+  <data name="Justification.By" xml:space="preserve">
+    <value>On {0} by {1}</value>
+  </data>
+  <data name="Justification.Former" xml:space="preserve">
+    <value>Justified for {0}: {1} (on {2} by {3})</value>
+  </data>
+  <data name="Justify" xml:space="preserve">
+    <value>Justify</value>
+  </data>
+  <data name="Justify.Label" xml:space="preserve">
+    <value>Justify the difference {0}</value>
+  </data>
+  <data name="Justify.Title" xml:space="preserve">
+    <value>Justify a difference</value>
+  </data>
+  <data name="Justify.Message" xml:space="preserve">
+    <value>{0} — {1}: {2}</value>
+  </data>
+  <data name="Justify.Submit" xml:space="preserve">
+    <value>Save the justification</value>
+  </data>
+  <data name="Justify.Done" xml:space="preserve">
+    <value>Difference justified.</value>
+  </data>
+  <data name="DifferenceKind.CashVariance" xml:space="preserve">
+    <value>Cash count difference</value>
+  </data>
+  <data name="DifferenceKind.CashReceiptsMismatch" xml:space="preserve">
+    <value>Drawer different from the payments</value>
+  </data>
+  <data name="DifferenceKind.GatewayAttention" xml:space="preserve">
+    <value>Payment flagged by the gateway</value>
+  </data>
+  <data name="DifferenceKind.StatementMissing" xml:space="preserve">
+    <value>Payment missing from the statement</value>
+  </data>
+  <data name="DifferenceKind.StatementExtra" xml:space="preserve">
+    <value>Statement line without payment</value>
+  </data>
+  <data name="DifferenceKind.StatementAmountMismatch" xml:space="preserve">
+    <value>Different amount on the statement</value>
+  </data>
+  <data name="DifferenceKind.PayoutDifference" xml:space="preserve">
+    <value>Payout different from the expected one</value>
+  </data>
+  <data name="DifferenceKind.PayoutMissing" xml:space="preserve">
+    <value>Expected payout not entered</value>
+  </data>
+  <data name="Match.Matched" xml:space="preserve">
+    <value>Matched</value>
+  </data>
+  <data name="Match.AmountMismatch" xml:space="preserve">
+    <value>Different amount</value>
+  </data>
+  <data name="Match.Missing" xml:space="preserve">
+    <value>Missing from the statement</value>
+  </data>
+  <data name="Match.NoStatement" xml:space="preserve">
+    <value>No statement</value>
+  </data>
+  <data name="Match.Extra" xml:space="preserve">
+    <value>No payment</value>
+  </data>
+  <data name="LineKind.Payment" xml:space="preserve">
+    <value>Payment</value>
+  </data>
+  <data name="LineKind.Refund" xml:space="preserve">
+    <value>Refund</value>
+  </data>
+  <data name="Origin.Import" xml:space="preserve">
+    <value>Imported file</value>
+  </data>
+  <data name="Origin.Manual" xml:space="preserve">
+    <value>Typed by hand</value>
+  </data>
+  <data name="SessionStatus.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="SessionStatus.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="SessionStatus.Locked" xml:space="preserve">
+    <value>Locked</value>
+  </data>
+  <data name="Direction.Incoming" xml:space="preserve">
+    <value>Payment</value>
+  </data>
+  <data name="Direction.Refund" xml:space="preserve">
+    <value>Refund</value>
+  </data>
+  <data name="Attention.UnknownStatus" xml:space="preserve">
+    <value>Unknown status</value>
+  </data>
+  <data name="Attention.StatusMismatch" xml:space="preserve">
+    <value>Different status</value>
+  </data>
+  <data name="Attention.AmountMismatch" xml:space="preserve">
+    <value>Different amount</value>
+  </data>
+  <data name="Attention.LatePayment" xml:space="preserve">
+    <value>Late payment</value>
+  </data>
+  <data name="Attention.CaptureNotConfirmed" xml:space="preserve">
+    <value>Capture not confirmed</value>
+  </data>
+  <data name="Attention.ReversalNotConfirmed" xml:space="preserve">
+    <value>Reversal not confirmed</value>
+  </data>
+  <data name="Attention.RefundNotConfirmed" xml:space="preserve">
+    <value>Refund not confirmed</value>
+  </data>
+  <data name="Attention.OperationRejected" xml:space="preserve">
+    <value>Operation refused</value>
+  </data>
+</root>

@@ -1,0 +1,65 @@
+@* Adds or replaces the receipt of an expense (photo or PDF of 10 MB at most); the previous file is kept as an accounting piece. *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<ExpensesResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Receipt.Dialog.Help", Number]</MudText>
+        <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp,.pdf" FilesChanged="Picked">
+            <CustomContent Context="upload">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AttachFile" OnClick="@upload.OpenFilePickerAsync"
+                           data-testid="receipt-pick">@L["Receipt.Pick"]</MudButton>
+            </CustomContent>
+        </MudFileUpload>
+        <MudText Typo="Typo.caption" Class="d-block mt-1">@(_file is null ? L["Receipt.Help"] : L["Receipt.Picked", _file.Name])</MudText>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="UploadAsync" Disabled="@(_busy || _file is null)" data-testid="receipt-upload">@L["Receipt.Upload"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IBrowserFile? _file;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid ExpenseId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Number { get; set; } = default!;
+
+    private void Picked(IBrowserFile? file) => _file = file;
+
+    private async Task UploadAsync()
+    {
+        if (_file is not { } file)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        var uploaded = await ExpenseReceipts.UploadAsync(Runner, ExpenseId, file);
+        _busy = false;
+        if (uploaded.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, uploaded.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -126,7 +126,7 @@ public sealed class SnapshotIntegrationTests(IntegrationHost host)
         afterPayment.Sources.InvoicingConnected.ShouldBeTrue("the Billing module serves the amounts invoiced");
         afterPayment.Sources.CommissionsConnected.ShouldBeTrue();
         afterPayment.Sources.ChargesConnected.ShouldBeTrue();
-        afterPayment.Sources.CostSources.ShouldBe(["claims", "fleet"], ignoreOrder: true);
+        afterPayment.Sources.CostSources.ShouldBe(["claims", "expenses", "fleet"], ignoreOrder: true);
     }
 
     [Fact]

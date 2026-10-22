@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting;
 using CarRental.Application.Billing;
 using CarRental.Application.Bookings;
 using CarRental.Application.Cash;
@@ -48,6 +49,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddCashModule()
             .AddChannelsModule()
             .AddMessagingModule()
+            .AddAccountingModule()
             .AddReportingModule();
 
         return services;

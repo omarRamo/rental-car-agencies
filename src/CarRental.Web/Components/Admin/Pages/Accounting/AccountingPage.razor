@@ -1,0 +1,581 @@
+@page "/admin/accounting"
+@attribute [HasPermission(Permissions.AccountingManage)]
+@using CarRental.Application.Accounting.Chart
+@using CarRental.Application.Accounting.Closing
+@using CarRental.Application.Accounting.Journals
+@using CarRental.Application.Referential.Contracts
+@using CarRental.Domain.Accounting
+@using CarRental.Web.Components.Admin.Accounting
+@using CarRental.Web.Components.Admin.Payments
+@using CarRental.Web.Resources.Admin.Accounting
+@inject IOperationRunner Runner
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+@inject TimeProvider Clock
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<PageTitle>@L["Accounting.Title"]</PageTitle>
+<AccountingStyles />
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Accounting.Title"]</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">@L["Accounting.Intro"]</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        @if (_agencies.Count > 1)
+        {
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
+                    @foreach (var agency in _agencies)
+                    {
+                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" Value="_monthValue" ValueChanged="MonthChangedAsync" Label="@L["Field.Month"]" InputType="InputType.Month" ShrinkLabel="true"
+                          InputId="accounting-month" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTabs Elevation="1" Rounded="true" TabPanelsClass="pt-4" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="@L["Accounting.Tab.Journals"]">
+        @if (_journals is { } journals)
+        {
+            <div class="d-flex flex-wrap align-center gap-3 mb-3">
+                @if (journals.IsClosed)
+                {
+                    <FinanceBadge Tone="FinanceTone.Neutral">@L["Period.Closed"]</FinanceBadge>
+                    <MudText Typo="Typo.body2">@L["Journals.Frozen", PaymentsFormat.Instant(journals.ClosedAtUtc), journals.ClosedByName ?? "—"]</MudText>
+                }
+                else
+                {
+                    <FinanceBadge Tone="FinanceTone.Success">@L["Period.Open"]</FinanceBadge>
+                    <MudText Typo="Typo.body2">@L["Journals.Live"]</MudText>
+                }
+                <FinanceBadge Tone="@(journals.IsBalanced ? FinanceTone.Success : FinanceTone.Danger)">@(journals.IsBalanced ? L["Journals.Balanced"] : L["Journals.Unbalanced"])</FinanceBadge>
+            </div>
+
+            @if (journals.MissingKeys.Count > 0)
+            {
+                <FinanceNotice Tone="FinanceTone.Danger" Class="mb-3" Role="alert">@L["Journals.MissingMapping", string.Join(", ", journals.MissingKeys.Select(k => L[$"Mapping.{k}"].Value))]</FinanceNotice>
+            }
+
+            @if (journals.Errors.Count > 0)
+            {
+                <FinanceNotice Tone="FinanceTone.Danger" Class="mb-3" Role="alert">@L["Journals.Errors", string.Join(", ", journals.Errors)]</FinanceNotice>
+            }
+
+            <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Journals.Totals"]">
+                <MudSimpleTable Dense="true" Elevation="1" aria-label="@L["Journals.Totals"]" data-testid="journal-totals">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Column.Journal"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Entries"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Debit"]</th>
+                            <th scope="col" class="accounting-number">@L["Column.Credit"]</th>
+                            <th scope="col">@L["Column.Balanced"]</th>
+                            <th scope="col"><span class="visually-hidden">@L["Column.Actions"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var total in journals.Totals)
+                        {
+                            <tr>
+                                <td>@total.Code — @L[$"Journal.{total.Journal}"]</td>
+                                <td class="accounting-number">@total.EntryCount</td>
+                                <td class="accounting-number">@AccountingFormat.Amount(total.Debit)</td>
+                                <td class="accounting-number">@AccountingFormat.Amount(total.Credit)</td>
+                                <td>@(total.IsBalanced ? L["Yes"] : L["No"])</td>
+                                <td>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
+                                               Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, total.Journal, GenericCsvJournalExporter.FormatName)"
+                                               aria-label="@L["Export.Label", total.Code, "CSV"]" data-testid="@($"export-csv-{total.Code}")">CSV</MudButton>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
+                                               Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, total.Journal, JournalWorkbook.FormatName)"
+                                               aria-label="@L["Export.Label", total.Code, "Excel"]">Excel</MudButton>
+                                </td>
+                            </tr>
+                        }
+                        <tr class="accounting-total">
+                            <td>@L["Journals.All"]</td>
+                            <td class="accounting-number">@journals.Totals.Sum(t => t.EntryCount)</td>
+                            <td class="accounting-number">@AccountingFormat.Amount(journals.TotalDebit)</td>
+                            <td class="accounting-number">@AccountingFormat.Amount(journals.TotalCredit)</td>
+                            <td>@(journals.IsBalanced ? L["Yes"] : L["No"])</td>
+                            <td>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
+                                           Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, null, GenericCsvJournalExporter.FormatName)"
+                                           aria-label="@L["Export.Label", L["Journals.All"], "CSV"]" data-testid="export-csv-all">CSV</MudButton>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
+                                           Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, null, JournalWorkbook.FormatName)"
+                                           aria-label="@L["Export.Label", L["Journals.All"], "Excel"]">Excel</MudButton>
+                            </td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+
+            <MudSelect T="Journal?" Value="_journal" ValueChanged="JournalChanged" Label="@L["Field.Journal"]" Clearable="true" Class="mb-3" Style="max-inline-size:20rem"
+                       ToStringFunc="@(j => j is { } journal ? $"{JournalCatalog.CodeOf(journal)} — {L[$"Journal.{journal}"]}" : L["Journals.All"])">
+                @foreach (var journal in JournalCatalog.All)
+                {
+                    <MudSelectItem T="Journal?" Value="@((Journal?)journal)">@JournalCatalog.CodeOf(journal) — @L[$"Journal.{journal}"]</MudSelectItem>
+                }
+            </MudSelect>
+
+            <div class="accounting-scroll mb-4" tabindex="0" role="region" aria-label="@L["Journals.Lines"]">
+                <MudTable T="JournalLineRow" Items="Lines" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="50"
+                          TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Journals.Lines"].Value })">
+                    <HeaderContent>
+                        <MudTh>@L["Column.Date"]</MudTh>
+                        <MudTh>@L["Column.Journal"]</MudTh>
+                        <MudTh>@L["Column.Piece"]</MudTh>
+                        <MudTh>@L["Column.Account"]</MudTh>
+                        <MudTh>@L["Column.Label"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.Debit"]</MudTh>
+                        <MudTh Class="accounting-number">@L["Column.Credit"]</MudTh>
+                        <MudTh>@L["Column.Lettering"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@L["Column.Date"]">@PaymentsFormat.Date(context.Entry.Date)</MudTd>
+                        <MudTd DataLabel="@L["Column.Journal"]">@context.Entry.JournalCode</MudTd>
+                        <MudTd DataLabel="@L["Column.Piece"]">@context.Entry.Piece</MudTd>
+                        <MudTd DataLabel="@L["Column.Account"]">@context.Line.AccountNumber<MudText Typo="Typo.caption" Class="d-block">@context.Line.AccountLabel</MudText></MudTd>
+                        <MudTd DataLabel="@L["Column.Label"]">@context.Line.Label</MudTd>
+                        <MudTd DataLabel="@L["Column.Debit"]" Class="accounting-number">@AccountingFormat.Side(context.Line.Debit)</MudTd>
+                        <MudTd DataLabel="@L["Column.Credit"]" Class="accounting-number">@AccountingFormat.Side(context.Line.Credit)</MudTd>
+                        <MudTd DataLabel="@L["Column.Lettering"]">@context.Line.LetteringKey</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText>@L["Journals.None"]</MudText></NoRecordsContent>
+                    <PagerContent><AdminTablePager PageSizeOptions="[50, 100, 200]" /></PagerContent>
+                </MudTable>
+            </div>
+
+            <MudExpansionPanels Elevation="1">
+                <MudExpansionPanel Text="@L["Journals.Balances"]">
+                    <div class="accounting-scroll" tabindex="0" role="region" aria-label="@L["Journals.Balances"]">
+                        <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Journals.Balances"]" data-testid="account-balances">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["Column.Account"]</th>
+                                    <th scope="col">@L["Column.Label"]</th>
+                                    <th scope="col" class="accounting-number">@L["Column.Debit"]</th>
+                                    <th scope="col" class="accounting-number">@L["Column.Credit"]</th>
+                                    <th scope="col" class="accounting-number">@L["Column.Balance"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var balance in journals.Balances)
+                                {
+                                    <tr>
+                                        <td>@balance.AccountNumber</td>
+                                        <td>@(balance.AccountLabel ?? "—")</td>
+                                        <td class="accounting-number">@AccountingFormat.Amount(balance.Debit)</td>
+                                        <td class="accounting-number">@AccountingFormat.Amount(balance.Credit)</td>
+                                        <td class="accounting-number">@PaymentsFormat.WithSign(balance.Balance)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </div>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Accounting.Tab.Closing"]">
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Closing.Intro"]</MudText>
+        @if (_preview is { } preview)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="1">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Closing.Month", AccountingFormat.Month(preview.Month)]</MudText>
+                @if (preview.Status == AccountingPeriodStatus.Closed)
+                {
+                    <FinanceNotice Tone="FinanceTone.Info" Class="mb-3" Role="status">@L["Closing.AlreadyClosed"]</FinanceNotice>
+                    @if (_canReopen)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockOpen" OnClick="ReopenAsync" data-testid="period-reopen">@L["Reopen"]</MudButton>
+                    }
+                }
+                else if (!preview.IsOver)
+                {
+                    <FinanceNotice Tone="FinanceTone.Info" Role="status">@L["Closing.NotOver"]</FinanceNotice>
+                }
+                else
+                {
+                    @if (preview.Checks.Count == 0)
+                    {
+                        <FinanceNotice Tone="FinanceTone.Success" Class="mb-3" Role="status">@L["Closing.NoCheck"]</FinanceNotice>
+                    }
+                    else
+                    {
+                        <div class="accounting-scroll mb-3" tabindex="0" role="region" aria-label="@L["Closing.Checks"]">
+                            <MudSimpleTable Dense="true" Elevation="0" aria-label="@L["Closing.Checks"]" data-testid="closing-checks">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Column.Severity"]</th>
+                                        <th scope="col">@L["Column.Check"]</th>
+                                        <th scope="col">@L["Column.Subject"]</th>
+                                        <th scope="col">@L["Column.Date"]</th>
+                                        <th scope="col" class="accounting-number">@L["Column.Amount"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var check in preview.Checks)
+                                    {
+                                        <tr>
+                                            <td><FinanceBadge Tone="@(check.Severity == ClosingCheckSeverity.Blocking ? FinanceTone.Danger : FinanceTone.Warning)">@L[$"Severity.{check.Severity}"]</FinanceBadge></td>
+                                            <td>@L[$"Check.{check.Kind}"]</td>
+                                            <td>@check.Subject</td>
+                                            <td>@(check.Date is { } date ? PaymentsFormat.Date(date) : "—")</td>
+                                            <td class="accounting-number">@(check.Amount is { } amount ? PaymentsFormat.WithSign(amount) : "—")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </div>
+                    }
+
+                    @if (preview.MissingKeys.Count > 0)
+                    {
+                        <FinanceNotice Tone="FinanceTone.Danger" Class="mb-3" Role="alert">@L["Journals.MissingMapping", string.Join(", ", preview.MissingKeys.Select(k => L[$"Mapping.{k}"].Value))]</FinanceNotice>
+                    }
+
+                    <dl class="accounting-facts mb-3">
+                        @foreach (var total in preview.Totals)
+                        {
+                            <div><dt>@total.Code</dt><dd>@AccountingFormat.Amount(total.Debit) / @AccountingFormat.Amount(total.Credit)</dd></div>
+                        }
+                    </dl>
+
+                    @if (preview.HasBlockingChecks)
+                    {
+                        <FinanceNotice Tone="FinanceTone.Danger" Class="mb-3" Role="alert">@L["Closing.Blocked"]</FinanceNotice>
+                    }
+                    else
+                    {
+                        @if (preview.ConfirmableKeys.Count > 0)
+                        {
+                            <MudCheckBox T="bool" @bind-Value="_confirmed" Label="@L["Closing.Confirm", preview.ConfirmableKeys.Count]" Color="Color.Primary" data-testid="closing-confirm" />
+                        }
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" OnClick="CloseAsync"
+                                   Disabled="@(_busy || !preview.CanClose || (preview.ConfirmableKeys.Count > 0 && !_confirmed))" data-testid="period-close">@L["Closing.Submit"]</MudButton>
+                    }
+                }
+            </MudPaper>
+        }
+
+        <div class="accounting-scroll" tabindex="0" role="region" aria-label="@L["Closing.Periods"]">
+            <MudSimpleTable Dense="true" Elevation="1" aria-label="@L["Closing.Periods"]" data-testid="closing-periods">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Column.Month"]</th>
+                        <th scope="col">@L["Column.Status"]</th>
+                        <th scope="col">@L["Column.ClosedBy"]</th>
+                        <th scope="col" class="accounting-number">@L["Column.Entries"]</th>
+                        <th scope="col" class="accounting-number">@L["Column.Debit"]</th>
+                        <th scope="col">@L["Column.Reopened"]</th>
+                        <th scope="col"><span class="visually-hidden">@L["Column.Actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var period in _periods)
+                    {
+                        <tr>
+                            <td>@AccountingFormat.Month(period.Month)</td>
+                            <td>
+                                <FinanceBadge Tone="@(period.Status == AccountingPeriodStatus.Closed ? FinanceTone.Neutral : FinanceTone.Success)">@L[$"PeriodStatus.{period.Status}"]</FinanceBadge>
+                            </td>
+                            <td>@(period.ClosedAtUtc is { } closedAt && period.Status == AccountingPeriodStatus.Closed ? $"{PaymentsFormat.Instant(closedAt)} — {period.ClosedByName}" : "—")</td>
+                            <td class="accounting-number">@(period.EntryCount?.ToString(CultureInfo.CurrentCulture) ?? "—")</td>
+                            <td class="accounting-number">@(period.TotalDebit is { } debit ? AccountingFormat.Amount(debit) : "—")</td>
+                            <td>@(period.ReopenCount > 0 ? L["Period.ReopenedBy", PaymentsFormat.Instant(period.ReopenedAtUtc), period.ReopenedByName ?? "—", period.ReopenReason ?? string.Empty] : "—")</td>
+                            <td>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => SelectMonthAsync(period.Month))"
+                                           aria-label="@L["Closing.Select.Label", AccountingFormat.Month(period.Month)]">@L["Closing.Select"]</MudButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Accounting.Tab.Chart"]">
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Chart.Intro"]</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAccountAsync" Class="mb-3">@L["Account.Add"]</MudButton>
+        <div class="accounting-scroll" tabindex="0" role="region" aria-label="@L["Chart.Accounts"]">
+            <MudTable T="AccountView" Items="_accounts" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm" RowsPerPage="50"
+                      TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Chart.Accounts"].Value })">
+                <HeaderContent>
+                    <MudTh>@L["Column.Account"]</MudTh>
+                    <MudTh>@L["Column.Label"]</MudTh>
+                    <MudTh>@L["Column.Class"]</MudTh>
+                    <MudTh>@L["Column.Status"]</MudTh>
+                    <MudTh>@L["Column.MappedTo"]</MudTh>
+                    <MudTh><span class="visually-hidden">@L["Column.Actions"]</span></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Column.Account"]">@context.Number</MudTd>
+                    <MudTd DataLabel="@L["Column.Label"]">@context.Label</MudTd>
+                    <MudTd DataLabel="@L["Column.Class"]">@context.Class</MudTd>
+                    <MudTd DataLabel="@L["Column.Status"]">
+                        <FinanceBadge Tone="@(context.IsActive ? FinanceTone.Success : FinanceTone.Neutral)">@(context.IsActive ? L["Account.Active"] : L["Account.Inactive"])</FinanceBadge>
+                        @if (context.NeedsValidation)
+                        {
+                            <FinanceBadge Tone="FinanceTone.Warning">@L["Account.ToValidate"]</FinanceBadge>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@L["Column.MappedTo"]">@(context.MappedKeys.Count == 0 ? "—" : string.Join(", ", context.MappedKeys.Select(k => L[$"Mapping.{k}"].Value)))</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => RenameAccountAsync(context))" aria-label="@L["Account.Rename.Label", context.Number]" />
+                        @if (context.NeedsValidation)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Success" OnClick="@(() => ConfirmAccountAsync(context))"
+                                           aria-label="@L["Account.Confirm.Label", context.Number]" />
+                        }
+                        @if (context.MappedKeys.Count == 0)
+                        {
+                            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" Size="Size.Small"
+                                           OnClick="@(() => ToggleAccountAsync(context))"
+                                           aria-label="@(context.IsActive ? L["Account.Deactivate.Label", context.Number] : L["Account.Activate.Label", context.Number])" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent><AdminTablePager PageSizeOptions="[50, 100, 200]" /></PagerContent>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["Accounting.Tab.Mapping"]">
+        <MudText Typo="Typo.body2" Class="mb-3">@L["Mapping.Intro"]</MudText>
+        @foreach (var group in _mappings.GroupBy(m => m.Group))
+        {
+            <section aria-labelledby="@($"mapping-{group.Key}")" class="mb-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" id="@($"mapping-{group.Key}")" GutterBottom="true">@L[$"MappingGroup.{group.Key}"]</MudText>
+                <div class="accounting-scroll" tabindex="0" role="region" aria-labelledby="@($"mapping-{group.Key}")">
+                    <MudSimpleTable Dense="true" Elevation="1" aria-labelledby="@($"mapping-{group.Key}")">
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["Column.OperationType"]</th>
+                                <th scope="col">@L["Column.Account"]</th>
+                                <th scope="col">@L["Column.Default"]</th>
+                                <th scope="col"><span class="visually-hidden">@L["Column.Actions"]</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var mapping in group)
+                            {
+                                <tr>
+                                    <td>@L[$"Mapping.{mapping.Key}"]</td>
+                                    <td>
+                                        @mapping.AccountNumber — @(mapping.AccountLabel ?? "—")
+                                        @if (mapping.AccountNeedsValidation)
+                                        {
+                                            <FinanceBadge Tone="FinanceTone.Warning">@L["Account.ToValidate"]</FinanceBadge>
+                                        }
+                                    </td>
+                                    <td>@mapping.DefaultAccount</td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => MapAsync(mapping))"
+                                                       aria-label="@L["Mapping.Change.Label", L[$"Mapping.{mapping.Key}"]]" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            </section>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private IReadOnlyList<AgencyInfo> _agencies = [];
+    private Guid _agencyId;
+    private AccountingMonth _month;
+    private string? _monthValue;
+    private Journal? _journal;
+    private JournalMonthView? _journals;
+    private ClosingPreview? _preview;
+    private IReadOnlyList<PeriodView> _periods = [];
+    private IReadOnlyList<AccountView> _accounts = [];
+    private IReadOnlyList<MappingView> _mappings = [];
+    private bool _confirmed;
+    private bool _busy;
+    private bool _loaded;
+    private bool _canReopen;
+    private int _tab;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
+    [SupplyParameterFromQuery(Name = "agency")]
+    public Guid? AgencyQuery { get; set; }
+
+    private IEnumerable<JournalLineRow> Lines =>
+        (_journals?.Entries ?? []).Where(e => _journal is not { } wanted || e.Journal == wanted).SelectMany(e => e.Lines.Select(l => new JournalLineRow(e, l)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canReopen = (await AuthenticationState).User.HasPermission(Permissions.AccountingReopen);
+        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
+        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
+        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+
+        // The month just over by default: the one to export and close.
+        _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();
+        _monthValue = AccountingFormat.MonthValue(_month);
+        await LoadAsync();
+        _loaded = true;
+    }
+
+    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+
+    private void JournalChanged(Journal? journal) => _journal = journal;
+
+    private async Task AgencyChangedAsync(Guid agencyId)
+    {
+        _agencyId = agencyId;
+        await LoadAsync();
+    }
+
+    private async Task MonthChangedAsync(string? value)
+    {
+        _monthValue = value;
+        var month = AccountingMonth.Parse(value);
+        if (month.IsSuccess)
+        {
+            _month = month.Value;
+            await LoadAsync();
+        }
+    }
+
+    private async Task SelectMonthAsync(AccountingMonth month)
+    {
+        _month = month;
+        _monthValue = AccountingFormat.MonthValue(month);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_agencyId == Guid.Empty)
+        {
+            return;
+        }
+
+        _confirmed = false;
+        var (agencyId, month) = (_agencyId, _month);
+        var journals = await Runner.RunAsync<JournalService, Result<JournalMonthView>>((service, ct) => service.GetMonthAsync(agencyId, month, cancellationToken: ct));
+        var preview = await Runner.RunAsync<MonthlyClosingService, Result<ClosingPreview>>((service, ct) => service.PreviewAsync(agencyId, month, ct));
+        var periods = await Runner.RunAsync<MonthlyClosingService, Result<IReadOnlyList<PeriodView>>>((service, ct) => service.ListPeriodsAsync(agencyId, 12, ct));
+        var accounts = await Runner.RunAsync<ChartOfAccountsService, Result<IReadOnlyList<AccountView>>>((service, ct) => service.ListAccountsAsync(ct));
+        var mappings = await Runner.RunAsync<ChartOfAccountsService, Result<IReadOnlyList<MappingView>>>((service, ct) => service.ListMappingAsync(ct));
+        if (journals.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, journals.Error), Severity.Error);
+        }
+
+        _journals = journals.IsSuccess ? journals.Value : null;
+        _preview = preview.IsSuccess ? preview.Value : null;
+        _periods = periods.IsSuccess ? periods.Value : [];
+        _accounts = accounts.IsSuccess ? accounts.Value : [];
+        _mappings = mappings.IsSuccess ? mappings.Value : [];
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_preview is not { } preview)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var (agencyId, month, confirmed) = (_agencyId, _month, preview.ConfirmableKeys);
+            var closed = await Runner.RunAsync<MonthlyClosingService, Result<Guid>>((service, ct) => service.CloseAsync(agencyId, month, confirmed, ct));
+            Snackbar.Add(closed.IsSuccess ? L["Closing.Done", AccountingFormat.Month(month)] : ErrorMessages.For(Shared, closed.Error), closed.IsSuccess ? Severity.Success : Severity.Error);
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ReopenAsync()
+    {
+        var parameters = new DialogParameters<ReopenDialog>
+        {
+            { d => d.AgencyId, _agencyId },
+            { d => d.Month, _month },
+        };
+        var dialog = await Dialogs.ShowAsync<ReopenDialog>(L["Reopen.Title", AccountingFormat.Month(_month)], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Reopen.Done"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task AddAccountAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AccountDialog>(L["Account.Add"], new DialogParameters<AccountDialog>(), PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Account.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task RenameAccountAsync(AccountView account)
+    {
+        var parameters = new DialogParameters<AccountDialog> { { d => d.Account, account } };
+        var dialog = await Dialogs.ShowAsync<AccountDialog>(L["Account.Rename", account.Number], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Account.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ConfirmAccountAsync(AccountView account)
+    {
+        var id = account.Id;
+        var confirmed = await Runner.RunAsync<ChartOfAccountsService, Result>((service, ct) => service.ConfirmAccountAsync(id, ct));
+        Snackbar.Add(confirmed.IsSuccess ? L["Account.Confirmed", account.Number] : ErrorMessages.For(Shared, confirmed.Error), confirmed.IsSuccess ? Severity.Success : Severity.Error);
+        await LoadAsync();
+    }
+
+    private async Task ToggleAccountAsync(AccountView account)
+    {
+        var (id, active) = (account.Id, !account.IsActive);
+        var changed = await Runner.RunAsync<ChartOfAccountsService, Result>((service, ct) => service.SetAccountActiveAsync(id, active, ct));
+        Snackbar.Add(changed.IsSuccess ? L["Account.Saved"] : ErrorMessages.For(Shared, changed.Error), changed.IsSuccess ? Severity.Success : Severity.Error);
+        await LoadAsync();
+    }
+
+    private async Task MapAsync(MappingView mapping)
+    {
+        var parameters = new DialogParameters<MappingDialog>
+        {
+            { d => d.Mapping, mapping },
+            { d => d.Accounts, _accounts },
+        };
+        var dialog = await Dialogs.ShowAsync<MappingDialog>(L["Mapping.Change"], parameters, PaymentsFormat.Dialog());
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Mapping.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private sealed record JournalLineRow(JournalEntryView Entry, JournalLineView Line);
+}

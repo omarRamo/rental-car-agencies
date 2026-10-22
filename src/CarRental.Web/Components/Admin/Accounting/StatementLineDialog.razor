@@ -1,0 +1,96 @@
+@* A line of the Clic to Pay merchant statement typed by hand from the merchant portal (TODO(spec): the statement format of SMT). *@
+@inject IOperationRunner Runner
+@inject IStringLocalizer<AccountingResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="@L["Field.TransactionDate"]" @bind-Date="_date" Editable="true" Required="true" RequiredError="@Shared["Validation.Required"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="StatementLineKind" @bind-Value="_kind" Label="@L["Field.LineKind"]" ToStringFunc="@(k => L[$"LineKind.{k}"])">
+                    @foreach (var kind in Enum.GetValues<StatementLineKind>())
+                    {
+                        <MudSelectItem T="StatementLineKind" Value="@kind">@L[$"LineKind.{kind}"]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_reference" Label="@L["Field.OrderReference"]" MaxLength="StatementLine.ReferenceMaxLength" Required="true"
+                              RequiredError="@Shared["Validation.Required"]" HelperText="@L["Field.OrderReference.Help"]" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" HideSpinButtons="true" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?" @bind-Value="_fee" Label="@L["Field.Fee"]" Min="0m" Format="N3" Adornment="Adornment.End" AdornmentText="TND" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="@L["Field.SettledOn"]" @bind-Date="_settledOn" Editable="true" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="_note" Label="@L["Field.Note"]" MaxLength="StatementLine.NoteMaxLength" />
+            </MudItem>
+        </MudGrid>
+        @if (_error is not null)
+        {
+            <FinanceNotice Tone="FinanceTone.Danger" Class="mt-3" Role="alert">@_error</FinanceNotice>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Shared["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="@(_busy || _date is null || _amount is null || string.IsNullOrWhiteSpace(_reference))">@L["Statement.Manual.Submit"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DateTime? _date;
+    private StatementLineKind _kind = StatementLineKind.Payment;
+    private string? _reference;
+    private decimal? _amount;
+    private decimal? _fee;
+    private DateTime? _settledOn;
+    private string? _note;
+    private string? _error;
+    private bool _busy;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
+
+    [Parameter]
+    public DateOnly? DefaultDate { get; set; }
+
+    protected override void OnInitialized() => _date = DefaultDate?.ToDateTime(TimeOnly.MinValue);
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        var agencyId = AgencyId;
+        var form = new StatementLineForm(
+            DateOnly.FromDateTime(_date!.Value),
+            _reference ?? string.Empty,
+            _kind,
+            _amount ?? 0m,
+            _fee,
+            _settledOn is { } settled ? DateOnly.FromDateTime(settled) : null,
+            _note);
+        var added = await Runner.RunAsync<ReconciliationService, Result<Guid>>((service, ct) => service.AddManualLineAsync(agencyId, form, ct));
+        _busy = false;
+        if (added.IsSuccess)
+        {
+            Dialog.Close(DialogResult.Ok(added.Value));
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, added.Error);
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

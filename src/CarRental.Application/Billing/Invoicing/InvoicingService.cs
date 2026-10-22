@@ -1,3 +1,4 @@
+using CarRental.Application.Accounting.Contracts;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Numbering;
 using CarRental.Application.Identity.Contracts;
@@ -27,6 +28,7 @@ public sealed class InvoicingService
     private readonly IPaymentsQueries _payments;
     private readonly BuyerResolver _buyers;
     private readonly InvoiceComposer _composer;
+    private readonly IAccountingPeriods _periods;
 
     internal InvoicingService(
         BillingStore store,
@@ -34,7 +36,8 @@ public sealed class InvoicingService
         IHandoverQueries handovers,
         IPaymentsQueries payments,
         BuyerResolver buyers,
-        InvoiceComposer composer)
+        InvoiceComposer composer,
+        IAccountingPeriods periods)
     {
         _store = store;
         _bookings = bookings;
@@ -42,6 +45,7 @@ public sealed class InvoicingService
         _payments = payments;
         _buyers = buyers;
         _composer = composer;
+        _periods = periods;
     }
 
     /// <summary>
@@ -234,6 +238,14 @@ public sealed class InvoicingService
                 }
 
                 var now = _store.Now();
+
+                // Monthly closing (ADR-0065): no credit note dated in a closed month.
+                var open = await _periods.EnsureOpenAsync(invoice.AgencyId, TunisTime.DateOf(now), ct);
+                if (open.IsFailure)
+                {
+                    return open.Error;
+                }
+
                 var number = await _store.Numbers.NextForDateAsync(DocumentType.CreditNote, now, ct);
                 var note = CreditNote.Issue(draft.Value, number, now, _store.Actor(), mode);
                 if (note.IsFailure)
@@ -304,6 +316,14 @@ public sealed class InvoicingService
         }
 
         var now = _store.Now();
+
+        // Monthly closing (ADR-0065): no invoice dated in a closed month.
+        var open = await _periods.EnsureOpenAsync(facts.AgencyId, TunisTime.DateOf(now), cancellationToken);
+        if (open.IsFailure)
+        {
+            return open.Error;
+        }
+
         var number = await _store.Numbers.NextForDateAsync(DocumentType.Invoice, now, cancellationToken);
         var invoice = Invoice.Issue(draft.Value, number, now, _store.Actor(), mode);
         if (invoice.IsFailure)
