@@ -25,6 +25,7 @@
     <HeaderContent>
         <MudTh>@Users["Users.Column.Name"]</MudTh>
         <MudTh>@Users["Users.Column.Email"]</MudTh>
+        <MudTh>@Users["Users.Column.Roles"]</MudTh>
         <MudTh>@Users["Users.Column.TwoFactor"]</MudTh>
         <MudTh>@Users["Users.Column.Status"]</MudTh>
         <MudTh>@Users["Users.Column.Actions"]</MudTh>
@@ -32,6 +33,13 @@
     <RowTemplate>
         <MudTd DataLabel="@Users["Users.Column.Name"]" data-user-email="@context.Email">@context.DisplayName</MudTd>
         <MudTd DataLabel="@Users["Users.Column.Email"]">@context.Email</MudTd>
+        <MudTd DataLabel="@Users["Users.Column.Roles"]">
+            @* An account of no agency without the support role (created before the agencies were separated) shows here as it is. *@
+            @foreach (var role in context.Roles)
+            {
+                <MudChip T="string" Size="Size.Small">@Users[$"Role.{role}"]</MudChip>
+            }
+        </MudTd>
         <MudTd DataLabel="@Users["Users.Column.TwoFactor"]">
             @if (context.TwoFactorEnabled)
             {

@@ -74,7 +74,9 @@
         }
 
         _permissions = result.Value;
-        _selected.UnionWith(result.Value.ExtraPermissions);
+
+        // A platform permission granted by mistake is not offered: saving takes it back.
+        _selected.UnionWith(result.Value.ExtraPermissions.Where(Permissions.IsAgencyPermission));
         UpdateIncluded();
     }
 

@@ -122,6 +122,40 @@ public sealed partial class PlatformScreensTests(E2EHost host) : BrowserTest(hos
     }
 
     [Fact]
+    public async Task The_support_invites_a_support_account_then_locks_and_unlocks_it()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var email = $"assistance-{suffix}@tests.local";
+
+        // Named to sort before the other support accounts of the run: it is on the first page.
+        var name = $"Assistance E2E {suffix}";
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Support), "/admin/platform");
+        await WaitUntilReadyAsync();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Comptes support" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(SupportAccounts());
+        await Expect(Page.Locator("table tbody tr").First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Inviter un compte support" }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog);
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await dialog.GetByLabel("Adresse e-mail").FillAsync(email);
+        await dialog.GetByLabel("Nom affiché").FillAsync(name);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+        await dialog.GetByTestId("invite-submit").ClickAsync();
+
+        var row = Page.Locator("tr", new PageLocatorOptions { Has = Page.Locator($"[data-user-email='{email}']") });
+        await Expect(row).ToContainTextAsync("Support de la plateforme");
+        await Expect(row).ToContainTextAsync("Actif");
+        await row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = $"Verrouiller {name}" }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Verrouiller", Exact = true }).ClickAsync();
+        await Expect(row).ToContainTextAsync("Verrouillé");
+        await row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = $"Déverrouiller {name}" }).ClickAsync();
+        await Expect(row).ToContainTextAsync("Actif");
+        await BackOfficeSession.CloseSnackbarsAsync(Page);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+    }
+
+    [Fact]
     public async Task The_manager_of_sousse_sees_the_agency_of_sousse_only()
     {
         await BackOfficeSession.SignInAsync(Page, TestAccounts.SecondAgencyManagerEmail, "/admin");
@@ -264,6 +298,9 @@ public sealed partial class PlatformScreensTests(E2EHost host) : BrowserTest(hos
 
     [GeneratedRegex("/admin/platform/audit$")]
     private static partial Regex PlatformAudit();
+
+    [GeneratedRegex("/admin/platform/support$")]
+    private static partial Regex SupportAccounts();
 
     [GeneratedRegex("/account/access-denied")]
     private static partial Regex AccessDenied();
