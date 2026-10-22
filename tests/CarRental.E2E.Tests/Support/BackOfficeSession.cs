@@ -1,9 +1,14 @@
 using System.Text.RegularExpressions;
+using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Common.Tenancy;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Identity;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -13,13 +18,18 @@ namespace CarRental.E2E.Tests.Support;
 /// <summary>Back office helpers of the browser tests: staff accounts of their own, sign-in with TOTP, axe checks.</summary>
 internal static class BackOfficeSession
 {
-    /// <summary>A new staff account of <paramref name="role"/> with two-factor authentication on the test key.</summary>
-    public static async Task<string> NewStaffAsync(E2EHost host, string role)
+    /// <summary>
+    /// A new staff account of <paramref name="role"/> with two-factor authentication on the test key: a member of
+    /// <paramref name="agencyId"/> (the main demo agency by default), or a support account, of no agency, for the role
+    /// <c>Support</c> (ADR-0067).
+    /// </summary>
+    public static async Task<string> NewStaffAsync(E2EHost host, string role, Guid? agencyId = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@tests.local";
         await using var scope = host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
+        Guid? agency = role == Roles.Support ? null : agencyId ?? await DemoAgencyIdAsync(scope.ServiceProvider);
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = new ApplicationUser
         {
@@ -29,6 +39,7 @@ internal static class BackOfficeSession
             DisplayName = $"{role} E2E",
             LockoutEnabled = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
+            AgencyId = agency,
         };
         (await users.CreateAsync(user, TestAccounts.Password)).Succeeded.ShouldBeTrue();
         (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
@@ -36,6 +47,22 @@ internal static class BackOfficeSession
         await keys.SetAuthenticatorKeyAsync(user, TestAccounts.AuthenticatorKey, CancellationToken.None);
         (await users.SetTwoFactorEnabledAsync(user, true)).Succeeded.ShouldBeTrue();
         return email;
+    }
+
+    /// <summary>
+    /// A new agency of its own (default modules, its office location provisioned like an agency registered by the
+    /// support), named after <paramref name="label"/> so that it sorts after the demo agencies; returns its id.
+    /// </summary>
+    public static async Task<Guid> NewAgencyAsync(E2EHost host, string label)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        await using var scope = host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
+        var agency = Agency.Register(new AgencyDetails($"Agence E2E {label} {Guid.NewGuid().ToString("N")[..12]}", "Bizerte")).Value;
+        scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Agency>().Add(agency);
+        await scope.ServiceProvider.GetRequiredService<IAppDbContext>().SaveChangesAsync();
+        await scope.ServiceProvider.GetRequiredService<AgencyProvisioning>().ProvisionAsync(agency.Id, CancellationToken.None);
+        return agency.Id;
     }
 
     /// <summary>Signs in with password and TOTP and waits for <paramref name="returnUrl"/>.</summary>
@@ -132,4 +159,11 @@ internal static class BackOfficeSession
 
         await Expect(page.Locator(".mud-snackbar")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 20_000 });
     }
+
+    /// <summary>The main demo agency (its demo accounts belong to it).</summary>
+    private static Task<Guid> DemoAgencyIdAsync(IServiceProvider services) =>
+        services.GetRequiredService<IAppDbContext>().Set<Agency>()
+            .Where(a => a.Name == DemoUsers.DemoAgencyName)
+            .Select(a => a.Id)
+            .SingleAsync();
 }

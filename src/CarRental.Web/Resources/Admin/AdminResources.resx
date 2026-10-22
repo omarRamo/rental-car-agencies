@@ -427,7 +427,7 @@
     <value>Nouvelle agence</value>
   </data>
   <data name="Platform.Agencies.Registered" xml:space="preserve">
-    <value>Agence {0} créée : son gérant reçoit son invitation par e-mail.</value>
+    <value>{0} est créée : son gérant reçoit son invitation par e-mail.</value>
   </data>
   <data name="Platform.Agencies.Empty" xml:space="preserve">
     <value>Aucune agence pour l'instant.</value>
