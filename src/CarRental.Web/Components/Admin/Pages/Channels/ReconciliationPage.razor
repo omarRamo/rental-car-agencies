@@ -1,5 +1,6 @@
 @page "/admin/channels/reconciliation"
 @attribute [HasPermission(Permissions.ChannelsManage)]
+@attribute [RequiresModule(AgencyModules.Channels)]
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject TimeProvider Clock

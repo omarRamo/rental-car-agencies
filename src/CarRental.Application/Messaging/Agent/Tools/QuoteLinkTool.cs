@@ -32,7 +32,7 @@ internal sealed class QuoteLinkTool(IBookingRequests requests, IOptions<AgentSit
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(context);
         var option = context.State.FindOption(arguments.String("option_id"));
-        if (option is null)
+        if (option is null || option.AgencyId != context.Turn.AgencyId)
         {
             return AgentToolOutcome.Error(
                 "Option inconnue ou périmée : utilise un id de la dernière recherche, ou relance rechercher_disponibilites.",

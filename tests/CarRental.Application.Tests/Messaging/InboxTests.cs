@@ -144,6 +144,23 @@ public sealed class InboxTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_file_is_linked_by_its_number_in_the_agency_of_the_conversation_even_by_the_support()
+    {
+        var conversationId = await ConversationAsync();
+        var start = _harness.Clock.GetUtcNow();
+        var theirs = _harness.Bookings.Add(Guid.CreateVersion7(), _harness.OfficeId, BookingStatusInfo.Confirmed, start.AddDays(3), start.AddDays(5), null);
+        var ours = _harness.Bookings.Add(_harness.AgencyId, _harness.OfficeId, BookingStatusInfo.Confirmed, start.AddDays(4), start.AddDays(6), null);
+
+        // Numbers are unique within an agency only (ADR-0067): another agency's file, listed first, has the same number.
+        _harness.Bookings.Bookings[theirs.Id] = theirs with { Number = ours.Number };
+        var support = _agent with { AgencyId = null, AllAgencies = true };
+
+        (await Inbox(s => s.LinkBookingAsync(conversationId, ours.Number, TestContext.Current.CancellationToken), support)).IsSuccess.ShouldBeTrue();
+
+        _harness.Conversations.ShouldHaveSingleItem().BookingId.ShouldBe(ours.Id);
+    }
+
+    [Fact]
     public async Task Linking_a_person_requires_reading_customers()
     {
         var conversationId = await ConversationAsync();

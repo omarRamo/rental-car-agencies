@@ -40,6 +40,9 @@ public sealed class IntegrationHost : IAsyncLifetime
     /// <summary>Records the <see cref="AgencyRegistered"/> events handled through the outbox.</summary>
     public OutboxProbe Probe { get; } = new();
 
+    /// <summary>The main demo agency ("Agence Démo Tunis"), served by the WhatsApp number of the host, its modules on.</summary>
+    public Guid DemoAgencyId { get; private set; }
+
     public async ValueTask InitializeAsync()
     {
         await Containers.InitializeAsync();
@@ -49,8 +52,10 @@ public sealed class IntegrationHost : IAsyncLifetime
             services.AddOutboxHandler<AgencyRegistered, ProbeAgencyHandler>();
         });
 
-        // Starts the host: migrations, reference and demo data.
+        // Starts the host: migrations, reference and demo data. The WhatsApp number and the demo channel of the demo agency
+        // need its optional modules, off for any agency until the support switches them on (ADR-0067).
         _ = Factory.Server;
+        DemoAgencyId = await TestModules.EnableBySlugAsync(Factory.Services, TestModules.DemoAgencySlug, TestModules.DemoModules);
     }
 
     public async ValueTask DisposeAsync()

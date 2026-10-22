@@ -5,11 +5,16 @@ namespace CarRental.Application.Messaging.Webhooks;
 
 /// <summary>
 /// Processes a stored webhook delivery: parses it, then records each customer message and each status in a scope of its
-/// own (<see cref="WhatsAppEventRecorder"/>). Redelivery is harmless: messages are deduplicated by Meta id and statuses
-/// by message and status, so a failure part-way retries the whole delivery through the outbox without duplicates.
+/// own (<see cref="WhatsAppEventRecorder"/>). The customer messages belong to the agency served by the platform's number
+/// (<see cref="WhatsAppAgencyRouting"/>) and are recorded in a scope working for it; when no agency serves the number
+/// (none configured, ambiguous, suspended or with its WhatsApp module off) they are recorded nowhere, and a warning says
+/// so. A status updates the message sent with its Meta id, whatever its agency. Redelivery is harmless: messages are
+/// deduplicated by Meta id and statuses by message and status, so a failure part-way retries the whole delivery through
+/// the outbox without duplicates.
 /// </summary>
 internal sealed partial class WhatsAppWebhookHandler(
     IWhatsAppWebhookParser parser,
+    WhatsAppAgencyRouting routing,
     MessagingScopes scopes,
     ILogger<WhatsAppWebhookHandler> logger) : IOutboxHandler<WhatsAppWebhookReceived>
 {
@@ -27,14 +32,30 @@ internal sealed partial class WhatsAppWebhookHandler(
 
         var batch = parsed.Value;
         var recorded = 0;
-        foreach (var inbound in batch.Messages)
+        if (batch.Messages.Count > 0)
         {
-            if (await scopes.RunAsync<WhatsAppEventRecorder, bool>((recorder, ct) => recorder.RecordMessageAsync(inbound, ct), context.CorrelationId, cancellationToken))
+            var route = await routing.ResolveAsync(cancellationToken);
+            if (route.AgencyId is not { } agencyId)
             {
-                recorded++;
+                LogNoAgency(batch.Messages.Count, route.Status.ToString());
+            }
+            else
+            {
+                foreach (var inbound in batch.Messages)
+                {
+                    if (await scopes.RunAsync<WhatsAppEventRecorder, bool>(
+                            (recorder, ct) => recorder.RecordMessageAsync(agencyId, inbound, ct),
+                            context.CorrelationId,
+                            cancellationToken,
+                            agencyId))
+                    {
+                        recorded++;
+                    }
+                }
             }
         }
 
+        // Meta ids are unique on the platform: a status finds its message across agencies.
         foreach (var status in batch.Statuses)
         {
             if (await scopes.RunAsync<WhatsAppEventRecorder, bool>((recorder, ct) => recorder.RecordStatusAsync(status, ct), context.CorrelationId, cancellationToken))
@@ -48,6 +69,9 @@ internal sealed partial class WhatsAppWebhookHandler(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp webhook delivery {OutboxMessageId} is not readable ({Reason}): ignored.")]
     private partial void LogUnreadable(Guid outboxMessageId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp webhook: {Messages} customer message(s) recorded nowhere, no agency is served by the platform number ({Reason}; WhatsApp:AgencyId or WhatsApp:AgencySlug, and the WhatsApp module of the agency).")]
+    private partial void LogNoAgency(int messages, string reason);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "WhatsApp webhook: {Messages} message(s), {Statuses} status(es), {Ignored} ignored, {Recorded} recorded.")]
     private partial void LogProcessed(int messages, int statuses, int ignored, int recorded);

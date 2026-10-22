@@ -1,5 +1,6 @@
 @page "/admin/whatsapp/costs"
 @attribute [HasPermission(Permissions.ReportsRead)]
+@attribute [RequiresModule(AgencyModules.WhatsApp)]
 @* What the WhatsApp assistant costs, month by month (Tunis calendar, ADR-0055): turns, model and tool calls, tokens and
    the share of the prompt read from the cache, AI cost from the price grid of the platform settings and estimated Meta
    cost in USD, hand-overs and replies stopped by a guardrail. The cost of one conversation is in the inbox. *@

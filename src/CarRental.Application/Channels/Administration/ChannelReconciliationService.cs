@@ -97,7 +97,8 @@ public sealed class ChannelReconciliationService
             return ChannelsErrors.PayoutAmountInvalid;
         }
 
-        if (!await _db.Set<Channel>().AnyAsync(c => c.Id == channelId, cancellationToken))
+        var channel = await _db.Set<Channel>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == channelId, cancellationToken);
+        if (channel is null)
         {
             return ChannelsErrors.NotFound;
         }
@@ -107,7 +108,7 @@ public sealed class ChannelReconciliationService
         Result outcome;
         if (payout is null)
         {
-            var created = ChannelPayout.Record(channelId, year, month, money.Value, reference, note, stamp);
+            var created = ChannelPayout.Record(channel, year, month, money.Value, reference, note, stamp);
             if (created.IsFailure)
             {
                 return created.Error;

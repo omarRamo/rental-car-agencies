@@ -1,5 +1,6 @@
 @page "/admin/channels"
 @attribute [HasPermission(Permissions.ChannelsManage)]
+@attribute [RequiresModule(AgencyModules.Channels)]
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -12,7 +13,7 @@
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
     <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && !_loading ? "true" : "false")">@L["Channels.Title"]</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync" Disabled="@(!RendererInfo.IsInteractive)">@L["Channels.Create"]</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync" Disabled="@(!RendererInfo.IsInteractive || Agency is null)">@L["Channels.Create"]</MudButton>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mb-4">@L["Channels.Intro"]</MudText>
 <ChannelsSubNav Current="ChannelSection.Channels" />
@@ -63,7 +64,6 @@ else
                   TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Channels.Title"].Value })">
             <HeaderContent>
                 <MudTh>@L["Column.Channel"]</MudTh>
-                <MudTh>@L["Column.Agency"]</MudTh>
                 <MudTh>@L["Column.State"]</MudTh>
                 <MudTh>@L["Column.Adapter"]</MudTh>
                 <MudTh>@L["Column.Commission"]</MudTh>
@@ -76,7 +76,6 @@ else
                     <MudLink Href="@($"/admin/channels/{context.Id}")" Underline="Underline.Always" data-channel="@context.Code">@context.Name</MudLink>
                     <MudText Typo="Typo.caption" Class="d-block"><code>@context.Code</code></MudText>
                 </MudTd>
-                <MudTd DataLabel="@L["Column.Agency"]">@context.AgencyName</MudTd>
                 <MudTd DataLabel="@L["Column.State"]">
                     <MudChip T="string" Size="Size.Small" Color="@ChannelsFormat.StateColor(context.State)" Icon="@ChannelsFormat.StateIcon(context.State)">@L[$"State.{context.State}"]</MudChip>
                 </MudTd>
@@ -110,6 +109,10 @@ else
     private IReadOnlyList<ChannelAdapterKind> _adapters = [ChannelAdapterKind.Manual];
     private bool _loading = true;
 
+    /// <summary>The agency of the session: the page lists its channels and creates channels for it.</summary>
+    [CascadingParameter]
+    private AgencySummary? Agency { get; set; }
+
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
@@ -131,9 +134,14 @@ else
 
     private async Task CreateAsync()
     {
+        if (Agency is not { } agency)
+        {
+            return;
+        }
+
         var dialog = await Dialogs.ShowAsync<CreateChannelDialog>(
             L["Channels.Create"],
-            new DialogParameters { [nameof(CreateChannelDialog.Adapters)] = _adapters },
+            new DialogParameters { [nameof(CreateChannelDialog.Adapters)] = _adapters, [nameof(CreateChannelDialog.AgencyId)] = agency.Id },
             ChannelsFormat.Dialog(MaxWidth.Medium));
         if (await dialog.Result is { Canceled: false, Data: Guid id })
         {

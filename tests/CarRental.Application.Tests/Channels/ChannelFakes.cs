@@ -2,7 +2,9 @@ using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Channels.Restrictions;
 using CarRental.Application.Common.Availability;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Pricing.Contracts;
+using CarRental.Application.Tests.Bookings.Availability;
 using CarRental.Application.Tests.Customers.Fakes;
 using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Channels;
@@ -12,13 +14,17 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace CarRental.Application.Tests.Channels;
 
-/// <summary>A channel of an agency, stored in an in-memory context with its restrictions, and the readers of the module.</summary>
+/// <summary>
+/// A channel of an agency, stored in an in-memory context with its restrictions, and the readers of the module (the
+/// availability policy asks <see cref="Fleet"/> the agency of a restricted category).
+/// </summary>
 internal sealed class ChannelWorld
 {
-    public ChannelWorld(Guid agencyId, FakeTimeProvider clock)
+    public ChannelWorld(Guid agencyId, FakeTimeProvider clock, IFleetQueries? fleet = null)
     {
         AgencyId = agencyId;
         Clock = clock;
+        Fleet = fleet ?? new FakeFleetQueries(new CallJournal());
         var stamp = Stamp;
         Channel = Channel.Create(agencyId, "booking-com", "Booking.com", SalesChannel.BookingCom, ChannelAdapterKind.Fake, ChannelPaymentMode.PayOnSite, 0.15m, stamp).Value;
         Channel.ChangeState(ChannelState.Manual, stamp).IsSuccess.ShouldBeTrue();
@@ -32,6 +38,8 @@ internal sealed class ChannelWorld
     public Guid AgencyId { get; }
 
     public FakeTimeProvider Clock { get; }
+
+    public IFleetQueries Fleet { get; }
 
     public InMemoryAppDbContext Db { get; } = new();
 
@@ -47,7 +55,7 @@ internal sealed class ChannelWorld
 
     public ChannelStamp Stamp => new(Clock.GetUtcNow(), "gerant@demo.local");
 
-    public ChannelRestrictionReader Reader() => new(Db, UnitOfWork, Cache, Clock);
+    public ChannelRestrictionReader Reader() => new(Db, UnitOfWork, Cache, Fleet, Clock);
 
     public ChannelAvailabilityPolicy Policy() => new(Reader());
 

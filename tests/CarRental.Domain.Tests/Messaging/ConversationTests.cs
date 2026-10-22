@@ -7,9 +7,12 @@ public sealed class ConversationTests
 {
     internal static readonly DateTimeOffset Now = new(2027, 7, 1, 9, 0, 0, TimeSpan.Zero);
 
+    /// <summary>The agency the customer writes to.</summary>
+    internal static readonly Guid AgencyId = Guid.CreateVersion7();
+
     private static readonly AuditActor Agent = new(Guid.CreateVersion7(), "agent@demo.local", "203.0.113.5", "corr");
 
-    internal static Conversation NewConversation(string number = "21698123456") => Conversation.Start(number, "Hédi", Now).Value;
+    internal static Conversation NewConversation(string number = "21698123456") => Conversation.Start(AgencyId, number, "Hédi", Now).Value;
 
     internal static Message Receive(Conversation conversation, string text = "Bonjour", DateTimeOffset? at = null, string? id = null) =>
         conversation.ReceiveCustomerMessage(id ?? $"wamid.{Guid.NewGuid():N}", TextContent.Received(text), at ?? Now, "Hédi", at ?? Now);
@@ -17,8 +20,9 @@ public sealed class ConversationTests
     [Fact]
     public void Start_normalizes_the_number_answers_with_the_bot_and_raises_an_event()
     {
-        var conversation = Conversation.Start("21698123456", "  Hédi   Ben Salah ", Now).Value;
+        var conversation = Conversation.Start(AgencyId, "21698123456", "  Hédi   Ben Salah ", Now).Value;
 
+        conversation.AgencyId.ShouldBe(AgencyId);
         conversation.WhatsAppNumber.ShouldBe("+21698123456");
         conversation.ProfileName.ShouldBe("Hédi Ben Salah");
         conversation.Mode.ShouldBe(ConversationMode.Bot);
@@ -42,7 +46,39 @@ public sealed class ConversationTests
     [InlineData("abc")]
     public void Start_refuses_a_number_that_is_not_international(string number)
     {
-        Conversation.Start(number, null, Now).Error.ShouldBe(MessagingErrors.NumberInvalid);
+        Conversation.Start(AgencyId, number, null, Now).Error.ShouldBe(MessagingErrors.NumberInvalid);
+    }
+
+    [Fact]
+    public void A_conversation_belongs_to_an_agency_and_gives_it_to_every_message_and_status()
+    {
+        Should.Throw<ArgumentException>(() => Conversation.Start(Guid.Empty, "21698123456", null, Now));
+        var conversation = NewConversation();
+        var inbound = Receive(conversation);
+
+        var reply = conversation.ReplyAsBot(TextContent.Create("Bonjour !").Value, Now.AddMinutes(1)).Value;
+        reply.MarkSending();
+        reply.MarkAccepted("wamid.reply", Now.AddMinutes(1));
+        reply.RecordStatus(MessageStatus.Delivered, Now.AddMinutes(2), null, null, null, Now.AddMinutes(2)).ShouldBeTrue();
+        var notice = conversation.Notify(TemplateContent.Create("booking_confirmed", "fr", ["Hédi"]).Value, Now.AddMinutes(3));
+
+        inbound.AgencyId.ShouldBe(AgencyId);
+        reply.AgencyId.ShouldBe(AgencyId);
+        reply.StatusChanges.ShouldHaveSingleItem().AgencyId.ShouldBe(AgencyId);
+        notice.AgencyId.ShouldBe(AgencyId);
+    }
+
+    [Fact]
+    public void A_file_is_notified_through_a_conversation_of_its_own_agency()
+    {
+        var conversation = NewConversation();
+        var notice = conversation.Notify(Template(), Now);
+
+        var record = BookingNotification.Record(Guid.CreateVersion7(), AgencyId, NotificationKind.BookingConfirmed, conversation, notice, Guid.CreateVersion7(), Now);
+
+        record.AgencyId.ShouldBe(AgencyId);
+        record.ConversationId.ShouldBe(conversation.Id);
+        Should.Throw<ArgumentException>(() => BookingNotification.Record(Guid.CreateVersion7(), Guid.CreateVersion7(), NotificationKind.BookingConfirmed, conversation, notice, Guid.CreateVersion7(), Now));
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using CarRental.Domain.Messaging;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -6,10 +7,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace CarRental.Infrastructure.Persistence.Configurations.Messaging;
 
 /// <summary>
-/// WhatsApp conversations (<c>messaging.Conversations</c>): one per number (unique), indexes of the inbox (status and
-/// activity) and of the links. A plain table, not temporal: the retention purge must really delete the exchanges.
-/// Audited for the business actions (mode, links, status), with the number, the profile name and the hand-over reason
-/// masked; the counters, the need and the activity times are left out of the audit log (noise of every message).
+/// WhatsApp conversations (<c>messaging.Conversations</c>): one per agency and number (unique: a customer may write to
+/// two agencies), indexes of the inbox of an agency (status and activity) and of the links. A plain table, not temporal:
+/// the retention purge must really delete the exchanges. Audited for the business actions (mode, links, status), with
+/// the number, the profile name and the hand-over reason masked; the counters, the need and the activity times are left
+/// out of the audit log (noise of every message).
 /// </summary>
 internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
 {
@@ -17,6 +19,7 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
     {
         builder.ToTable("Conversations", Schemas.Messaging);
         builder.HasKey(c => c.Id);
+        builder.Property(c => c.AgencyId).IsRequired();
         builder.Property(c => c.WhatsAppNumber).HasMaxLength(WhatsAppNumbers.MaxLength).IsUnicode(false).IsRequired().IsAuditSensitive();
         builder.Property(c => c.ProfileName).HasMaxLength(Conversation.ProfileNameMaxLength).IsAuditSensitive();
         builder.Property(c => c.HumanAgentName).HasMaxLength(Conversation.AgentNameMaxLength);
@@ -51,8 +54,10 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
             usage.Property(u => u.MetaCostUsd).HasColumnName("BotMetaCostUsd").HasPrecision(18, 6).HasAnnotation(AuditAnnotations.Ignore, true);
         });
 
-        builder.HasIndex(c => c.WhatsAppNumber).IsUnique();
-        builder.HasIndex(c => new { c.Status, c.LastActivityAtUtc });
+        builder.HasOne<Agency>().WithMany().HasForeignKey(c => c.AgencyId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(c => new { c.AgencyId, c.WhatsAppNumber }).IsUnique();
+        builder.HasIndex(c => new { c.AgencyId, c.Status, c.LastActivityAtUtc });
         builder.HasIndex(c => c.LastActivityAtUtc);
         builder.HasIndex(c => c.PersonId).HasFilter("[PersonId] IS NOT NULL");
         builder.HasIndex(c => c.BookingId).HasFilter("[BookingId] IS NOT NULL");
@@ -61,8 +66,9 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
 
 /// <summary>
 /// Messages (<c>messaging.Messages</c>): the communications log itself (SPEC §14), so left out of the audit log — no
-/// message content ever reaches it — and deleted by the retention purge. The Meta id is unique (deduplication of inbound
-/// messages, lookup of statuses); the content is stored as JSON (<see cref="MessageContentJson"/>).
+/// message content ever reaches it — and deleted by the retention purge. The Meta id stays unique on the whole platform
+/// (an id of Meta's, whatever the agency: deduplication of inbound messages, lookup of statuses); the content is stored as
+/// JSON (<see cref="MessageContentJson"/>).
 /// </summary>
 internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
 {
@@ -71,6 +77,7 @@ internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.ToTable("Messages", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(m => m.Id);
+        builder.Property(m => m.AgencyId).IsRequired();
         builder.Property(m => m.Content).HasConversion(MessageContentJson.Converter, MessageContentJson.Comparer).IsRequired();
         builder.Property(m => m.Text).HasMaxLength(TextContent.MaxLength);
         builder.Property(m => m.MetaMessageId).HasMaxLength(Message.MetaMessageIdMaxLength).IsUnicode(false);
@@ -81,13 +88,16 @@ internal sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.PricingModel).HasMaxLength(Message.PricingFieldMaxLength).IsUnicode(false);
         builder.Ignore(m => m.IsInbound);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(m => m.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Conversation>().WithMany().HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(m => m.StatusChanges).WithOne().HasForeignKey(c => c.MessageId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(m => m.StatusChanges).HasField("_statusChanges").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 
         builder.HasIndex(m => m.MetaMessageId).IsUnique().HasFilter("[MetaMessageId] IS NOT NULL");
         builder.HasIndex(m => new { m.ConversationId, m.CreatedAtUtc });
-        builder.HasIndex(m => m.CreatedAtUtc);
+
+        // The retention purge, agency by agency.
+        builder.HasIndex(m => new { m.AgencyId, m.CreatedAtUtc });
 
         // Queue of the bot turn executor (ADR-0054): the customer messages waiting for the bot (BotTurnState.Pending).
         builder.HasIndex(m => new { m.ConversationId, m.CreatedAtUtc }, "IX_Messages_PendingBotTurns")
@@ -103,14 +113,16 @@ internal sealed class MessageStatusChangeConfiguration : IEntityTypeConfiguratio
         builder.ToTable("MessageStatusChanges", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(c => c.Id);
+        builder.Property(c => c.AgencyId).IsRequired();
         builder.Property(c => c.ErrorTitle).HasMaxLength(Message.MetaErrorTitleMaxLength);
         builder.HasIndex(c => new { c.MessageId, c.Status }).IsUnique();
     }
 }
 
 /// <summary>
-/// Notifications queued per rental file and kind (unique: never twice), ids only; purged with the conversations. Found
-/// by message when it is sent (the consent is checked again).
+/// Notifications queued per rental file and kind (unique: never twice; file ids are unique on the platform), with the
+/// agency of the file, ids only; purged with the conversations, agency by agency. Found by message when it is sent (the
+/// consent is checked again).
 /// </summary>
 internal sealed class BookingNotificationConfiguration : IEntityTypeConfiguration<BookingNotification>
 {
@@ -119,8 +131,9 @@ internal sealed class BookingNotificationConfiguration : IEntityTypeConfiguratio
         builder.ToTable("BookingNotifications", Schemas.Messaging);
         builder.ExcludeFromAudit();
         builder.HasKey(n => n.Id);
+        builder.Property(n => n.AgencyId).IsRequired();
         builder.HasIndex(n => new { n.BookingId, n.Kind }).IsUnique();
         builder.HasIndex(n => n.MessageId).IsUnique();
-        builder.HasIndex(n => n.CreatedAtUtc);
+        builder.HasIndex(n => new { n.AgencyId, n.CreatedAtUtc });
     }
 }

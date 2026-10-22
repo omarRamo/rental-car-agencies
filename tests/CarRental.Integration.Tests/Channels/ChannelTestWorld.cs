@@ -6,6 +6,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using CarRental.Integration.Tests.Bookings;
+using CarRental.Testing;
 using CarRental.Web.Endpoints;
 using CarRental.Web.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,9 @@ internal static class ChannelTestWorld
         decimal commissionRate = 0.15m)
     {
         var agency = await BookingWorld.CreateAsync(host, cancellationToken, ecmrVehicles: ecmrVehicles);
+
+        // The sales channels are an optional module, off for a new agency (ADR-0067): the agency of the test sells on them.
+        await TestModules.EnableAsync(host.Factory.Services, agency.AgencyId, AgencyModules.Channels, cancellationToken);
         var code = "t" + Guid.NewGuid().ToString("N")[..16];
         var channelId = await AdministerAsync(host, s => s.CreateAsync(
             new CreateChannelRequest(agency.AgencyId, code, $"Canal {code}", SalesChannel.BookingCom, adapter, ChannelPaymentMode.PayOnSite, commissionRate),

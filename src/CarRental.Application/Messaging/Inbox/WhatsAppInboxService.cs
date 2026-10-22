@@ -145,7 +145,11 @@ public sealed class WhatsAppInboxService(
             cancellationToken);
     }
 
-    /// <summary>Links the conversation to the rental file of <paramref name="bookingNumber"/>, or unlinks it (blank).</summary>
+    /// <summary>
+    /// Links the conversation to the rental file of <paramref name="bookingNumber"/> in the agency of the conversation
+    /// (numbers are unique within an agency only, ADR-0067 — also for the support working across agencies), or unlinks
+    /// it (blank).
+    /// </summary>
     public async Task<Result> LinkBookingAsync(Guid conversationId, string? bookingNumber, CancellationToken cancellationToken)
     {
         if (!user.HasPermission(Permissions.BookingsRead))
@@ -153,22 +157,22 @@ public sealed class WhatsAppInboxService(
             return MessagingErrors.Forbidden;
         }
 
-        Guid? bookingId = null;
-        if (!string.IsNullOrWhiteSpace(bookingNumber))
-        {
-            var booking = await bookings.FindByNumberAsync(user.AgencyId, bookingNumber, cancellationToken);
-            if (booking is null)
-            {
-                return MessagingErrors.BookingNotFound;
-            }
-
-            bookingId = booking.Id;
-        }
-
         return await ChangeAsync(
             conversationId,
             async (conversation, _, _, ct) =>
             {
+                Guid? bookingId = null;
+                if (!string.IsNullOrWhiteSpace(bookingNumber))
+                {
+                    var booking = await bookings.FindByNumberAsync(conversation.AgencyId, bookingNumber, ct);
+                    if (booking is null || booking.AgencyId != conversation.AgencyId)
+                    {
+                        return MessagingErrors.BookingNotFound;
+                    }
+
+                    bookingId = booking.Id;
+                }
+
                 conversation.LinkBooking(bookingId);
                 await AuditAsync(MessagingAuditActions.ConversationLinked, conversation, bookingId is { } linked ? $"rental file {linked}" : "rental file unlinked", ct);
                 return Result.Success();
@@ -309,6 +313,7 @@ public sealed class WhatsAppInboxService(
                 EntityType = nameof(Conversation),
                 EntityId = conversation.Id.ToString(),
                 Details = string.Create(CultureInfo.InvariantCulture, $"conversation {conversation.Id}: {details}"),
+                AgencyId = conversation.AgencyId,
             },
             cancellationToken);
 }

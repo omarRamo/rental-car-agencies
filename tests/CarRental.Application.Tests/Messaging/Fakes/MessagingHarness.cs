@@ -36,6 +36,9 @@ internal sealed class MessagingHarness : IAsyncDisposable
         OfficeId = Guid.CreateVersion7();
         Referential = new FakeAddressReferential(AgencyId, OfficeId);
 
+        // The agency of the harness, with every module: the only one with WhatsApp, it serves the platform's number.
+        Agencies = new StaticAgencyDirectory(AgencyId);
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(Clock);
@@ -49,6 +52,7 @@ internal sealed class MessagingHarness : IAsyncDisposable
         services.AddSingleton<ICustomersQueries>(Customers);
         services.AddSingleton<IBookingsQueries>(Bookings);
         services.AddSingleton<IReferentialQueries>(Referential);
+        services.AddSingleton<IAgencyDirectory>(Agencies);
         services.AddSingleton<ISettingsReader>(Settings);
         services.AddSingleton<IWhatsAppClient>(WhatsApp);
         services.AddSingleton<IWhatsAppWebhookParser>(Parser);
@@ -72,6 +76,9 @@ internal sealed class MessagingHarness : IAsyncDisposable
     public FakeMessagingBookings Bookings { get; } = new();
 
     public FakeAddressReferential Referential { get; }
+
+    /// <summary>The agencies of the platform (the harness's own one; a test adds others or switches modules off).</summary>
+    public StaticAgencyDirectory Agencies { get; }
 
     public FakeSettingsReader Settings { get; } = new();
 
@@ -101,9 +108,13 @@ internal sealed class MessagingHarness : IAsyncDisposable
         return scope;
     }
 
-    /// <summary>An agent of the back office (whatsapp.inbox, customers.read, bookings.read).</summary>
+    /// <summary>An agent of the back office (whatsapp.inbox, customers.read, bookings.read), of no agency in particular.</summary>
     public static UserContextSnapshot Agent(Guid? id = null) =>
         UserContextSnapshot.ForUser(id ?? Guid.CreateVersion7(), "agent@demo.local", RolePresets.PermissionsOf(Roles.Agent));
+
+    /// <summary>A member of the staff of the agency of the harness with the presets of <paramref name="role"/>.</summary>
+    public UserContextSnapshot Staff(string role, Guid? id = null) =>
+        UserContextSnapshot.ForUser(id ?? Guid.CreateVersion7(), $"{role.ToLowerInvariant()}@demo.local", RolePresets.PermissionsOf(role)) with { AgencyId = AgencyId };
 
     /// <summary>A delivery holding customer messages and statuses, processed like the outbox would (then drained).</summary>
     public async Task DeliverAsync(IReadOnlyList<InboundWhatsAppMessage>? messages = null, IReadOnlyList<WhatsAppStatusReport>? statuses = null)

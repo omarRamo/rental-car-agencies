@@ -4,13 +4,14 @@ using CarRental.Domain.Common;
 namespace CarRental.Domain.Messaging.Agent;
 
 /// <summary>
-/// An answer of the knowledge base of the WhatsApp agent (tool <c>infos_agence</c>, SPEC §11 « base de connaissances
-/// validée par le gérant »): a topic (documents, caution, annulation…), a title, keywords that help find it, and the
-/// answer in French and English (Arabic optional). The bot only ever reads <b>validated, active</b> entries: an edit of
-/// a validated answer sends it back to draft until a manager validates it again, so that nothing unvalidated is ever
-/// said. Changes are audited and kept in a temporal history.
+/// An answer of the knowledge base of an agency's WhatsApp agent (tool <c>infos_agence</c>, SPEC §11 « base de
+/// connaissances validée par le gérant »; each agency has its own): a topic (documents, caution, annulation…), a title,
+/// keywords that help find it, and the answer in French and English (Arabic optional). The bot only ever reads
+/// <b>validated, active</b> entries of the agency of the conversation: an edit of a validated answer sends it back to
+/// draft until a manager validates it again, so that nothing unvalidated is ever said. Changes are audited and kept in a
+/// temporal history.
 /// </summary>
-public sealed partial class KnowledgeEntry : AggregateRoot
+public sealed partial class KnowledgeEntry : AggregateRoot, IAgencyOwned
 {
     public const int TopicKeyMaxLength = 50;
     public const int TitleMaxLength = 150;
@@ -22,9 +23,10 @@ public sealed partial class KnowledgeEntry : AggregateRoot
     {
     }
 
-    private KnowledgeEntry(Guid id, string topicKey, KnowledgeContent content, DateTimeOffset now)
+    private KnowledgeEntry(Guid id, Guid agencyId, string topicKey, KnowledgeContent content, DateTimeOffset now)
         : base(id)
     {
+        AgencyId = agencyId;
         TopicKey = topicKey;
         Apply(content);
         IsActive = true;
@@ -32,7 +34,9 @@ public sealed partial class KnowledgeEntry : AggregateRoot
         UpdatedAtUtc = now;
     }
 
-    /// <summary>Stable key of the topic, lower case with underscores (<c>documents</c>, <c>aller_simple</c>), unique.</summary>
+    public Guid AgencyId { get; private set; }
+
+    /// <summary>Stable key of the topic, lower case with underscores (<c>documents</c>, <c>aller_simple</c>), unique within the agency.</summary>
     public string TopicKey { get; private set; } = null!;
 
     public string Title { get; private set; } = null!;
@@ -65,17 +69,22 @@ public sealed partial class KnowledgeEntry : AggregateRoot
     /// <summary>Whether the bot may say it.</summary>
     public bool IsUsableByBot => IsActive && IsValidated;
 
-    /// <summary>A new draft (not validated): the bot ignores it until a manager validates it.</summary>
-    public static Result<KnowledgeEntry> CreateDraft(string? topicKey, KnowledgeContent content, DateTimeOffset now)
+    /// <summary>A new draft of the agency's knowledge base (not validated): the bot ignores it until a manager validates it.</summary>
+    public static Result<KnowledgeEntry> CreateDraft(Guid agencyId, string? topicKey, KnowledgeContent content, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(content);
+        if (agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("An answer belongs to the knowledge base of an agency.", nameof(agencyId));
+        }
+
         var key = topicKey?.Trim().ToLowerInvariant();
         if (key is null || key.Length > TopicKeyMaxLength || !TopicKeyPattern().IsMatch(key))
         {
             return KnowledgeErrors.TopicInvalid;
         }
 
-        var entry = new KnowledgeEntry(NewId(), key, content, now);
+        var entry = new KnowledgeEntry(NewId(), agencyId, key, content, now);
         entry.Raise(new KnowledgeEntryChanged(entry.Id, entry.TopicKey));
         return entry;
     }

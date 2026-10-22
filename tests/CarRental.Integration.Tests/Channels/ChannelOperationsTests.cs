@@ -181,7 +181,7 @@ public sealed class ChannelOperationsTests(IntegrationHost host)
 
         var day = TunisTime.DateOf(pickup);
         var commissions = await RunAsync<IChannelCommissions, IReadOnlyList<ChannelCommissionInfo>>(host, Manager, c => c.GetCommissionsAsync(day, day, channel.Agency.AgencyId, Ct));
-        var byBooking = await RunAsync<IChannelCommissions, IReadOnlyDictionary<Guid, Money>>(host, Manager, c => c.GetCommissionsByBookingAsync([.. commissions.Select(x => x.BookingId), Guid.CreateVersion7()], Ct));
+        var byBooking = await RunAsync<IChannelCommissions, IReadOnlyDictionary<Guid, Money>>(host, Manager, c => c.GetCommissionsByBookingAsync(channel.Agency.AgencyId, [.. commissions.Select(x => x.BookingId), Guid.CreateVersion7()], Ct));
         var payout = await ChannelTestWorld.RunAsync<ChannelReconciliationService, Result>(host, s => s.RecordPayoutAsync(channel.Id, day.Year, day.Month, 300m, "VIR-1", null, Ct));
         var month = (await ChannelTestWorld.RunAsync<ChannelReconciliationService, Result<ReconciliationView>>(host, s => s.GetMonthAsync(channel.Id, day.Year, day.Month, Ct))).Value;
 
@@ -278,7 +278,7 @@ public sealed class ChannelOperationsTests(IntegrationHost host)
     {
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-        var item = ChannelSyncItem.Enqueue(channel.Id, ChannelSyncOperation.PushRates, null, "rates", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var item = ChannelSyncItem.Enqueue(channel.Id, channel.Agency.AgencyId, ChannelSyncOperation.PushRates, null, "rates", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
         item.Failed("channels.sync.push_failed: simulated outage", null, DateTimeOffset.UtcNow, maxAttempts: 1);
         db.Set<ChannelSyncItem>().Add(item);
         await db.SaveChangesAsync(Ct);

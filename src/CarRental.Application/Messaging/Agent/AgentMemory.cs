@@ -4,17 +4,17 @@ using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Messaging.Agent;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CarRental.Application.Messaging.Agent;
 
 /// <summary>
-/// The memory of the agent for one turn, in a DI scope of its own (its own unit of work): the state of the conversation
-/// (created at its first turn) and the turn record of the cost reports, saved together at the end of the turn.
+/// The memory of the agent for one turn, in a DI scope of its own working for the agency of the conversation (its own
+/// unit of work): the state of the conversation (created at its first turn) and the turn record of the cost reports,
+/// saved together at the end of the turn.
 /// </summary>
 internal sealed class AgentMemory(IAppDbContext db)
 {
-    public async Task<AgentConversationState> LoadAsync(Guid conversationId, DateTimeOffset now, CancellationToken cancellationToken)
+    public async Task<AgentConversationState> LoadAsync(Guid conversationId, Guid agencyId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var state = await db.Set<AgentConversationState>().FirstOrDefaultAsync(s => s.Id == conversationId, cancellationToken);
         if (state is not null)
@@ -22,7 +22,7 @@ internal sealed class AgentMemory(IAppDbContext db)
             return state;
         }
 
-        state = AgentConversationState.Start(conversationId, now);
+        state = AgentConversationState.Start(conversationId, agencyId, now);
         db.Set<AgentConversationState>().Add(state);
         return state;
     }
@@ -36,22 +36,21 @@ internal sealed class AgentMemory(IAppDbContext db)
 }
 
 /// <summary>
-/// The agency the agent presents: <see cref="AgentSiteOptions.AgencyId"/> when configured, else the only active agency,
-/// else the first one created (the same rule as the public site), with its places, opening hours and active categories.
+/// The agency the agent presents: the agency of the conversation (ADR-0067), when it is active, with its places, opening
+/// hours and active categories — never another agency's.
 /// </summary>
-internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQueries fleet, ISettingsReader settings, IOptions<AgentSiteOptions> site)
+internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQueries fleet, ISettingsReader settings)
 {
     private AgentAgencyContext? _loaded;
 
-    public async Task<AgentAgencyContext?> LoadAsync(CancellationToken cancellationToken)
+    public async Task<AgentAgencyContext?> LoadAsync(Guid agencyId, CancellationToken cancellationToken)
     {
-        if (_loaded is not null)
+        if (_loaded is { } loaded && loaded.Agency.Id == agencyId)
         {
-            return _loaded;
+            return loaded;
         }
 
-        var agencies = (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive).ToList();
-        var agency = site.Value.AgencyId is { } id ? agencies.FirstOrDefault(a => a.Id == id) : agencies.OrderBy(a => a.Id).FirstOrDefault();
+        var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId && a.IsActive);
         if (agency is null)
         {
             return null;
