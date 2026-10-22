@@ -8,6 +8,7 @@ using CarRental.Domain.Payments;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Payments;
+using CarRental.Integration.Tests.Support;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -103,12 +104,13 @@ public sealed class CashSessionSqlTests(IntegrationHost host)
         var agent = FinanceData.Actor(Roles.Agent);
         var sessionId = await FinanceData.OpenSessionAsync(host, agent, agencyId, 100m, Ct);
         var amounts = new[] { 10m, 20m, 30m, 40m, 50m };
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
 
         var results = await Task.WhenAll(amounts.Select(async amount =>
         {
             await using var scope = host.CreateScope(agent);
             var result = await scope.ServiceProvider.GetRequiredService<ICounterPayments>()
-                .RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.Cash, amount), Ct);
+                .RecordPaymentAsync(new CounterPaymentRequest(bookingId, agencyId, PaymentMethodInfo.Cash, amount), Ct);
             return (Amount: amount, Result: result);
         }));
 
@@ -131,11 +133,12 @@ public sealed class CashSessionSqlTests(IntegrationHost host)
         var evening = FinanceData.Actor(Roles.Agent);
         var morningSession = await FinanceData.OpenSessionAsync(host, morning, agencyId, 0m, Ct);
         var eveningSession = await FinanceData.OpenSessionAsync(host, evening, agencyId, 0m, Ct);
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         Guid depositId;
         await using (var scope = host.CreateScope(morning))
         {
             depositId = (await scope.ServiceProvider.GetRequiredService<IDeposits>()
-                .TakeAsync(new DepositRequest(Guid.CreateVersion7(), agencyId, DepositModeInfo.Cash, 500m), Ct)).Value;
+                .TakeAsync(new DepositRequest(bookingId, agencyId, DepositModeInfo.Cash, 500m), Ct)).Value;
         }
 
         await using (var scope = host.CreateScope(evening))
@@ -162,12 +165,13 @@ public sealed class CashSessionSqlTests(IntegrationHost host)
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
         var agent = FinanceData.Actor(Roles.Agent);
         await FinanceData.OpenSessionAsync(host, agent, agencyId, 100m, Ct);
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         await using (var scope = host.CreateScope(agent))
         {
             var payments = scope.ServiceProvider.GetRequiredService<ICounterPayments>();
-            var paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.Cash, 250m), Ct)).Value;
+            var paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(bookingId, agencyId, PaymentMethodInfo.Cash, 250m), Ct)).Value;
             (await payments.RecordRefundAsync(new CounterRefundRequest(paymentId, PaymentMethodInfo.Cash, 50m, "Option retirée"), Ct)).IsSuccess.ShouldBeTrue();
-            (await scope.ServiceProvider.GetRequiredService<IDeposits>().TakeAsync(new DepositRequest(Guid.CreateVersion7(), agencyId, DepositModeInfo.Cash, 400m), Ct)).IsSuccess.ShouldBeTrue();
+            (await scope.ServiceProvider.GetRequiredService<IDeposits>().TakeAsync(new DepositRequest(bookingId, agencyId, DepositModeInfo.Cash, 400m), Ct)).IsSuccess.ShouldBeTrue();
         }
 
         await using var check = host.CreateScope();

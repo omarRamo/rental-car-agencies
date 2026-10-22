@@ -2,6 +2,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 using CarRental.Domain.Referential;
+using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
@@ -81,9 +82,11 @@ internal sealed class SaveChangesPipelineInterceptor(
     /// <summary>
     /// Refuses the save when a written row belongs to another agency than the one the operation works for, when a row
     /// would move to another agency, when agency data has no agency, or when a platform row (shared value, agency
-    /// registration) is written by an actor who does not work for the whole platform. Records of an agency or of the
-    /// platform (<see cref="IAgencyOrPlatform"/>, the audit journals) are written by the platform's own code for the
-    /// agency they concern — a sign-in, still anonymous, is recorded for the agency of the account — and never change.
+    /// registration) is written by an operation that does not work for the whole platform — the support inside an
+    /// agency or a system step working for one agency included: only an operation across agencies writes them. Records
+    /// of an agency or of the platform (<see cref="IAgencyOrPlatform"/>, the audit journals) are written by the
+    /// platform's own code for the agency they concern — a sign-in, still anonymous, is recorded for the agency of the
+    /// account — and never change.
     /// </summary>
     private void EnforceAgencyBoundaries(DbContext context)
     {
@@ -113,7 +116,8 @@ internal sealed class SaveChangesPipelineInterceptor(
                     break;
                 case IAgencyShared shared:
                     EnsureNotMoved(entry, nameof(IAgencyShared.AgencyId));
-                    if (shared.AgencyId is null ? !userContext.AllAgencies : restricted && shared.AgencyId != agencyId)
+                    // A shared value (no agency) is the platform's: an operation limited to an agency never writes it.
+                    if (restricted && (shared.AgencyId is null || shared.AgencyId != agencyId))
                     {
                         throw AgencyBoundaryException.OtherAgency(entry.Metadata.ClrType);
                     }
@@ -220,13 +224,31 @@ internal sealed class SaveChangesPipelineInterceptor(
         }
 
         var actor = userContext.ToAuditActor();
+        var users = new Dictionary<Guid, Guid?>();
         foreach (var entry in entries)
         {
-            if (AuditEntryFactory.Create(entry, actor, now, userContext.AgencyId) is { } auditLog)
+            if (AuditEntryFactory.Create(entry, actor, now, userContext.AgencyId, userId => AgencyOfUser(context, users, userId)) is { } auditLog)
             {
                 context.Set<AuditLog>().Add(auditLog);
             }
         }
+    }
+
+    /// <summary>
+    /// The agency of the account whose Identity rows are saved (ADR-0067): the tracked account when the save carries it,
+    /// else the database (users are a platform table, never filtered by agency); read once per user and save.
+    /// </summary>
+    private static Guid? AgencyOfUser(DbContext context, Dictionary<Guid, Guid?> known, Guid userId)
+    {
+        if (!known.TryGetValue(userId, out var agencyId))
+        {
+            agencyId = context.ChangeTracker.Entries<ApplicationUser>().FirstOrDefault(e => e.Entity.Id == userId) is { } tracked
+                ? tracked.Entity.AgencyId
+                : context.Set<ApplicationUser>().AsNoTracking().Where(u => u.Id == userId).Select(u => u.AgencyId).FirstOrDefault();
+            known[userId] = agencyId;
+        }
+
+        return agencyId;
     }
 
     private void DispatchIfCommitted(DbContext? context)

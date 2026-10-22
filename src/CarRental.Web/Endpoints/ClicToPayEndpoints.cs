@@ -160,7 +160,8 @@ public static class ClicToPayEndpoints
         }).DisableAntiforgery();
 
         // The developer chooses the agency whose funnel the payment stands for: it starts as a visitor of that agency's
-        // public site would start it (ADR-0067), whatever agency the address of this page belongs to.
+        // public site would start it (ADR-0067), whatever agency the address of this page belongs to, for a rental file
+        // of that agency (a payment never points to an unknown file or to a file of another agency).
         dev.MapGet("/start", async (IAgencyDirectory directory, IAntiforgery antiforgery, HttpContext context, CancellationToken cancellationToken) =>
             new RazorComponentResult<ClicToPayStartPage>(new { Agencies = await ActiveAgenciesAsync(directory, cancellationToken), Antiforgery = antiforgery.GetAndStoreTokens(context) }));
 
@@ -180,7 +181,7 @@ public static class ClicToPayEndpoints
             var site = agencyId == Guid.Empty ? null : await directory.FindAsync(agencyId, cancellationToken);
             var resultPath = PaymentResultPaths.For(site?.Slug ?? "inconnue", culture);
             var request = new OnlinePaymentRequest(
-                Guid.TryParse(form["BookingId"].ToString(), out var booking) && booking != Guid.Empty ? booking : Guid.CreateVersion7(),
+                Guid.TryParse(form["BookingId"].ToString(), out var booking) ? booking : Guid.Empty,
                 agencyId,
                 amount,
                 culture,

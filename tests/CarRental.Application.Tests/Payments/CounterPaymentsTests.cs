@@ -38,6 +38,31 @@ public sealed class CounterPaymentsTests
     }
 
     [Fact]
+    public async Task Money_is_recorded_for_a_booking_of_its_agency_only()
+    {
+        // ADR-0067: a booking of another agency (seen by the support) or one the operation does not see is refused alike.
+        var agent = _harness.User(Roles.Agent);
+        var elsewhere = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(elsewhere, Guid.CreateVersion7());
+        var unseen = Guid.CreateVersion7();
+        _harness.Bookings.Hide(unseen);
+
+        foreach (var bookingId in new[] { elsewhere, unseen })
+        {
+            (await _harness.Payments(agent).RecordPaymentAsync(new CounterPaymentRequest(bookingId, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 50m, "TPE"), Ct))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await _harness.Deposits(agent).TakeAsync(new DepositRequest(bookingId, _harness.AgencyId, DepositModeInfo.CardImprint, 500m, "AUT"), Ct))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+        }
+
+        (await _harness.Payments(agent).RecordPaymentAsync(new CounterPaymentRequest(Guid.Empty, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 50m, "TPE"), Ct))
+            .Error.ShouldBe(PaymentsErrors.BookingRequired);
+        _harness.Db.Rows<Payment>().ShouldBeEmpty();
+        _harness.Db.Rows<DepositHold>().ShouldBeEmpty();
+        _harness.UnitOfWork.Executions.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task A_cash_payment_goes_into_the_open_cash_session_of_the_agent_in_the_same_unit_of_work()
     {
         var agent = _harness.User(Roles.Agent);
@@ -102,8 +127,10 @@ public sealed class CounterPaymentsTests
         _harness.Referential.Agencies.Add(new AgencyInfo(otherAgency, "Agence Djerba", "Djerba", null, null, IsActive: true));
         var agent = _harness.User(Roles.Agent);
         await _harness.OpenSessionAsync(agent, cancellationToken: Ct);
+        var bookingId = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(bookingId, otherAgency);
 
-        var result = await _harness.Payments(agent).RecordPaymentAsync(CashPayment(Guid.CreateVersion7(), otherAgency, 50m), cancellationToken: Ct);
+        var result = await _harness.Payments(agent).RecordPaymentAsync(CashPayment(bookingId, otherAgency, 50m), cancellationToken: Ct);
 
         result.Error.ShouldBe(CashErrors.SessionAgencyMismatch);
     }

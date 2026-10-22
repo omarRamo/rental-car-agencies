@@ -2,6 +2,7 @@ using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Pricing.Administration;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Pricing.Seeding;
@@ -31,6 +32,7 @@ public static class PricingModule
             serviceProvider.GetRequiredService<IRatePlanStore>(),
             serviceProvider.GetRequiredService<QuoteCalculator>(),
             serviceProvider.GetRequiredService<IReferentialQueries>(),
+            serviceProvider.GetRequiredService<IFleetQueries>(),
             serviceProvider.GetRequiredService<IUserContext>(),
             serviceProvider.GetRequiredService<IUnitOfWork>(),
             serviceProvider.GetRequiredService<TimeProvider>()));

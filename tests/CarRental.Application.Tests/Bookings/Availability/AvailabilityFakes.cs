@@ -5,6 +5,7 @@ using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Concurrency;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Tests.Fakes;
@@ -529,6 +530,9 @@ internal sealed class AvailabilityWorld
 
     public AvailabilityGuard Guard() => new(UnitOfWork, Lock, Loader(), Fleet);
 
+    /// <summary>The actor of the scopes of <see cref="Services"/> (read per scope): the system across agencies by default.</summary>
+    public UserContextSnapshot Actor { get; set; } = UserContextSnapshot.System("system:tests");
+
     /// <summary>The real registration (<c>AddBookingAvailability</c>) over the fakes.</summary>
     public ServiceProvider Services(Action<IServiceCollection>? configure = null)
     {
@@ -540,6 +544,12 @@ internal sealed class AvailabilityWorld
         services.AddSingleton<IChannelAvailabilityPolicy>(Channels);
         services.AddSingleton<IUnitOfWork>(UnitOfWork);
         services.AddSingleton<IAvailabilityLock>(Lock);
+        services.AddScoped<IUserContext>(_ =>
+        {
+            var context = new ScopedUserContext([]);
+            context.Initialize(Actor);
+            return context;
+        });
         configure?.Invoke(services);
         services.AddBookingAvailability();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });

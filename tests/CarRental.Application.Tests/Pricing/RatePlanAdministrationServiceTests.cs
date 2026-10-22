@@ -167,6 +167,30 @@ public sealed class RatePlanAdministrationServiceTests
     }
 
     [Fact]
+    public async Task Prices_and_tier_discounts_only_take_the_categories_of_the_plan_agency()
+    {
+        // ADR-0067: a category of another agency is refused like an unknown one, an inactive category of the agency is kept.
+        var foreign = _world.Fleet.AddCategory(Guid.CreateVersion7(), OtherAgencyId, "CDMR", 800m, 400m).Id;
+        var retired = _world.Fleet.AddCategory(Guid.CreateVersion7(), AgencyId, "IDMR", 800m, 400m, active: false).Id;
+        var draft = _world.Draft();
+        var service = AsManager();
+
+        (await service.UpdatePricesAsync(draft.Id, draft.Revision, [new(Ecmr, RatePeriodKey.Base, Money.Tnd(95m)), new(foreign, RatePeriodKey.Base, Money.Tnd(1m))], Ct))
+            .Error.ShouldBe(PricingErrors.CategoryNotFound);
+        (await service.UpdatePricesAsync(draft.Id, draft.Revision, [new(Guid.CreateVersion7(), RatePeriodKey.Base, Money.Tnd(1m))], Ct))
+            .Error.ShouldBe(PricingErrors.CategoryNotFound);
+        (await service.UpdateTiersAsync(draft.Id, draft.Revision, [new(1, 0m), new(7, 12m)], [new(7, foreign, 14m)], Ct))
+            .Error.ShouldBe(PricingErrors.CategoryNotFound);
+        draft.Prices.ShouldNotContain(p => p.CategoryId == foreign);
+        draft.TierCategoryDiscounts.ShouldBeEmpty();
+        _world.UnitOfWork.Executions.ShouldBe(0);
+
+        (await service.UpdatePricesAsync(draft.Id, draft.Revision, [new(Ecmr, RatePeriodKey.Base, Money.Tnd(95m)), new(retired, RatePeriodKey.Base, Money.Tnd(90m))], Ct))
+            .IsSuccess.ShouldBeTrue();
+        (await service.UpdateTiersAsync(draft.Id, draft.Revision, [new(1, 0m), new(7, 12m)], [new(7, retired, 14m)], Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task A_delivery_extra_must_target_a_location_of_the_plan_agency()
     {
         var draft = _world.Draft();

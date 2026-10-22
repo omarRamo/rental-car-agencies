@@ -1,5 +1,6 @@
 using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Bookings.Availability;
 using CarRental.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -172,6 +173,32 @@ public sealed class AvailabilityQueriesTests
 
         (await queries.GetCategoryAvailabilityAsync(category.Id, P(10, 20), SalesChannel.Web, cancellationToken: Ct))!.IsAvailable.ShouldBeTrue();
         write.Error.ShouldBe(AvailabilityErrors.NotAvailable);
+    }
+
+    [Fact]
+    public async Task An_operation_of_another_agency_never_reads_the_cached_availability_of_an_agency()
+    {
+        // The cache is loaded across agencies (ADR-0067): an operation limited to an agency is answered for its own
+        // categories only, as if those of another agency did not exist — beyond the cached horizon too.
+        var world = new AvailabilityWorld();
+        var category = world.Category("ECMR", vehicles: 2);
+        await using var services = world.Services();
+        world.Actor = UserContextSnapshot.System("system:tests", agencyId: Guid.CreateVersion7());
+        await using (var other = services.CreateAsyncScope())
+        {
+            var queries = other.ServiceProvider.GetRequiredService<IAvailabilityQueries>();
+            (await queries.GetAvailableCategoriesAsync(world.AgencyId, P(10, 20), SalesChannel.Web, Ct)).ShouldBeEmpty();
+            (await queries.GetCategoryAvailabilityAsync(category.Id, P(10, 20), SalesChannel.Web, cancellationToken: Ct)).ShouldBeNull();
+            (await queries.GetCategoryAvailabilityAsync(category.Id, P(24 * 500, 24 * 501), SalesChannel.Web, cancellationToken: Ct)).ShouldBeNull();
+            (await queries.GetCapacityProfileAsync(category.Id, P(10, 20), cancellationToken: Ct)).ShouldBeNull();
+        }
+
+        world.Actor = UserContextSnapshot.System("system:tests", agencyId: world.AgencyId);
+        await using var own = services.CreateAsyncScope();
+        var ownQueries = own.ServiceProvider.GetRequiredService<IAvailabilityQueries>();
+        (await ownQueries.GetAvailableCategoriesAsync(world.AgencyId, P(10, 20), SalesChannel.Web, Ct)).ShouldHaveSingleItem().Remaining.ShouldBe(2);
+        (await ownQueries.GetCategoryAvailabilityAsync(category.Id, P(10, 20), SalesChannel.Web, cancellationToken: Ct))!.Remaining.ShouldBe(2);
+        (await ownQueries.GetCapacityProfileAsync(category.Id, P(10, 20), cancellationToken: Ct)).ShouldNotBeNull();
     }
 
     [Fact]

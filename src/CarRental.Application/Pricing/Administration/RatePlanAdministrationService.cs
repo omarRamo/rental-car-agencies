@@ -1,5 +1,6 @@
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
@@ -23,6 +24,7 @@ public sealed class RatePlanAdministrationService
     private readonly IRatePlanStore _store;
     private readonly QuoteCalculator _calculator;
     private readonly IReferentialQueries _referential;
+    private readonly IFleetQueries _fleet;
     private readonly IUserContext _user;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _clock;
@@ -31,6 +33,7 @@ public sealed class RatePlanAdministrationService
         IRatePlanStore store,
         QuoteCalculator calculator,
         IReferentialQueries referential,
+        IFleetQueries fleet,
         IUserContext user,
         IUnitOfWork unitOfWork,
         TimeProvider clock)
@@ -38,6 +41,7 @@ public sealed class RatePlanAdministrationService
         _store = store;
         _calculator = calculator;
         _referential = referential;
+        _fleet = fleet;
         _user = user;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -192,17 +196,29 @@ public sealed class RatePlanAdministrationService
         return EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceEvents(events, now), cancellationToken);
     }
 
-    public Task<Result<RatePlanDetail>> UpdatePricesAsync(
+    /// <summary>Replaces the price grid; every category must be one of the plan's agency (ADR-0067).</summary>
+    public async Task<Result<RatePlanDetail>> UpdatePricesAsync(
         Guid planId,
         int expectedRevision,
         IReadOnlyList<CategoryPriceDefinition> prices,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(prices);
-        return EditAsync(planId, expectedRevision, (plan, now) => plan.ReplacePrices(prices, now), cancellationToken);
+        if (!_user.HasPermission(Permissions.PricingManage))
+        {
+            return PricingErrors.Forbidden;
+        }
+
+        if (!await AreCategoriesOfThePlanAsync(planId, prices.Select(p => p.CategoryId), cancellationToken))
+        {
+            return PricingErrors.CategoryNotFound;
+        }
+
+        return await EditAsync(planId, expectedRevision, (plan, now) => plan.ReplacePrices(prices, now), cancellationToken);
     }
 
-    public Task<Result<RatePlanDetail>> UpdateTiersAsync(
+    /// <summary>Replaces the duration tiers; every category of a discount must be one of the plan's agency (ADR-0067).</summary>
+    public async Task<Result<RatePlanDetail>> UpdateTiersAsync(
         Guid planId,
         int expectedRevision,
         IReadOnlyList<DurationTierDefinition> tiers,
@@ -211,7 +227,17 @@ public sealed class RatePlanAdministrationService
     {
         ArgumentNullException.ThrowIfNull(tiers);
         ArgumentNullException.ThrowIfNull(categoryDiscounts);
-        return EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceTiers(tiers, categoryDiscounts, now), cancellationToken);
+        if (!_user.HasPermission(Permissions.PricingManage))
+        {
+            return PricingErrors.Forbidden;
+        }
+
+        if (!await AreCategoriesOfThePlanAsync(planId, categoryDiscounts.Select(d => d.CategoryId), cancellationToken))
+        {
+            return PricingErrors.CategoryNotFound;
+        }
+
+        return await EditAsync(planId, expectedRevision, (plan, now) => plan.ReplaceTiers(tiers, categoryDiscounts, now), cancellationToken);
     }
 
     /// <summary>Replaces the extras; a delivery extra must target a location of the plan's agency (otherwise it could never be charged).</summary>
@@ -364,6 +390,22 @@ public sealed class RatePlanAdministrationService
                     : RatePlanMapper.ToDetail(plan.Value, await IssuesAsync(plan.Value, ct));
             },
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Whether every category is one of the plan's agency, inactive ones included (ADR-0067): a price or a discount for a
+    /// category of another agency would never apply. A plan the operation does not see is reported by the edit itself.
+    /// </summary>
+    private async Task<bool> AreCategoriesOfThePlanAsync(Guid planId, IEnumerable<Guid> categoryIds, CancellationToken cancellationToken)
+    {
+        var requested = categoryIds.ToHashSet();
+        if (requested.Count == 0 || await _store.FindAgencyIdAsync(planId, cancellationToken) is not { } agencyId)
+        {
+            return true;
+        }
+
+        var categories = await _fleet.GetCategoriesAsync(agencyId, includeInactive: true, cancellationToken);
+        return requested.IsSubsetOf(categories.Select(c => c.Id));
     }
 
     /// <summary>The tracked draft, if it still has the revision the editor read.</summary>

@@ -41,23 +41,20 @@ public sealed partial class SignInRecorder(
                 Details = method,
                 ActingUserId = user.Id,
                 ActingUserName = user.UserName,
-                AgencyId = user.AgencyId,
-            },
+            }.ForAccountOf(user.AgencyId),
             cancellationToken);
     }
 
     public Task FailedAsync(ApplicationUser? user, string reason, string? attemptedEmail = null, CancellationToken cancellationToken = default)
     {
         DiscardFailedIdentityChanges();
-        return auditTrail.RecordAsync(
-            new AuditEvent(AuditActions.LoginFailed)
-            {
-                EntityType = UserEntityType,
-                EntityId = user?.Id.ToString(),
-                Details = user is null ? $"{reason} ({MaskAttemptedLogin(attemptedEmail)})" : reason,
-                AgencyId = user?.AgencyId,
-            },
-            cancellationToken);
+        var failed = new AuditEvent(AuditActions.LoginFailed)
+        {
+            EntityType = UserEntityType,
+            EntityId = user?.Id.ToString(),
+            Details = user is null ? $"{reason} ({MaskAttemptedLogin(attemptedEmail)})" : reason,
+        };
+        return auditTrail.RecordAsync(user is null ? failed : failed.ForAccountOf(user.AgencyId), cancellationToken);
     }
 
     /// <summary>
@@ -103,24 +100,30 @@ public sealed partial class SignInRecorder(
                 EntityId = user.Id.ToString(),
                 ActingUserId = user.Id,
                 ActingUserName = user.UserName,
-                AgencyId = user.AgencyId,
-            },
+            }.ForAccountOf(user.AgencyId),
             cancellationToken);
     }
 
-    public Task AccountEventAsync(string action, ClaimsPrincipal principal, string? details = null, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// A change the signed-in user made to their own account (password, authenticator, recovery codes): recorded for the
+    /// agency of the account, or for the platform for the support — never for the agency the support entered (ADR-0067).
+    /// </summary>
+    public async Task AccountEventAsync(string action, ClaimsPrincipal principal, string? details = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(principal);
         DiscardFailedIdentityChanges();
-        return auditTrail.RecordAsync(
-            new AuditEvent(action)
-            {
-                EntityType = UserEntityType,
-                EntityId = Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) ? userId.ToString() : null,
-                Details = details,
-            },
-            cancellationToken);
+        var userId = Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : (Guid?)null;
+        var accountEvent = new AuditEvent(action)
+        {
+            EntityType = UserEntityType,
+            EntityId = userId?.ToString(),
+            Details = details,
+        };
+        var account = userId is { } known
+            ? await db.Users.AsNoTracking().Where(u => u.Id == known).Select(u => new { u.AgencyId }).FirstOrDefaultAsync(cancellationToken)
+            : null;
+        await auditTrail.RecordAsync(account is null ? accountEvent : accountEvent.ForAccountOf(account.AgencyId), cancellationToken);
     }
 
     /// <summary>

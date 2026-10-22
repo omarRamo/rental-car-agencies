@@ -603,6 +603,9 @@
   <data name="Error.payments.booking_required" xml:space="preserve">
     <value>Un dossier est obligatoire.</value>
   </data>
+  <data name="Error.payments.booking_not_found" xml:space="preserve">
+    <value>Ce dossier de location n'existe pas.</value>
+  </data>
   <data name="Error.payments.amount_invalid" xml:space="preserve">
     <value>Le montant est positif, en dinars avec au plus 3 décimales (millimes), et ne dépasse pas 1 000 000 TND.</value>
   </data>
@@ -1202,9 +1205,6 @@
   </data>
   <data name="Error.messaging.module_off" xml:space="preserve">
     <value>WhatsApp n'est pas ouvert pour l'agence (module désactivé ou agence suspendue) : le message n'est pas parti.</value>
-  </data>
-  <data name="Error.messaging.number_not_served" xml:space="preserve">
-    <value>Le numéro WhatsApp de la plateforme ne sert pas cette agence (il sert une autre agence, ou aucune) : aucun message ne peut partir pour elle.</value>
   </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta a refusé le message.</value>
@@ -2064,9 +2064,6 @@
   <data name="Error.referential.platform_concurrent_update" xml:space="preserve">
     <value>L'agence a été modifiée entre-temps : rechargez-la et recommencez.</value>
   </data>
-  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
-    <value>Le numéro WhatsApp de la plateforme sert déjà une autre agence et ne peut en servir qu'une : avec ce module ouvert ici, il ne servirait plus aucune des deux. Désignez d'abord l'agence à servir (réglage WhatsApp__AgencyId), puis ouvrez le module.</value>
-  </data>
   <data name="Error.identity.last_support" xml:space="preserve">
     <value>Le dernier compte support actif ne peut pas être verrouillé.</value>
   </data>
@@ -2108,5 +2105,11 @@
   </data>
   <data name="Error.customers.agency_required" xml:space="preserve">
     <value>Les clients sont enregistrés pour une agence : ouvrez d'abord l'agence concernée.</value>
+  </data>
+  <data name="Error.messaging.number_not_served" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme ne sert pas cette agence (il sert une autre agence, ou aucune) : aucun message ne peut partir pour elle.</value>
+  </data>
+  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert déjà une autre agence et ne peut en servir qu'une : avec ce module ouvert ici, il ne servirait plus aucune des deux. Désignez d'abord l'agence à servir (réglage WhatsApp__AgencyId), puis ouvrez le module.</value>
   </data>
 </root>

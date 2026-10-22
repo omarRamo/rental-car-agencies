@@ -118,6 +118,42 @@ public sealed class TenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task Only_an_operation_across_agencies_writes_a_platform_value()
+    {
+        var agency = await NewAgencyAsync("Valeur commune");
+        var key = $"tests.platform_guard_{Guid.NewGuid():N}";
+
+        // Working for one agency — a system step of that agency, the support inside it, a visitor of its site — or for
+        // none: a platform value is out of reach, whatever the actor may do elsewhere.
+        UserContextSnapshot[] limited = [TestActors.SystemFor(agency.Id), TestActors.Support(agency.Id), TestActors.Visitor(agency.Id), UserContextSnapshot.Anonymous()];
+        foreach (var actor in limited)
+        {
+            await using var scope = host.CreateScope(actor);
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "01:00:00").Value);
+            await Should.ThrowAsync<AgencyBoundaryException>(() => db.SaveChangesAsync(Ct), actor.UserName ?? "a visitor");
+        }
+
+        await using (var scope = host.CreateScope(TestActors.SystemFor(agency.Id)))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "02:00:00", agency.Id).Value);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using (var scope = host.CreateScope(TestActors.Support()))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            db.Set<Setting>().Add(Setting.Create(key, "03:00:00").Value);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var check = host.CreateScope();
+        (await check.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Setting>().Where(s => s.Key == key).Select(s => s.AgencyId).ToListAsync(Ct))
+            .ShouldBe([null, agency.Id], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task Each_agency_has_its_own_series_of_numbers()
     {
         var (first, second) = (await NewAgencyAsync("Numéros A"), await NewAgencyAsync("Numéros B"));
@@ -265,6 +301,68 @@ public sealed class TenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_support_changing_its_own_account_inside_an_agency_writes_to_the_journal_of_the_platform()
+    {
+        var agency = await NewAgencyAsync("Compte du support");
+        var (supportId, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        var key = supportId.ToString();
+
+        // Inside the agency, the support changes its own account: an Identity row (a token), the account itself (its
+        // security stamp) and an account event of the account pages.
+        await using (var scope = host.CreateScope(TestActors.Support(agency.Id, supportEmail, supportId)))
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = (await users.FindByIdAsync(key))!;
+            (await users.SetAuthenticationTokenAsync(user, "tests", "probe", Guid.NewGuid().ToString("N"))).Succeeded.ShouldBeTrue();
+            (await users.UpdateSecurityStampAsync(user)).Succeeded.ShouldBeTrue();
+            var principal = await scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>().CreateAsync(user);
+            await scope.ServiceProvider.GetRequiredService<SignInRecorder>().AccountEventAsync(AuditActions.AuthenticatorReset, principal, cancellationToken: Ct);
+        }
+
+        await using (var check = host.CreateScope())
+        {
+            var rows = await check.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<AuditLog>()
+                .Where(a => a.EntityId != null && a.EntityId.StartsWith(key))
+                .Select(a => new { a.EntityType, a.Action, a.AgencyId })
+                .ToListAsync(Ct);
+            rows.ShouldContain(r => r.EntityType == "UserToken" && r.Action == AuditActions.EntityCreated);
+            rows.ShouldContain(r => r.EntityType == "User" && r.Action == AuditActions.EntityUpdated);
+            rows.ShouldContain(r => r.Action == AuditActions.AuthenticatorReset);
+            rows.ShouldAllBe(r => r.AgencyId == null, "the support's account is the platform's, whatever agency it works in");
+        }
+
+        await using var manager = host.CreateScope(TestActors.Staff(agency.Id, Roles.Manager));
+        (await manager.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<AuditLog>().AnyAsync(a => a.EntityId != null && a.EntityId.StartsWith(key), Ct))
+            .ShouldBeFalse("the manager of the agency never reads the support's own account events");
+    }
+
+    [Fact]
+    public async Task An_open_circuit_of_the_support_ends_once_the_support_enters_another_agency_or_leaves_it()
+    {
+        var (first, second) = (await NewAgencyAsync("Circuit A"), await NewAgencyAsync("Circuit B"));
+        var (supportId, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        var support = await TestStaff.ActorAsync(host, supportId, supportEmail, Roles.Support);
+        var (managerId, _) = await TestStaff.CreateAsync(host, Roles.Manager, agencyId: first.Id);
+        var managerCircuit = await SessionOfAsync(managerId);
+
+        await SelectAgencyAsync(support, first.Id);
+        var circuitInFirst = await SessionOfAsync(supportId);
+        (await IsStillValidAsync(circuitInFirst)).ShouldBeTrue();
+
+        // From the platform pages of another tab: the stamp stays (the support's other sessions go on), the circuit
+        // opened in the first agency ends at its next revalidation.
+        await SelectAgencyAsync(support, second.Id);
+        (await IsStillValidAsync(circuitInFirst)).ShouldBeFalse("the circuit opened in the first agency no longer works for it");
+        var circuitInSecond = await SessionOfAsync(supportId);
+        (await IsStillValidAsync(circuitInSecond)).ShouldBeTrue();
+
+        await SelectAgencyAsync(support, agencyId: null);
+        (await IsStillValidAsync(circuitInSecond)).ShouldBeFalse("the support left the agency");
+        (await IsStillValidAsync(await SessionOfAsync(supportId))).ShouldBeTrue("a session of the platform pages");
+        (await IsStillValidAsync(managerCircuit)).ShouldBeTrue("a member of the agency always works for it");
+    }
+
+    [Fact]
     public async Task A_member_of_an_agency_never_receives_a_platform_permission()
     {
         var agency = await NewAgencyAsync("Permissions");
@@ -319,5 +417,34 @@ public sealed class TenancyTests(IntegrationHost host)
     {
         var (id, email) = await TestStaff.CreateAsync(host, Roles.Support);
         return await TestStaff.ActorAsync(host, id, email, Roles.Support);
+    }
+
+    /// <summary>The support enters <paramref name="agencyId"/> (or leaves the agency it entered) from the platform pages.</summary>
+    private async Task SelectAgencyAsync(UserContextSnapshot support, Guid? agencyId)
+    {
+        await using var scope = host.CreateScope(support);
+        var sessions = scope.ServiceProvider.GetRequiredService<SupportSessionService>();
+        var selected = agencyId is { } id ? await sessions.EnterAgencyAsync(id, Ct) : await sessions.LeaveAgencyAsync(Ct);
+        selected.IsSuccess.ShouldBeTrue(selected.IsFailure ? selected.Error.ToString() : null);
+    }
+
+    /// <summary>The principal of a session (a circuit) opened now by the user.</summary>
+    private async Task<System.Security.Claims.ClaimsPrincipal> SessionOfAsync(Guid userId)
+    {
+        await using var scope = host.CreateScope();
+        var user = (await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(userId.ToString()))!;
+        return await scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>().CreateAsync(user);
+    }
+
+    /// <summary>The revalidation of an open circuit (<see cref="CarRental.Web.Security.SessionClaims.IsStillValidAsync"/>).</summary>
+    private async Task<bool> IsStillValidAsync(System.Security.Claims.ClaimsPrincipal session)
+    {
+        await using var scope = host.CreateScope();
+        return await CarRental.Web.Security.SessionClaims.IsStillValidAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+            session,
+            scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>().Value,
+            scope.ServiceProvider.GetRequiredService<IAgencyDirectory>());
     }
 }

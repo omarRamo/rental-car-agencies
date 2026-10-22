@@ -35,4 +35,16 @@ public sealed record AuditEvent(string Action)
     /// when <see langword="null"/>, the platform itself when the operation works for none (ADR-0067).
     /// </summary>
     public Guid? AgencyId { get; init; }
+
+    /// <summary>
+    /// The event concerns the platform itself whatever agency the operation works for, e.g. the account of the support,
+    /// which belongs to no agency even while the support works inside one (ADR-0067): <see cref="AgencyId"/> is ignored.
+    /// </summary>
+    public bool ConcernsPlatform { get; init; }
+
+    /// <summary>
+    /// This event about the account of a user of <paramref name="userAgencyId"/>: recorded for that agency, or for the
+    /// platform when the account belongs to none (the support).
+    /// </summary>
+    public AuditEvent ForAccountOf(Guid? userAgencyId) => this with { AgencyId = userAgencyId, ConcernsPlatform = userAgencyId is null };
 }

@@ -212,18 +212,27 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     public async Task The_development_page_starts_a_payment_like_the_funnel_will()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         using var client = host.CreateClient();
         var page = await client.GetStringAsync(new Uri("/dev/clictopay/start", UriKind.Relative), Ct);
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        FormUrlEncodedContent Form(Guid? booking) => new(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = HttpSignIn.AntiforgeryToken(page),
             ["AgencyId"] = agencyId.ToString(),
-            ["BookingId"] = string.Empty,
+            ["BookingId"] = booking?.ToString() ?? string.Empty,
             ["Amount"] = "75,500",
             ["Flow"] = "oneStep",
             ["Culture"] = "en",
         });
 
+        // A payment always points to a rental file of its agency (ADR-0067): the page asks for one.
+        using (var withoutBooking = Form(null))
+        {
+            var refused = await client.PostAsync(new Uri("/dev/clictopay/start", UriKind.Relative), withoutBooking, Ct);
+            refused.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var form = Form(bookingId);
         var started = await client.PostAsync(new Uri("/dev/clictopay/start", UriKind.Relative), form, Ct);
 
         started.StatusCode.ShouldBe(HttpStatusCode.Redirect);
@@ -237,6 +246,8 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var payment = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Payment>().AsNoTracking()
             .SingleAsync(p => p.Id == Guid.ParseExact(order.OrderNumber, "N"), Ct);
         payment.AgencyId.ShouldBe(agencyId);
+        payment.BookingId.ShouldBe(bookingId);
+        (await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Payment>().CountAsync(p => p.AgencyId == agencyId, Ct)).ShouldBe(1, "nothing without a rental file");
         var site = (await host.Factory.Services.GetRequiredService<IAgencyDirectory>().FindAsync(agencyId, Ct)).ShouldNotBeNull().Slug;
         payment.GatewayReturnPath.ShouldBe($"/{site}/en/payment/{{paymentId}}", "the result page of the site of the agency of the payment");
     }
@@ -271,9 +282,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     /// <summary>A pre-authorization started like the funnel of the agency's public site starts it: as a visitor of that site.</summary>
     private async Task<OnlinePaymentRedirect> StartAsync(Guid agencyId, decimal amount, string returnPath, string? failPath = null)
     {
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         await using var scope = host.CreateScope(TestActors.Visitor(agencyId, "198.51.100.20"));
         var started = await scope.ServiceProvider.GetRequiredService<IOnlinePayments>()
-            .StartPreAuthorizationAsync(new OnlinePaymentRequest(Guid.CreateVersion7(), agencyId, amount, "fr", returnPath, failPath ?? returnPath), Ct);
+            .StartPreAuthorizationAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", returnPath, failPath ?? returnPath), Ct);
         started.IsSuccess.ShouldBeTrue(started.IsFailure ? started.Error.ToString() : null);
         return started.Value;
     }

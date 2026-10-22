@@ -27,7 +27,7 @@ internal sealed class AuditTrail(CarRentalDbContext db, IUserContext userContext
             auditEvent.EntityType,
             auditEvent.EntityId,
             details: auditEvent.Details,
-            agencyId: auditEvent.AgencyId ?? userContext.AgencyId));
+            agencyId: auditEvent.ConcernsPlatform ? null : auditEvent.AgencyId ?? userContext.AgencyId));
         await db.SaveChangesAsync(cancellationToken);
     }
 }
