@@ -16,8 +16,13 @@ public interface IBookingsQueries
     /// <summary>The rental file, or <see langword="null"/>.</summary>
     Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default);
 
-    /// <summary>The rental file of a number such as <c>LOC-2027-000123</c> (case and spaces ignored), or <see langword="null"/>.</summary>
-    Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The rental file of the agency <paramref name="agencyId"/> with a number such as <c>LOC-2027-000123</c> (case and
+    /// spaces ignored), or <see langword="null"/>. Numbers are unique within an agency only (ADR-0067): with
+    /// <paramref name="agencyId"/> <see langword="null"/>, the file of the agency of the operation — an operation across
+    /// agencies then finds nothing.
+    /// </summary>
+    Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The rental files where the person is a driver or the payer (through its individual customer), most recent pick-up

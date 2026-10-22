@@ -75,7 +75,7 @@ internal static class BillingWorld
         var bookings = new List<Guid>();
         for (var i = 0; i < count; i++)
         {
-            var driverId = await NewDriverAsync(host, cancellationToken);
+            var driverId = await NewDriverAsync(host, agency.AgencyId, cancellationToken);
             var created = await BookingWorld.CreateAsync(host, Quick(agency.Agency, driverId, InDays(1 + (2 * i)), InDays(2 + (2 * i))), cancellationToken);
             bookings.Add(created.BookingId);
         }

@@ -165,7 +165,7 @@ internal sealed partial class BookingOnlinePaymentHandler(
         var booking = await db.Set<Booking>()
             .AsNoTracking()
             .Where(b => b.Id == message.BookingId)
-            .Select(b => new { b.Id, b.Number, b.Status })
+            .Select(b => new { b.Id, b.AgencyId, b.Number, b.Status })
             .FirstOrDefaultAsync(cancellationToken);
         if (booking is null)
         {
@@ -177,7 +177,7 @@ internal sealed partial class BookingOnlinePaymentHandler(
         var track = await db.Set<BookingPaymentTrack>().FirstOrDefaultAsync(t => t.BookingId == booking.Id, cancellationToken);
         if (track is null)
         {
-            track = BookingPaymentTrack.Create(booking.Id, clock.GetUtcNow());
+            track = BookingPaymentTrack.Create(booking.AgencyId, booking.Id, clock.GetUtcNow());
             db.Set<BookingPaymentTrack>().Add(track);
         }
 

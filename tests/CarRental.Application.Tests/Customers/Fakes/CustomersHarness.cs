@@ -93,7 +93,7 @@ internal sealed class CustomersHarness
 
     public Person AddTunisian(string firstName = "Sami", string lastName = "Trabelsi", string phone = "20 111 001", string? email = null, string cin = "08123456")
     {
-        var person = Person.Register(new PersonDetails(firstName, lastName, "TN", new DateOnly(1988, 4, 12), phone, email), Clock.GetUtcNow()).Value;
+        var person = Person.Register(TestUsers.AgencyId, new PersonDetails(firstName, lastName, "TN", new DateOnly(1988, 4, 12), phone, email), Clock.GetUtcNow()).Value;
         person.AddDocument(new IdentityDocumentDetails(IdentityDocumentType.NationalId, cin, "TN", new DateOnly(2016, 3, 1)), Clock.GetUtcNow()).IsSuccess.ShouldBeTrue();
         person.DequeueDomainEvents();
         return Add(person);

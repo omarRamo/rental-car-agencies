@@ -58,7 +58,7 @@ public sealed class HandoverQueriesTests
         var harness = new HandoverHarness().As(Roles.Accountant);
 
         (await harness.Queries.GetDayAsync(harness.Bookings.AgencyId, new DateOnly(2027, 6, 11), Ct)).Error.ShouldBe(BookingErrors.Forbidden);
-        (await harness.Queries.GetAgenciesAsync(Ct)).Error.ShouldBe(BookingErrors.Forbidden);
+        (await harness.Queries.GetCurrentAgencyAsync(Ct)).Error.ShouldBe(BookingErrors.Forbidden);
     }
 
     [Fact]

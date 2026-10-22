@@ -17,9 +17,10 @@ public enum AccessPurpose
 /// customer, a six-digit code (salted hash, limited attempts), both valid a short time; once used, the grant is the
 /// server side of a short session limited to its booking — sliding, never beyond <see cref="SessionLifetime"/> after
 /// it was opened, revocable. A request that matched no booking is recorded too (same work, same answer: no
-/// enumeration) and can never be opened.
+/// enumeration) and can never be opened. A grant belongs to the agency of the public site it was asked on, which is the
+/// agency of its booking (ADR-0067): it never opens on the site of another agency.
 /// </summary>
-public sealed class BookingAccessGrant : AggregateRoot
+public sealed class BookingAccessGrant : AggregateRoot, IAgencyOwned
 {
     public const int CultureMaxLength = 5;
 
@@ -30,9 +31,10 @@ public sealed class BookingAccessGrant : AggregateRoot
     {
     }
 
-    private BookingAccessGrant(Guid? bookingId, AccessPurpose purpose, byte[] tokenHash, byte[]? codeHash, byte[]? codeSalt, string culture, DateTimeOffset now, TimeSpan validity)
+    private BookingAccessGrant(Guid agencyId, Guid? bookingId, AccessPurpose purpose, byte[] tokenHash, byte[]? codeHash, byte[]? codeSalt, string culture, DateTimeOffset now, TimeSpan validity)
         : base(NewId())
     {
+        AgencyId = agencyId;
         BookingId = bookingId;
         Purpose = purpose;
         TokenHash = tokenHash;
@@ -42,6 +44,8 @@ public sealed class BookingAccessGrant : AggregateRoot
         CreatedAtUtc = now.ToUniversalTime();
         ExpiresAtUtc = CreatedAtUtc + validity;
     }
+
+    public Guid AgencyId { get; private set; }
 
     /// <summary>The booking it opens; <see langword="null"/> when the request matched none (it cannot be opened).</summary>
     public Guid? BookingId { get; private set; }
@@ -79,8 +83,12 @@ public sealed class BookingAccessGrant : AggregateRoot
 
     public bool IsUsed => UsedAtUtc is not null;
 
-    /// <summary>A link (and code) for <paramref name="bookingId"/>, valid <paramref name="validity"/>; no booking: never openable.</summary>
+    /// <summary>
+    /// A link (and code) of the agency <paramref name="agencyId"/> for <paramref name="bookingId"/> (a booking of that
+    /// agency), valid <paramref name="validity"/>; no booking: never openable.
+    /// </summary>
     public static BookingAccessGrant Issue(
+        Guid agencyId,
         Guid? bookingId,
         AccessPurpose purpose,
         byte[] tokenHash,
@@ -93,6 +101,11 @@ public sealed class BookingAccessGrant : AggregateRoot
         ArgumentNullException.ThrowIfNull(tokenHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(culture);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(validity, TimeSpan.Zero);
+        if (agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("A grant belongs to an agency.", nameof(agencyId));
+        }
+
         if (tokenHash.Length != AccessSecrets.HashLength || (codeHash is null) != (codeSalt is null) || codeHash is { Length: not AccessSecrets.HashLength })
         {
             throw new ArgumentException("Hashes are SHA-256; a code comes with its salt.");
@@ -103,7 +116,7 @@ public sealed class BookingAccessGrant : AggregateRoot
             throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unknown access purpose.");
         }
 
-        return new BookingAccessGrant(bookingId, purpose, tokenHash, codeHash, codeSalt, culture.Length > CultureMaxLength ? culture[..CultureMaxLength] : culture, now, validity);
+        return new BookingAccessGrant(agencyId, bookingId, purpose, tokenHash, codeHash, codeSalt, culture.Length > CultureMaxLength ? culture[..CultureMaxLength] : culture, now, validity);
     }
 
     /// <summary>
@@ -190,7 +203,7 @@ public sealed class BookingAccessGrant : AggregateRoot
 /// What the public pages know about a booking made online (no personal data): the language of the customer for the
 /// e-mails and pages, and the WhatsApp notifications opt-in (read by the WhatsApp channel, phase 4).
 /// </summary>
-public sealed class BookingCustomerProfile : Entity
+public sealed class BookingCustomerProfile : Entity, IAgencyOwned
 {
     public const int BaseUrlMaxLength = 200;
 
@@ -198,15 +211,19 @@ public sealed class BookingCustomerProfile : Entity
     {
     }
 
-    private BookingCustomerProfile(Guid bookingId, string culture, bool whatsAppNotifications, string? publicBaseUrl, DateTimeOffset now)
+    private BookingCustomerProfile(Guid agencyId, Guid bookingId, string culture, bool whatsAppNotifications, string? publicBaseUrl, DateTimeOffset now)
         : base(NewId())
     {
+        AgencyId = agencyId;
         BookingId = bookingId;
         Culture = culture;
         WhatsAppNotifications = whatsAppNotifications;
         PublicBaseUrl = publicBaseUrl;
         CreatedAtUtc = now.ToUniversalTime();
     }
+
+    /// <summary>The agency of the booking.</summary>
+    public Guid AgencyId { get; private set; }
 
     public Guid BookingId { get; private set; }
 
@@ -222,35 +239,39 @@ public sealed class BookingCustomerProfile : Entity
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
-    public static BookingCustomerProfile Create(Guid bookingId, string culture, bool whatsAppNotifications, DateTimeOffset now, string? publicBaseUrl = null)
+    /// <summary>The profile of <paramref name="bookingId"/>, a booking (to be) of the agency <paramref name="agencyId"/>.</summary>
+    public static BookingCustomerProfile Create(Guid agencyId, Guid bookingId, string culture, bool whatsAppNotifications, DateTimeOffset now, string? publicBaseUrl = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(culture);
-        if (bookingId == Guid.Empty)
+        if (agencyId == Guid.Empty || bookingId == Guid.Empty)
         {
-            throw new ArgumentException("A profile belongs to a booking.", nameof(bookingId));
+            throw new ArgumentException("A profile belongs to a booking of an agency.", nameof(bookingId));
         }
 
-        var baseUrl = Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out var uri)
-                      && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
-                      && uri.AbsoluteUri.Length <= BaseUrlMaxLength
-            ? uri.GetLeftPart(UriPartial.Authority) + "/"
-            : null;
         return new BookingCustomerProfile(
+            agencyId,
             bookingId,
             culture.Length > BookingAccessGrant.CultureMaxLength ? culture[..BookingAccessGrant.CultureMaxLength] : culture,
             whatsAppNotifications,
-            baseUrl,
+            BaseUrlOf(publicBaseUrl),
             now);
     }
 
     /// <summary>Records the site address when none is known yet (a link sent by an agent from the back office).</summary>
     public void KnowBaseUrl(string? publicBaseUrl)
     {
-        if (PublicBaseUrl is null && Create(BookingId, Culture, WhatsAppNotifications, CreatedAtUtc, publicBaseUrl).PublicBaseUrl is { } known)
+        if (PublicBaseUrl is null && BaseUrlOf(publicBaseUrl) is { } known)
         {
             PublicBaseUrl = known;
         }
     }
+
+    private static string? BaseUrlOf(string? publicBaseUrl) =>
+        Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+        && uri.AbsoluteUri.Length <= BaseUrlMaxLength
+            ? uri.GetLeftPart(UriPartial.Authority) + "/"
+            : null;
 }
 
 /// <summary>Where the online payment of a request stands, as told by the Payments module (agent checklist, "Ma réservation").</summary>
@@ -283,18 +304,22 @@ public enum RequestPaymentState
 /// (contract message of the Payments module): the most relevant payment, its amount and a flag for a payment made
 /// after its expiry (to check).
 /// </summary>
-public sealed class BookingPaymentTrack : Entity
+public sealed class BookingPaymentTrack : Entity, IAgencyOwned
 {
     private BookingPaymentTrack()
     {
     }
 
-    private BookingPaymentTrack(Guid bookingId, DateTimeOffset now)
+    private BookingPaymentTrack(Guid agencyId, Guid bookingId, DateTimeOffset now)
         : base(NewId())
     {
+        AgencyId = agencyId;
         BookingId = bookingId;
         UpdatedAtUtc = now.ToUniversalTime();
     }
+
+    /// <summary>The agency of the booking.</summary>
+    public Guid AgencyId { get; private set; }
 
     public Guid BookingId { get; private set; }
 
@@ -310,14 +335,15 @@ public sealed class BookingPaymentTrack : Entity
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
-    public static BookingPaymentTrack Create(Guid bookingId, DateTimeOffset now)
+    /// <summary>The payment track of <paramref name="bookingId"/>, a booking of the agency <paramref name="agencyId"/>.</summary>
+    public static BookingPaymentTrack Create(Guid agencyId, Guid bookingId, DateTimeOffset now)
     {
-        if (bookingId == Guid.Empty)
+        if (agencyId == Guid.Empty || bookingId == Guid.Empty)
         {
-            throw new ArgumentException("A payment track belongs to a booking.", nameof(bookingId));
+            throw new ArgumentException("A payment track belongs to a booking of an agency.", nameof(bookingId));
         }
 
-        return new BookingPaymentTrack(bookingId, now);
+        return new BookingPaymentTrack(agencyId, bookingId, now);
     }
 
     /// <summary>Sets the current state (recomputed from every online payment of the booking); returns whether it changed.</summary>

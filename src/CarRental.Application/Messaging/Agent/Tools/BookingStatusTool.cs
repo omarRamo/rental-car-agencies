@@ -50,7 +50,8 @@ internal sealed class BookingStatusTool(IBookingsQueries bookings, ICustomersQue
             });
         }
 
-        var booking = await bookings.FindByNumberAsync(arguments.String("reference")!, cancellationToken);
+        // A reference is unique within an agency only: looked up in the agency the bot answers for.
+        var booking = await bookings.FindByNumberAsync(context.Agency.Agency.Id, arguments.String("reference")!, cancellationToken);
         if (booking is null || !await BelongsToAsync(booking, context.Turn.WhatsAppNumber, cancellationToken))
         {
             return new AgentToolOutcome(NotFound);

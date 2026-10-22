@@ -8,7 +8,9 @@ namespace CarRental.Application.Bookings.Contracts;
 /// arrives <b>confirmed</b> (distributor rule), under the availability lock like every other channel, with its channel
 /// reference (unique per sales channel: the idempotency key); the channel can then modify or cancel it ("motif :
 /// canal"). Prices always come from the pricing engine for the channel (parity, markup or own grid); the amounts
-/// reported by the channel (gross, commission, net) are kept by the Channels module.
+/// reported by the channel (gross, commission, net) are kept by the Channels module. The reference is unique within the
+/// agency of the booking (each agency has its own channel accounts, ADR-0067): an operation of one agency writes for
+/// that agency only.
 /// </summary>
 /// <remarks>
 /// <para>Requires <c>bookings.manage</c> and <c>customers.manage</c> (the driver is found again or registered): the
@@ -53,8 +55,11 @@ public interface IChannelBookings
         Func<ChannelBookingResult, CancellationToken, Task<Result>>? alongside = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>The booking of a sales channel carrying <paramref name="channelReference"/> (exact, trimmed), or <see langword="null"/>.</summary>
-    Task<BookingSummaryInfo?> FindByChannelReferenceAsync(SalesChannel channel, string channelReference, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The booking of the agency <paramref name="agencyId"/> and of a sales channel carrying
+    /// <paramref name="channelReference"/> (exact, trimmed; unique within the agency, ADR-0067), or <see langword="null"/>.
+    /// </summary>
+    Task<BookingSummaryInfo?> FindByChannelReferenceAsync(Guid agencyId, SalesChannel channel, string channelReference, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

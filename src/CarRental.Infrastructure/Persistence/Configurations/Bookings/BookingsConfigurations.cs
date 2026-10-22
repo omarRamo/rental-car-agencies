@@ -10,9 +10,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace CarRental.Infrastructure.Persistence.Configurations.Bookings;
 
 /// <summary>
-/// The rental file (temporal table <c>bookings.Bookings</c>): readable number and channel reference unique, indexes of
-/// the occupancy reads (category, status, pick-up, return) and of the screens (agency and dates, parties, vehicle,
-/// deadlines of the expiry job). Other modules are referenced by id only (agency foreign key, ADR-0012).
+/// The rental file (temporal table <c>bookings.Bookings</c>): readable number and channel reference unique within the
+/// agency (ADR-0067), indexes of the occupancy reads (category, status, pick-up, return) and of the screens (agency and
+/// dates, parties, vehicle, deadlines of the expiry job). Other modules are referenced by id only (agency foreign key,
+/// ADR-0012).
 /// </summary>
 internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
 {
@@ -65,9 +66,10 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasMany(b => b.Events).WithOne().HasForeignKey(e => e.BookingId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(b => b.Events).HasField("_events").UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        // One series of numbers per agency (ADR-0067): a number is unique within its agency.
+        // One series of numbers per agency (ADR-0067): a number is unique within its agency, and so is the reference of
+        // a booking in a channel (each agency has its own channel accounts).
         builder.HasIndex(b => new { b.AgencyId, b.Number }).IsUnique();
-        builder.HasIndex(b => new { b.Channel, b.ChannelReference }).IsUnique().HasFilter("[ChannelReference] IS NOT NULL");
+        builder.HasIndex(b => new { b.AgencyId, b.Channel, b.ChannelReference }).IsUnique().HasFilter("[ChannelReference] IS NOT NULL");
         builder.HasIndex(b => new { b.CategoryId, b.Status, b.PickupAt, b.ReturnAt });
         builder.HasIndex(b => new { b.AgencyId, b.PickupAt });
         builder.HasIndex(b => new { b.AgencyId, b.ReturnAt });
@@ -119,6 +121,8 @@ internal sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
         builder.HasMany(q => q.Lines).WithOne().HasForeignKey(l => l.QuoteId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(q => q.Lines).HasField("_lines").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 
+        // Unique on the whole platform on purpose: the code is drawn at random by the platform (never typed by an agency)
+        // and a public link carries it alone (devis=Q7F3K2); it is only ever read within the agency of the site.
         builder.HasIndex(q => q.Code).IsUnique();
         builder.HasIndex(q => new { q.BookingId, q.Version }).IsUnique().HasFilter("[BookingId] IS NOT NULL");
     }

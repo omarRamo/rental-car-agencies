@@ -63,7 +63,7 @@ public sealed class PersonAdministrationService(
                     return CustomersErrors.PersonNotFound;
                 }
 
-                if (await db.IsDocumentNumberUsedByAnotherPersonAsync(personId, details, ct))
+                if (await db.IsDocumentNumberUsedByAnotherPersonAsync(person, details, ct))
                 {
                     return CustomersErrors.DocumentNumberInUse;
                 }

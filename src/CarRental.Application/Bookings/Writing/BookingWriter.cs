@@ -38,6 +38,12 @@ internal sealed class BookingWriter(
     public BookingActor Actor(SalesChannel? channel = null) => BookingMapping.ActorFor(user, channel);
 
     /// <summary>
+    /// Whether the operation may write the files of <paramref name="agencyId"/> (ADR-0067): an operation across agencies
+    /// writes for any, an operation of one agency for its own only.
+    /// </summary>
+    public bool WorksFor(Guid agencyId) => user.IsAcrossAgencies || (agencyId != Guid.Empty && user.AgencyId == agencyId);
+
+    /// <summary>
     /// Runs <paramref name="operation"/> in a unit of work. The categories it adds to the set are told to the availability
     /// cache after the commit, never before nor after a rollback; a concurrent change of the same file becomes
     /// <see cref="BookingErrors.ConcurrentUpdate"/>.

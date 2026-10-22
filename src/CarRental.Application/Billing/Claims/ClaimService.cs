@@ -54,7 +54,7 @@ public sealed class ClaimService
         BookingSummaryInfo? booking = null;
         if (!string.IsNullOrWhiteSpace(form.BookingNumber))
         {
-            booking = await _bookings.FindByNumberAsync(form.BookingNumber, cancellationToken);
+            booking = await _bookings.FindByNumberAsync(form.AgencyId, form.BookingNumber, cancellationToken);
             if (booking is null || booking.AgencyId != form.AgencyId)
             {
                 return BillingErrors.BookingNotFound;

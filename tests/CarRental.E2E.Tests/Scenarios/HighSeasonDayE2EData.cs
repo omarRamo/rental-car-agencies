@@ -37,8 +37,9 @@ internal static class HighSeasonDayE2EData
 
     private const string DemoAgencyName = "Agence Démo Tunis";
 
+    /// <summary>The agent of the arrangements, across agencies like the scenario actors (it works on the demo agency only, ADR-0067).</summary>
     private static readonly UserContextSnapshot Agent =
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"agent-saison-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(Roles.Agent));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"agent-saison-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(Roles.Agent)) with { AllAgencies = true };
 
     /// <summary>The demo agency (the one the public site and the back office serve), its office and the category of the scenario.</summary>
     public sealed record DemoAgency(Guid AgencyId, Guid OfficeId, Guid CategoryId);
@@ -90,7 +91,7 @@ internal static class HighSeasonDayE2EData
         remaining.ShouldBeGreaterThanOrEqualTo(2, $"the demo agency has {remaining} {Category} for the dates of the scenario");
         for (var sold = 0; sold < remaining - 2; sold++)
         {
-            var driver = await NewDriverAsync(host);
+            var driver = await NewDriverAsync(host, demo.AgencyId);
             await RunAsync(host, async services => Ok(await services.GetRequiredService<QuickBookingService>().CreateAsync(new QuickBookingRequest(
                 demo.AgencyId, SalesChannel.Phone, demo.CategoryId, demo.OfficeId, demo.OfficeId, pickupAt, returnAt, driver, QuickBookingOutcome.Confirmed))));
         }
@@ -108,7 +109,7 @@ internal static class HighSeasonDayE2EData
         var pickupAt = TimeProvider.System.GetUtcNow().AddMinutes(1);
         var returnAt = pickupAt.AddDays(1);
         var categories = await RunAsync(host, services => services.GetRequiredService<IFleetQueries>().GetCategoriesAsync(demo.AgencyId));
-        var driver = await NewDriverAsync(host, withEmail: true);
+        var driver = await NewDriverAsync(host, demo.AgencyId, withEmail: true);
         foreach (var category in categories.Where(c => c.AcrissCode != Category))
         {
             if (await RemainingAsync(host, category.Id, pickupAt, returnAt) == 0)
@@ -180,8 +181,8 @@ internal static class HighSeasonDayE2EData
             (await services.GetRequiredService<IAvailabilityQueries>().GetCategoryAvailabilityAsync(categoryId, Period.Create(pickupAt, returnAt).Value, SalesChannel.Counter))
             .ShouldNotBeNull().Remaining);
 
-    /// <summary>An eligible Tunisian driver of the scenario: CIN, a licence held for ten years (and an e-mail for the contract).</summary>
-    private static async Task<Guid> NewDriverAsync(E2EHost host, bool withEmail = false)
+    /// <summary>An eligible Tunisian driver of the scenario, a customer of the agency: CIN, a licence held for ten years (and an e-mail for the contract).</summary>
+    private static async Task<Guid> NewDriverAsync(E2EHost host, Guid agencyId, bool withEmail = false)
     {
         var lastName = "Saison" + Letters(8);
         var today = TunisTime.Today(TimeProvider.System);
@@ -195,7 +196,10 @@ internal static class HighSeasonDayE2EData
                 new DateOnly(1987, 5, 4),
                 RandomNumberGenerator.GetInt32(20_000_000, 100_000_000).ToString(CultureInfo.InvariantCulture),
                 withEmail ? $"{lastName.ToLowerInvariant()}@clients.test" : null,
-                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture), "TN", today.AddYears(-5)))));
+                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture), "TN", today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            }));
             Ok(await registration.AddOrReplaceDocumentAsync(
                 person.PersonId,
                 new IdentityDocumentInput(IdentityDocumentTypeInfo.DrivingLicense, $"{RandomNumberGenerator.GetInt32(10, 99)}/{RandomNumberGenerator.GetInt32(100_000, 999_999)}", "TN", today.AddYears(-10))));

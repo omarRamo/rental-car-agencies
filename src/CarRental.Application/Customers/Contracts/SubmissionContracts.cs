@@ -42,7 +42,14 @@ public sealed record SubmittedDriverRequest(
     IReadOnlyList<SubmittedDocumentImages> Images,
     bool DocumentProcessingConsent,
     bool WhatsAppNotificationsConsent = false,
-    bool MarketingConsent = false);
+    bool MarketingConsent = false)
+{
+    /// <summary>
+    /// The agency of the booking (the agency of the public site); <see langword="null"/> for the agency of the
+    /// operation. The driver is found again among the customers of that agency only, and its staged images too.
+    /// </summary>
+    public Guid? AgencyId { get; init; }
+}
 
 /// <summary>
 /// The person a submitted driver was registered as. <see cref="RequiresReview"/> is internal information for the back

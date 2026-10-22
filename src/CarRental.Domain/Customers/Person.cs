@@ -4,14 +4,15 @@ namespace CarRental.Domain.Customers;
 
 /// <summary>
 /// A natural person who drives (main or secondary driver) and may pay: identity, contact details, identity documents,
-/// consents and blacklist history. Found again without duplicates by phone, document number or e-mail (ADR-0027).
+/// consents and blacklist history. Found again without duplicates by phone, document number or e-mail (ADR-0027),
+/// within its agency: the same human being is a separate person in each agency that rents to them (ADR-0067).
 /// </summary>
 /// <remarks>
 /// <para>Every change goes through a method of the aggregate and updates <see cref="LastModifiedAtUtc"/>, so that the
 /// row version of the person also protects its documents, consents and blacklist entries against concurrent edits.</para>
 /// <para>Anonymization keeps the identifier (referenced by bookings and invoices) and scrubs everything else.</para>
 /// </remarks>
-public sealed class Person : AggregateRoot
+public sealed class Person : AggregateRoot, IAgencyOwned
 {
     public const int NameMaxLength = 100;
 
@@ -26,13 +27,17 @@ public sealed class Person : AggregateRoot
     {
     }
 
-    private Person(Guid id, PersonFacts facts, DateTimeOffset now)
+    private Person(Guid id, Guid agencyId, PersonFacts facts, DateTimeOffset now)
         : base(id)
     {
+        AgencyId = agencyId;
         Apply(facts);
         CreatedAtUtc = now;
         LastModifiedAtUtc = now;
     }
+
+    /// <summary>The agency whose customer the person is (its documents, consents and blacklist entries belong to it too).</summary>
+    public Guid AgencyId { get; private set; }
 
     public string FirstName { get; private set; } = null!;
 
@@ -82,26 +87,31 @@ public sealed class Person : AggregateRoot
     public IReadOnlyList<IdentityDocument> CurrentDocuments => _documents.Where(document => document.IsCurrent).ToList();
 
     /// <summary>
-    /// A new person; <paramref name="id"/> lets a caller that stores files before the transaction (public submission,
-    /// ADR-0050) choose the identifier the file paths are made of, and keep it when the transaction is replayed.
+    /// A new person of the agency <paramref name="agencyId"/>; <paramref name="id"/> lets a caller that stores files
+    /// before the transaction (public submission, ADR-0050) choose the identifier the file paths are made of, and keep it
+    /// when the transaction is replayed.
     /// </summary>
-    public static Result<Person> Register(PersonDetails details, DateTimeOffset now, Guid? id = null)
+    public static Result<Person> Register(Guid agencyId, PersonDetails details, DateTimeOffset now, Guid? id = null)
     {
-        var facts = PersonFacts.From(details, TunisTime.DateOf(now));
-        if (facts.IsFailure)
+        if (agencyId == Guid.Empty)
         {
-            return facts.Error;
+            return CustomersErrors.AgencyRequired;
         }
 
-        if (id == Guid.Empty)
+        var person = Build(agencyId, details, now, id);
+        if (person.IsSuccess)
         {
-            throw new ArgumentException("A person id cannot be empty.", nameof(id));
+            person.Value.Raise(new PersonRegistered(person.Value.Id));
         }
 
-        var person = new Person(id ?? NewId(), facts.Value, now);
-        person.Raise(new PersonRegistered(person.Id));
         return person;
     }
+
+    /// <summary>
+    /// A transient person of no agency, to evaluate typed details (eligibility of a public submission): never stored, the
+    /// persistence refuses agency data without agency.
+    /// </summary>
+    internal static Result<Person> Transient(PersonDetails details, DateTimeOffset now) => Build(Guid.Empty, details, now, id: null);
 
     public IdentityDocument? FindDocument(Guid documentId) => _documents.Find(document => document.Id == documentId);
 
@@ -213,7 +223,7 @@ public sealed class Person : AggregateRoot
         }
 
         current?.Supersede(now);
-        var document = IdentityDocument.Create(Id, facts.Value, now);
+        var document = IdentityDocument.Create(Id, AgencyId, facts.Value, now);
         _documents.Add(document);
         Touch(now);
         Raise(new IdentityDocumentAdded(Id, document.Id, document.Type));
@@ -320,7 +330,7 @@ public sealed class Person : AggregateRoot
             return Result.Success();
         }
 
-        _consents.Add(Consent.Give(Id, purpose, channel, now));
+        _consents.Add(Consent.Give(Id, AgencyId, purpose, channel, now));
         Touch(now);
         Raise(new ConsentChanged(Id, purpose, IsGiven: true));
         return Result.Success();
@@ -365,7 +375,7 @@ public sealed class Person : AggregateRoot
             return CustomersErrors.AlreadyBlacklisted;
         }
 
-        _blacklistEntries.Add(BlacklistEntry.Add(Id, cleaned, author, now));
+        _blacklistEntries.Add(BlacklistEntry.Add(Id, AgencyId, cleaned, author, now));
         Touch(now);
         Raise(new PersonBlacklisted(Id));
         return Result.Success();
@@ -507,6 +517,22 @@ public sealed class Person : AggregateRoot
         {
             Raise(new DocumentImagesDiscarded(Id, documentId, paths));
         }
+    }
+
+    private static Result<Person> Build(Guid agencyId, PersonDetails details, DateTimeOffset now, Guid? id)
+    {
+        var facts = PersonFacts.From(details, TunisTime.DateOf(now));
+        if (facts.IsFailure)
+        {
+            return facts.Error;
+        }
+
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A person id cannot be empty.", nameof(id));
+        }
+
+        return new Person(id ?? NewId(), agencyId, facts.Value, now);
     }
 
     private void Touch(DateTimeOffset now) => LastModifiedAtUtc = now;

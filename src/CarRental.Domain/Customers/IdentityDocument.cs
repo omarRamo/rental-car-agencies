@@ -8,7 +8,7 @@ namespace CarRental.Domain.Customers;
 /// back images. Part of the <see cref="Person"/> aggregate: it is changed through the person only.
 /// </summary>
 /// <remarks>A document still valid at the return date is reused from one rental to the next (SPEC §6).</remarks>
-public sealed class IdentityDocument : Entity
+public sealed class IdentityDocument : Entity, IAgencyOwned
 {
     public const int VerifierNameMaxLength = AuditActor.UserNameMaxLength;
 
@@ -16,16 +16,20 @@ public sealed class IdentityDocument : Entity
     {
     }
 
-    private IdentityDocument(Guid id, Guid personId, IdentityDocumentFacts facts, DateTimeOffset now)
+    private IdentityDocument(Guid id, Guid personId, Guid agencyId, IdentityDocumentFacts facts, DateTimeOffset now)
         : base(id)
     {
         PersonId = personId;
+        AgencyId = agencyId;
         Type = facts.Type;
         AddedAtUtc = now;
         Apply(facts);
     }
 
     public Guid PersonId { get; private set; }
+
+    /// <summary>The agency of the person (given by the person at creation).</summary>
+    public Guid AgencyId { get; private set; }
 
     public IdentityDocumentType Type { get; private set; }
 
@@ -79,8 +83,8 @@ public sealed class IdentityDocument : Entity
         _ => null,
     };
 
-    internal static IdentityDocument Create(Guid personId, IdentityDocumentFacts facts, DateTimeOffset now) =>
-        new(NewId(), personId, facts, now);
+    internal static IdentityDocument Create(Guid personId, Guid agencyId, IdentityDocumentFacts facts, DateTimeOffset now) =>
+        new(NewId(), personId, agencyId, facts, now);
 
     internal bool HasSameNumber(IdentityDocumentFacts facts) =>
         string.Equals(NumberKey, facts.NumberKey, StringComparison.Ordinal)

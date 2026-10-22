@@ -97,7 +97,7 @@ public sealed class ChannelOperationsTests(IntegrationHost host)
 
         await RestrictAsync(channel, new RestrictionRequest(ChannelQuotaKind.StopSell, channel.Agency.Ecmr, null, day, day, 0, null));
         var stopped = await WaitForAsync(() => outbox.ReceivedBy(channel.Code).Any(p => Has(p, "ECMR", day, 0)));
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, channel.Agency.AgencyId, Ct);
         await CreateAsync(host, Quick(channel.Agency, driver, InDays(75), InDays(77)), Ct);
         var booked = await WaitForAsync(() => outbox.ReceivedBy(channel.Code).Any(p => Has(p, "ECMR", TunisTime.DateOf(InDays(76)), 1)));
 
@@ -205,7 +205,7 @@ public sealed class ChannelOperationsTests(IntegrationHost host)
         using var http = host.CreateClient();
         var reference = "CNT-" + Guid.NewGuid().ToString("N")[..8];
         (await new FakeChannelClient(http, channel).CreateAsync(FakeChannelClient.Reservation(reference, InDays(105), InDays(107)), Ct)).StatusCode.ShouldBe(HttpStatusCode.Created);
-        var booking = (await RunAsync<IChannelBookings, BookingSummaryInfo?>(host, Manager, b => b.FindByChannelReferenceAsync(SalesChannel.BookingCom, reference, Ct))).ShouldNotBeNull();
+        var booking = (await RunAsync<IChannelBookings, BookingSummaryInfo?>(host, Manager, b => b.FindByChannelReferenceAsync(channel.Agency.AgencyId, SalesChannel.BookingCom, reference, Ct))).ShouldNotBeNull();
 
         var cancelled = await RunAsync<BookingWorkflowService, Result<Money>>(host, Agent, s => s.CancelAsync(booking.Id, "Le client a appelé l'agence", cancellationToken: Ct));
 

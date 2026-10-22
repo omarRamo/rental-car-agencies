@@ -17,7 +17,7 @@ namespace CarRental.Application.Bookings;
 /// <summary>
 /// Quick creation of a booking by an agent (SPEC §6 "création rapide", phone and counter): a dated option or a booking
 /// confirmed at once (<c>CreateOption</c>, <c>CreateConfirmed</c>), priced by the engine and written under the
-/// availability lock with its readable number (ADR-0032).
+/// availability lock with its readable number (ADR-0032), for the agency of the agent only (ADR-0067).
 /// </summary>
 public sealed class QuickBookingService
 {
@@ -49,7 +49,7 @@ public sealed class QuickBookingService
     public async Task<Result<QuickBookingResult>> CreateAsync(QuickBookingRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!_writer.User.HasPermission(Permissions.BookingsManage))
+        if (!_writer.User.HasPermission(Permissions.BookingsManage) || !_writer.WorksFor(request.AgencyId))
         {
             return BookingErrors.Forbidden;
         }
@@ -126,9 +126,10 @@ public sealed class QuickBookingService
                     return payer.Error;
                 }
 
+                // A reference of a channel is unique within the agency (each agency has its own channel accounts).
                 var reference = request.ChannelReference?.Trim();
                 if (!string.IsNullOrEmpty(reference)
-                    && await _writer.Db.Set<Booking>().AnyAsync(b => b.Channel == request.Channel && b.ChannelReference == reference, ct))
+                    && await _writer.Db.Set<Booking>().AnyAsync(b => b.AgencyId == request.AgencyId && b.Channel == request.Channel && b.ChannelReference == reference, ct))
                 {
                     return BookingErrors.ChannelReferenceTaken;
                 }

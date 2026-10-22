@@ -196,7 +196,10 @@ internal sealed class HighSeasonWorld
                 new DateOnly(1988, 3, 9),
                 Digits(20_000_000, 100_000_000),
                 $"{lastName.ToLowerInvariant()}@clients.test",
-                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, Digits(10_000_000, 100_000_000), "TN", today.AddYears(-5))),
+                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, Digits(10_000_000, 100_000_000), "TN", today.AddYears(-5)))
+            {
+                AgencyId = AgencyId,
+            },
             Ct));
         await OkAsync<ICustomerRegistration, Guid>(Agent, r => r.AddOrReplaceDocumentAsync(
             person.PersonId,

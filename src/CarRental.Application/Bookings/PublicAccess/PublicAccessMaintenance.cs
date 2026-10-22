@@ -132,7 +132,7 @@ public sealed class CustomerLinkService(
         var profile = await db.Set<BookingCustomerProfile>().FirstOrDefaultAsync(p => p.BookingId == bookingId, cancellationToken);
         if (profile is null)
         {
-            profile = BookingCustomerProfile.Create(bookingId, culture, whatsAppNotifications: false, now, publicBaseUrl);
+            profile = BookingCustomerProfile.Create(booking.AgencyId, bookingId, culture, whatsAppNotifications: false, now, publicBaseUrl);
             db.Set<BookingCustomerProfile>().Add(profile);
         }
         else
@@ -140,7 +140,7 @@ public sealed class CustomerLinkService(
             profile.KnowBaseUrl(publicBaseUrl);
         }
 
-        var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, bookingId, culture, now, cancellationToken);
+        var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, booking.AgencyId, bookingId, culture, now, cancellationToken);
         outbox.Enqueue(new BookingCustomerNotification(
             Guid.CreateVersion7(),
             bookingId,

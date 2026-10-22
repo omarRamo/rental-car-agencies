@@ -1,5 +1,6 @@
 using CarRental.Domain.Common;
 using CarRental.Domain.Customers;
+using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -27,6 +28,7 @@ internal sealed class DriverSubmissionConfiguration : IEntityTypeConfiguration<D
         builder.Ignore(s => s.IsPending);
         builder.Ignore(s => s.Details);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(s => s.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Person>().WithMany().HasForeignKey(s => s.PersonId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(s => s.Documents).WithOne().HasForeignKey(d => d.SubmissionId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(s => s.Documents).HasField("_documents").UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
@@ -61,7 +63,10 @@ internal sealed class SubmittedDocumentConfiguration : IEntityTypeConfiguration<
     }
 }
 
-/// <summary>Images uploaded by visitors before their submission: technical staging, left out of the audit log.</summary>
+/// <summary>
+/// Images uploaded by visitors before their submission: technical staging, left out of the audit log, purged across
+/// agencies by age (no index by agency, no foreign key: a staging row lives a day at most).
+/// </summary>
 internal sealed class StagedDocumentImageConfiguration : IEntityTypeConfiguration<StagedDocumentImage>
 {
     public void Configure(EntityTypeBuilder<StagedDocumentImage> builder)

@@ -1,6 +1,7 @@
 using System.Net;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Payments.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Integration.Tests.Public;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,7 +52,8 @@ public sealed class GatewayDisabledFunnelTests(PublicScenarioHost scenario)
 
         await using var check = FunnelWorld.CreateScope(scenario.Factory, FunnelWorld.Funnel);
         var number = confirmationPath[(confirmationPath.LastIndexOf('/') + 1)..];
-        var booking = await check.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync(number, Ct);
+        var agency = (await check.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct)).Single(a => a.Name == PublicTestData.DemoAgencyName);
+        var booking = await check.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync(agency.Id, number, Ct);
         booking.ShouldNotBeNull().Status.ShouldBe(BookingStatusInfo.PendingValidation);
         (await check.ServiceProvider.GetRequiredService<IOnlinePayments>().GetBookingOnlinePaymentsAsync(booking.Id, Ct))
             .ShouldBeEmpty("nothing was asked of the bank");

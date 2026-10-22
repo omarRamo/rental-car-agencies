@@ -34,7 +34,7 @@ internal sealed class ChannelBookingService(
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Driver);
-        if (!CanWrite())
+        if (!CanWrite() || !writer.WorksFor(request.AgencyId))
         {
             return BookingErrors.Forbidden;
         }
@@ -63,10 +63,10 @@ internal sealed class ChannelBookingService(
         }
 
         // A replay finds its booking before anything is priced (the plan may have changed since).
-        if (await FindAsync(request.Channel, reference, cancellationToken) is not null)
+        if (await FindAsync(request.AgencyId, request.Channel, reference, cancellationToken) is not null)
         {
             return await writer.RunAsync<ChannelBookingResult>(
-                async (_, ct) => await FindAsync(request.Channel, reference, ct) is { } known
+                async (_, ct) => await FindAsync(request.AgencyId, request.Channel, reference, ct) is { } known
                     ? await AlongsideAsync(ResultOf(known, ChannelBookingOutcome.AlreadyExisted), alongside, ct)
                     : BookingErrors.ConcurrentUpdate,
                 cancellationToken);
@@ -103,7 +103,7 @@ internal sealed class ChannelBookingService(
                         return locked.Error;
                     }
 
-                    var existing = await FindAsync(request.Channel, reference, ct);
+                    var existing = await FindAsync(request.AgencyId, request.Channel, reference, ct);
                     if (existing is not null)
                     {
                         return await AlongsideAsync(ResultOf(existing, ChannelBookingOutcome.AlreadyExisted), alongside, ct);
@@ -121,7 +121,7 @@ internal sealed class ChannelBookingService(
                         return available.Error;
                     }
 
-                    var driver = await RegisterDriverAsync(request.Driver, ct);
+                    var driver = await RegisterDriverAsync(request.AgencyId, request.Driver, ct);
                     if (driver.IsFailure)
                     {
                         return driver.Error;
@@ -170,7 +170,7 @@ internal sealed class ChannelBookingService(
         catch (DbUpdateException)
         {
             // A concurrent creation of the same reference in another category won the unique index: it is the booking.
-            if (await writer.Db.Set<Booking>().AsNoTracking().FirstOrDefaultAsync(b => b.Channel == request.Channel && b.ChannelReference == reference, cancellationToken) is { } winner)
+            if (await FindAsync(request.AgencyId, request.Channel, reference, cancellationToken) is { } winner)
             {
                 return ResultOf(winner, ChannelBookingOutcome.AlreadyExisted);
             }
@@ -340,14 +340,14 @@ internal sealed class ChannelBookingService(
             cancellationToken);
     }
 
-    public async Task<BookingSummaryInfo?> FindByChannelReferenceAsync(SalesChannel channel, string channelReference, CancellationToken cancellationToken = default)
+    public async Task<BookingSummaryInfo?> FindByChannelReferenceAsync(Guid agencyId, SalesChannel channel, string channelReference, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channelReference);
         var reference = channelReference.Trim();
         return reference.Length == 0
             ? null
             : await writer.Db.Set<Booking>().AsNoTracking()
-                .Where(b => b.Channel == channel && b.ChannelReference == reference)
+                .Where(b => b.AgencyId == agencyId && b.Channel == channel && b.ChannelReference == reference)
                 .Select(BookingMapping.ToSummary)
                 .FirstOrDefaultAsync(cancellationToken);
     }
@@ -380,16 +380,21 @@ internal sealed class ChannelBookingService(
 
     private bool CanWrite() => writer.User.HasPermission(Permissions.BookingsManage) && writer.User.HasPermission(Permissions.CustomersManage);
 
-    private Task<Booking?> FindAsync(SalesChannel channel, string reference, CancellationToken cancellationToken) =>
-        writer.Db.Set<Booking>().AsNoTracking().FirstOrDefaultAsync(b => b.Channel == channel && b.ChannelReference == reference, cancellationToken);
+    /// <summary>The booking of the agency carrying this reference of the channel (unique within the agency).</summary>
+    private Task<Booking?> FindAsync(Guid agencyId, SalesChannel channel, string reference, CancellationToken cancellationToken) =>
+        writer.Db.Set<Booking>().AsNoTracking().FirstOrDefaultAsync(b => b.AgencyId == agencyId && b.Channel == channel && b.ChannelReference == reference, cancellationToken);
 
     /// <summary>
-    /// The driver found again or registered. A phone or e-mail the Customers module refuses is left out (the channel
-    /// keeps the contact): a booking already sold is never refused for it. Names are required.
+    /// The driver found again among the customers of the agency, or registered for it. A phone or e-mail the Customers
+    /// module refuses is left out (the channel keeps the contact): a booking already sold is never refused for it. Names
+    /// are required.
     /// </summary>
-    private async Task<Result<Guid>> RegisterDriverAsync(ChannelDriverInfo driver, CancellationToken cancellationToken)
+    private async Task<Result<Guid>> RegisterDriverAsync(Guid agencyId, ChannelDriverInfo driver, CancellationToken cancellationToken)
     {
-        var request = new PersonRegistrationRequest(driver.FirstName?.Trim() ?? string.Empty, driver.LastName?.Trim() ?? string.Empty, Phone: Clean(driver.Phone), Email: Clean(driver.Email));
+        var request = new PersonRegistrationRequest(driver.FirstName?.Trim() ?? string.Empty, driver.LastName?.Trim() ?? string.Empty, Phone: Clean(driver.Phone), Email: Clean(driver.Email))
+        {
+            AgencyId = agencyId,
+        };
         for (var attempt = 0; attempt < 3; attempt++)
         {
             var registered = await registration.FindOrCreatePersonAsync(request, cancellationToken);

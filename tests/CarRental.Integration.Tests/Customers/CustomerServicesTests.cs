@@ -8,6 +8,7 @@ using CarRental.Domain.Customers;
 using CarRental.Domain.Identity;
 using CarRental.Domain.Referential;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -153,7 +154,7 @@ public sealed class CustomerServicesTests(IntegrationHost host)
     {
         // An image uploaded 500 days ago, more than the 400 days of retention.
         var now = DateTimeOffset.UtcNow;
-        var person = Person.Register(new PersonDetails(CustomerTestData.Name(), CustomerTestData.Name(), "TN"), now).Value;
+        var person = Person.Register(await TestStaff.DemoAgencyIdAsync(host), new PersonDetails(CustomerTestData.Name(), CustomerTestData.Name(), "TN"), now).Value;
         var cin = person.AddDocument(new IdentityDocumentDetails(IdentityDocumentType.NationalId, CustomerTestData.Cin(), "TN", new DateOnly(2016, 3, 1)), now).Value;
         var path = $"persons/{person.Id:N}/{Guid.CreateVersion7():N}.png";
         var storage = host.Factory.Services.GetRequiredService<IFileStorage>();

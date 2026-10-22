@@ -63,9 +63,6 @@
   <data name="Day.Today" xml:space="preserve">
     <value>Aujourd'hui</value>
   </data>
-  <data name="Day.Agency" xml:space="preserve">
-    <value>Agence</value>
-  </data>
   <data name="Day.Loading" xml:space="preserve">
     <value>Chargement des départs et retours…</value>
   </data>

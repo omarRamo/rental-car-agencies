@@ -16,6 +16,7 @@ using CarRental.Integration.Tests.Billing;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Integration.Tests.Bookings.Handover;
 using CarRental.Integration.Tests.Channels;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Bookings.BookingWorld;
@@ -56,7 +57,7 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
     /// <summary>A confirmed file of <paramref name="days"/> days picked up 10 minutes ago, on <paramref name="vehicleId"/>.</summary>
     public async Task<HandoverFile> FileAsync(MonthAgency agency, Guid vehicleId, int days, SalesChannel channel = SalesChannel.Counter, TimeSpan? pickupIn = null)
     {
-        var (driverId, email) = await DriverAsync();
+        var (driverId, email) = await DriverAsync(agency.AgencyId);
         var pickup = clock.GetUtcNow() + (pickupIn ?? TimeSpan.FromMinutes(-10));
         var request = new QuickBookingRequest(agency.AgencyId, channel, agency.Agency.Ecmr, agency.Agency.OfficeId, agency.Agency.OfficeId, pickup, pickup.AddDays(days), driverId, QuickBookingOutcome.Confirmed);
         var created = await BookingWorld.CreateAsync(host, request, cancellationToken);
@@ -151,9 +152,13 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
             .SingleAsync(cancellationToken);
     }
 
-    /// <summary>An eligible Tunisian driver (CIN, licence held ten years) with an e-mail address of his own.</summary>
-    public async Task<(Guid PersonId, string Email)> DriverAsync()
+    /// <summary>
+    /// An eligible Tunisian driver (CIN, licence held ten years) with an e-mail address of his own: a customer of
+    /// <paramref name="agencyId"/> (the main demo agency by default; the customers of an agency are its own, ADR-0067).
+    /// </summary>
+    public async Task<(Guid PersonId, string Email)> DriverAsync(Guid? agencyId = null)
     {
+        var agency = agencyId ?? await TestStaff.DemoAgencyIdAsync(host);
         var email = $"conducteur-{Guid.NewGuid():N}@tests.local";
         await using var scope = host.CreateScope(Agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
@@ -170,7 +175,10 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agency,
+            },
             cancellationToken));
         Ok(await registration.AddOrReplaceDocumentAsync(
             person.PersonId,

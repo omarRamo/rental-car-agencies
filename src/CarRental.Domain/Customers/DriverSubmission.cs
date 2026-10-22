@@ -43,9 +43,9 @@ public enum DriverSubmissionState
 /// changes a person already known: for such a person it stays <see cref="DriverSubmissionState.Pending"/> until an
 /// agent reconciles it; the submission that created its person is <see cref="DriverSubmissionState.Applied"/> and only
 /// records what was sent for the booking. The details also give the contact of the booking (the e-mail typed by the
-/// visitor, whatever the stored person holds).
+/// visitor, whatever the stored person holds). It belongs to the agency of its person (ADR-0067).
 /// </summary>
-public sealed class DriverSubmission : AggregateRoot
+public sealed class DriverSubmission : AggregateRoot, IAgencyOwned
 {
     private readonly List<SubmittedDocument> _documents = [];
 
@@ -54,6 +54,7 @@ public sealed class DriverSubmission : AggregateRoot
     }
 
     private DriverSubmission(
+        Guid agencyId,
         Guid personId,
         Guid bookingId,
         ConsentChannel channel,
@@ -65,6 +66,7 @@ public sealed class DriverSubmission : AggregateRoot
         DateTimeOffset now)
         : base(NewId())
     {
+        AgencyId = agencyId;
         PersonId = personId;
         BookingId = bookingId;
         Channel = channel;
@@ -83,6 +85,9 @@ public sealed class DriverSubmission : AggregateRoot
         SubmittedAtUtc = now.ToUniversalTime();
         LastModifiedAtUtc = SubmittedAtUtc;
     }
+
+    /// <summary>The agency of the person (and of the booking it was sent for).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>The person the submission is for (found again, or created by it).</summary>
     public Guid PersonId { get; private set; }
@@ -140,12 +145,13 @@ public sealed class DriverSubmission : AggregateRoot
         : new PersonDetails(FirstName, LastName, Nationality, BirthDate, Phone, Email);
 
     /// <summary>
-    /// A submission: <see cref="DriverSubmissionState.Applied"/> when <paramref name="match"/> is
-    /// <see cref="SubmissionMatch.None"/> (its person was just created from it), otherwise pending for an agent.
-    /// <paramref name="details"/> may be omitted for images only; at least one document or the details are required,
-    /// and the consent to the processing of the documents whenever a document is sent.
+    /// A submission for a person of the agency <paramref name="agencyId"/>: <see cref="DriverSubmissionState.Applied"/>
+    /// when <paramref name="match"/> is <see cref="SubmissionMatch.None"/> (its person was just created from it),
+    /// otherwise pending for an agent. <paramref name="details"/> may be omitted for images only; at least one document or
+    /// the details are required, and the consent to the processing of the documents whenever a document is sent.
     /// </summary>
     public static Result<DriverSubmission> Create(
+        Guid agencyId,
         Guid personId,
         Guid bookingId,
         ConsentChannel channel,
@@ -158,9 +164,9 @@ public sealed class DriverSubmission : AggregateRoot
     {
         ArgumentNullException.ThrowIfNull(consents);
         ArgumentNullException.ThrowIfNull(documents);
-        if (personId == Guid.Empty || bookingId == Guid.Empty)
+        if (agencyId == Guid.Empty || personId == Guid.Empty || bookingId == Guid.Empty)
         {
-            throw new ArgumentException("A submission is for a person and a booking.");
+            throw new ArgumentException("A submission is for a person of an agency and a booking.");
         }
 
         if (!Enum.IsDefined(channel))
@@ -191,7 +197,7 @@ public sealed class DriverSubmission : AggregateRoot
         }
 
         var state = match == SubmissionMatch.None ? DriverSubmissionState.Applied : DriverSubmissionState.Pending;
-        var submission = new DriverSubmission(personId, bookingId, channel, state, match, nameDiffers, facts, consents, now);
+        var submission = new DriverSubmission(agencyId, personId, bookingId, channel, state, match, nameDiffers, facts, consents, now);
         foreach (var entry in documents)
         {
             var added = submission.Add(entry, now);
@@ -236,7 +242,7 @@ public sealed class DriverSubmission : AggregateRoot
         var document = _documents.LastOrDefault(d => d.Type == type);
         if (document is null)
         {
-            document = SubmittedDocument.ImagesOnly(Id, type);
+            document = SubmittedDocument.ImagesOnly(Id, AgencyId, type);
             _documents.Add(document);
         }
 
@@ -298,7 +304,7 @@ public sealed class DriverSubmission : AggregateRoot
                 return CustomersErrors.SubmissionEmpty;
             }
 
-            var imagesOnly = SubmittedDocument.ImagesOnly(Id, entry.Type);
+            var imagesOnly = SubmittedDocument.ImagesOnly(Id, AgencyId, entry.Type);
             imagesOnly.ReplaceImage(DocumentImageSide.Front, entry.FrontImage);
             imagesOnly.ReplaceImage(DocumentImageSide.Back, entry.BackImage);
             _documents.Add(imagesOnly);
@@ -316,7 +322,7 @@ public sealed class DriverSubmission : AggregateRoot
             return CustomersErrors.DocumentTypeInvalid;
         }
 
-        var document = SubmittedDocument.WithDetails(Id, facts.Value);
+        var document = SubmittedDocument.WithDetails(Id, AgencyId, facts.Value);
         document.ReplaceImage(DocumentImageSide.Front, entry.FrontImage);
         document.ReplaceImage(DocumentImageSide.Back, entry.BackImage);
         _documents.Add(document);
@@ -354,21 +360,25 @@ public sealed class DriverSubmission : AggregateRoot
 /// the images of its sides, or images only (the details are on file). After the review only the presence of the
 /// images is kept (the files belong to the person, or were deleted).
 /// </summary>
-public sealed class SubmittedDocument : Entity
+public sealed class SubmittedDocument : Entity, IAgencyOwned
 {
     private SubmittedDocument()
     {
     }
 
-    private SubmittedDocument(Guid submissionId, IdentityDocumentType type)
+    private SubmittedDocument(Guid submissionId, Guid agencyId, IdentityDocumentType type)
         : base(NewId())
     {
         SubmissionId = submissionId;
+        AgencyId = agencyId;
         Type = type;
         IsLatinScript = true;
     }
 
     public Guid SubmissionId { get; private set; }
+
+    /// <summary>The agency of the submission (given by the submission at creation).</summary>
+    public Guid AgencyId { get; private set; }
 
     public IdentityDocumentType Type { get; private set; }
 
@@ -406,11 +416,11 @@ public sealed class SubmittedDocument : Entity
 
     public DocumentImage? ImageOf(DocumentImageSide side) => side == DocumentImageSide.Back ? BackImage : FrontImage;
 
-    internal static SubmittedDocument ImagesOnly(Guid submissionId, IdentityDocumentType type) => new(submissionId, type);
+    internal static SubmittedDocument ImagesOnly(Guid submissionId, Guid agencyId, IdentityDocumentType type) => new(submissionId, agencyId, type);
 
-    internal static SubmittedDocument WithDetails(Guid submissionId, IdentityDocumentFacts facts)
+    internal static SubmittedDocument WithDetails(Guid submissionId, Guid agencyId, IdentityDocumentFacts facts)
     {
-        var document = new SubmittedDocument(submissionId, facts.Type)
+        var document = new SubmittedDocument(submissionId, agencyId, facts.Type)
         {
             Number = facts.Number,
             NumberKey = facts.NumberKey,

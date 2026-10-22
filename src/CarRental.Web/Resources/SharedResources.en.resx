@@ -258,6 +258,9 @@
   <data name="Error.customers.forbidden" xml:space="preserve">
     <value>You lack the required permission.</value>
   </data>
+  <data name="Error.customers.agency_required" xml:space="preserve">
+    <value>Customers are registered for an agency: open the agency concerned first.</value>
+  </data>
   <data name="Error.customers.concurrent_update" xml:space="preserve">
     <value>The record was changed in the meantime: reload it and try again.</value>
   </data>

@@ -15,12 +15,18 @@ internal sealed partial class CustomerRegistration
     /// <summary>Two sides of four documents at most.</summary>
     private const int MaxSubmittedImages = 8;
 
-    public async Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default)
+    public async Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, Guid? agencyId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
         if (!CanManage)
         {
             return CustomersErrors.Forbidden;
+        }
+
+        var agency = AgencyFor(agencyId);
+        if (agency.IsFailure)
+        {
+            return agency.Error;
         }
 
         var prepared = await DocumentImageStore.PrepareAsync(content, cancellationToken);
@@ -29,7 +35,7 @@ internal sealed partial class CustomerRegistration
             return prepared.Error;
         }
 
-        var staged = await imageStore.StageAsync(prepared.Value, cancellationToken);
+        var staged = await imageStore.StageAsync(agency.Value, prepared.Value, cancellationToken);
         try
         {
             db.Set<StagedDocumentImage>().Add(staged);
@@ -59,6 +65,13 @@ internal sealed partial class CustomerRegistration
             throw new ArgumentException("A submission is for a booking.", nameof(request));
         }
 
+        var agency = AgencyFor(request.AgencyId);
+        if (agency.IsFailure)
+        {
+            return agency.Error;
+        }
+
+        var agencyId = agency.Value;
         var driver = request.Driver;
         var details = new PersonDetails(driver.FirstName, driver.LastName, driver.Nationality, driver.BirthDate, driver.Phone, driver.Email);
         var documents = (driver.Documents ?? []).Select(d => d.ToDomain()).ToList();
@@ -86,9 +99,10 @@ internal sealed partial class CustomerRegistration
             return CustomersErrors.StagedImageNotFound;
         }
 
+        // Images sent on the site of the agency only (an image of another agency is unknown here).
         var staged = await db.Set<StagedDocumentImage>()
             .AsNoTracking()
-            .Where(s => imageIds.Contains(s.Id) && s.ConsumedAtUtc == null)
+            .Where(s => s.AgencyId == agencyId && imageIds.Contains(s.Id) && s.ConsumedAtUtc == null)
             .ToListAsync(cancellationToken);
         if (staged.Count != imageIds.Count)
         {
@@ -97,7 +111,7 @@ internal sealed partial class CustomerRegistration
 
         // Where the person stands decides the folder of the images; it is decided again in the transaction.
         var newPersonId = Entity.NewId();
-        var expected = await MatchSubmissionAsync(details, documents, newPersonId, now, cancellationToken);
+        var expected = await MatchSubmissionAsync(agencyId, details, documents, newPersonId, now, cancellationToken);
         if (expected.IsFailure)
         {
             return expected.Error;
@@ -121,7 +135,7 @@ internal sealed partial class CustomerRegistration
 
             var consents = new SubmittedConsents(request.DocumentProcessingConsent, request.WhatsAppNotificationsConsent, request.MarketingConsent);
             var result = await unitOfWork.ExecuteGuardedAsync<SubmittedDriverResult>(
-                ct => RegisterSubmissionAsync(request, details, documents, images, copied, consents, newPersonId, ownerId, ct),
+                ct => RegisterSubmissionAsync(agencyId, request, details, documents, images, copied, consents, newPersonId, ownerId, ct),
                 cancellationToken);
             if (result.IsFailure)
             {
@@ -170,15 +184,17 @@ internal sealed partial class CustomerRegistration
             return owner.Error;
         }
 
+        // The image was sent on the site of the agency of the person (the agency of the booking).
+        var ownerAgencyId = owner.Value.AgencyId;
         var staged = await db.Set<StagedDocumentImage>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == submission.StagedImageId && s.ConsumedAtUtc == null, cancellationToken);
+            .FirstOrDefaultAsync(s => s.AgencyId == ownerAgencyId && s.Id == submission.StagedImageId && s.ConsumedAtUtc == null, cancellationToken);
         if (staged is null)
         {
             return CustomersErrors.StagedImageNotFound;
         }
 
-        var copy = await imageStore.CopyStagedAsync(owner.Value, staged, cancellationToken);
+        var copy = await imageStore.CopyStagedAsync(owner.Value.Id, staged, cancellationToken);
         if (copy.IsFailure)
         {
             return copy.Error;
@@ -199,7 +215,7 @@ internal sealed partial class CustomerRegistration
                     }
 
                     var pending = await db.Set<DriverSubmission>()
-                        .Where(s => s.PersonId == owner.Value && s.BookingId == submission.BookingId && s.State == DriverSubmissionState.Pending)
+                        .Where(s => s.PersonId == owner.Value.Id && s.BookingId == submission.BookingId && s.State == DriverSubmissionState.Pending)
                         .OrderByDescending(s => s.SubmittedAtUtc)
                         .FirstOrDefaultAsync(ct);
                     if (pending is not null)
@@ -208,7 +224,8 @@ internal sealed partial class CustomerRegistration
                     }
 
                     var created = DriverSubmission.Create(
-                        owner.Value,
+                        ownerAgencyId,
+                        owner.Value.Id,
                         submission.BookingId,
                         channel,
                         details: null,
@@ -270,15 +287,19 @@ internal sealed partial class CustomerRegistration
             cancellationToken);
     }
 
-    /// <summary>The person the typed driver designates, if any (ADR-0027 rules on every submitted document), without changing anything.</summary>
+    /// <summary>
+    /// The person of the agency the typed driver designates, if any (ADR-0027 rules on every submitted document), without
+    /// changing anything.
+    /// </summary>
     private async Task<Result<PersonMatch>> MatchSubmissionAsync(
+        Guid agencyId,
         PersonDetails details,
         IReadOnlyList<IdentityDocumentDetails> documents,
         Guid probeId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var probe = Person.Register(details, now, probeId);
+        var probe = Person.Register(agencyId, details, now, probeId);
         if (probe.IsFailure)
         {
             return probe.Error;
@@ -311,15 +332,20 @@ internal sealed partial class CustomerRegistration
         return PersonMatcher.Match(probe.Value, identity, candidates);
     }
 
-    /// <summary>Persons sharing the phone, the e-mail or one of the current documents of the probe (not anonymized).</summary>
+    /// <summary>
+    /// Persons of the agency of the probe sharing the phone, the e-mail or one of the current documents of the probe (not
+    /// anonymized).
+    /// </summary>
     private async Task<List<Person>> FindSubmissionCandidatesAsync(Person probe, IReadOnlyList<IdentityDocument> documents, CancellationToken cancellationToken)
     {
+        var agencyId = probe.AgencyId;
         var phone = probe.Phone;
         var email = probe.Email;
         var keys = documents.Select(d => d.NumberKey).Distinct(StringComparer.Ordinal).ToList();
         var candidates = await db.Set<Person>()
             .AsNoTracking()
-            .Where(p => p.AnonymizedAtUtc == null
+            .Where(p => p.AgencyId == agencyId
+                        && p.AnonymizedAtUtc == null
                         && ((phone != null && p.Phone == phone)
                             || (email != null && p.Email == email)
                             || p.Documents.Any(d => d.SupersededAtUtc == null && keys.Contains(d.NumberKey))))
@@ -344,6 +370,7 @@ internal sealed partial class CustomerRegistration
     /// conflict (the visitor submits again).
     /// </summary>
     private async Task<Result<SubmittedDriverResult>> RegisterSubmissionAsync(
+        Guid agencyId,
         SubmittedDriverRequest request,
         PersonDetails details,
         IReadOnlyList<IdentityDocumentDetails> documents,
@@ -356,7 +383,7 @@ internal sealed partial class CustomerRegistration
     {
         var now = timeProvider.GetUtcNow();
         var stagedIds = copied.Keys.ToList();
-        var rows = await db.Set<StagedDocumentImage>().Where(s => stagedIds.Contains(s.Id)).ToListAsync(cancellationToken);
+        var rows = await db.Set<StagedDocumentImage>().Where(s => s.AgencyId == agencyId && stagedIds.Contains(s.Id)).ToListAsync(cancellationToken);
         if (rows.Count != stagedIds.Count)
         {
             return CustomersErrors.StagedImageNotFound;
@@ -371,7 +398,7 @@ internal sealed partial class CustomerRegistration
             }
         }
 
-        var match = await MatchSubmissionAsync(details, documents, newPersonId, now, cancellationToken);
+        var match = await MatchSubmissionAsync(agencyId, details, documents, newPersonId, now, cancellationToken);
         if (match.IsFailure)
         {
             return match.Error;
@@ -397,6 +424,7 @@ internal sealed partial class CustomerRegistration
         {
             // A person already known is never changed by a public page: an agent reconciles the submission.
             var pending = DriverSubmission.Create(
+                known.AgencyId,
                 known.Id,
                 request.BookingId,
                 channel,
@@ -415,7 +443,7 @@ internal sealed partial class CustomerRegistration
             return new SubmittedDriverResult(known.Id, pending.Value.Id, RequiresReview: true);
         }
 
-        var person = Person.Register(details, now, newPersonId);
+        var person = Person.Register(agencyId, details, now, newPersonId);
         if (person.IsFailure)
         {
             return person.Error;
@@ -451,7 +479,7 @@ internal sealed partial class CustomerRegistration
             return given.Error;
         }
 
-        var applied = DriverSubmission.Create(person.Value.Id, request.BookingId, channel, details, SubmissionMatch.None, false, consents, entries, now);
+        var applied = DriverSubmission.Create(agencyId, person.Value.Id, request.BookingId, channel, details, SubmissionMatch.None, false, consents, entries, now);
         if (applied.IsFailure)
         {
             return applied.Error;

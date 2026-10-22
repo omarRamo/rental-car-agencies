@@ -9,8 +9,10 @@ namespace CarRental.Application.Bookings.Contracts;
 /// </summary>
 /// <remarks>
 /// <para>No permission is checked: the public endpoints call it for anonymous visitors. They run it in a DI scope whose
-/// actor is a system actor (e.g. <c>system:public-funnel</c>), because the drivers and documents are registered first
-/// through <c>ICustomerRegistration</c> (which requires <c>customers.manage</c>) and the payer is created here.</para>
+/// actor is a system actor (e.g. <c>system:public-funnel</c>) working for the agency of the public site, because the
+/// drivers and documents are registered first through <c>ICustomerRegistration</c> (which requires
+/// <c>customers.manage</c>) and the payer is created here. An operation of one agency only prices, locks and submits for
+/// that agency (<c>booking.forbidden</c> otherwise), and finds the locked quotes of that agency only (ADR-0067).</para>
 /// <para>Prices always come from the pricing engine and availability is re-checked under the lock at the submission:
 /// nothing carried by a deep link is trusted (SPEC §5). The blacklist is never checked here, so that nothing hints it
 /// to an applicant: the agent's validation refuses silently.</para>

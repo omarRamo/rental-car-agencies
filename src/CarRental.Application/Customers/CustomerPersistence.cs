@@ -13,15 +13,18 @@ internal static class CustomerPersistence
         db.Set<Person>().FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
 
     /// <summary>
-    /// True when another person holds a current document with the same type, issuing country and number key as
-    /// <paramref name="details"/>. Checked before any change; invalid details answer false (the domain rejects them).
+    /// True when another person of the agency of <paramref name="person"/> holds a current document with the same type,
+    /// issuing country and number key as <paramref name="details"/> (a person of another agency may hold it: ADR-0067).
+    /// Checked before any change; invalid details answer false (the domain rejects them).
     /// </summary>
     public static Task<bool> IsDocumentNumberUsedByAnotherPersonAsync(
         this IAppDbContext db,
-        Guid personId,
+        Person person,
         IdentityDocumentDetails details,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(person);
+        ArgumentNullException.ThrowIfNull(details);
         var issuingCountry = CountryCodes.Normalize(details.IssuingCountry);
         var key = DocumentNumbers.KeyOf(details.Number);
         if (issuingCountry.IsFailure || key.Length == 0)
@@ -29,12 +32,15 @@ internal static class CustomerPersistence
             return Task.FromResult(false);
         }
 
+        var personId = person.Id;
+        var agencyId = person.AgencyId;
         var type = details.Type;
         var country = issuingCountry.Value;
         return db.Set<Person>()
             .AsNoTracking()
             .AnyAsync(
-                p => p.Id != personId
+                p => p.AgencyId == agencyId
+                     && p.Id != personId
                      && p.Documents.Any(d => d.SupersededAtUtc == null && d.Type == type && d.IssuingCountry == country && d.NumberKey == key),
                 cancellationToken);
     }

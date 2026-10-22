@@ -8,7 +8,7 @@ namespace CarRental.Domain.Bookings.Handover;
 /// <c>contracts</c>, with the quote version and the departure inspection it was made from, when it was generated and
 /// when it was queued for e-mail to the main driver.
 /// </summary>
-public sealed class RentalContract : AggregateRoot
+public sealed class RentalContract : AggregateRoot, IAgencyOwned
 {
     public const int NumberMaxLength = 24;
     public const int EmailMaxLength = 254;

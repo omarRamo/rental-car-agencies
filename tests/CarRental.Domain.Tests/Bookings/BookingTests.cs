@@ -9,6 +9,16 @@ namespace CarRental.Domain.Tests.Bookings;
 public sealed class BookingTests
 {
     [Fact]
+    public void Every_event_of_the_timeline_belongs_to_the_agency_of_the_file()
+    {
+        var booking = InStatus(BookingStatus.Closed);
+
+        booking.AgencyId.ShouldBe(AgencyId);
+        booking.Events.Count.ShouldBeGreaterThan(1);
+        booking.Events.ShouldAllBe(e => e.AgencyId == AgencyId);
+    }
+
+    [Fact]
     public void A_confirmed_booking_starts_its_timeline_with_the_creation()
     {
         var booking = Confirmed();

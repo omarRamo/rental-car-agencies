@@ -36,18 +36,11 @@ public sealed partial class TenancyConventionTests
         // Billing
         "Claim", "ClaimCost", "ClaimDocument", "ClaimReimbursement", "CreditNote", "CreditNoteLine",
         "Fine", "Invoice", "InvoiceLine",
-        // Bookings
-        "Booking", "BookingAccessGrant", "BookingCustomerProfile", "BookingEvent", "BookingPaymentTrack", "DamageMark",
-        "FunnelSession", "FunnelUpload", "Inspection", "InspectionPhoto", "InspectionSignature", "Quote",
-        "QuoteLine", "RentalContract", "ReturnCharge",
         // Cash
         "CashMovement", "CashSession", "Expense", "ExpenseSequence",
         // Channels
         "Channel", "ChannelBooking", "ChannelMapping", "ChannelMessageLog", "ChannelPayout", "ChannelQuota",
         "ChannelReplicationItem", "ChannelSyncItem", "ChannelSyncState",
-        // Customers
-        "BlacklistEntry", "Consent", "Customer", "DriverSubmission", "IdentityDocument", "Person",
-        "StagedDocumentImage", "SubmittedDocument",
         // Fleet
         "DeadlineAlert", "MaintenanceEvent", "MaintenancePlan", "Vehicle", "VehicleCategory", "VehicleCost",
         "VehicleDocument", "VehicleEconomics", "VehicleHistoryEntry", "VehiclePhoto",
