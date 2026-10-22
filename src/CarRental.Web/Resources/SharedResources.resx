@@ -603,6 +603,9 @@
   <data name="Error.payments.booking_required" xml:space="preserve">
     <value>Un dossier est obligatoire.</value>
   </data>
+  <data name="Error.payments.booking_not_found" xml:space="preserve">
+    <value>Ce dossier de location n'existe pas.</value>
+  </data>
   <data name="Error.payments.amount_invalid" xml:space="preserve">
     <value>Le montant est positif, en dinars avec au plus 3 décimales (millimes), et ne dépasse pas 1 000 000 TND.</value>
   </data>

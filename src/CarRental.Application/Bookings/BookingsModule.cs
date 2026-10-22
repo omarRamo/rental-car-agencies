@@ -112,6 +112,12 @@ public static class BookingsModule
         services.AddScoped<CustomerLinkService>();
         services.AddSettingDefinitions(PublicBookingSettings.All);
         services.AddRecurringJob<PublicAccessPurgeJob>();
+
+        // The payment handlers work for the agency of the booking only (ADR-0067), each step in a scope of its own.
+        services.AddScoped<BookingPaymentScopes>();
+        services.AddScoped<BookingPaymentRelease>();
+        services.AddScoped<BookingPaymentLinks>();
+        services.AddScoped<BookingOnlinePaymentTracker>();
         services.AddOutboxHandler<BookingStatusChanged, BookingPaymentReleaseHandler>();
         services.AddOutboxHandler<BookingStatusChanged, BookingPaymentLinkHandler>();
         services.AddOutboxHandler<BookingStatusChanged, BookingNotificationPublisher>();

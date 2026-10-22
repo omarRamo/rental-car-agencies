@@ -22,6 +22,7 @@ using CarRental.Domain.Cash.Expenses;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Integration.Tests.Support;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Billing.BillingWorld;
@@ -44,7 +45,7 @@ public sealed class FinanceTenancyTests(IntegrationHost host)
     public async Task The_payments_and_deposits_of_an_agency_are_never_shown_to_another_nor_recorded_for_it()
     {
         var (a, b) = (await FinanceData.NewAgencyAsync(host, Ct), await FinanceData.NewAgencyAsync(host, Ct));
-        var (bookingA, bookingB) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (bookingA, bookingB) = (await TestBookings.NewAsync(host, a, Ct), await TestBookings.NewAsync(host, b, Ct));
         var paymentA = Ok(await RunAsync<ICounterPayments, Result<Guid>>(
             host,
             FinanceData.StaffOf(a, Roles.Agent),
@@ -74,11 +75,31 @@ public sealed class FinanceTenancyTests(IntegrationHost host)
         (await RunAsync<ICounterPayments, Result>(host, managerA, p => p.ConfirmPendingAsync(paymentB, "VIR-B", Ct))).Error.ShouldBe(PaymentsErrors.PaymentNotFound);
         (await RunAsync<ICounterPayments, Result>(host, managerA, p => p.CancelPendingAsync(paymentB, "Jamais reçu", Ct))).Error.ShouldBe(PaymentsErrors.PaymentNotFound);
 
+        // Nor is money of the agency recorded for the other agency's booking (by its id), even by the support who sees
+        // it: refused like an unknown booking, which never tells that the booking exists elsewhere.
+        var link = new OnlinePaymentRequest(bookingB, a, 50m, "fr", "/fr/ok", "/fr/ko", IsLink: true);
+        foreach (var actor in new[] { managerA, TestActors.Support() })
+        {
+            (await RunAsync<ICounterPayments, Result<Guid>>(host, actor, p => p.RecordPaymentAsync(new CounterPaymentRequest(bookingB, a, PaymentMethodInfo.CardTerminal, 50m, "TPE-X"), Ct)))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await RunAsync<IDeposits, Result<Guid>>(host, actor, d => d.TakeAsync(new DepositRequest(bookingB, a, DepositModeInfo.CardImprint, 50m, "AUT-X"), Ct)))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await RunAsync<OnlinePaymentAdministration, Result<OnlinePaymentRedirect>>(host, actor, o => o.CreatePaymentLinkAsync(link, Ct)))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+        }
+
+        (await RunAsync<ICounterPayments, Result<Guid>>(host, managerA, p => p.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), a, PaymentMethodInfo.CardTerminal, 50m, "TPE-Y"), Ct)))
+            .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+        (await RunAsync<IOnlinePayments, Result<OnlinePaymentRedirect>>(host, TestActors.Visitor(a), o => o.StartPaymentAsync(link with { IsLink = false }, Ct)))
+            .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+
         await using var check = host.CreateScope();
         var db = check.ServiceProvider.GetRequiredService<IAppDbContext>();
         (await db.Set<Payment>().CountAsync(p => p.AgencyId == b, Ct)).ShouldBe(1, "nothing was recorded for the other agency");
         (await db.Set<Payment>().SingleAsync(p => p.Id == paymentB, Ct)).Status.ShouldBe(PaymentStatus.Pending);
         (await db.Set<DepositHold>().CountAsync(d => d.AgencyId == b, Ct)).ShouldBe(1);
+        (await db.Set<Payment>().CountAsync(p => p.AgencyId == a, Ct)).ShouldBe(1, "nothing was recorded for the other agency's booking");
+        (await db.Set<DepositHold>().CountAsync(d => d.AgencyId == a, Ct)).ShouldBe(0);
     }
 
     [Fact]
@@ -181,8 +202,9 @@ public sealed class FinanceTenancyTests(IntegrationHost host)
     public async Task Each_agency_keeps_its_own_chart_of_accounts_and_journals_and_exports_its_facts_only()
     {
         var (a, b) = (await FinanceData.NewAgencyAsync(host, Ct), await FinanceData.NewAgencyAsync(host, Ct));
-        Ok(await RunAsync<ICounterPayments, Result<Guid>>(host, FinanceData.StaffOf(a, Roles.Agent), p => p.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), a, PaymentMethodInfo.CardTerminal, 100m, "TPE-A"), Ct)));
-        Ok(await RunAsync<ICounterPayments, Result<Guid>>(host, FinanceData.StaffOf(b, Roles.Agent), p => p.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), b, PaymentMethodInfo.CardTerminal, 200m, "TPE-B"), Ct)));
+        var (fileA, fileB) = (await TestBookings.NewAsync(host, a, Ct), await TestBookings.NewAsync(host, b, Ct));
+        Ok(await RunAsync<ICounterPayments, Result<Guid>>(host, FinanceData.StaffOf(a, Roles.Agent), p => p.RecordPaymentAsync(new CounterPaymentRequest(fileA, a, PaymentMethodInfo.CardTerminal, 100m, "TPE-A"), Ct)));
+        Ok(await RunAsync<ICounterPayments, Result<Guid>>(host, FinanceData.StaffOf(b, Roles.Agent), p => p.RecordPaymentAsync(new CounterPaymentRequest(fileB, b, PaymentMethodInfo.CardTerminal, 200m, "TPE-B"), Ct)));
         var (accountantA, accountantB) = (FinanceData.StaffOf(a, Roles.Accountant), FinanceData.StaffOf(b, Roles.Accountant));
 
         // Each chart is provisioned for its agency and changed by its accountant only; a number is unique within an agency.
@@ -221,13 +243,29 @@ public sealed class FinanceTenancyTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_payments_page_of_a_booking_of_another_agency_shows_an_unknown_booking()
+    {
+        var (a, b) = (await FinanceData.NewAgencyAsync(host, Ct), await FinanceData.NewAgencyAsync(host, Ct));
+        var (bookingA, bookingB) = (await TestBookings.NewAsync(host, a, Ct), await TestBookings.NewAsync(host, b, Ct));
+        using var client = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(client, (await TestStaff.CreateAsync(host, Roles.Agent, agencyId: a)).Email, "/admin", Ct);
+
+        var own = await client.GetStringAsync(new Uri($"/admin/payments/bookings/{bookingA}", UriKind.Relative), Ct);
+        var other = await client.GetStringAsync(new Uri($"/admin/payments/bookings/{bookingB}", UriKind.Relative), Ct);
+
+        own.ShouldContain("data-testid=\"booking-payments\"");
+        other.ShouldNotContain("data-testid=\"booking-payments\"", Case.Sensitive, "no panel to record money for another agency's booking");
+        other.ShouldContain("Ce dossier de location n");
+    }
+
+    [Fact]
     public async Task An_agency_without_the_cash_module_takes_no_cash_and_says_why()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
         var agent = FinanceData.StaffOf(agencyId, Roles.Agent);
         await FinanceData.OpenSessionAsync(host, agent, agencyId, 100m, Ct);
         await FinanceData.SetModulesAsync(host, agencyId, AgencyModuleCatalog.Defaults & ~AgencyModules.Cash, Ct);
-        var bookingId = Guid.CreateVersion7();
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
 
         (await RunAsync<ICounterPayments, Result<Guid>>(host, agent, p => p.RecordPaymentAsync(new CounterPaymentRequest(bookingId, agencyId, PaymentMethodInfo.Cash, 80m), Ct)))
             .Error.ShouldBe(CashErrors.ModuleOff);

@@ -16,6 +16,12 @@ public static class PaymentsErrors
 
     public static readonly Error BookingRequired = Error.Validation("payments.booking_required", "A booking is required.");
 
+    /// <summary>
+    /// The rental file does not exist for the operation, or belongs to another agency than the money (ADR-0067): one
+    /// answer for both, which never tells that the file exists elsewhere.
+    /// </summary>
+    public static readonly Error BookingNotFound = Error.NotFound("payments.booking_not_found", "The rental file does not exist.");
+
     public static readonly Error AmountInvalid = Error.Validation(
         "payments.amount_invalid",
         "An amount is positive, in Tunisian dinars with millimes at most, and at most 1 000 000 TND.");

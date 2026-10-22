@@ -171,8 +171,8 @@ public sealed class ReportingSourceContractTests(IntegrationHost host)
     public async Task The_payments_contract_totals_the_payments_of_many_bookings_at_once()
     {
         var agencyId = await FleetData.NewAgencyAsync(host, Ct);
-        var paid = Guid.CreateVersion7();
-        var refunded = Guid.CreateVersion7();
+        var paid = await Support.TestBookings.NewAsync(host, agencyId, Ct);
+        var refunded = await Support.TestBookings.NewAsync(host, agencyId, Ct);
         await using (var scope = host.CreateScope(Agent))
         {
             var payments = scope.ServiceProvider.GetRequiredService<ICounterPayments>();

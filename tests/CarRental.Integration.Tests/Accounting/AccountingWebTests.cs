@@ -28,10 +28,11 @@ public sealed class AccountingWebTests(IntegrationHost host)
     public async Task The_journals_of_the_month_export_as_csv_and_excel_for_the_accountant_only()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         await using (var scope = host.CreateScope(FinanceData.StaffOf(agencyId, Roles.Agent)))
         {
             (await scope.ServiceProvider.GetRequiredService<ICounterPayments>().RecordPaymentAsync(
-                new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.CardTerminal, 245.5m, "TPE-WEB-1"),
+                new CounterPaymentRequest(bookingId, agencyId, PaymentMethodInfo.CardTerminal, 245.5m, "TPE-WEB-1"),
                 Ct)).IsSuccess.ShouldBeTrue();
         }
 

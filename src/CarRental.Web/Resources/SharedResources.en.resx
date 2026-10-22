@@ -603,6 +603,9 @@
   <data name="Error.payments.booking_required" xml:space="preserve">
     <value>A booking is required.</value>
   </data>
+  <data name="Error.payments.booking_not_found" xml:space="preserve">
+    <value>This rental file does not exist.</value>
+  </data>
   <data name="Error.payments.amount_invalid" xml:space="preserve">
     <value>The amount is positive, in dinars with at most 3 decimals (millimes), and at most 1,000,000 TND.</value>
   </data>

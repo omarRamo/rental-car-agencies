@@ -27,9 +27,13 @@ internal sealed class FinanceHarness
     {
         Time = new FakeTimeProvider(start ?? Start);
         Referential.Agencies.Add(new AgencyInfo(AgencyId, "Agence Démo Tunis", "Tunis", null, null, IsActive: true));
+        Bookings = new FakePaymentBookings(AgencyId);
     }
 
     public InMemoryFinanceDb Db { get; } = new();
+
+    /// <summary>The rental files the payments point to: of <see cref="AgencyId"/> unless a test says otherwise.</summary>
+    public FakePaymentBookings Bookings { get; }
 
     public FakeTimeProvider Time { get; }
 
@@ -68,9 +72,9 @@ internal sealed class FinanceHarness
 
     public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time, Periods, Directory);
 
-    public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Time, Periods);
+    public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Bookings, Time, Periods);
 
-    public IDeposits Deposits(IUserContext user) => new Deposits(Db, UnitOfWork, user, Drawer(user), Referential, Time, Periods);
+    public IDeposits Deposits(IUserContext user) => new Deposits(Db, UnitOfWork, user, Drawer(user), Referential, Bookings, Time, Periods);
 
     public IPaymentsQueries PaymentsQueries() => new PaymentsQueries(Db);
 

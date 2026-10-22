@@ -86,8 +86,10 @@ public sealed class OnlinePaymentFlowTests
         var other = Guid.CreateVersion7();
         _harness.Referential.Agencies.Add(new AgencyInfo(other, "Agence Démo Sousse", "Sousse", null, null, IsActive: true));
         var online = _harness.Online();
+        var otherBooking = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(otherBooking, other);
         var first = (await online.StartPreAuthorizationAsync(_harness.Request(100m), Ct)).Value;
-        var second = (await online.StartPreAuthorizationAsync(_harness.Request(200m) with { AgencyId = other }, Ct)).Value;
+        var second = (await online.StartPreAuthorizationAsync(_harness.Request(200m, otherBooking) with { AgencyId = other }, Ct)).Value;
         _harness.Gateway.Pay(_harness.Payment(second.PaymentId).ExternalReference!);
         _harness.Time.Advance(TimeSpan.FromMinutes(5));
 
