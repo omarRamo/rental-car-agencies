@@ -16,17 +16,25 @@ public interface IBotTurnDispatcher
 }
 
 /// <summary>
-/// Runs the turn inside the caller (the 4A behaviour): prepare, respond, apply. An exception of the responder goes up to
-/// the outbox, which retries the message later.
+/// Runs the turn inside the caller (the 4A behaviour): prepare, respond, apply, each step working for the agency of the
+/// conversation; nothing for an agency suspended or whose WhatsApp module is off (its messages wait). An exception of the
+/// responder goes up to the outbox, which retries the message later.
 /// </summary>
 internal sealed class InlineBotTurnDispatcher(MessagingScopes scopes) : IBotTurnDispatcher
 {
     public async Task DispatchAsync(Guid conversationId, Guid messageId, string? correlationId, CancellationToken cancellationToken)
     {
+        if (await scopes.AgencyOfConversationAsync(conversationId, cancellationToken) is not { } agencyId
+            || !await scopes.IsOpenAsync(agencyId, cancellationToken))
+        {
+            return;
+        }
+
         var turn = await scopes.RunAsync<ConversationTurns, ConversationTurn?>(
             (turns, ct) => turns.PrepareAsync(conversationId, messageId, ct),
             correlationId,
-            cancellationToken);
+            cancellationToken,
+            agencyId);
         if (turn is null)
         {
             return;
@@ -35,9 +43,10 @@ internal sealed class InlineBotTurnDispatcher(MessagingScopes scopes) : IBotTurn
         var reply = await scopes.RunOnceAsync<IConversationResponder, ConversationReply>(
             (responder, ct) => responder.RespondAsync(turn, ct),
             correlationId,
-            cancellationToken) ?? ConversationReply.None;
+            cancellationToken,
+            agencyId) ?? ConversationReply.None;
 
-        await scopes.RunAsync<ConversationTurns, bool>((turns, ct) => turns.ApplyAsync(turn, reply, ct), correlationId, cancellationToken);
+        await scopes.RunAsync<ConversationTurns, bool>((turns, ct) => turns.ApplyAsync(turn, reply, ct), correlationId, cancellationToken, agencyId);
     }
 }
 

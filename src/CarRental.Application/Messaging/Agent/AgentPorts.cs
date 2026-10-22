@@ -72,13 +72,11 @@ public interface IAgentPromptSource
 
 /// <summary>
 /// Where the agent sends customers (section <c>PublicSite</c>): the absolute address of the public site (links of the
-/// booking funnel) and the agency it presents (else the only active agency, else the first created).
+/// booking funnel). The agency it presents is the agency of each conversation (ADR-0067).
 /// </summary>
 public sealed class AgentSiteOptions
 {
     public Uri? PublicBaseUrl { get; set; }
-
-    public Guid? AgencyId { get; set; }
 }
 
 /// <summary>A tool failed for the model: its result is an error (malformed input, unknown option, failure of an engine).</summary>

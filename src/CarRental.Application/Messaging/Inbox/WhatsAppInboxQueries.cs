@@ -16,8 +16,9 @@ namespace CarRental.Application.Messaging.Inbox;
 
 /// <summary>
 /// Reads of the shared WhatsApp inbox (<c>/admin/whatsapp</c>, permission <c>whatsapp.inbox</c>): the conversation list
-/// with its filters, a conversation with its thread, links and bot state, and the templates an agent can send. Names of
-/// persons and numbers of files come from the Customers and Bookings contracts.
+/// of the agency of the operation with its filters, a conversation with its thread, links and bot state, and the
+/// templates an agent can send. Names of persons and numbers of files come from the Customers and Bookings contracts
+/// (files of the agency of the conversation only).
 /// </summary>
 public sealed class WhatsAppInboxQueries(
     IAppDbContext db,
@@ -72,11 +73,11 @@ public sealed class WhatsAppInboxQueries(
         }
 
         var numbers = new Dictionary<Guid, string>();
-        foreach (var bookingId in conversations.Where(c => c.BookingId is not null).Select(c => c.BookingId!.Value).Distinct())
+        foreach (var conversation in conversations.Where(c => c.BookingId is not null).DistinctBy(c => c.BookingId))
         {
-            if (await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } booking)
+            if (await bookings.GetSummaryAsync(conversation.BookingId!.Value, cancellationToken) is { } booking && booking.AgencyId == conversation.AgencyId)
             {
-                numbers[bookingId] = booking.Number;
+                numbers[booking.Id] = booking.Number;
             }
         }
 
@@ -149,7 +150,7 @@ public sealed class WhatsAppInboxQueries(
                 suggested =
                 [
                     .. (await bookings.GetBookingsOfPersonAsync(personId, cancellationToken))
-                        .Where(b => b.Booking.Id != conversation.BookingId)
+                        .Where(b => b.Booking.Id != conversation.BookingId && b.Booking.AgencyId == conversation.AgencyId)
                         .Take(MaxSuggestedBookings)
                         .Select(b => ToLinked(b.Booking)),
                 ];
@@ -166,7 +167,7 @@ public sealed class WhatsAppInboxQueries(
 
         InboxLinkedBooking? booking = null;
         if (conversation.BookingId is { } bookingId && user.HasPermission(Permissions.BookingsRead)
-            && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } summary)
+            && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } summary && summary.AgencyId == conversation.AgencyId)
         {
             booking = ToLinked(summary);
         }

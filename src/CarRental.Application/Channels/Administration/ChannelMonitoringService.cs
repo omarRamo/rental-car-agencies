@@ -12,8 +12,9 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Application.Channels.Administration;
 
 /// <summary>
-/// Supervision of the channels (permission <c>channels.manage</c>): the message log with filters, the outbound queue
-/// with its replay, an immediate synchronization run, and the state behind the health entry <c>channels</c>.
+/// Supervision of the channels of the agency of the operation (permission <c>channels.manage</c>): the message log with
+/// filters, the outbound queue with its replay, an immediate synchronization run, and the state behind the health entry
+/// <c>channels</c>.
 /// </summary>
 public sealed class ChannelMonitoringService
 {
@@ -45,21 +46,34 @@ public sealed class ChannelMonitoringService
 
     private bool CanManage => _user.HasPermission(Permissions.ChannelsManage);
 
-    /// <summary>The state of the outbound queue: failed for good, pending (and retrying), the oldest due, the pending reminders.</summary>
+    /// <summary>The state of the outbound queue of the agency: failed for good, pending (and retrying), the oldest due, the pending reminders.</summary>
     public async Task<Result<ChannelSyncStatistics>> GetStatisticsAsync(CancellationToken cancellationToken = default) =>
-        CanManage ? await ReadStatisticsAsync(_db, cancellationToken) : ChannelsErrors.Forbidden;
+        CanManage ? await ReadStatisticsAsync(_db, agencies: null, cancellationToken) : ChannelsErrors.Forbidden;
 
-    /// <summary>The figures of the queue (also read by the health entry <c>channels</c>, without permission).</summary>
-    public static async Task<ChannelSyncStatistics> ReadStatisticsAsync(IAppDbContext db, CancellationToken cancellationToken)
+    /// <summary>
+    /// The figures of the queue the context sees, of <paramref name="agencies"/> only when given (the health entry
+    /// <c>channels</c> reads them across agencies, without permission, for the agencies whose channels module is on: the
+    /// updates of the others wait for the module on purpose).
+    /// </summary>
+    public static async Task<ChannelSyncStatistics> ReadStatisticsAsync(IAppDbContext db, IReadOnlyCollection<Guid>? agencies, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
-        var failed = await db.Set<ChannelSyncItem>().AsNoTracking().CountAsync(i => i.Status == ChannelSyncStatus.Failed, cancellationToken);
-        var pending = await db.Set<ChannelSyncItem>().AsNoTracking()
+        var items = db.Set<ChannelSyncItem>().AsNoTracking();
+        var replications = db.Set<ChannelReplicationItem>().AsNoTracking();
+        if (agencies is not null)
+        {
+            var ids = agencies.ToList();
+            items = items.Where(i => ids.Contains(i.AgencyId));
+            replications = replications.Where(r => ids.Contains(r.AgencyId));
+        }
+
+        var failed = await items.CountAsync(i => i.Status == ChannelSyncStatus.Failed, cancellationToken);
+        var pending = await items
             .Where(i => i.Status == ChannelSyncStatus.Pending)
             .GroupBy(_ => 1)
             .Select(g => new { Count = g.Count(), Retrying = g.Count(i => i.Attempts > 0), Oldest = g.Min(i => i.NextAttemptAtUtc) })
             .FirstOrDefaultAsync(cancellationToken);
-        var reminders = await db.Set<ChannelReplicationItem>().AsNoTracking().CountAsync(r => r.AcknowledgedAtUtc == null, cancellationToken);
+        var reminders = await replications.CountAsync(r => r.AcknowledgedAtUtc == null, cancellationToken);
         return new ChannelSyncStatistics(failed, pending?.Count ?? 0, pending?.Retrying ?? 0, pending?.Oldest, reminders);
     }
 
@@ -221,7 +235,7 @@ public sealed class ChannelMonitoringService
         return Result.Success();
     }
 
-    /// <summary>Runs the synchronization now (instead of waiting for the pump or the job), and says what it did.</summary>
+    /// <summary>Runs the synchronization of the agency now (instead of waiting for the pump or the job), and says what it did.</summary>
     public async Task<Result<ChannelSyncRunResult>> RunNowAsync(CancellationToken cancellationToken = default) =>
         CanManage ? await _dispatcher.RunAsync(cancellationToken) : ChannelsErrors.Forbidden;
 

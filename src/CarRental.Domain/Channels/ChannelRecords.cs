@@ -5,9 +5,9 @@ namespace CarRental.Domain.Channels;
 /// <summary>
 /// A change to replicate by hand on the extranet of a channel sold manually (SPEC §10 "le planning signale les arrêts
 /// de vente à reporter sur l'extranet"): a quota or stop-sell added, changed or removed, or new prices published. It
-/// stays on the list until someone acknowledges it.
+/// stays on the list until someone acknowledges it. It carries the agency of its channel.
 /// </summary>
-public sealed class ChannelReplicationItem : Entity
+public sealed class ChannelReplicationItem : Entity, IAgencyOwned
 {
     public const int DetailMaxLength = 100;
 
@@ -15,16 +15,24 @@ public sealed class ChannelReplicationItem : Entity
     {
     }
 
-    private ChannelReplicationItem(Guid channelId, ChannelReplicationKind kind, ChannelStamp stamp)
+    private ChannelReplicationItem(Guid channelId, Guid agencyId, ChannelReplicationKind kind, ChannelStamp stamp)
         : base(NewId())
     {
+        if (channelId == Guid.Empty || agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("A change to replicate belongs to a channel of an agency.", nameof(channelId));
+        }
+
         ChannelId = channelId;
+        AgencyId = agencyId;
         Kind = kind;
         CreatedAtUtc = stamp.At;
         CreatedBy = stamp.By;
     }
 
     public Guid ChannelId { get; private set; }
+
+    public Guid AgencyId { get; private set; }
 
     public ChannelReplicationKind Kind { get; private set; }
 
@@ -65,7 +73,7 @@ public sealed class ChannelReplicationItem : Entity
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "A restriction change is a quota or stop-sell change.");
         }
 
-        return new ChannelReplicationItem(quota.ChannelId, kind, stamp)
+        return new ChannelReplicationItem(quota.ChannelId, quota.AgencyId, kind, stamp)
         {
             QuotaId = quota.Id,
             CategoryId = quota.CategoryId,
@@ -76,12 +84,12 @@ public sealed class ChannelReplicationItem : Entity
         };
     }
 
-    /// <summary>New prices to replicate (<paramref name="detail"/>: what was published).</summary>
-    public static ChannelReplicationItem ForRates(Guid channelId, string? detail, ChannelStamp stamp)
+    /// <summary>New prices to replicate on the channel <paramref name="channelId"/> of <paramref name="agencyId"/> (<paramref name="detail"/>: what was published).</summary>
+    public static ChannelReplicationItem ForRates(Guid channelId, Guid agencyId, string? detail, ChannelStamp stamp)
     {
         ArgumentNullException.ThrowIfNull(stamp);
         var text = string.IsNullOrWhiteSpace(detail) ? null : detail.Trim();
-        return new ChannelReplicationItem(channelId, ChannelReplicationKind.RatesPublished, stamp)
+        return new ChannelReplicationItem(channelId, agencyId, ChannelReplicationKind.RatesPublished, stamp)
         {
             Detail = text?.Length > DetailMaxLength ? text[..DetailMaxLength] : text,
         };
@@ -104,9 +112,10 @@ public sealed class ChannelReplicationItem : Entity
 
 /// <summary>
 /// The total paid by a channel for a month (reconciliation, SPEC §8 "versements Booking.com contre réservations et
-/// commissions"), entered by hand. TODO(spec): the statement format of the channel, to import it instead.
+/// commissions"), entered by hand. TODO(spec): the statement format of the channel, to import it instead. It carries the
+/// agency of its channel.
 /// </summary>
-public sealed class ChannelPayout : AggregateRoot
+public sealed class ChannelPayout : AggregateRoot, IAgencyOwned
 {
     public const int ReferenceMaxLength = 64;
     public const int NoteMaxLength = 300;
@@ -115,15 +124,18 @@ public sealed class ChannelPayout : AggregateRoot
     {
     }
 
-    private ChannelPayout(Guid channelId, int year, int month)
+    private ChannelPayout(Guid channelId, Guid agencyId, int year, int month)
         : base(NewId())
     {
         ChannelId = channelId;
+        AgencyId = agencyId;
         Year = year;
         Month = month;
     }
 
     public Guid ChannelId { get; private set; }
+
+    public Guid AgencyId { get; private set; }
 
     public int Year { get; private set; }
 
@@ -140,20 +152,16 @@ public sealed class ChannelPayout : AggregateRoot
 
     public string? RecordedBy { get; private set; }
 
-    public static Result<ChannelPayout> Record(Guid channelId, int year, int month, Money amount, string? reference, string? note, ChannelStamp stamp)
+    public static Result<ChannelPayout> Record(Channel channel, int year, int month, Money amount, string? reference, string? note, ChannelStamp stamp)
     {
+        ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(stamp);
-        if (channelId == Guid.Empty)
-        {
-            throw new ArgumentException("A payout belongs to a channel.", nameof(channelId));
-        }
-
         if (year is < 2000 or > 2100 || month is < 1 or > 12)
         {
             return ChannelsErrors.PayoutMonthInvalid;
         }
 
-        var payout = new ChannelPayout(channelId, year, month);
+        var payout = new ChannelPayout(channel.Id, channel.AgencyId, year, month);
         var changed = payout.Change(amount, reference, note, stamp);
         return changed.IsFailure ? changed.Error : payout;
     }
@@ -188,7 +196,7 @@ public sealed class ChannelPayout : AggregateRoot
 /// the fingerprint of the published prices (a new plan or rule triggers a price push, or a reminder for a manual
 /// channel) and the last full resynchronization.
 /// </summary>
-public sealed class ChannelSyncState : Entity
+public sealed class ChannelSyncState : Entity, IAgencyOwned
 {
     public const int FingerprintMaxLength = 200;
 
@@ -196,10 +204,14 @@ public sealed class ChannelSyncState : Entity
     {
     }
 
-    private ChannelSyncState(Guid channelId)
+    private ChannelSyncState(Guid channelId, Guid agencyId)
         : base(channelId)
     {
+        AgencyId = agencyId;
     }
+
+    /// <summary>The agency of the channel.</summary>
+    public Guid AgencyId { get; private set; }
 
     public string? RatesFingerprint { get; private set; }
 
@@ -207,7 +219,10 @@ public sealed class ChannelSyncState : Entity
 
     public DateTimeOffset? LastFullResyncAtUtc { get; private set; }
 
-    public static ChannelSyncState For(Guid channelId) => new(channelId);
+    public static ChannelSyncState For(Guid channelId, Guid agencyId) =>
+        channelId == Guid.Empty || agencyId == Guid.Empty
+            ? throw new ArgumentException("A synchronization state belongs to a channel of an agency.", nameof(channelId))
+            : new(channelId, agencyId);
 
     /// <summary>Records the fingerprint of the published prices; <see langword="true"/> when it changed (not on the first check).</summary>
     public bool ObserveRates(string fingerprint, DateTimeOffset at)

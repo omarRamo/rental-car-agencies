@@ -21,7 +21,7 @@ public enum NotificationOutcome
     /// <summary>This notification of this file was already queued (idempotence per file and kind).</summary>
     AlreadySent = 2,
 
-    /// <summary>WhatsApp is not configured on this platform.</summary>
+    /// <summary>WhatsApp is not configured on this platform, or not open for the agency of the file (module off, agency suspended).</summary>
     Disabled = 3,
 
     /// <summary>No template configured for this kind (or no review link for a review request).</summary>
@@ -43,14 +43,17 @@ public enum NotificationOutcome
 /// <summary>
 /// Utility notifications of a rental file by WhatsApp (SPEC §11): an approved template sent to the main driver of the
 /// file, only with his WhatsApp notifications consent (checked from the Customers module at the time of sending), at
-/// most once per file and kind (<see cref="BookingNotification"/>, unique). The conversation of the number is created
-/// when needed and linked to the person and the file; the template goes out through the outbox like any message.
+/// most once per file and kind (<see cref="BookingNotification"/>, unique), and only for an agency whose WhatsApp module
+/// is on (ADR-0067). The conversation of the number in the agency of the file is created when needed and linked to the
+/// person and the file; the template goes out through the outbox like any message. Run in a scope working for the
+/// agency of the file.
 /// </summary>
 public sealed partial class BookingNotifier(
     IAppDbContext db,
     IBookingsQueries bookings,
     ICustomersQueries customers,
     IReferentialQueries referential,
+    IAgencyDirectory agencies,
     ISettingsReader settings,
     IWhatsAppClient client,
     TimeProvider clock,
@@ -123,6 +126,11 @@ public sealed partial class BookingNotifier(
             return NotificationOutcome.NotApplicable;
         }
 
+        if (!await agencies.HasModuleAsync(booking.AgencyId, AgencyModules.WhatsApp, cancellationToken))
+        {
+            return NotificationOutcome.Disabled;
+        }
+
         if (booking.MainDriverId is not { } personId
             || await customers.GetPersonAsync(personId, cancellationToken) is not { IsAnonymized: false, Phone: { } phone } person
             || WhatsAppNumbers.Normalize(phone) is not { IsSuccess: true } number)
@@ -150,10 +158,10 @@ public sealed partial class BookingNotifier(
         }
 
         var now = clock.GetUtcNow();
-        var conversation = await db.Set<Conversation>().FirstOrDefaultAsync(c => c.WhatsAppNumber == number.Value, cancellationToken);
+        var conversation = await db.Set<Conversation>().FirstOrDefaultAsync(c => c.AgencyId == booking.AgencyId && c.WhatsAppNumber == number.Value, cancellationToken);
         if (conversation is null)
         {
-            conversation = Conversation.Start(number.Value, profileName: null, now).Value;
+            conversation = Conversation.Start(booking.AgencyId, number.Value, profileName: null, now).Value;
             db.Set<Conversation>().Add(conversation);
         }
 
@@ -169,7 +177,7 @@ public sealed partial class BookingNotifier(
 
         var message = conversation.Notify(template.Value, now);
         db.Set<Message>().Add(message);
-        db.Set<BookingNotification>().Add(BookingNotification.Record(booking.Id, kind, conversation, message, personId, now));
+        db.Set<BookingNotification>().Add(BookingNotification.Record(booking.Id, booking.AgencyId, kind, conversation, message, personId, now));
         await db.SaveChangesAsync(cancellationToken);
         return NotificationOutcome.Queued;
     }

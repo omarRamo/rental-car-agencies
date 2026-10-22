@@ -8,9 +8,9 @@ namespace CarRental.Domain.Messaging.Agent;
 /// latest availability search — so that <c>creer_lien_devis</c> takes an option by id, never free amounts —, the amounts
 /// its tools returned (the amount guardrail accepts them in later replies), the booking status lookups (limited per
 /// conversation), the consecutive turns without progress, and the last quote link sent. Ids, codes and amounts only:
-/// no personal data. Deleted with its conversation.
+/// no personal data. Deleted with its conversation, whose agency it carries.
 /// </summary>
-public sealed class AgentConversationState : AggregateRoot
+public sealed class AgentConversationState : AggregateRoot, IAgencyOwned
 {
     /// <summary>Amounts kept for the guardrail (the most recent ones).</summary>
     public const int MaxRememberedAmounts = 80;
@@ -24,15 +24,19 @@ public sealed class AgentConversationState : AggregateRoot
     {
     }
 
-    private AgentConversationState(Guid conversationId, DateTimeOffset now)
+    private AgentConversationState(Guid conversationId, Guid agencyId, DateTimeOffset now)
         : base(conversationId)
     {
+        AgencyId = agencyId;
         CreatedAtUtc = now;
         UpdatedAtUtc = now;
     }
 
     /// <summary>The conversation (same id).</summary>
     public Guid ConversationId => Id;
+
+    /// <summary>The agency of the conversation.</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Options of the latest search, in the order they were proposed (three at most).</summary>
     public IReadOnlyList<AgentOption> Options => _options;
@@ -55,14 +59,14 @@ public sealed class AgentConversationState : AggregateRoot
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
-    public static AgentConversationState Start(Guid conversationId, DateTimeOffset now)
+    public static AgentConversationState Start(Guid conversationId, Guid agencyId, DateTimeOffset now)
     {
-        if (conversationId == Guid.Empty)
+        if (conversationId == Guid.Empty || agencyId == Guid.Empty)
         {
-            throw new ArgumentException("A conversation id is required.", nameof(conversationId));
+            throw new ArgumentException("The conversation and its agency are required.", nameof(conversationId));
         }
 
-        return new AgentConversationState(conversationId, now);
+        return new AgentConversationState(conversationId, agencyId, now);
     }
 
     /// <summary>The prefix of the option ids of the next search (<c>A</c>, <c>B</c>… then again <c>A</c> after <c>Z</c>).</summary>
@@ -151,11 +155,12 @@ public sealed record AgentOption(
     Money Deposit);
 
 /// <summary>
-/// One turn of the WhatsApp agent, for the cost reports (SPEC §11 « coût Meta et IA », « taux de transfert »): when, what
-/// it cost (model calls, tool calls, tokens, AI and estimated Meta costs in USD) and how it ended. Ids and counts only, no
-/// content; kept after the conversation is purged (the conversation id then points to nothing).
+/// One turn of the WhatsApp agent, for the cost reports of its agency (SPEC §11 « coût Meta et IA », « taux de
+/// transfert »): when, what it cost (model calls, tool calls, tokens, AI and estimated Meta costs in USD) and how it
+/// ended. Ids and counts only, no content; kept after the conversation is purged (the conversation id then points to
+/// nothing, the agency stays).
 /// </summary>
-public sealed class AgentTurnRecord : Entity
+public sealed class AgentTurnRecord : Entity, IAgencyOwned
 {
     public const int ModelMaxLength = 100;
 
@@ -163,16 +168,20 @@ public sealed class AgentTurnRecord : Entity
     {
     }
 
-    private AgentTurnRecord(Guid id, Guid conversationId, DateTimeOffset at, string? model, AgentTurnOutcome outcome)
+    private AgentTurnRecord(Guid id, Guid conversationId, Guid agencyId, DateTimeOffset at, string? model, AgentTurnOutcome outcome)
         : base(id)
     {
         ConversationId = conversationId;
+        AgencyId = agencyId;
         OccurredAtUtc = at;
         Model = model is { Length: > ModelMaxLength } ? model[..ModelMaxLength] : model;
         Outcome = outcome;
     }
 
     public Guid ConversationId { get; private set; }
+
+    /// <summary>The agency of the conversation.</summary>
+    public Guid AgencyId { get; private set; }
 
     public DateTimeOffset OccurredAtUtc { get; private set; }
 
@@ -201,6 +210,7 @@ public sealed class AgentTurnRecord : Entity
 
     public static AgentTurnRecord Create(
         Guid conversationId,
+        Guid agencyId,
         DateTimeOffset at,
         string? model,
         AgentTurnOutcome outcome,
@@ -216,7 +226,12 @@ public sealed class AgentTurnRecord : Entity
         ArgumentOutOfRangeException.ThrowIfNegative(toolCalls);
         ArgumentOutOfRangeException.ThrowIfNegative(aiCostUsd);
         ArgumentOutOfRangeException.ThrowIfNegative(metaCostUsd);
-        return new AgentTurnRecord(NewId(), conversationId, at, model, outcome)
+        if (agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("A turn is recorded for the agency of its conversation.", nameof(agencyId));
+        }
+
+        return new AgentTurnRecord(NewId(), conversationId, agencyId, at, model, outcome)
         {
             Language = language,
             ModelCalls = modelCalls,
@@ -268,20 +283,23 @@ public enum AgentTurnOutcome
 /// <summary>
 /// Retries of the pending bot turn of a conversation (its id is the conversation's) when the responder failed (model
 /// unavailable, timeout): attempts so far and when the next one is due (ADR-0054). Removed once a turn succeeds; after
-/// the last attempt the conversation is handed over to a human, never dropped.
+/// the last attempt the conversation is handed over to a human, never dropped. It carries the agency of the conversation.
 /// </summary>
-public sealed class BotTurnRetry : Entity
+public sealed class BotTurnRetry : Entity, IAgencyOwned
 {
     private BotTurnRetry()
     {
     }
 
-    private BotTurnRetry(Guid conversationId)
+    private BotTurnRetry(Guid conversationId, Guid agencyId)
         : base(conversationId)
     {
+        AgencyId = agencyId;
     }
 
     public Guid ConversationId => Id;
+
+    public Guid AgencyId { get; private set; }
 
     public int Attempts { get; private set; }
 
@@ -289,14 +307,14 @@ public sealed class BotTurnRetry : Entity
 
     public DateTimeOffset? LastFailedAtUtc { get; private set; }
 
-    public static BotTurnRetry For(Guid conversationId)
+    public static BotTurnRetry For(Guid conversationId, Guid agencyId)
     {
-        if (conversationId == Guid.Empty)
+        if (conversationId == Guid.Empty || agencyId == Guid.Empty)
         {
-            throw new ArgumentException("A conversation id is required.", nameof(conversationId));
+            throw new ArgumentException("The conversation and its agency are required.", nameof(conversationId));
         }
 
-        return new BotTurnRetry(conversationId);
+        return new BotTurnRetry(conversationId, agencyId);
     }
 
     /// <summary>One more failed attempt; the next one is due after <paramref name="delay"/>.</summary>

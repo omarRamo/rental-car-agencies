@@ -840,21 +840,6 @@
   <data name="Error.referential.location_address_too_long" xml:space="preserve">
     <value>L'adresse est trop longue (300 caractères au plus).</value>
   </data>
-  <data name="Error.referential.location_forbidden" xml:space="preserve">
-    <value>Vous n'avez pas la permission de gérer les lieux de l'agence.</value>
-  </data>
-  <data name="Error.referential.location_not_found" xml:space="preserve">
-    <value>Ce lieu n'existe pas.</value>
-  </data>
-  <data name="Error.referential.location_code_taken" xml:space="preserve">
-    <value>Un autre lieu de l'agence utilise déjà ce code.</value>
-  </data>
-  <data name="Error.referential.location_last_active" xml:space="preserve">
-    <value>Gardez au moins un lieu actif : sans lieu, l'agence ne peut plus prendre de réservation.</value>
-  </data>
-  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
-    <value>Le lieu a été modifié entre-temps : rechargez la page puis recommencez.</value>
-  </data>
   <data name="Error.referential.setting_key_invalid" xml:space="preserve">
     <value>Une clé de paramètre est faite de segments en minuscules séparés par des points, par exemple bookings.hold_duration.</value>
   </data>
@@ -1214,6 +1199,9 @@
   </data>
   <data name="Error.messaging.disabled" xml:space="preserve">
     <value>WhatsApp n'est pas configuré sur cette plateforme : aucun message ne peut partir.</value>
+  </data>
+  <data name="Error.messaging.module_off" xml:space="preserve">
+    <value>WhatsApp n'est pas ouvert pour l'agence (module désactivé ou agence suspendue) : le message n'est pas parti.</value>
   </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta a refusé le message.</value>
@@ -2090,6 +2078,21 @@
   </data>
   <data name="Error.identity.not_support_account" xml:space="preserve">
     <value>Seul un compte support ouvre et quitte les agences.</value>
+  </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les lieux de l'agence.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>Ce lieu n'existe pas.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Un autre lieu de l'agence utilise déjà ce code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Gardez au moins un lieu actif : sans lieu, l'agence ne peut plus prendre de réservation.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>Le lieu a été modifié entre-temps : rechargez la page puis recommencez.</value>
   </data>
   <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
     <value>Une étape du parcours est mesurée pour l'agence de la vitrine consultée.</value>

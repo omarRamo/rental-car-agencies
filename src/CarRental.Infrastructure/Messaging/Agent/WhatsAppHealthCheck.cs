@@ -1,8 +1,12 @@
 using System.Globalization;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Messaging.Agent.Turns;
+using CarRental.Application.Referential.Contracts;
+using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using CarRental.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
@@ -16,8 +20,14 @@ namespace CarRental.Infrastructure.Messaging.Agent;
 /// their hand-over. The outbound messages still go through the outbox and its entry. Healthy again once the turns are
 /// answered or handed over (the conversations wait in <c>/admin/whatsapp</c> meanwhile).
 /// </summary>
-internal sealed class WhatsAppHealthCheck(CarRentalDbContext db, IOptions<BotTurnOptions> options, TimeProvider timeProvider) : IHealthCheck
+/// <remarks>
+/// Read across agencies in a scope of its own (the platform's entry, ADR-0067), for the agencies whose WhatsApp module
+/// is on: the messages of the others wait for the module on purpose.
+/// </remarks>
+internal sealed class WhatsAppHealthCheck(IServiceScopeFactory scopes, IAgencyDirectory agencies, IOptions<BotTurnOptions> options, TimeProvider timeProvider) : IHealthCheck
 {
+    internal const string ActorName = "system:health";
+
     /// <summary>The shortest wait reported, whatever the retry delays: a turn takes seconds, its retries minutes.</summary>
     public static readonly TimeSpan MinimumStaleAfter = TimeSpan.FromMinutes(20);
 
@@ -41,13 +51,23 @@ internal sealed class WhatsAppHealthCheck(CarRentalDbContext db, IOptions<BotTur
         var now = timeProvider.GetUtcNow();
         var staleAfter = StaleAfter(options.Value);
         var cutoff = now - staleAfter;
+        var open = (await agencies.ListAsync(cancellationToken)).Where(a => a.IsActive && a.HasModule(AgencyModules.WhatsApp)).Select(a => a.Id).ToList();
 
-        // Served by the filtered index of the queue (IX_Messages_PendingBotTurns).
-        var pending = db.Set<Message>()
-            .AsNoTracking()
-            .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending);
-        var stale = await pending.Where(m => m.CreatedAtUtc < cutoff).Select(m => m.ConversationId).Distinct().CountAsync(cancellationToken);
-        var oldest = await pending.MinAsync(m => (DateTimeOffset?)m.CreatedAtUtc, cancellationToken);
+        int stale;
+        DateTimeOffset? oldest;
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName));
+            var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+
+            // Served by the filtered index of the queue (IX_Messages_PendingBotTurns).
+            var pending = db.Set<Message>()
+                .AsNoTracking()
+                .Where(m => m.Direction == MessageDirection.Inbound && m.BotTurn == BotTurnState.Pending && open.Contains(m.AgencyId));
+            stale = await pending.Where(m => m.CreatedAtUtc < cutoff).Select(m => m.ConversationId).Distinct().CountAsync(cancellationToken);
+            oldest = await pending.MinAsync(m => (DateTimeOffset?)m.CreatedAtUtc, cancellationToken);
+        }
+
         var data = new Dictionary<string, object>
         {
             ["staleConversations"] = stale,

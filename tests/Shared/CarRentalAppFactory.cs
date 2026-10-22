@@ -132,7 +132,10 @@ public sealed class CarRentalAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("Turnstile:OfflineTestWidget", "true");
 
         // WhatsApp without Meta: the fake records the sends and simulates the statuses (development keys of the webhook).
+        // The number serves the demo agency (ADR-0067), whatever other agencies of the run switch their module on; the
+        // hosts switch its WhatsApp module on (TestModules), a dedicated host may route elsewhere.
         builder.UseSetting("WhatsApp:Mode", "Fake");
+        builder.UseSetting("WhatsApp:AgencySlug", TestModules.DemoAgencySlug);
         builder.ConfigureTestServices(services =>
             services.Replace(ServiceDescriptor.Singleton<CarRental.Web.Endpoints.PublicSite.Turnstile.ITurnstileVerifier>(TurnstileVerifier)));
 

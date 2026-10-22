@@ -6,10 +6,11 @@ namespace CarRental.Domain.Channels;
 /// <summary>
 /// A message exchanged with a channel (SPEC §10 "journal de chaque message entrant et sortant"): direction, operation,
 /// channel reference, outcome, duration, an excerpt WITHOUT personal data (built from the canonical message: codes,
-/// dates, amounts, never names, phones or e-mails) and the error code. Appended only; purged after the retention of
-/// <c>channels.message_log_retention_days</c>.
+/// dates, amounts, never names, phones or e-mails) and the error code. A record of the agency of the channel, or of the
+/// platform itself when the address named no channel open to the outside (unknown code, module off, agency suspended).
+/// Appended only; purged after the retention of <c>channels.message_log_retention_days</c>.
 /// </summary>
-public sealed class ChannelMessageLog : Entity
+public sealed class ChannelMessageLog : Entity, IAgencyOrPlatform
 {
     public const int ChannelCodeMaxLength = ChannelCodes.ChannelCodeMaxLength;
     public const int ExcerptMaxLength = 1000;
@@ -25,6 +26,7 @@ public sealed class ChannelMessageLog : Entity
         : base(NewId())
     {
         ChannelId = record.ChannelId;
+        AgencyId = record.AgencyId;
         ChannelCode = Clip(record.ChannelCode, ChannelCodeMaxLength) ?? "?";
         Direction = record.Direction;
         Operation = record.Operation;
@@ -42,6 +44,9 @@ public sealed class ChannelMessageLog : Entity
 
     /// <summary>The channel, or <see langword="null"/> when the address named an unknown channel.</summary>
     public Guid? ChannelId { get; private set; }
+
+    /// <summary>The agency of the channel; <see langword="null"/> for a message to no known channel (a platform record).</summary>
+    public Guid? AgencyId { get; private set; }
 
     /// <summary>The code of the channel as addressed (kept for unknown channels too).</summary>
     public string ChannelCode { get; private set; } = null!;
@@ -104,9 +109,13 @@ public sealed class ChannelMessageLog : Entity
     }
 }
 
-/// <summary>What a <see cref="ChannelMessageLog"/> row records.</summary>
+/// <summary>
+/// What a <see cref="ChannelMessageLog"/> row records: the channel and its agency (both <see langword="null"/> for a
+/// message to no known channel), its code as addressed, direction, operation, outcome, duration and time.
+/// </summary>
 public sealed record ChannelMessageRecord(
     Guid? ChannelId,
+    Guid? AgencyId,
     string? ChannelCode,
     ChannelMessageDirection Direction,
     ChannelMessageOperation Operation,
