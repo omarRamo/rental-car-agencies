@@ -19,7 +19,21 @@ public sealed class IntegrationHost : IAsyncLifetime
 {
     public const string Database = "CarRental_Integration";
 
-    public InfrastructureContainers Containers { get; } = new();
+    public IntegrationHost()
+        : this(new InfrastructureContainers(), null)
+    {
+    }
+
+    private IntegrationHost(InfrastructureContainers containers, CarRentalAppFactory? factory)
+    {
+        Containers = containers;
+        if (factory is not null)
+        {
+            Factory = factory;
+        }
+    }
+
+    public InfrastructureContainers Containers { get; }
 
     public CarRentalAppFactory Factory { get; private set; } = null!;
 
@@ -44,6 +58,12 @@ public sealed class IntegrationHost : IAsyncLifetime
         await Factory.DisposeAsync();
         await Containers.DisposeAsync();
     }
+
+    /// <summary>
+    /// The worlds of the tests (agencies, files, hand-overs…) on a host of its own (its database, a test clock…), started
+    /// and disposed by its owner: this view only creates its scopes and clients, it is never initialized nor disposed.
+    /// </summary>
+    internal static IntegrationHost Over(InfrastructureContainers containers, CarRentalAppFactory factory) => new(containers, factory);
 
     /// <summary>An HTTP client keeping cookies, without following redirects (assertions on 302 targets).</summary>
     public HttpClient CreateClient() =>
