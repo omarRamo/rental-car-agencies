@@ -76,18 +76,6 @@ public sealed class ExpenseService
 
     private DateOnly Today => TunisTime.Today(_clock);
 
-    /// <summary>The active agencies, by name.</summary>
-    public async Task<Result<IReadOnlyList<AgencyInfo>>> GetAgenciesAsync(CancellationToken cancellationToken = default)
-    {
-        if (!CanManage)
-        {
-            return ExpenseErrors.Forbidden;
-        }
-
-        var agencies = await _referential.GetAgenciesAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<AgencyInfo>>([.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)]);
-    }
-
     /// <summary>The expenses of an agency, the latest first, with the totals of the filtered list (deleted ones never count).</summary>
     public async Task<Result<ExpenseList>> ListAsync(ExpenseFilter filter, PageRequest page, CancellationToken cancellationToken = default)
     {

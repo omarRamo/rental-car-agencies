@@ -1,6 +1,6 @@
 @* Development and Testing page (rendered by ClicToPayEndpoints with the simulated gateway only) to start an online
-   payment without the booking funnel: it calls IOnlinePayments like the funnel will, then sends the browser to the
-   payment page of the gateway. *@
+   payment without the booking funnel: it calls IOnlinePayments like the funnel of the chosen agency will (a visitor of
+   its public site), then sends the browser to the payment page of the gateway. *@
 @using CarRental.Application.Referential.Contracts
 @using CarRental.Web.Endpoints
 @using CarRental.Web.Resources.Dev
@@ -74,8 +74,9 @@
     public const string PreAuthorizationFlow = "preAuthorization";
     public const string OneStepFlow = "oneStep";
 
+    /// <summary>The active agencies of the platform: the payment is started for the one chosen.</summary>
     [Parameter, EditorRequired]
-    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+    public IReadOnlyList<AgencySummary> Agencies { get; set; } = [];
 
     [Parameter, EditorRequired]
     public AntiforgeryTokenSet Antiforgery { get; set; } = default!;

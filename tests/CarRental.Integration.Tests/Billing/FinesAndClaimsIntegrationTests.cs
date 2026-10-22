@@ -142,7 +142,7 @@ public sealed class FinesAndClaimsIntegrationTests(IntegrationHost host)
         // The papers and photos of a claim hold personal data: served to the claim staff, never kept by a cache.
         using (var client = host.CreateClient())
         {
-            var (_, email) = await TestStaff.CreateAsync(host, Roles.Agent);
+            var (_, email) = await TestStaff.CreateAsync(host, Roles.Agent, agencyId: agency.AgencyId);
             await HttpSignIn.SignInWithTwoFactorAsync(client, email, "/admin", Ct);
             var download = await client.GetAsync(new Uri($"/admin/claims/files/{photoId:D}", UriKind.Relative), Ct);
             download.StatusCode.ShouldBe(HttpStatusCode.OK);

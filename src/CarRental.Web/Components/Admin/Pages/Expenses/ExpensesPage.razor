@@ -1,5 +1,6 @@
 @page "/admin/expenses"
 @attribute [HasPermission(Permissions.ExpensesManage)]
+@attribute [RequiresModule(AgencyModules.Cash)]
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
@@ -14,17 +15,6 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2">
-        @if (_agencies.Count > 1)
-        {
-            <MudItem xs="12" sm="6" md="4">
-                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-        }
         <MudItem xs="12" sm="6" md="2">
             <MudDatePicker Label="@L["Filter.From"]" @bind-Date="_from" Clearable="true" Editable="true" />
         </MudItem>
@@ -161,7 +151,6 @@
 
 @code {
     private MudTable<ExpenseView>? _table;
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private IReadOnlyList<ExpenseVehicleOption> _vehicles = [];
     private ExpenseList? _totals;
     private Guid _agencyId;
@@ -172,20 +161,21 @@
     private string? _search;
     private bool _includeDeleted;
     private bool _loaded;
-    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    /// <summary>The agency of the session (cascaded by the layout): the expenses shown and recorded are its own (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+
+    protected override async Task OnParametersSetAsync()
     {
-        var agencies = await Runner.RunAsync<ExpenseService, Result<IReadOnlyList<AgencyInfo>>>((service, ct) => service.GetAgenciesAsync(ct));
-        _agencies = agencies.IsSuccess ? agencies.Value : [];
-        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
-        await LoadVehiclesAsync();
-        _loaded = true;
+        if (Agency is { } agency && agency.Id != _agencyId)
+        {
+            _agencyId = agency.Id;
+            await LoadVehiclesAsync();
+            await SearchAsync();
+            _loaded = true;
+        }
     }
-
-    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
 
     private string VehicleLabel(Guid? id) => id is { } vehicleId ? _vehicles.FirstOrDefault(v => v.Id == vehicleId)?.PlateNumber ?? "—" : "—";
 
@@ -202,13 +192,6 @@
         var agencyId = _agencyId;
         var vehicles = await Runner.RunAsync<ExpenseService, Result<IReadOnlyList<ExpenseVehicleOption>>>((service, ct) => service.GetVehiclesAsync(agencyId, ct));
         _vehicles = vehicles.IsSuccess ? vehicles.Value : [];
-    }
-
-    private async Task AgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
-        await LoadVehiclesAsync();
-        await SearchAsync();
     }
 
     private async Task<TableData<ExpenseView>> LoadAsync(TableState state, CancellationToken cancellationToken)

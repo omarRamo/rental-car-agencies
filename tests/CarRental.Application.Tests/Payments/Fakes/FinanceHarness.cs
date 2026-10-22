@@ -63,7 +63,10 @@ internal sealed class FinanceHarness
 
     public ICashSessions Sessions(IUserContext user) => new CashSessionService(Db, UnitOfWork, user, Referential, Identity, Time, Periods);
 
-    public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time, Periods);
+    /// <summary>The agencies as the module checks see them: every agency of <see cref="Referential"/>, with the default modules.</summary>
+    public FinanceAgencyDirectory Directory => new(Referential);
+
+    public ICashDrawer Drawer(IUserContext user) => new CashDrawer(Db, UnitOfWork, user, Time, Periods, Directory);
 
     public ICounterPayments Payments(IUserContext user) => new CounterPayments(Db, UnitOfWork, user, Drawer(user), Referential, Time, Periods);
 
@@ -95,6 +98,9 @@ internal sealed class FakeReferentialQueries : IReferentialQueries
 {
     public List<AgencyInfo> Agencies { get; } = [];
 
+    /// <summary>The modules of the agencies whose modules a test changed (the defaults of a new agency otherwise).</summary>
+    public Dictionary<Guid, AgencyModules> Modules { get; } = [];
+
     public Task<IReadOnlyList<AgencyInfo>> GetAgenciesAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<AgencyInfo>>([.. Agencies]);
 
@@ -103,6 +109,27 @@ internal sealed class FakeReferentialQueries : IReferentialQueries
 
     public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult<LocationInfo?>(null);
+}
+
+/// <summary>
+/// The agency directory of the finance tests: the agencies of a <see cref="FakeReferentialQueries"/>, with the modules of
+/// <see cref="FakeReferentialQueries.Modules"/> (the defaults of a new agency otherwise).
+/// </summary>
+internal sealed class FinanceAgencyDirectory(FakeReferentialQueries referential) : IAgencyDirectory
+{
+    public Task<AgencySummary?> FindBySlugAsync(string? slug, CancellationToken cancellationToken = default) => Task.FromResult<AgencySummary?>(null);
+
+    public Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(referential.Agencies.Where(a => a.Id == agencyId).Select(Summary).FirstOrDefault());
+
+    public Task<IReadOnlyList<AgencySummary>> ListAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AgencySummary>>([.. referential.Agencies.Select(Summary)]);
+
+    public async Task<bool> HasModuleAsync(Guid agencyId, AgencyModules module, CancellationToken cancellationToken = default) =>
+        await FindAsync(agencyId, cancellationToken) is { IsActive: true } agency && agency.HasModule(module);
+
+    private AgencySummary Summary(AgencyInfo agency) =>
+        new(agency.Id, agency.Name, agency.Name.ToLowerInvariant().Replace(' ', '-'), agency.City, agency.IsActive, referential.Modules.GetValueOrDefault(agency.Id, AgencyModuleCatalog.Defaults));
 }
 
 internal sealed class FakeIdentityQueries : IIdentityQueries

@@ -1,5 +1,6 @@
 @page "/admin/fines/{Id:guid}"
 @attribute [HasPermission(Permissions.FinesManage)]
+@attribute [RequiresModule(AgencyModules.ClaimsAndFines)]
 @using CarRental.Web.Components.Admin.Bookings
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs

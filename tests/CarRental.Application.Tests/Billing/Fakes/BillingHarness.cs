@@ -136,7 +136,7 @@ internal sealed class BillingHarness
     public BillingDocumentPipeline Pipeline =>
         new(Db, UnitOfWork, Storage, Renderer, Texts, EmailFactory, Emails, new EInvoiceProviders([new PaperTransitionalEInvoiceProvider(), Ttn]), Referential, Clock);
 
-    public BillingAdministrationQueries Administration => new(Store, Bookings, Payments, Referential, Outbox, Storage);
+    public BillingAdministrationQueries Administration => new(Store, Bookings, Payments, Outbox, Storage);
 
     public FineService Fines => new(Store, Bookings, Fleet, Customers, new FakeDesignationRenderer(), AccessLog, Audit, Invoicing);
 

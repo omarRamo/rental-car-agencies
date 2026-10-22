@@ -17,17 +17,6 @@
         else
         {
             <MudGrid Spacing="2">
-                @if (Agencies.Count > 1 && AgencyId is null)
-                {
-                    <MudItem xs="12">
-                        <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                            @foreach (var agency in Agencies)
-                            {
-                                <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                }
                 <MudItem xs="12" sm="6">
                     <MudNumericField T="decimal?" @bind-Value="_amount" Label="@L["Field.Amount"]" Min="0m" Format="N3" Adornment="Adornment.End"
                                      AdornmentText="TND" Required="true" RequiredError="@Shared["Validation.Required"]" HideSpinButtons="true" />
@@ -77,18 +66,16 @@
     [Parameter, EditorRequired]
     public Guid BookingId { get; set; }
 
-    [Parameter]
-    public Guid? AgencyId { get; set; }
-
-    [Parameter]
-    public IReadOnlyList<AgencyInfo> Agencies { get; set; } = [];
+    /// <summary>The agency of the booking (the agency of the session).</summary>
+    [Parameter, EditorRequired]
+    public Guid AgencyId { get; set; }
 
     [Parameter]
     public decimal? SuggestedAmount { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        _agencyId = AgencyId ?? Agencies.FirstOrDefault()?.Id ?? Guid.Empty;
+        _agencyId = AgencyId;
         _amount = SuggestedAmount is > 0m ? SuggestedAmount : null;
 
         // The validity proposed is the one of the agency (payments.payment_link_validity), 24 h by default.
@@ -99,8 +86,6 @@
             _hours = (int)Math.Min(720, Math.Round(validity.Value.TotalHours));
         }
     }
-
-    private string AgencyName(Guid id) => Agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
 
     /// <summary>The simulated gateway gives a page of the site (relative): the link shown is always absolute.</summary>
     private string AbsoluteUrl(string url) => PaymentsFormat.AbsoluteUrl(Navigation, url);

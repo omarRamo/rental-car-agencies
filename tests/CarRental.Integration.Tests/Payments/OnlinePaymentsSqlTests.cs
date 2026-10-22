@@ -4,13 +4,19 @@ using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Support;
+using CarRental.Testing;
+using CarRental.Web.Components.Public.Site;
+using CarRental.Web.Endpoints;
+using CarRental.Web.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CarRental.Integration.Tests.Payments;
 
@@ -28,7 +34,8 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     [Fact]
     public async Task A_pre_authorization_paid_on_the_simulated_page_is_confirmed_by_the_return_address()
     {
-        var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
+        // The result page belongs to the public site: it shows the payments of the agency of the site it serves.
+        var agencyId = await PublicSiteAgencyAsync();
         var started = await StartAsync(agencyId, 681.4m, "/fr/paiement/{paymentId}");
         using var client = host.CreateClient();
 
@@ -66,9 +73,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var history = await db.Set<Payment>().TemporalAll().Where(p => p.Id == started.PaymentId).Select(p => p.Status).ToListAsync(Ct);
         history.ShouldContain(PaymentStatus.Pending);
         history.ShouldContain(PaymentStatus.PreAuthorized);
-        var calls = await db.Set<GatewayCallLog>().AsNoTracking().Where(c => c.PaymentId == started.PaymentId).Select(c => c.Operation).ToListAsync(Ct);
-        calls.ShouldContain(GatewayOperation.RegisterPreAuth);
-        calls.ShouldContain(GatewayOperation.GetOrderStatusExtended);
+        var calls = await db.Set<GatewayCallLog>().AsNoTracking().Where(c => c.PaymentId == started.PaymentId).Select(c => new { c.Operation, c.AgencyId }).ToListAsync(Ct);
+        calls.Select(c => c.Operation).ShouldContain(GatewayOperation.RegisterPreAuth);
+        calls.Select(c => c.Operation).ShouldContain(GatewayOperation.GetOrderStatusExtended);
+        calls.ShouldAllBe(c => c.AgencyId == agencyId, "the calls are records of the agency of the payment");
         (await OutboxCountAsync(db, typeof(PaymentStatusChanged), started.PaymentId)).ShouldBe(1);
         (await OutboxCountAsync(db, typeof(OnlinePaymentStatusChanged), started.PaymentId)).ShouldBe(1, "told to the other modules with the change");
     }
@@ -105,7 +113,8 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
 
         var returns = Enumerable.Range(0, 6).Select(async _ =>
         {
-            await using var scope = host.CreateScope(UserContextSnapshot.Anonymous("198.51.100.7"));
+            // As the return address handles them: by the platform, whatever agency the order belongs to.
+            await using var scope = host.CreateScope(UserContextSnapshot.System(ClicToPayEndpoints.ReturnActor));
             return await scope.ServiceProvider.GetRequiredService<IOnlinePayments>()
                 .HandleReturnAsync(new OnlinePaymentReturnRequest(payment.OrderNumber, payment.GatewayOrderId, false), Ct);
         }).ToList();
@@ -219,9 +228,18 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         return db.Set<OutboxMessage>().AsNoTracking().CountAsync(m => m.Type == type && m.Payload.Contains(id), Ct);
     }
 
+    /// <summary>The agency whose public site the culture addresses (<c>/fr/…</c>) serve.</summary>
+    private async Task<Guid> PublicSiteAgencyAsync()
+    {
+        var services = host.Factory.Services;
+        var agencyId = await PublicSiteAgency.DefaultAsync(services.GetRequiredService<IAgencyDirectory>(), services.GetRequiredService<IOptions<PublicSiteOptions>>().Value, Ct);
+        return agencyId.ShouldNotBeNull();
+    }
+
+    /// <summary>A pre-authorization started like the funnel of the agency's public site starts it: as a visitor of that site.</summary>
     private async Task<OnlinePaymentRedirect> StartAsync(Guid agencyId, decimal amount, string returnPath, string? failPath = null)
     {
-        await using var scope = host.CreateScope(UserContextSnapshot.Anonymous("198.51.100.20"));
+        await using var scope = host.CreateScope(TestActors.Visitor(agencyId, "198.51.100.20"));
         var started = await scope.ServiceProvider.GetRequiredService<IOnlinePayments>()
             .StartPreAuthorizationAsync(new OnlinePaymentRequest(Guid.CreateVersion7(), agencyId, amount, "fr", returnPath, failPath ?? returnPath), Ct);
         started.IsSuccess.ShouldBeTrue(started.IsFailure ? started.Error.ToString() : null);

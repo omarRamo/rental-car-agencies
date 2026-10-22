@@ -111,7 +111,10 @@ public sealed class ReconciliationService
             return AccountingErrors.Forbidden;
         }
 
-        var difference = (await DifferencesAsync(agencyId, month, cancellationToken)).FirstOrDefault(d => d.Key == differenceKey);
+        // The differences of the agency the operation works for only (ADR-0067).
+        var difference = !_user.IsAcrossAgencies && _user.AgencyId != agencyId
+            ? null
+            : (await DifferencesAsync(agencyId, month, cancellationToken)).FirstOrDefault(d => d.Key == differenceKey);
         if (difference is null)
         {
             return AccountingErrors.DifferenceNotFound;
@@ -484,6 +487,12 @@ public sealed class ReconciliationService
         await _unitOfWork.ExecuteAsync<Guid>(
             async ct =>
             {
+                // An operation of one agency records the statements of that agency only (ADR-0067).
+                if (!_user.IsAcrossAgencies && _user.AgencyId != agencyId)
+                {
+                    return AccountingErrors.AgencyNotFound;
+                }
+
                 var days = lines.Select(l => l.TransactionDate).Concat(lines.Where(l => l.SettledOn is not null).Select(l => l.SettledOn!.Value)).Distinct();
                 foreach (var day in days)
                 {

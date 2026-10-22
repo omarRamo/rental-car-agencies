@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
 using CarRental.Application.Referential.Contracts;
@@ -7,6 +8,7 @@ using CarRental.Web.Components.Dev;
 using CarRental.Web.Endpoints.PublicSite;
 using CarRental.Web.Hosting;
 using CarRental.Web.Localization;
+using CarRental.Web.Security;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
@@ -16,15 +18,20 @@ namespace CarRental.Web.Endpoints;
 /// <summary>
 /// HTTP side of Clic to Pay (ADR-0038, ADR-0039). The return and failure addresses (anonymous) only identify the order:
 /// the status is always read server to server, then the browser is sent to the local path recorded when the payment
-/// started (never a path from the query: no open redirect). In Development and Testing, with the simulated gateway, the
-/// payment page of the fake (<c>/dev/clictopay/pay/{orderId}</c>) and a page to start a payment (<c>/dev/clictopay/start</c>)
-/// are mapped too; they do not exist anywhere else.
+/// started (never a path from the query: no open redirect). One merchant account serves every agency (ADR-0067): the
+/// return is handled by the platform, as the system actor <see cref="ReturnActor"/>, for the order of whichever agency it
+/// is. In Development and Testing, with the simulated gateway, the payment page of the fake
+/// (<c>/dev/clictopay/pay/{orderId}</c>) and a page to start a payment (<c>/dev/clictopay/start</c>) are mapped too; they
+/// do not exist anywhere else.
 /// </summary>
 public static class ClicToPayEndpoints
 {
     public const string ReturnPath = "/payments/clictopay/return";
     public const string FailPath = "/payments/clictopay/fail";
     public const string DevStartPath = "/dev/clictopay/start";
+
+    /// <summary>The actor of the return from the payment page (the browser proves nothing; the platform reads the order).</summary>
+    public const string ReturnActor = "system:clictopay-return";
 
     /// <summary>Longest query value read from the gateway redirect (order number: 32, gateway order id: 36 in BPC).</summary>
     private const int MaxIdentifierLength = 100;
@@ -53,13 +60,13 @@ public static class ClicToPayEndpoints
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(environment);
-        endpoints.MapGet(ReturnPath, (HttpContext context, IOnlinePayments payments, CancellationToken cancellationToken) =>
-                ReturnAsync(context, payments, failed: false, cancellationToken))
+        endpoints.MapGet(ReturnPath, (HttpContext context, IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
+                ReturnAsync(context, scopes, failed: false, cancellationToken))
             .AllowAnonymous()
             .RequireRateLimiting(PublicRateLimits.Search)
             .ExcludeFromDescription();
-        endpoints.MapGet(FailPath, (HttpContext context, IOnlinePayments payments, CancellationToken cancellationToken) =>
-                ReturnAsync(context, payments, failed: true, cancellationToken))
+        endpoints.MapGet(FailPath, (HttpContext context, IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
+                ReturnAsync(context, scopes, failed: true, cancellationToken))
             .AllowAnonymous()
             .RequireRateLimiting(PublicRateLimits.Search)
             .ExcludeFromDescription();
@@ -75,9 +82,10 @@ public static class ClicToPayEndpoints
 
     /// <summary>
     /// The browser came back from the payment page. Only <c>order</c> (our order number) and <c>orderId</c> (gateway order
-    /// id) are read, to identify the order; unknown or tampered values lead to the home page.
+    /// id) are read, to identify the order; unknown or tampered values lead to the home page. The order may be any
+    /// agency's: it is read and its status applied by the platform (<see cref="ReturnActor"/>), in a scope of its own.
     /// </summary>
-    private static async Task<IResult> ReturnAsync(HttpContext context, IOnlinePayments payments, bool failed, CancellationToken cancellationToken)
+    private static async Task<IResult> ReturnAsync(HttpContext context, IServiceScopeFactory scopes, bool failed, CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
         var order = Identifier(context.Request.Query[ClicToPayUrls.OrderParameter]);
@@ -87,6 +95,9 @@ public static class ClicToPayEndpoints
             return Results.LocalRedirect("/");
         }
 
+        await using var scope = scopes.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ReturnActor, CorrelationIds.Current(context)));
+        var payments = scope.ServiceProvider.GetRequiredService<IOnlinePayments>();
         var handled = await payments.HandleReturnAsync(new OnlinePaymentReturnRequest(order, gatewayOrderId, failed), cancellationToken);
         return Results.LocalRedirect(handled.IsSuccess && LocalUrls.IsLocal(handled.Value.RedirectPath) ? handled.Value.RedirectPath : "/");
     }
@@ -146,13 +157,12 @@ public static class ClicToPayEndpoints
             return next.IsSuccess ? Results.Redirect(next.Value) : Results.Conflict();
         }).DisableAntiforgery();
 
-        dev.MapGet("/start", async (IReferentialQueries referential, IAntiforgery antiforgery, HttpContext context, CancellationToken cancellationToken) =>
-        {
-            var agencies = (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive).ToList();
-            return new RazorComponentResult<ClicToPayStartPage>(new { Agencies = agencies, Antiforgery = antiforgery.GetAndStoreTokens(context) });
-        });
+        // The developer chooses the agency whose funnel the payment stands for: it starts as a visitor of that agency's
+        // public site would start it (ADR-0067), whatever agency the address of this page belongs to.
+        dev.MapGet("/start", async (IAgencyDirectory directory, IAntiforgery antiforgery, HttpContext context, CancellationToken cancellationToken) =>
+            new RazorComponentResult<ClicToPayStartPage>(new { Agencies = await ActiveAgenciesAsync(directory, cancellationToken), Antiforgery = antiforgery.GetAndStoreTokens(context) }));
 
-        dev.MapPost("/start", async (IOnlinePayments payments, IReferentialQueries referential, IAntiforgery antiforgery, HttpContext context, CancellationToken cancellationToken) =>
+        dev.MapPost("/start", async (IServiceScopeFactory scopes, IAgencyDirectory directory, IAntiforgery antiforgery, ClientIpResolver ips, HttpContext context, CancellationToken cancellationToken) =>
         {
             if (!await antiforgery.IsRequestValidAsync(context))
             {
@@ -162,14 +172,20 @@ public static class ClicToPayEndpoints
             var form = await context.Request.ReadFormAsync(cancellationToken);
             var culture = form["Culture"].ToString() is "en" ? "en" : CultureCatalog.Default;
             var amount = decimal.TryParse(form["Amount"].ToString().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? value : 0m;
+            var agencyId = Guid.TryParse(form["AgencyId"].ToString(), out var agency) ? agency : Guid.Empty;
             var request = new OnlinePaymentRequest(
                 Guid.TryParse(form["BookingId"].ToString(), out var booking) && booking != Guid.Empty ? booking : Guid.CreateVersion7(),
-                Guid.TryParse(form["AgencyId"].ToString(), out var agency) ? agency : Guid.Empty,
+                agencyId,
                 amount,
                 culture,
                 PaymentResultPaths.For(culture),
                 PaymentResultPaths.For(culture),
                 "DEV " + DateTime.UtcNow.ToString("HHmmss", CultureInfo.InvariantCulture));
+
+            await using var scope = scopes.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(
+                UserContextSnapshot.Anonymous(ips.Resolve(context), CorrelationIds.Current(context)) with { AgencyId = agencyId == Guid.Empty ? null : agencyId });
+            var payments = scope.ServiceProvider.GetRequiredService<IOnlinePayments>();
             var started = form["Flow"].ToString() == ClicToPayStartPage.OneStepFlow
                 ? await payments.StartPaymentAsync(request, cancellationToken)
                 : await payments.StartPreAuthorizationAsync(request, cancellationToken);
@@ -178,15 +194,17 @@ public static class ClicToPayEndpoints
                 return Results.Redirect(started.Value.RedirectUrl);
             }
 
-            var agencies = (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive).ToList();
             return new RazorComponentResult<ClicToPayStartPage>(new
             {
-                Agencies = agencies,
+                Agencies = await ActiveAgenciesAsync(directory, cancellationToken),
                 Antiforgery = antiforgery.GetAndStoreTokens(context),
                 ErrorCode = started.Error.Code,
             });
         }).DisableAntiforgery();
     }
+
+    private static async Task<IReadOnlyList<AgencySummary>> ActiveAgenciesAsync(IAgencyDirectory directory, CancellationToken cancellationToken) =>
+        [.. (await directory.ListAsync(cancellationToken)).Where(a => a.IsActive)];
 }
 
 /// <summary>Local paths of the public page that shows the outcome of an online payment (payment links, development pages).</summary>

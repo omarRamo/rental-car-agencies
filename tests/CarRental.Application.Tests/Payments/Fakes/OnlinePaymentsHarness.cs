@@ -82,11 +82,14 @@ internal sealed class OnlinePaymentsHarness
 
     public OnlinePaymentAdministration Admin(IUserContext user) => new(Db, UnitOfWork, user, Online(user), Settings);
 
+    /// <summary>The agencies the jobs worked for, in order (one scope per agency).</summary>
+    public List<Guid> JobAgencies { get; } = [];
+
     public OnlinePaymentCatchUpJob CatchUpJob() =>
-        new(Db, Online(System()), Gateway, Time, NullLogger<OnlinePaymentCatchUpJob>.Instance);
+        new(Db, new InlineAgencyScopes(this), Gateway, Time, NullLogger<OnlinePaymentCatchUpJob>.Instance);
 
     public OnlinePaymentReconciliationJob ReconciliationJob() =>
-        new(Db, Online(System()), Gateway, Time, NullLogger<OnlinePaymentReconciliationJob>.Instance);
+        new(Db, new InlineAgencyScopes(this), Gateway, Time, NullLogger<OnlinePaymentReconciliationJob>.Instance);
 
     public OnlinePaymentRequest Request(decimal amount, Guid? bookingId = null, string? description = null, bool isLink = false, TimeSpan? validity = null) =>
         new(bookingId ?? Guid.CreateVersion7(), AgencyId, amount, "fr", ReturnPath, FailPath, description, isLink, validity);
@@ -119,6 +122,19 @@ internal sealed class OnlinePaymentsHarness
         (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), cancellationToken)).IsSuccess.ShouldBeTrue();
         payment.Status.ShouldBe(PaymentStatus.Captured);
         return payment;
+    }
+}
+
+/// <summary>The scopes of the jobs on the harness: the flows of each agency as the system working for that agency.</summary>
+internal sealed class InlineAgencyScopes(OnlinePaymentsHarness harness) : IOnlinePaymentAgencyScopes
+{
+    public Task RunAsync(Guid agencyId, Func<OnlinePayments, CancellationToken, Task> work, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        harness.JobAgencies.Add(agencyId);
+        var system = new ScopedUserContext([]);
+        system.Initialize(UserContextSnapshot.System("system:tests", agencyId: agencyId));
+        return work(harness.Online(system), cancellationToken);
     }
 }
 

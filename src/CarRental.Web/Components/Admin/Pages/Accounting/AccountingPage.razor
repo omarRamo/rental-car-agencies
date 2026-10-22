@@ -1,5 +1,6 @@
 @page "/admin/accounting"
 @attribute [HasPermission(Permissions.AccountingManage)]
+@attribute [RequiresModule(AgencyModules.Accounting)]
 @using CarRental.Application.Accounting.Chart
 @using CarRental.Application.Accounting.Closing
 @using CarRental.Application.Accounting.Journals
@@ -23,17 +24,6 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2">
-        @if (_agencies.Count > 1)
-        {
-            <MudItem xs="12" sm="6">
-                <MudSelect T="Guid" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" ToStringFunc="AgencyName">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-        }
         <MudItem xs="12" sm="4">
             <MudTextField T="string" Value="_monthValue" ValueChanged="MonthChangedAsync" Label="@L["Field.Month"]" InputType="InputType.Month" ShrinkLabel="true"
                           InputId="accounting-month" />
@@ -92,10 +82,10 @@
                                 <td>@(total.IsBalanced ? L["Yes"] : L["No"])</td>
                                 <td>
                                     <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
-                                               Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, total.Journal, GenericCsvJournalExporter.FormatName)"
+                                               Href="@AccountingWeb.ExportUrl(_month, _month, total.Journal, GenericCsvJournalExporter.FormatName)"
                                                aria-label="@L["Export.Label", total.Code, "CSV"]" data-testid="@($"export-csv-{total.Code}")">CSV</MudButton>
                                     <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
-                                               Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, total.Journal, JournalWorkbook.FormatName)"
+                                               Href="@AccountingWeb.ExportUrl(_month, _month, total.Journal, JournalWorkbook.FormatName)"
                                                aria-label="@L["Export.Label", total.Code, "Excel"]">Excel</MudButton>
                                 </td>
                             </tr>
@@ -108,10 +98,10 @@
                             <td>@(journals.IsBalanced ? L["Yes"] : L["No"])</td>
                             <td>
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
-                                           Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, null, GenericCsvJournalExporter.FormatName)"
+                                           Href="@AccountingWeb.ExportUrl(_month, _month, null, GenericCsvJournalExporter.FormatName)"
                                            aria-label="@L["Export.Label", L["Journals.All"], "CSV"]" data-testid="export-csv-all">CSV</MudButton>
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" download="@true"
-                                           Href="@AccountingWeb.ExportUrl(_agencyId, _month, _month, null, JournalWorkbook.FormatName)"
+                                           Href="@AccountingWeb.ExportUrl(_month, _month, null, JournalWorkbook.FormatName)"
                                            aria-label="@L["Export.Label", L["Journals.All"], "Excel"]">Excel</MudButton>
                             </td>
                         </tr>
@@ -396,7 +386,6 @@
 </MudTabs>
 
 @code {
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private Guid _agencyId;
     private AccountingMonth _month;
     private string? _monthValue;
@@ -414,9 +403,10 @@
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
-    /// <summary>The agency shown first (<c>?agency=</c>), e.g. when another screen links here.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
+
+    /// <summary>The agency of the session (cascaded by the layout): its journals, closings and chart of accounts (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
 
     private IEnumerable<JournalLineRow> Lines =>
         (_journals?.Entries ?? []).Where(e => _journal is not { } wanted || e.Journal == wanted).SelectMany(e => e.Lines.Select(l => new JournalLineRow(e, l)));
@@ -424,26 +414,23 @@
     protected override async Task OnInitializedAsync()
     {
         _canReopen = (await AuthenticationState).User.HasPermission(Permissions.AccountingReopen);
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = AgencyQuery is { } wanted && _agencies.Any(a => a.Id == wanted) ? wanted : _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
 
         // The month just over by default: the one to export and close.
         _month = AccountingMonth.Of(TunisTime.Today(Clock)).Previous();
         _monthValue = AccountingFormat.MonthValue(_month);
-        await LoadAsync();
-        _loaded = true;
     }
 
-    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Agency is { } agency && agency.Id != _agencyId)
+        {
+            _agencyId = agency.Id;
+            await LoadAsync();
+            _loaded = true;
+        }
+    }
 
     private void JournalChanged(Journal? journal) => _journal = journal;
-
-    private async Task AgencyChangedAsync(Guid agencyId)
-    {
-        _agencyId = agencyId;
-        await LoadAsync();
-    }
 
     private async Task MonthChangedAsync(string? value)
     {

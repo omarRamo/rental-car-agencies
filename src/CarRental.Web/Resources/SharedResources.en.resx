@@ -702,6 +702,9 @@
   <data name="Error.cash.agency_not_found" xml:space="preserve">
     <value>This agency does not exist or is no longer active.</value>
   </data>
+  <data name="Error.cash.module_off" xml:space="preserve">
+    <value>The cash module is not enabled for this agency: no cash session takes cash. Choose another means of payment.</value>
+  </data>
   <data name="Error.cash.cashier_required" xml:space="preserve">
     <value>A cash session belongs to a signed-in user.</value>
   </data>
