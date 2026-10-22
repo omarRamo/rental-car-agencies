@@ -525,7 +525,7 @@ internal sealed class FakeReferential(Guid agencyId, Guid officeId, Guid airport
             new LocationInfo(airportId, agencyId ?? Guid.Empty, "TUN", "Aéroport", LocationKindInfo.Airport, null),
         ]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
 }
 
 /// <summary>Extras offered by the plan of the tests.</summary>

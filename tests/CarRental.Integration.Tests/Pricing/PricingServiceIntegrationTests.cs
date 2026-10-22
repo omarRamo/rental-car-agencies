@@ -165,7 +165,7 @@ public sealed class PricingServiceIntegrationTests(IntegrationHost host)
         await using var scope = host.CreateScope(Manager);
         var referential = scope.ServiceProvider.GetRequiredService<IReferentialQueries>();
         var agency = (await referential.GetAgenciesAsync(Ct)).Single(a => a.Name == DemoAgencyName);
-        var office = (await referential.FindLocationByCodeAsync("AGC", Ct))!;
+        var office = (await referential.FindLocationByCodeAsync(agency.Id, "AGC", Ct))!;
         var demoEcmr = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().FindCategoryByCodeAsync(agency.Id, "ECMR", Ct))!.Id;
         var request = new PriceRequest(
             agency.Id,

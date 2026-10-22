@@ -24,12 +24,14 @@ public sealed class SeedAndAdministrationTests(IntegrationHost host)
         var referential = scope.ServiceProvider.GetRequiredService<IReferentialQueries>();
         var settings = scope.ServiceProvider.GetRequiredService<ISettingsReader>();
 
-        (await referential.GetAgenciesAsync(Ct)).ShouldContain(a => a.Name == "Agence Démo Tunis");
-        var codes = (await referential.GetLocationsAsync(cancellationToken: Ct)).Select(l => l.Code).ToList();
-        codes.ShouldContain("AGC");
-        codes.ShouldContain("TUN");
-        codes.ShouldContain("NBE");
-        (await referential.FindLocationByCodeAsync("tun", Ct))!.Kind.ShouldBe(LocationKindInfo.Airport);
+        var agencies = await referential.GetAgenciesAsync(Ct);
+        var tunis = agencies.Single(a => a.Name == "Agence Démo Tunis");
+        var sousse = agencies.Single(a => a.Name == "Agence Démo Sousse");
+        var codes = (await referential.GetLocationsAsync(tunis.Id, Ct)).Select(l => l.Code).ToList();
+        codes.ShouldBe(["AGC", "TUN", "NBE"], ignoreOrder: true);
+        (await referential.GetLocationsAsync(sousse.Id, Ct)).Select(l => l.Code).ShouldBe(["SOU", "MIR"], ignoreOrder: true);
+        (await referential.FindLocationByCodeAsync(tunis.Id, "tun", Ct))!.Kind.ShouldBe(LocationKindInfo.Airport);
+        (await referential.FindLocationByCodeAsync(sousse.Id, "tun", Ct)).ShouldBeNull("a code is looked up in one agency");
 
         (await settings.GetAsync(WellKnownSettings.BookingHoldDuration, cancellationToken: Ct)).ShouldBe(TimeSpan.FromHours(24));
         (await settings.GetAsync(WellKnownSettings.PreparationBuffer, cancellationToken: Ct)).ShouldBe(TimeSpan.FromHours(2));

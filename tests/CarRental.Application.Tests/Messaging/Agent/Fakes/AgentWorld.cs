@@ -110,7 +110,7 @@ internal sealed class FakeAgentReferential(AgentWorld world) : IReferentialQueri
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult(world.Locations);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult(world.Locations.FirstOrDefault(l => string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase)));
 }
 

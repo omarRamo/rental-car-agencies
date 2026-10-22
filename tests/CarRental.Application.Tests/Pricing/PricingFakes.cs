@@ -129,7 +129,7 @@ internal sealed class FakeReferentialQueries : IReferentialQueries
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([.. Locations.Where(l => agencyId is null || l.AgencyId == agencyId)]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult(Locations.Find(l => l.Code == code));
 }
 

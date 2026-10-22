@@ -8,7 +8,8 @@ public interface IReferentialQueries
     /// <summary>Active locations, optionally of one agency, ordered by kind then code.</summary>
     Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default);
 
-    Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default);
+    /// <summary>The active location of <paramref name="agencyId"/> with this code (codes are unique within an agency only, ADR-0067).</summary>
+    Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

@@ -197,5 +197,5 @@ internal sealed class FakeAddressReferential(Guid agencyId, Guid officeId) : IRe
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([new LocationInfo(officeId, agencyId ?? Guid.Empty, "AGC", "Agence Tunis centre", LocationKindInfo.AgencyOffice, OfficeAddress)]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
 }

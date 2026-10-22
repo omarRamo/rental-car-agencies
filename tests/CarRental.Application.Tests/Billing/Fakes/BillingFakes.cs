@@ -299,7 +299,7 @@ internal sealed class FakeAgencyReferential(AgencyInfo agency) : IReferentialQue
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult<LocationInfo?>(null);
 }
 

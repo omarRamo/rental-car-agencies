@@ -39,13 +39,13 @@ internal sealed class ReferentialQueries(IAppDbContext db) : IReferentialQueries
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
         var normalized = code.Trim().ToUpperInvariant();
         return await db.Set<Location>()
             .AsNoTracking()
-            .Where(l => l.Code == normalized && l.IsActive)
+            .Where(l => l.AgencyId == agencyId && l.Code == normalized && l.IsActive)
             .Select(l => new LocationInfo(l.Id, l.AgencyId, l.Code, l.Name, (LocationKindInfo)l.Kind, l.Address))
             .FirstOrDefaultAsync(cancellationToken);
     }
