@@ -14,8 +14,8 @@ namespace CarRental.Application.Fleet.Seeding;
 /// with documents, an oil change plan and economics; dates are relative to the first seeding day: one insurance expires
 /// within 7 days, one road tax within 30 days, one technical inspection has expired (vehicle not compliant), one
 /// maintenance is planned next week, one oil change is due soon and one vehicle is out of service. The second demo
-/// agency gets a small fleet of its own (2 categories, 5 vehicles with valid documents), so that its public site and back
-/// office are usable (ADR-0067). Idempotent: missing categories and plates only.
+/// agency gets a small fleet of its own (2 categories, 5 vehicles with documents valid for about ten months), so that its
+/// public site and back office are usable (ADR-0067). Idempotent: missing categories and plates only.
 /// </summary>
 internal sealed partial class FleetDemoSeeder(
     IAppDbContext db,
@@ -104,7 +104,7 @@ internal sealed partial class FleetDemoSeeder(
 
     /// <summary>
     /// The missing categories and vehicles of an agency; <paramref name="situations"/> gives the vehicles their particular
-    /// cases (deadlines, maintenance, out of service), otherwise every document is valid for months.
+    /// cases (deadlines, maintenance, out of service), otherwise every document is valid for about ten months.
     /// </summary>
     private async Task<int> AddFleetAsync(
         Guid agencyId,
@@ -176,9 +176,7 @@ internal sealed partial class FleetDemoSeeder(
 
         // The particular case of the vehicle, when the fleet shows them (see Special).
         int? situation = situations ? index : null;
-        var insuranceExpiry = situation == Special.InsuranceWithin7Days ? today.AddDays(5) : today.AddDays(60 + (index * 11 % 250));
-        var roadTaxExpiry = situation == Special.RoadTaxWithin30Days ? today.AddDays(20) : today.AddDays(90 + (index * 13 % 200));
-        var inspectionExpiry = situation == Special.ExpiredTechnicalInspection ? today.AddDays(-3) : today.AddDays(100 + (index * 17 % 300));
+        var (insuranceExpiry, roadTaxExpiry, inspectionExpiry) = DocumentExpiries(index, situation, today);
         Record(vehicle, VehicleDocumentType.Insurance, $"POL-DEMO-{index + 1:D4}", insuranceExpiry, "Assureur démo", 1_100m + (index * 25), stamp);
         Record(vehicle, VehicleDocumentType.RoadTax, $"VIG-DEMO-{index + 1:D5}", roadTaxExpiry, null, 180m, stamp);
         Record(vehicle, VehicleDocumentType.TechnicalInspection, $"VT-DEMO-{index + 1:D6}", inspectionExpiry, "Centre de visite démo", 45m, stamp);
@@ -225,6 +223,20 @@ internal sealed partial class FleetDemoSeeder(
 
         return vehicle;
     }
+
+    /// <summary>
+    /// Expiry of the insurance, road tax and technical inspection of a vehicle. The main fleet spreads them by index over
+    /// the coming months (its particular cases aside). Without particular cases (the second fleet), the same spread would
+    /// end the compliance — hence the rentable windows — of all five vehicles within 60 to 104 days, and its public site
+    /// would find no car beyond: their documents were renewed in the last ten weeks and keep the vehicles compliant for
+    /// 300 to 344 days (each document starts a year before its expiry, so never in the future).
+    /// </summary>
+    private static (DateOnly Insurance, DateOnly RoadTax, DateOnly Inspection) DocumentExpiries(int index, int? situation, DateOnly today) =>
+        situation is null
+            ? (today.AddDays(330 + (index * 7)), today.AddDays(300 + (index * 11)), today.AddDays(320 + (index * 9)))
+            : (situation == Special.InsuranceWithin7Days ? today.AddDays(5) : today.AddDays(60 + (index * 11 % 250)),
+                situation == Special.RoadTaxWithin30Days ? today.AddDays(20) : today.AddDays(90 + (index * 13 % 200)),
+                situation == Special.ExpiredTechnicalInspection ? today.AddDays(-3) : today.AddDays(100 + (index * 17 % 300)));
 
     private static void Record(Vehicle vehicle, VehicleDocumentType type, string number, DateOnly expiresOn, string? provider, decimal cost, ChangeStamp stamp) =>
         vehicle.RecordDocument(
