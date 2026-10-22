@@ -31,7 +31,7 @@ public sealed class RateLimitTests(PublicScenarioHost scenario)
     public async Task Searches_beyond_the_limit_get_a_friendly_localized_page_and_the_health_probes_never_do()
     {
         using var client = Client();
-        var url = $"/fr/reserver?lieu=TUN&depart={LocalDate(70)}&retour={LocalDate(73)}";
+        var url = $"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(70)}&retour={LocalDate(73)}";
         const string ip = "198.51.100.10";
 
         for (var attempt = 0; attempt < Limit; attempt++)
@@ -40,7 +40,7 @@ public sealed class RateLimitTests(PublicScenarioHost scenario)
         }
 
         var rejected = await GetAsync(client, url, ip);
-        var home = await GetAsync(client, "/fr", ip);
+        var home = await GetAsync(client, "/agence-demo-tunis/fr", ip);
         var otherClient = await GetAsync(client, url, "198.51.100.11");
         var health = await GetAsync(client, "/health", ip);
         var ready = await GetAsync(client, "/health/ready", ip);
@@ -63,7 +63,7 @@ public sealed class RateLimitTests(PublicScenarioHost scenario)
     public async Task The_api_answers_429_with_a_problem_details()
     {
         using var client = Client();
-        var url = $"/api/public/availability?lieu=TUN&depart={LocalDate(70)}&retour={LocalDate(73)}";
+        var url = $"/agence-demo-tunis/api/public/availability?lieu=TUN&depart={LocalDate(70)}&retour={LocalDate(73)}";
         const string ip = "2001:db8:42:1::1";
 
         for (var attempt = 0; attempt < Limit; attempt++)
@@ -90,7 +90,7 @@ public sealed class RateLimitTests(PublicScenarioHost scenario)
 
         for (var attempt = 0; attempt < Limit + 2; attempt++)
         {
-            (await GetAsync(client, "/fr/faq", ip)).StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await GetAsync(client, "/agence-demo-tunis/fr/faq", ip)).StatusCode.ShouldBe(HttpStatusCode.OK);
             (await GetAsync(client, "/account/login", ip)).StatusCode.ShouldBe(HttpStatusCode.OK);
         }
     }

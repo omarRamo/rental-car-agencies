@@ -62,8 +62,8 @@ public sealed class StorageAndWebTests(IntegrationHost host)
     }
 
     [Theory]
-    [InlineData("/fr", "fr", "Louez votre voiture en Tunisie")]
-    [InlineData("/en", "en", "Rent your car in Tunisia")]
+    [InlineData("/agence-demo-tunis/fr", "fr", "Louez votre voiture en Tunisie")]
+    [InlineData("/agence-demo-tunis/en", "en", "Rent your car in Tunisia")]
     public async Task Public_pages_are_rendered_in_the_culture_of_the_url(string path, string culture, string heading)
     {
         using var client = host.CreateClient();
@@ -75,29 +75,31 @@ public sealed class StorageAndWebTests(IntegrationHost host)
         html.ShouldContain($"<html lang=\"{culture}\" dir=\"ltr\">");
         html.ShouldContain(heading);
         html.ShouldContain("hreflang=\"x-default\"");
-        html.ShouldContain("wa.me/21600000000");
         html.ShouldNotContain("MudBlazor");
         response.Content.Headers.ContentLanguage.ShouldContain(culture);
     }
 
     [Theory]
-    [InlineData("fr-FR,fr;q=0.9", "/fr")]
-    [InlineData("en-GB,en;q=0.8", "/en")]
-    [InlineData("de-DE", "/fr")]
-    public async Task The_root_redirects_to_the_preferred_culture(string acceptLanguage, string expected)
+    [InlineData("fr-FR,fr;q=0.9", "/agence-demo-tunis/fr")]
+    [InlineData("en-GB,en;q=0.8", "/agence-demo-tunis/en")]
+    [InlineData("de-DE", "/agence-demo-tunis/fr")]
+    public async Task The_address_of_a_site_redirects_to_the_preferred_culture(string acceptLanguage, string expected)
     {
         using var client = host.CreateClient();
         client.DefaultRequestHeaders.Add("Accept-Language", acceptLanguage);
 
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative), Ct);
+        var response = await client.GetAsync(new Uri("/agence-demo-tunis", UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.OriginalString.ShouldBe(expected);
+        response.Headers.Vary.ShouldContain("Accept-Language");
     }
 
     [Theory]
-    [InlineData("/de")]
-    [InlineData("/ar")]
+    [InlineData("/agence-demo-tunis/de")]
+    [InlineData("/agence-demo-tunis/ar")]
+    [InlineData("/fr")]
+    [InlineData("/en/book")]
     [InlineData("/does/not/exist")]
     public async Task Unknown_cultures_and_pages_are_not_found(string path)
     {
@@ -129,7 +131,7 @@ public sealed class StorageAndWebTests(IntegrationHost host)
     {
         using var client = host.CreateClient();
 
-        var home = await client.GetAsync(new Uri("/fr", UriKind.Relative), Ct);
+        var home = await client.GetAsync(new Uri("/agence-demo-tunis/fr", UriKind.Relative), Ct);
         var login = await client.GetAsync(new Uri("/account/login", UriKind.Relative), Ct);
 
         Header(home, "X-Content-Type-Options").ShouldBe("nosniff");

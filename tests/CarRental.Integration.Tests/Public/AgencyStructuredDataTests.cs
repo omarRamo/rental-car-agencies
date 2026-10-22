@@ -12,6 +12,7 @@ public sealed class AgencyStructuredDataTests
     private static readonly Uri SiteUrl = new("https://www.example.tn/");
 
     internal static PublicAgency Agency(AgencyInfo? info = null) => new(
+        new AgencySummary(info?.Id ?? Guid.CreateVersion7(), info?.Name ?? "Agence Démo Tunis", "agence-demo-tunis", "Tunis", true, AgencyModuleCatalog.Defaults),
         info ?? new AgencyInfo(Guid.CreateVersion7(), "Agence Démo Tunis", "Tunis", "+216 70 000 000", "contact@demo.local", true, "1 avenue Habib Bourguiba, 1000 Tunis", 36.7998m, 10.1801m),
         [],
         [],
@@ -111,14 +112,17 @@ public sealed class AgencyStructuredDataTests
     }
 
     [Fact]
-    public void The_site_agency_is_the_configured_one_else_the_first_created()
+    public void The_whatsapp_contact_shows_on_the_site_of_the_agency_the_number_serves_only()
     {
-        var first = new AgencyInfo(Guid.CreateVersion7(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)), "Z agence", "Tunis", null, null, true);
-        var second = new AgencyInfo(Guid.CreateVersion7(new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero)), "A agence", "Sousse", null, null, true);
+        var options = new CarRental.Web.Hosting.PublicSiteOptions { WhatsAppNumber = "21600000000" };
+        var served = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        PublicSiteAgency.Set(served, Agency().Site, servedByWhatsApp: true);
+        var other = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        PublicSiteAgency.Set(other, Agency().Site, servedByWhatsApp: false);
 
-        PublicAgencyDirectory.Select([second, first], configuredId: null).ShouldBe(first);
-        PublicAgencyDirectory.Select([second, first], configuredId: second.Id).ShouldBe(second);
-        PublicAgencyDirectory.Select([second, first], configuredId: Guid.CreateVersion7()).ShouldBeNull();
-        PublicAgencyDirectory.Select([], configuredId: null).ShouldBeNull();
+        PublicSiteAgency.WhatsAppNumber(served, options).ShouldBe("21600000000");
+        PublicSiteAgency.WhatsAppNumber(served, new CarRental.Web.Hosting.PublicSiteOptions()).ShouldBeNull("no number configured");
+        PublicSiteAgency.WhatsAppNumber(other, options).ShouldBeNull("the number serves another agency, or the module is off");
+        PublicSiteAgency.WhatsAppNumber(new Microsoft.AspNetCore.Http.DefaultHttpContext(), options).ShouldBeNull("outside any site");
     }
 }

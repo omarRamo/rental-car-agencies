@@ -38,6 +38,7 @@ public sealed partial class MyBookingService(
     IEnumerable<ICustomerDocumentProvider> documentProviders,
     IOutbox outbox,
     ISettingsReader settings,
+    IAgencyDirectory agencies,
     TimeProvider clock,
     ILogger<MyBookingService> logger)
 {
@@ -98,8 +99,11 @@ public sealed partial class MyBookingService(
         var now = clock.GetUtcNow();
         var booking = await bookings.FindByNumberAsync(agencyId, typedNumber!, cancellationToken);
         CustomerRecipient? recipient = null;
+        string? site = null;
         if (booking is not null && booking.Status != BookingStatusInfo.Draft)
         {
+            // The link leads to the site of the agency of the booking (read whether the address matches or not).
+            site = await agencies.SlugAsync(booking.AgencyId, cancellationToken);
             var matched = await MatchContactAsync(booking, typedEmail!, cancellationToken);
             var limit = await settings.GetAsync(PublicBookingSettings.AccessRequestsPerHour, cancellationToken: cancellationToken);
             var since = now - ThrottleWindow;
@@ -133,7 +137,7 @@ public sealed partial class MyBookingService(
         if (recipient is not null)
         {
             outbox.Enqueue(new AccessEmailRequested(
-                new AccessEmail(booking!.Number, culture, PublicBookingPaths.AccessLink(culture, token), code, grant.ExpiresAtUtc, publicBaseUrl),
+                new AccessEmail(booking!.Number, culture, PublicBookingPaths.AccessLink(site!, culture, token), code, grant.ExpiresAtUtc, publicBaseUrl, booking.AgencyId),
                 recipient));
         }
 

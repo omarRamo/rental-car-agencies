@@ -46,10 +46,13 @@ public sealed class PublicScenarioHost(IntegrationHost host) : IAsyncLifetime
         },
     };
 
-    public ValueTask InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _ = Factory.Server;
-        return ValueTask.CompletedTask;
+
+        // The empty states of the results offer the WhatsApp contact of the site of the agency the number serves (ADR-0067):
+        // the demo agency, with its modules on as on the shared host.
+        await TestModules.EnableBySlugAsync(Factory.Services, TestModules.DemoAgencySlug, TestModules.DemoModules);
     }
 
     public async ValueTask DisposeAsync() => await Factory.DisposeAsync();

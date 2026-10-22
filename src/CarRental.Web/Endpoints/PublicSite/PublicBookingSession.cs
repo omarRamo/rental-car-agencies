@@ -52,7 +52,9 @@ public static class PublicActors
 /// (a booking number alone shows a generic page);</item>
 /// <item><see cref="MyBookingCookie"/>: the session of "Ma réservation", limited to one booking, at most 24 hours, sliding.</item>
 /// </list>
-/// Both are HTTP only, SameSite Lax and secure over HTTPS (always outside development and tests).
+/// Both are HTTP only, SameSite Lax and secure over HTTPS (always outside development and tests), and limited to the
+/// addresses of the site that set them (<c>Path=/{agency}</c>, ADR-0067): a browser never sends the session of one
+/// agency's site to another's.
 /// </summary>
 public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection, IHostEnvironment environment, TimeProvider clock)
 {
@@ -128,7 +130,7 @@ public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection,
         HttpOnly = true,
         SameSite = SameSiteMode.Lax,
         Secure = context.Request.IsHttps || !(environment.IsDevelopment() || environment.IsEnvironment(WebEnvironments.Testing)),
-        Path = "/",
+        Path = PublicSiteAgency.SiteOf(context) is { } site ? $"/{site.Slug}" : "/",
         Expires = expires,
         IsEssential = true,
     };

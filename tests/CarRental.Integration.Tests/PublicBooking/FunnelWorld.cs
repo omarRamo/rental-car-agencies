@@ -128,7 +128,9 @@ internal static class FunnelWorld
     {
         await using var scope = host.CreateScope(Funnel);
         var funnel = scope.ServiceProvider.GetRequiredService<FunnelService>();
-        var confirmation = PublicBookingPaths.Confirmation("fr", request.Number);
+        var booking = (await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().GetSummaryAsync(request.BookingId, cancellationToken)).ShouldNotBeNull();
+        var site = (await scope.ServiceProvider.GetRequiredService<IAgencyDirectory>().FindAsync(booking.AgencyId, cancellationToken)).ShouldNotBeNull().Slug;
+        var confirmation = PublicBookingPaths.Confirmation(site, "fr", request.Number);
         var started = await funnel.StartGuaranteeAsync(request.BookingId, "fr", confirmation, confirmation, cancellationToken);
         started.IsSuccess.ShouldBeTrue(started.IsFailure ? started.Error.ToString() : null);
         var redirect = started.Value.ShouldNotBeNull();

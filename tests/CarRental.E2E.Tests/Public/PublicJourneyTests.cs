@@ -41,9 +41,9 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     public async Task A_visitor_searches_from_the_home_page_and_sees_the_total_prices(string culture)
     {
         var (locationLabel, submit, resultsPath, heading, totalLabel) = culture == "fr"
-            ? ("Lieu de départ", "Rechercher", "/fr/reserver", "Voitures disponibles", "Total TTC")
-            : ("Pick-up location", "Search", "/en/book", "Available cars", "Total incl. VAT");
-        await Page.GotoAsync($"/{culture}");
+            ? ("Lieu de départ", "Rechercher", "/agence-demo-tunis/fr/reserver", "Voitures disponibles", "Total TTC")
+            : ("Pick-up location", "Search", "/agence-demo-tunis/en/book", "Available cars", "Total incl. VAT");
+        await Page.GotoAsync($"/agence-demo-tunis/{culture}");
 
         await Page.GetByLabel(locationLabel).SelectOptionAsync("TUN");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = submit, Exact = true }).ClickAsync();
@@ -62,7 +62,7 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task Filters_and_sort_are_applied_with_a_plain_form()
     {
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(15)}&retour={LocalDate(18)}");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(15)}&retour={LocalDate(18)}");
 
         await Page.GetByLabel("Boîte de vitesses").SelectOptionAsync("auto");
         await Page.GetByLabel("Trier par").SelectOptionAsync("prix_desc");
@@ -77,7 +77,7 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task A_whatsapp_deep_link_shows_the_chosen_category_first()
     {
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(16)}&retour={LocalDate(20)}&cat=ECMR&boite=manuelle&places=5&devis=Q7F3K2&src=whatsapp");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(16)}&retour={LocalDate(20)}&cat=ECMR&boite=manuelle&places=5&devis=Q7F3K2&src=whatsapp");
 
         var first = Page.Locator("li.offer").First;
         await Expect(first).ToHaveClassAsync(new Regex("offer--highlighted"));
@@ -91,27 +91,27 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_whole_search_can_be_done_with_the_keyboard()
     {
-        await Page.GotoAsync("/fr");
+        await Page.GotoAsync("/agence-demo-tunis/fr");
 
         // From the top of the page to the search button, then to the first "Choose" button of the results.
         await TabUntilFocusedAsync("#search-lieu");
         await Page.Keyboard.PressAsync("ArrowDown");
         await TabUntilFocusedAsync("form.search-form button[type=submit]");
         await Page.Keyboard.PressAsync("Enter");
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver\\?"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver\\?"));
 
         await TabUntilFocusedAsync("form.offer__choose button");
         await Page.Keyboard.PressAsync("Enter");
 
         // The booking funnel opens on its first step (package 2C).
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Options et prix");
     }
 
     [Fact]
     public async Task An_invalid_deep_link_focuses_the_error_summary_whose_links_lead_to_the_fields()
     {
-        await Page.GotoAsync("/fr/reserver?lieu=TUN&depart=2020-07-01T10:00&retour=2020-07-03T10:00");
+        await Page.GotoAsync("/agence-demo-tunis/fr/reserver?lieu=TUN&depart=2020-07-01T10:00&retour=2020-07-03T10:00");
 
         await Expect(Page).ToHaveTitleAsync(new Regex("^Erreur : "));
         var summary = Page.Locator(".error-summary");
@@ -127,7 +127,7 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task Returning_elsewhere_reveals_the_return_location()
     {
-        await Page.GotoAsync("/en");
+        await Page.GotoAsync("/agence-demo-tunis/en");
         var returnLocation = Page.GetByLabel("Return location");
 
         await Expect(returnLocation).ToBeHiddenAsync();
@@ -142,16 +142,16 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
 
     private static readonly Dictionary<string, string> Pages = new(StringComparer.Ordinal)
     {
-        ["home-fr"] = "/fr",
-        ["home-en"] = "/en",
-        ["results-fr"] = "/fr/reserver?lieu=TUN&depart={0}&retour={1}",
-        ["results-en"] = "/en/book?lieu=NBE&retour_lieu=TUN&depart={0}&retour={1}&cat=EDAR",
-        ["agency-fr"] = "/fr/agence",
-        ["agency-en"] = "/en/agency",
-        ["faq-fr"] = "/fr/faq",
-        ["terms-fr"] = "/fr/conditions",
-        ["privacy-fr"] = "/fr/confidentialite",
-        ["privacy-en"] = "/en/privacy",
+        ["home-fr"] = "/agence-demo-tunis/fr",
+        ["home-en"] = "/agence-demo-tunis/en",
+        ["results-fr"] = "/agence-demo-tunis/fr/reserver?lieu=TUN&depart={0}&retour={1}",
+        ["results-en"] = "/agence-demo-tunis/en/book?lieu=NBE&retour_lieu=TUN&depart={0}&retour={1}&cat=EDAR",
+        ["agency-fr"] = "/agence-demo-tunis/fr/agence",
+        ["agency-en"] = "/agence-demo-tunis/en/agency",
+        ["faq-fr"] = "/agence-demo-tunis/fr/faq",
+        ["terms-fr"] = "/agence-demo-tunis/fr/conditions",
+        ["privacy-fr"] = "/agence-demo-tunis/fr/confidentialite",
+        ["privacy-en"] = "/agence-demo-tunis/en/privacy",
     };
 
     [Theory]
@@ -178,11 +178,11 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_language_switcher_keeps_the_search()
     {
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={LocalDate(18)}&retour={LocalDate(22)}&cat=CDMR");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={LocalDate(18)}&retour={LocalDate(22)}&cat=CDMR");
 
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "English" }).ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex($"/en/book\\?lieu=TUN&depart={Regex.Escape(LocalDate(18))}.*&cat=CDMR"));
+        await Expect(Page).ToHaveURLAsync(new Regex($"/agence-demo-tunis/en/book\\?lieu=TUN&depart={Regex.Escape(LocalDate(18))}.*&cat=CDMR"));
         await Expect(Page.Locator("html")).ToHaveAttributeAsync("lang", "en");
         await Expect(Page.Locator("li.offer").First.Locator(".offer__code")).ToHaveTextAsync("CDMR");
     }
@@ -190,13 +190,13 @@ public sealed class PublicJourneyTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_skip_link_stays_on_the_page_beyond_the_home_page()
     {
-        await Page.GotoAsync("/fr/agence");
+        await Page.GotoAsync("/agence-demo-tunis/fr/agence");
 
         await Page.Keyboard.PressAsync("Tab");
         await Expect(Page.Locator("a.skip-link")).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/agence#main$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/agence#main$"));
         await Expect(Page.Locator("#main")).ToBeFocusedAsync();
     }
 

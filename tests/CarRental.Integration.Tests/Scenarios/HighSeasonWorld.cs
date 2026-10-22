@@ -86,6 +86,9 @@ internal sealed class HighSeasonWorld
 
     public Guid AgencyId { get; private set; }
 
+    /// <summary>The address of the public site of the agency (first segment of its public links).</summary>
+    public string Slug { get; private set; } = string.Empty;
+
     public Guid OfficeId { get; private set; }
 
     public Guid AirportId { get; private set; }
@@ -286,7 +289,7 @@ internal sealed class HighSeasonWorld
     public async Task HoldGuaranteeAsync(FunnelSubmitted request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var confirmation = PublicBookingPaths.Confirmation("fr", request.Number);
+        var confirmation = PublicBookingPaths.Confirmation(Slug, "fr", request.Number);
         var redirect = (await OkAsync<FunnelService, OnlinePaymentRedirect?>(Funnel, f => f.StartGuaranteeAsync(request.BookingId, "fr", confirmation, confirmation, Ct))).ShouldNotBeNull();
         redirect.RedirectUrl.ShouldStartWith(FakeClicToPay.PagePathPrefix);
         var gatewayOrderId = redirect.RedirectUrl[FakeClicToPay.PagePathPrefix.Length..];
@@ -456,6 +459,7 @@ internal sealed class HighSeasonWorld
         db.Set<Location>().AddRange(office, airport);
         await db.SaveChangesAsync(Ct);
         (AgencyId, OfficeId, AirportId) = (agency.Id, office.Id, airport.Id);
+        Slug = agency.Slug;
     }
 
     private async Task<SeasonCategory> CreateCategoryAsync(string code, string name, string example, int order, int vehicles)

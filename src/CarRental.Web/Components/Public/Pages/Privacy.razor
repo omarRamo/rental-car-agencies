@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/confidentialite"
-@page "/{culture:length(2)}/privacy"
+@page "/{agency}/{culture:length(2)}/confidentialite"
+@page "/{agency}/{culture:length(2)}/privacy"
 @* Privacy policy (SPEC §14): purposes, identity documents and their retention, measurement of the funnel and its
    cookie, hosting and transfer (INPDP), rights, cookies. Durations come from the settings. TODO(spec): to be validated
    with the lawyer and the INPDP filing (authorization reference, legal retention of bookings and invoices). *@
@@ -7,7 +7,6 @@
 @attribute [CacheablePublicPage]
 @inject PublicAgencyDirectory Directory
 @inject IStringLocalizer<PublicResources> L
-@inject IOptions<PublicSiteOptions> Site
 
 <PublicHead Page="PublicPage.Privacy" Title="@L["Privacy.Title"]" Description="@L["Privacy.Description"]" />
 
@@ -17,7 +16,7 @@
 
     <section class="legal__section" aria-labelledby="privacy-controller">
         <h2 id="privacy-controller">@L["Privacy.Controller.Title"]</h2>
-        <p>@L["Privacy.Controller.Text", Site.Value.AgencyName, _agency?.Agency.Address ?? _agency?.Agency.City ?? "Tunisie", _contact]</p>
+        <p>@L["Privacy.Controller.Text", SiteAgency.Name, _agency?.Agency.Address ?? _agency?.Agency.City ?? "Tunisie", _contact]</p>
     </section>
 
     <section class="legal__section" aria-labelledby="privacy-purposes">
@@ -82,7 +81,7 @@
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         _policies = _agency?.Policies ?? DefaultPolicies;
         _contact = _agency?.Agency.Email ?? _agency?.Agency.Phone ?? L["Privacy.ContactFallback"];
     }

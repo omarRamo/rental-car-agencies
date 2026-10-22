@@ -18,7 +18,7 @@ public static class PublicUrls
         return new Uri($"{request.Scheme}://{request.Host}{request.PathBase}/");
     }
 
-    /// <summary>Absolute address of an app-relative path (<c>/fr/agence</c>).</summary>
+    /// <summary>Absolute address of an app-relative path (<c>/agence-1/fr/agence</c>).</summary>
     public static Uri Absolute(Uri baseUri, string path)
     {
         ArgumentNullException.ThrowIfNull(baseUri);
@@ -27,14 +27,16 @@ public static class PublicUrls
     }
 
     /// <summary>
-    /// The <c>hreflang</c> alternates of a page: one per enabled culture, plus <c>x-default</c> — the root (which
-    /// redirects to the visitor's language) for the home page, the default culture elsewhere.
+    /// The <c>hreflang</c> alternates of a page of the site of <paramref name="agency"/>: one per enabled culture, plus
+    /// <c>x-default</c> — the address of the site (<c>/agence-1</c>, which redirects to the visitor's language) for the
+    /// home page, the default culture elsewhere.
     /// </summary>
-    public static IReadOnlyList<(string HrefLang, Uri Url)> Alternates(PublicPage page, Uri baseUri, IReadOnlyList<string> cultures, string defaultCulture)
+    public static IReadOnlyList<(string HrefLang, Uri Url)> Alternates(string agency, PublicPage page, Uri baseUri, IReadOnlyList<string> cultures, string defaultCulture)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
         ArgumentNullException.ThrowIfNull(cultures);
-        var alternates = cultures.Select(culture => (culture, Absolute(baseUri, PublicRoutes.PathFor(page, culture)))).ToList();
-        alternates.Add(("x-default", page == PublicPage.Home ? baseUri : Absolute(baseUri, PublicRoutes.PathFor(page, defaultCulture))));
+        var alternates = cultures.Select(culture => (culture, Absolute(baseUri, PublicRoutes.PathFor(agency, page, culture)))).ToList();
+        alternates.Add(("x-default", page == PublicPage.Home ? Absolute(baseUri, $"/{agency}") : Absolute(baseUri, PublicRoutes.PathFor(agency, page, defaultCulture))));
         return alternates;
     }
 }

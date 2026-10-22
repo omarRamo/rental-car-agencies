@@ -8,7 +8,7 @@ namespace CarRental.Web.Components.Public.Search;
 /// <summary>
 /// Runs a public search: categories still available for the period on the channel (cached availability engine),
 /// filtered by gearbox and seats, then priced one by one by the pricing engine (total TTC, extras none). Used by the
-/// results page and <c>GET /api/public/availability</c>; nothing is taken from the URL but the criteria.
+/// results page and <c>GET /{agency}/api/public/availability</c>; nothing is taken from the URL but the criteria.
 /// </summary>
 public sealed partial class PublicSearchService(
     IAvailabilityQueries availability,

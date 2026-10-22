@@ -15,7 +15,7 @@
                 }
                 else if (reachable)
                 {
-                    <a href="@BookingRoutes.Step(Culture, Token, step)">@L[$"Progress.{step}"]</a>
+                    <a href="@BookingRoutes.Step(Slug, Culture, Token, step)">@L[$"Progress.{step}"]</a>
                 }
                 else
                 {
@@ -31,6 +31,10 @@
 
     [Parameter, EditorRequired]
     public FunnelStep Current { get; set; }
+
+    /// <summary>The address of the agency's site.</summary>
+    [Parameter, EditorRequired]
+    public string Slug { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
     public string Culture { get; set; } = string.Empty;

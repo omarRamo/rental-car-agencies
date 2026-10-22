@@ -1,5 +1,6 @@
 using System.Text;
 using System.Xml;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Web.Components.Public;
 using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Hosting;
@@ -9,9 +10,10 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Web.Endpoints.PublicSite;
 
 /// <summary>
-/// <c>/sitemap.xml</c> (indexable public pages × enabled cultures, with their <c>hreflang</c> alternates) and
-/// <c>/robots.txt</c> (back office, account pages, APIs, booking funnel and "Ma réservation" excluded). Outside
-/// production — or with <c>PublicSite:AllowIndexing=false</c> — robots.txt keeps the whole site out of search engines.
+/// <c>/sitemap.xml</c> (every open site of an agency × its indexable pages × the enabled cultures, with their
+/// <c>hreflang</c> alternates, ADR-0067) and <c>/robots.txt</c> (back office, account pages, APIs, booking funnel and
+/// "Ma réservation" of every site excluded). Outside production — or with <c>PublicSite:AllowIndexing=false</c> —
+/// robots.txt keeps the whole platform out of search engines. Both stay at the root: they cover every site.
 /// </summary>
 public static class SeoEndpoints
 {
@@ -20,17 +22,21 @@ public static class SeoEndpoints
     private const string SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private const string XhtmlNamespace = "http://www.w3.org/1999/xhtml";
 
-    /// <summary>Paths kept out of search engines in every environment, before the per-culture funnel paths.</summary>
-    private static readonly string[] PrivatePaths = ["/admin", "/account", "/api/", "/culture/", "/status/", "/health", "/media/vehicles/"];
+    /// <summary>
+    /// Paths kept out of search engines in every environment, before the per-culture funnel paths: the platform's own,
+    /// and the APIs of every site (<c>/{agency}/api/…</c>).
+    /// </summary>
+    private static readonly string[] PrivatePaths = ["/admin", "/account", "/api/", "/*/api/", "/culture/", "/status/", "/health", "/media/vehicles/"];
 
     public static IEndpointRouteBuilder MapSeoEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
-        endpoints.MapGet("/sitemap.xml", (HttpContext context, IOptions<PublicSiteOptions> site, CultureCatalog cultures) =>
+        endpoints.MapGet("/sitemap.xml", async (HttpContext context, IOptions<PublicSiteOptions> site, CultureCatalog cultures, IAgencyDirectory agencies) =>
             {
                 context.Response.Headers.CacheControl = CacheControl;
                 var baseUri = PublicUrls.BaseUri(site.Value.BaseUrl, context.Request);
-                return Results.Text(Sitemap(baseUri, cultures.Enabled), "application/xml; charset=utf-8", Encoding.UTF8);
+                var sites = (await agencies.ListAsync(context.RequestAborted)).Where(a => a.HasOpenPublicSite).Select(a => a.Slug).Order(StringComparer.Ordinal).ToList();
+                return Results.Text(Sitemap(baseUri, sites, cultures.Enabled), "application/xml; charset=utf-8", Encoding.UTF8);
             })
             .AllowAnonymous()
             .ExcludeFromDescription();
@@ -48,10 +54,11 @@ public static class SeoEndpoints
         return endpoints;
     }
 
-    /// <summary>The sitemap of the indexable pages in <paramref name="cultures"/>, with absolute addresses.</summary>
-    public static string Sitemap(Uri baseUri, IReadOnlyList<string> cultures)
+    /// <summary>The sitemap of the indexable pages of the sites <paramref name="sites"/> in <paramref name="cultures"/>, with absolute addresses.</summary>
+    public static string Sitemap(Uri baseUri, IReadOnlyList<string> sites, IReadOnlyList<string> cultures)
     {
         ArgumentNullException.ThrowIfNull(baseUri);
+        ArgumentNullException.ThrowIfNull(sites);
         ArgumentNullException.ThrowIfNull(cultures);
         var builder = new StringBuilder();
         var settings = new XmlWriterSettings { Indent = true, Encoding = new UTF8Encoding(false), OmitXmlDeclaration = false };
@@ -60,13 +67,13 @@ public static class SeoEndpoints
             writer.WriteStartDocument();
             writer.WriteStartElement("urlset", SitemapNamespace);
             writer.WriteAttributeString("xmlns", "xhtml", null, XhtmlNamespace);
-            foreach (var page in PublicRoutes.Indexable)
+            foreach (var (agency, page) in sites.SelectMany(agency => PublicRoutes.Indexable.Select(page => (agency, page))))
             {
-                var alternates = PublicUrls.Alternates(page, baseUri, cultures, CultureCatalog.Default);
+                var alternates = PublicUrls.Alternates(agency, page, baseUri, cultures, CultureCatalog.Default);
                 foreach (var culture in cultures)
                 {
                     writer.WriteStartElement("url", SitemapNamespace);
-                    writer.WriteElementString("loc", SitemapNamespace, PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(page, culture)).AbsoluteUri);
+                    writer.WriteElementString("loc", SitemapNamespace, PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(agency, page, culture)).AbsoluteUri);
                     foreach (var (hrefLang, url) in alternates)
                     {
                         writer.WriteStartElement("xhtml", "link", XhtmlNamespace);
@@ -88,8 +95,8 @@ public static class SeoEndpoints
     }
 
     /// <summary>
-    /// robots.txt: private areas, then the booking funnel and "Ma réservation" in every prepared culture, and the
-    /// sitemap; or everything disallowed when indexing is off.
+    /// robots.txt: private areas, then the booking funnel and "Ma réservation" of every site in every prepared culture
+    /// (<c>/*/fr/reserver</c>: the first segment is the site), and the sitemap; or everything disallowed when indexing is off.
     /// </summary>
     public static string Robots(Uri baseUri, IReadOnlyList<string> cultures, bool allowIndexing)
     {

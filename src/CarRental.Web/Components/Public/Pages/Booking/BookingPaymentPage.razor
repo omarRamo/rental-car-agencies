@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver/{Token}/paiement"
-@page "/{culture:length(2)}/book/{Token}/payment"
+@page "/{agency}/{culture:length(2)}/reserver/{Token}/paiement"
+@page "/{agency}/{culture:length(2)}/book/{Token}/payment"
 @* Step 3 of the booking funnel (ADR-0049): the recapitulation, the terms of rental to accept, how the request is
    guaranteed (pre-authorization of the guaranteed amount on the payment page of the bank, captured only when the agency
    validates; without online payment, a payment link after the validation) and the anti-robot check. The submission is
@@ -17,14 +17,14 @@
 
 <PrivateHead Title="@L["Payment.Title"]" Description="@L["Payment.Description"]" />
 
-<FunnelProgress Current="FunnelStep.Payment" Culture="@Lang" Token="@Token" DriversSaved="true" />
+<FunnelProgress Current="FunnelStep.Payment" Slug="@Slug" Culture="@Lang" Token="@Token" DriversSaved="true" />
 
 <h1>@L["Payment.Heading"]</h1>
 
 <FunnelNotice Notice="@_view!.Notice" Error="@LastError" />
 @if (_view.Draft is not null)
 {
-    <p class="notice" role="note">@L["Payment.DraftPending"] <a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)">@L["Payment.DraftPending.Link"]</a></p>
+    <p class="notice" role="note">@L["Payment.DraftPending"] <a href="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Drivers)">@L["Payment.DraftPending.Link"]</a></p>
 }
 
 <div class="funnel-layout">
@@ -38,7 +38,7 @@
                     <li>@L["Payment.Driver.Second", DriverName(second)]</li>
                 }
             </ul>
-            <p><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Drivers)">@L["Payment.Drivers.Change"]</a></p>
+            <p><a href="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Drivers)">@L["Payment.Drivers.Change"]</a></p>
             @if (_chosenExtras.Count > 0)
             {
                 <h2 class="recap__title">@L["Payment.Options"]</h2>
@@ -49,7 +49,7 @@
                     }
                 </ul>
             }
-            <p><a href="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)">@L["Payment.Options.Change"]</a></p>
+            <p><a href="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Options)">@L["Payment.Options.Change"]</a></p>
         </section>
 
         <section class="guarantee" aria-labelledby="guarantee-title">
@@ -66,14 +66,14 @@
             <p class="field-hint">@L["Payment.Answer"]</p>
         </section>
 
-        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Payment)" class="funnel-form" novalidate>
+        <form method="post" action="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Payment)" class="funnel-form" novalidate>
             <AntiforgeryToken />
             <div class="form-check form-check--top">
                 <input type="checkbox" id="terms" name="@BookingFunnelEndpoints.TermsField" value="1" aria-required="true"
                        aria-invalid="@(TermsMissing ? "true" : null)" aria-describedby="@(TermsMissing ? "terms-error" : null)" />
                 <label for="terms">
                     @L["Payment.Terms"]
-                    <a href="@PublicRoutes.PathFor(PublicPage.Terms, Lang)" target="_blank" rel="noopener">@L["Payment.Terms.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
+                    <a href="@PublicRoutes.PathFor(Slug, PublicPage.Terms, Lang)" target="_blank" rel="noopener">@L["Payment.Terms.Link"]<span class="visually-hidden"> @L["Consents.NewWindow"]</span></a>
                 </label>
             </div>
             <FieldMessage Id="terms-error" Message="@(TermsMissing ? ErrorText(FunnelErrors.TermsRequired.Code) : null)" />
@@ -103,12 +103,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Payment)))
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Payment)))
         {
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         FunnelLookup lookup;
         await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
         {
@@ -116,15 +116,16 @@
             lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Payment, Aborted);
         }
 
-        if (lookup.View is not { } view || _agency is null)
+        // A session of another agency is unknown at this address.
+        if (lookup.View is not { } view || _agency is null || view.AgencyId != SiteAgency.Id)
         {
-            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            Leave(BookingSelectionEndpoint.Fallback(Slug, Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
             return;
         }
 
         if (!view.HasDrivers)
         {
-            Leave(BookingRoutes.Step(Lang, Token, FunnelStep.Drivers));
+            Leave(BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Drivers));
             return;
         }
 

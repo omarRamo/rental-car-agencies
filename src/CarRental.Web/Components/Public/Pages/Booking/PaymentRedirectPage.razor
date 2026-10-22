@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver/redirection/{PaymentId:guid}"
-@page "/{culture:length(2)}/book/redirect/{PaymentId:guid}"
+@page "/{agency}/{culture:length(2)}/reserver/redirection/{PaymentId:guid}"
+@page "/{agency}/{culture:length(2)}/book/redirect/{PaymentId:guid}"
 @* The page between a form of the site and the payment page of the bank (ADR-0049): the CSP of the site only lets forms
    post to the site (form-action 'self'), so a form never redirects to the bank; this GET page sends the browser there
    at once (immediate meta refresh) and offers the link. Only for the browser of the request or of the "Ma réservation"
@@ -34,7 +34,7 @@ else
     <section class="status-page" aria-labelledby="redirect-heading">
         <h1 id="redirect-heading">@L["Redirect.Unavailable.Title"]</h1>
         <p>@L["Redirect.Unavailable.Text"]</p>
-        <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Lang)">@L["Redirect.Unavailable.MyBooking"]</a></p>
+        <p><a class="button button--secondary" href="@BookingRoutes.MyBooking(Slug, Lang)">@L["Redirect.Unavailable.MyBooking"]</a></p>
     </section>
 }
 
@@ -47,7 +47,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.PaymentRedirect(Lang, PaymentId)))
+        if (!EnsureCanonicalPath(BookingRoutes.PaymentRedirect(Slug, Lang, PaymentId)))
         {
             return;
         }
