@@ -91,12 +91,14 @@ public sealed class HealthTelemetryTests(IntegrationHost host)
     {
         var now = DateTimeOffset.UtcNow;
         var waiting = now - WhatsAppHealthCheck.MinimumStaleAfter - TimeSpan.FromMinutes(10);
-        var conversation = Conversation.Start("+3375" + RandomNumberGenerator.GetInt32(0, 10_000_000).ToString("D7", CultureInfo.InvariantCulture), "Client test", waiting).Value;
+
+        // In the demo agency, whose WhatsApp module the host switched on: the entry watches those agencies only.
+        var conversation = Conversation.Start(host.DemoAgencyId, "+3375" + RandomNumberGenerator.GetInt32(0, 10_000_000).ToString("D7", CultureInfo.InvariantCulture), "Client test", waiting).Value;
         var message = conversation.ReceiveCustomerMessage($"wamid.TEST{Guid.NewGuid():N}", TextContent.Create("Bonjour ?").Value, waiting, null, waiting);
         message.BotTurn.ShouldBe(BotTurnState.Pending);
 
         // A retry due in two hours keeps the executor of the host away from this turn: it waits as a stuck one would.
-        var retry = BotTurnRetry.For(conversation.Id);
+        var retry = BotTurnRetry.For(conversation.Id, conversation.AgencyId);
         retry.Failed(now, TimeSpan.FromHours(2));
         await using (var scope = host.CreateScope())
         {

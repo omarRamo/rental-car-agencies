@@ -14,11 +14,11 @@ namespace CarRental.Application.Channels.Outbound;
 internal sealed class ChannelSyncQueue(IAppDbContext db, TimeProvider clock, IOptions<ChannelSyncOptions> options)
 {
     /// <summary>
-    /// Queues an update (or coalesces it into the pending one), due after the debounce window, or at once when
-    /// <paramref name="immediate"/> (the pump already waited it). The caller wakes the pump once committed
-    /// (<see cref="ChannelSyncSignal.Wake"/>).
+    /// Queues an update of the channel <paramref name="channelId"/> of <paramref name="agencyId"/> (or coalesces it into
+    /// the pending one), due after the debounce window, or at once when <paramref name="immediate"/> (the pump already
+    /// waited it). The caller wakes the pump once committed (<see cref="ChannelSyncSignal.Wake"/>).
     /// </summary>
-    public async Task EnqueueAsync(Guid channelId, ChannelSyncOperation operation, Guid? categoryId, string reason, CancellationToken cancellationToken, bool immediate = false)
+    public async Task EnqueueAsync(Guid channelId, Guid agencyId, ChannelSyncOperation operation, Guid? categoryId, string reason, CancellationToken cancellationToken, bool immediate = false)
     {
         var now = clock.GetUtcNow();
         var dueAt = immediate ? now : now + options.Value.Debounce;
@@ -35,7 +35,7 @@ internal sealed class ChannelSyncQueue(IAppDbContext db, TimeProvider clock, IOp
         }
         else
         {
-            db.Set<ChannelSyncItem>().Add(ChannelSyncItem.Enqueue(channelId, operation, categoryId, reason, dueAt, now));
+            db.Set<ChannelSyncItem>().Add(ChannelSyncItem.Enqueue(channelId, agencyId, operation, categoryId, reason, dueAt, now));
         }
     }
 }

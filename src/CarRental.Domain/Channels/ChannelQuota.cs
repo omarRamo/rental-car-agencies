@@ -9,7 +9,7 @@ namespace CarRental.Domain.Channels;
 /// availability engine applies them everywhere through <c>IChannelAvailabilityPolicy</c>; a stop-sell limited to one
 /// pick-up location is applied by the Channels module itself (the engine has no location).
 /// </summary>
-public sealed class ChannelQuota : AggregateRoot, ISoftDeletable
+public sealed class ChannelQuota : AggregateRoot, ISoftDeletable, IAgencyOwned
 {
     public const int NoteMaxLength = 300;
 

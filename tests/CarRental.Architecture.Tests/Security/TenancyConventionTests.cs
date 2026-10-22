@@ -30,12 +30,6 @@ public sealed partial class TenancyConventionTests
     /// </summary>
     private static readonly HashSet<string> NotYetClassified = new(StringComparer.Ordinal)
     {
-        // Channels
-        "Channel", "ChannelBooking", "ChannelMapping", "ChannelMessageLog", "ChannelPayout", "ChannelQuota",
-        "ChannelReplicationItem", "ChannelSyncItem", "ChannelSyncState",
-        // Messaging
-        "AgentConversationState", "AgentTurnRecord", "BookingNotification", "BotTurnRetry", "Conversation", "KnowledgeEntry",
-        "Message", "MessageStatusChange",
     };
 
     private static readonly IModel Model = BuildModel();

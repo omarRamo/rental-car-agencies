@@ -1,4 +1,4 @@
-using CarRental.Application.Common.Seeding;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Messaging.Agent.Costs;
 using CarRental.Application.Messaging.Agent.Knowledge;
 using CarRental.Application.Messaging.Agent.Tools;
@@ -47,10 +47,10 @@ internal static class AgentModule
         services.AddScoped<TransferTool>();
         services.AddScoped<AgentToolbox>();
 
-        // Knowledge base (validated by the manager) and cost reports.
+        // Knowledge base of each agency (validated by its manager; drafts seeded for every agency) and cost reports.
         services.AddScoped<KnowledgeBaseQueries>();
         services.AddScoped<KnowledgeBaseService>();
-        services.AddDataSeeder<KnowledgeSeeder>();
+        services.AddAgencyInitializer<KnowledgeSeeder>();
         services.AddScoped<AgentCostQueries>();
 
         services.AddSettingDefinitions(AgentSettings.All);

@@ -32,18 +32,18 @@ public sealed record KnowledgeEntryItem(
     public bool IsUsableByBot => IsValidated && IsActive;
 }
 
-/// <summary>Reads of the knowledge base screen (permission <c>whatsapp.knowledge</c>).</summary>
+/// <summary>Reads of the knowledge base screen (permission <c>whatsapp.knowledge</c>): the knowledge base of the agency of the operation.</summary>
 public sealed class KnowledgeBaseQueries(IAppDbContext db, IUserContext user)
 {
     public async Task<Result<PagedResult<KnowledgeEntryItem>>> ListAsync(PageRequest page, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(page);
-        if (!user.HasPermission(Permissions.WhatsAppKnowledge))
+        if (!user.HasPermission(Permissions.WhatsAppKnowledge) || user.AgencyId is not { } agencyId)
         {
             return KnowledgeErrors.Forbidden;
         }
 
-        var query = db.Set<KnowledgeEntry>().AsNoTracking();
+        var query = db.Set<KnowledgeEntry>().AsNoTracking().Where(e => e.AgencyId == agencyId);
         var total = await query.CountAsync(cancellationToken);
         var entries = await query
             .OrderBy(e => e.IsValidated)
@@ -71,17 +71,18 @@ public sealed class KnowledgeBaseQueries(IAppDbContext db, IUserContext user)
 }
 
 /// <summary>
-/// The knowledge base of the WhatsApp agent (tool <c>infos_agence</c>), managed by the holders of
-/// <c>whatsapp.knowledge</c> (the manager by default): new answers are drafts, an edit sends a validated answer back to
-/// draft, a validation (audited) lets the bot give it, a deactivation withdraws it. Changes are audited automatically and
-/// kept in a temporal history.
+/// The knowledge base of the WhatsApp agent of the agency of the operation (tool <c>infos_agence</c>), managed by the
+/// holders of <c>whatsapp.knowledge</c> (the manager by default): new answers are drafts, an edit sends a validated
+/// answer back to draft, a validation (audited) lets the bot give it, a deactivation withdraws it. Changes are audited
+/// automatically and kept in a temporal history. An answer is created for the agency of the operation only (none for
+/// the support outside any agency).
 /// </summary>
 public sealed class KnowledgeBaseService(IAppDbContext db, IUnitOfWork unitOfWork, IUserContext user, IAuditTrail auditTrail, TimeProvider clock)
 {
     public async Task<Result<Guid>> CreateAsync(KnowledgeEntryForm form, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(form);
-        if (!user.HasPermission(Permissions.WhatsAppKnowledge))
+        if (!user.HasPermission(Permissions.WhatsAppKnowledge) || user.AgencyId is not { } agencyId)
         {
             return KnowledgeErrors.Forbidden;
         }
@@ -92,13 +93,14 @@ public sealed class KnowledgeBaseService(IAppDbContext db, IUnitOfWork unitOfWor
             return content.Error;
         }
 
-        var entry = KnowledgeEntry.CreateDraft(form.TopicKey, content.Value, clock.GetUtcNow());
+        var entry = KnowledgeEntry.CreateDraft(agencyId, form.TopicKey, content.Value, clock.GetUtcNow());
         if (entry.IsFailure)
         {
             return entry.Error;
         }
 
-        if (await db.Set<KnowledgeEntry>().AnyAsync(e => e.TopicKey == entry.Value.TopicKey, cancellationToken))
+        var topic = entry.Value.TopicKey;
+        if (await db.Set<KnowledgeEntry>().AnyAsync(e => e.AgencyId == agencyId && e.TopicKey == topic, cancellationToken))
         {
             return KnowledgeErrors.TopicTaken;
         }
@@ -144,6 +146,7 @@ public sealed class KnowledgeBaseService(IAppDbContext db, IUnitOfWork unitOfWor
                         EntityType = nameof(KnowledgeEntry),
                         EntityId = entry.Id.ToString(),
                         Details = string.Create(CultureInfo.InvariantCulture, $"knowledge entry {entry.TopicKey} validated for the WhatsApp agent"),
+                        AgencyId = entry.AgencyId,
                     },
                     cancellationToken);
             }

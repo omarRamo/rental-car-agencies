@@ -13,10 +13,11 @@ using Microsoft.EntityFrameworkCore;
 namespace CarRental.Application.Channels.Administration;
 
 /// <summary>
-/// The channels screen (permission <c>channels.manage</c>): channels and their settings, the inbound authentication
-/// (API key shown once at its rotation, client certificate thumbprint, allowed addresses) and the mappings. A change
-/// that alters what a connected channel must know (connection, mappings) queues a full resynchronization in the same
-/// transaction.
+/// The channels screen (permission <c>channels.manage</c>): the channels of the agency of the operation and their
+/// settings, the inbound authentication (API key shown once at its rotation, client certificate thumbprint, allowed
+/// addresses) and the mappings (categories and locations of the agency of the channel only). A channel is created for
+/// the agency of the operation (ADR-0067). A change that alters what a connected channel must know (connection,
+/// mappings) queues a full resynchronization in the same transaction.
 /// </summary>
 public sealed class ChannelAdministrationService
 {
@@ -168,7 +169,9 @@ public sealed class ChannelAdministrationService
             return ChannelsErrors.Forbidden;
         }
 
-        if (!(await _referential.GetAgenciesAsync(cancellationToken)).Any(a => a.Id == request.AgencyId))
+        // The agency of the operation (the staff's, or the one the support entered); across agencies, the one asked for.
+        if ((!_user.IsAcrossAgencies && request.AgencyId != _user.AgencyId)
+            || !(await _referential.GetAgenciesAsync(cancellationToken)).Any(a => a.Id == request.AgencyId))
         {
             return ChannelsErrors.AgencyNotFound;
         }
@@ -234,7 +237,7 @@ public sealed class ChannelAdministrationService
                         : Result.Combine(channel.ChangeState(request.State, stamp), channel.ChangeAdapter(request.AdapterKind, stamp)));
                 if (outcome.IsSuccess && !wasConnected && channel.State == ChannelState.Connected)
                 {
-                    await _queue.EnqueueAsync(channel.Id, ChannelSyncOperation.FullResync, null, "connected", ct);
+                    await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.FullResync, null, "connected", ct);
                 }
 
                 return outcome;
@@ -361,7 +364,7 @@ public sealed class ChannelAdministrationService
     {
         if (channel.State == ChannelState.Connected)
         {
-            await _queue.EnqueueAsync(channel.Id, ChannelSyncOperation.FullResync, null, "mapping", cancellationToken);
+            await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.FullResync, null, "mapping", cancellationToken);
         }
 
         return Result.Success();
@@ -369,7 +372,9 @@ public sealed class ChannelAdministrationService
 
     private async Task<Error?> TakenAsync(Channel channel, CancellationToken cancellationToken)
     {
-        if (await _db.Set<Channel>().AnyAsync(c => c.Code == channel.Code && c.Id != channel.Id, cancellationToken))
+        // The code is the address segment of the inbound endpoint, shared by every agency: it is checked on the whole
+        // platform (only whether it is taken comes back, nothing of the other agency).
+        if (await _db.Set<Channel>().IgnoreQueryFilters([QueryFilters.Agency]).AnyAsync(c => c.Code == channel.Code && c.Id != channel.Id, cancellationToken))
         {
             return ChannelsErrors.CodeTaken;
         }

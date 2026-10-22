@@ -9,9 +9,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace CarRental.Infrastructure.Persistence.Configurations.Channels;
 
 /// <summary>
-/// Channels (temporal table <c>channels.Channels</c>): code unique on the platform (the inbound address segment), one
-/// channel per agency and sales channel, the hash of the API key masked in the audit log, mappings always loaded with
-/// the channel. Other modules are referenced by id only (agency foreign key, ADR-0012).
+/// Channels (temporal table <c>channels.Channels</c>): one channel per agency and sales channel, the hash of the API key
+/// masked in the audit log, mappings always loaded with the channel. The code stays unique on the whole platform, not
+/// per agency: it is the address segment of the inbound endpoint shared by every agency (<c>/api/channels/{code}</c>),
+/// which finds the channel, hence its agency, from it alone. Other modules are referenced by id only (agency foreign
+/// key, ADR-0012).
 /// </summary>
 internal sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
 {
@@ -19,6 +21,7 @@ internal sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
     {
         builder.ToTemporalTable("Channels", Schemas.Channels);
         builder.HasKey(c => c.Id);
+        builder.Property(c => c.AgencyId).IsRequired();
         builder.Property(c => c.Code).HasMaxLength(ChannelCodes.ChannelCodeMaxLength).IsUnicode(false).IsRequired();
         builder.Property(c => c.Name).HasMaxLength(Channel.NameMaxLength).IsRequired();
         builder.Property(c => c.CommissionRate).HasPrecision(5, 4);
@@ -50,6 +53,7 @@ internal sealed class ChannelMappingConfiguration : IEntityTypeConfiguration<Cha
     {
         builder.ToTable("ChannelMappings", Schemas.Channels);
         builder.HasKey(m => m.Id);
+        builder.Property(m => m.AgencyId).IsRequired();
         builder.Property(m => m.ChannelCode).HasMaxLength(ChannelCodes.MappingCodeMaxLength).IsRequired();
         builder.Property(m => m.InternalCode).HasMaxLength(ChannelCodes.InternalCodeMaxLength).IsUnicode(false);
         builder.Property(m => m.AcrissCode).HasMaxLength(4).IsUnicode(false);
@@ -72,21 +76,25 @@ internal sealed class ChannelQuotaConfiguration : IEntityTypeConfiguration<Chann
     {
         builder.ToTemporalTable("ChannelQuotas", Schemas.Channels);
         builder.HasKey(q => q.Id);
+        builder.Property(q => q.AgencyId).IsRequired();
         builder.Property(q => q.Note).HasMaxLength(ChannelQuota.NoteMaxLength);
         builder.Property(q => q.CreatedBy).HasMaxLength(AuditActor.UserNameMaxLength);
         builder.Property(q => q.UpdatedBy).HasMaxLength(AuditActor.UserNameMaxLength);
         builder.Ignore(q => q.Period);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(q => q.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Channel>().WithMany().HasForeignKey(q => q.ChannelId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(q => new { q.CategoryId, q.SalesChannel, q.EndDate });
         builder.HasIndex(q => new { q.ChannelId, q.EndDate });
+        builder.HasIndex(q => new { q.AgencyId, q.EndDate });
     }
 }
 
 /// <summary>
 /// The channel side of the rental files (temporal table): one per rental file, one per channel reference (the
-/// idempotency key of the channel's messages), indexes of the reconciliation and of the commissions by pick-up.
+/// idempotency key of the channel's messages; a channel is of one agency, so the key is within that agency), indexes of
+/// the reconciliation and of the commissions of an agency by pick-up.
 /// </summary>
 internal sealed class ChannelBookingConfiguration : IEntityTypeConfiguration<ChannelBooking>
 {
@@ -94,11 +102,13 @@ internal sealed class ChannelBookingConfiguration : IEntityTypeConfiguration<Cha
     {
         builder.ToTemporalTable("ChannelBookings", Schemas.Channels);
         builder.HasKey(b => b.Id);
+        builder.Property(b => b.AgencyId).IsRequired();
         builder.Property(b => b.ChannelReference).HasMaxLength(ChannelCodes.ReferenceMaxLength).IsRequired();
         builder.Property(b => b.BookingNumber).HasMaxLength(ChannelBooking.BookingNumberMaxLength).IsUnicode(false).IsRequired();
         builder.Property(b => b.RequestFingerprint).HasMaxLength(ChannelBooking.FingerprintLength).IsFixedLength().IsUnicode(false).IsRequired();
         builder.Property(b => b.CommissionRate).HasPrecision(5, 4);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(b => b.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Channel>().WithMany().HasForeignKey(b => b.ChannelId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(b => new { b.ChannelId, b.ChannelReference }).IsUnique();
@@ -108,7 +118,10 @@ internal sealed class ChannelBookingConfiguration : IEntityTypeConfiguration<Cha
     }
 }
 
-/// <summary>The message log (appended only, purged after its retention): a journal itself, left out of the audit log.</summary>
+/// <summary>
+/// The message log (appended only, purged after its retention): a journal itself, left out of the audit log; the rows of
+/// an agency are listed by date, those of no known channel belong to the platform (no agency).
+/// </summary>
 internal sealed class ChannelMessageLogConfiguration : IEntityTypeConfiguration<ChannelMessageLog>
 {
     public void Configure(EntityTypeBuilder<ChannelMessageLog> builder)
@@ -116,6 +129,7 @@ internal sealed class ChannelMessageLogConfiguration : IEntityTypeConfiguration<
         builder.ToTable("ChannelMessageLogs", Schemas.Channels);
         builder.ExcludeFromAudit();
         builder.HasKey(m => m.Id);
+        builder.Property(m => m.AgencyId).IsRequired(false);
         builder.Property(m => m.ChannelCode).HasMaxLength(ChannelMessageLog.ChannelCodeMaxLength).IsUnicode(false).IsRequired();
         builder.Property(m => m.ChannelReference).HasMaxLength(ChannelCodes.ReferenceMaxLength);
         builder.Property(m => m.Excerpt).HasMaxLength(ChannelMessageLog.ExcerptMaxLength);
@@ -124,12 +138,16 @@ internal sealed class ChannelMessageLogConfiguration : IEntityTypeConfiguration<
         builder.Property(m => m.CorrelationId).HasMaxLength(ChannelMessageLog.CorrelationIdMaxLength).IsUnicode(false);
 
         builder.HasIndex(m => m.OccurredAtUtc);
+        builder.HasIndex(m => new { m.AgencyId, m.OccurredAtUtc });
         builder.HasIndex(m => new { m.ChannelId, m.OccurredAtUtc });
         builder.HasIndex(m => m.ChannelReference);
     }
 }
 
-/// <summary>The outbound queue (technical, like the outbox: left out of the audit log), read by status and due time.</summary>
+/// <summary>
+/// The outbound queue (technical, like the outbox: left out of the audit log), read by agency, status and due time
+/// (the dispatcher only takes the items of the agencies whose channels module is on).
+/// </summary>
 internal sealed class ChannelSyncItemConfiguration : IEntityTypeConfiguration<ChannelSyncItem>
 {
     public void Configure(EntityTypeBuilder<ChannelSyncItem> builder)
@@ -137,13 +155,15 @@ internal sealed class ChannelSyncItemConfiguration : IEntityTypeConfiguration<Ch
         builder.ToTable("ChannelSyncItems", Schemas.Channels);
         builder.ExcludeFromAudit();
         builder.HasKey(i => i.Id);
+        builder.Property(i => i.AgencyId).IsRequired();
         builder.Property(i => i.CoalesceKey).HasMaxLength(ChannelSyncItem.CoalesceKeyMaxLength).IsUnicode(false).IsRequired();
         builder.Property(i => i.Reason).HasMaxLength(ChannelSyncItem.ReasonMaxLength).IsUnicode(false).IsRequired();
         builder.Property(i => i.LastError).HasMaxLength(ChannelSyncItem.ErrorMaxLength);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(i => i.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Channel>().WithMany().HasForeignKey(i => i.ChannelId).OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(i => new { i.Status, i.NextAttemptAtUtc });
+        builder.HasIndex(i => new { i.AgencyId, i.Status, i.NextAttemptAtUtc });
         builder.HasIndex(i => i.CoalesceKey);
         builder.HasIndex(i => new { i.ChannelId, i.CreatedAtUtc });
     }
@@ -156,6 +176,7 @@ internal sealed class ChannelReplicationItemConfiguration : IEntityTypeConfigura
     {
         builder.ToTable("ChannelReplicationItems", Schemas.Channels);
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.AgencyId).IsRequired();
         builder.Property(r => r.Detail).HasMaxLength(ChannelReplicationItem.DetailMaxLength);
         builder.Property(r => r.CreatedBy).HasMaxLength(AuditActor.UserNameMaxLength);
         builder.Property(r => r.AcknowledgedBy).HasMaxLength(AuditActor.UserNameMaxLength);
@@ -174,13 +195,16 @@ internal sealed class ChannelPayoutConfiguration : IEntityTypeConfiguration<Chan
     {
         builder.ToTemporalTable("ChannelPayouts", Schemas.Channels);
         builder.HasKey(p => p.Id);
+        builder.Property(p => p.AgencyId).IsRequired();
         builder.Property(p => p.Reference).HasMaxLength(ChannelPayout.ReferenceMaxLength);
         builder.Property(p => p.Note).HasMaxLength(ChannelPayout.NoteMaxLength);
         builder.Property(p => p.RecordedBy).HasMaxLength(AuditActor.UserNameMaxLength);
 
+        builder.HasOne<Agency>().WithMany().HasForeignKey(p => p.AgencyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Channel>().WithMany().HasForeignKey(p => p.ChannelId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => new { p.ChannelId, p.Year, p.Month }).IsUnique();
+        builder.HasIndex(p => new { p.AgencyId, p.RecordedAtUtc });
     }
 }
 
@@ -192,6 +216,7 @@ internal sealed class ChannelSyncStateConfiguration : IEntityTypeConfiguration<C
         builder.ToTable("ChannelSyncStates", Schemas.Channels);
         builder.ExcludeFromAudit();
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.AgencyId).IsRequired();
         builder.Property(s => s.RatesFingerprint).HasMaxLength(ChannelSyncState.FingerprintMaxLength).IsUnicode(false);
         builder.HasOne<Channel>().WithOne().HasForeignKey<ChannelSyncState>(s => s.Id).OnDelete(DeleteBehavior.Cascade);
     }

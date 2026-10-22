@@ -95,7 +95,7 @@ public sealed class ChannelReservationCore
                 continue;
             }
 
-            var rules = await _restrictions.GetAsync(categoryId, channel.SalesChannel, cancellationToken);
+            var rules = await _restrictions.GetAsync(channel.AgencyId, categoryId, channel.SalesChannel, cancellationToken);
             if (ChannelRestrictionRules.StopsSellingAt(rules, pickupId, rental.Value))
             {
                 continue;
@@ -467,7 +467,7 @@ public sealed class ChannelReservationCore
 
     private async Task<bool> StopsSellingAsync(ChannelContext channel, Guid categoryId, Guid pickupLocationId, ChannelReservation reservation, CancellationToken cancellationToken)
     {
-        var rules = await _restrictions.GetAsync(categoryId, channel.SalesChannel, cancellationToken);
+        var rules = await _restrictions.GetAsync(channel.AgencyId, categoryId, channel.SalesChannel, cancellationToken);
         return rules.Count > 0
             && Period.Create(reservation.PickupAt, reservation.ReturnAt) is { IsSuccess: true } rental
             && ChannelRestrictionRules.StopsSellingAt(rules, pickupLocationId, rental.Value);

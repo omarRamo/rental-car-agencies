@@ -18,6 +18,7 @@ using CarRental.Integration.Tests.Bookings.Handover;
 using CarRental.Integration.Tests.Channels;
 using CarRental.Integration.Tests.Payments;
 using CarRental.Integration.Tests.Support;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Bookings.BookingWorld;
@@ -192,9 +193,13 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
         return (person.PersonId, email);
     }
 
-    /// <summary>A Booking.com channel of the agency (fake adapter, prepaid allowed per reservation, 15 % by default).</summary>
+    /// <summary>
+    /// A Booking.com channel of the agency (fake adapter, prepaid allowed per reservation, 15 % by default); the agency's
+    /// channels module, off for a new agency (ADR-0067), is switched on.
+    /// </summary>
     private async Task<TestChannel> ChannelAsync(BookingAgency agency)
     {
+        await TestModules.EnableAsync(host.Factory.Services, agency.AgencyId, AgencyModules.Channels, cancellationToken);
         var code = "m" + Guid.NewGuid().ToString("N")[..16];
         var channelId = await ChannelTestWorld.AdministerAsync(host, s => s.CreateAsync(
             new CreateChannelRequest(agency.AgencyId, code, $"Booking.com {code[..6]}", SalesChannel.BookingCom, ChannelAdapterKind.Fake, ChannelPaymentMode.PayOnSite, 0.15m),

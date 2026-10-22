@@ -4,11 +4,14 @@ using System.Security.Cryptography;
 using System.Text;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Contracts;
+using CarRental.Application.Fleet.Contracts;
 using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Messaging;
 using CarRental.Infrastructure.Messaging;
 using CarRental.Infrastructure.Persistence;
-using CarRental.Integration.Tests.Support;
+using CarRental.Integration.Tests.Bookings;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,8 +31,12 @@ internal static class WhatsAppTestData
 
     public static string NewMetaId() => $"wamid.TEST{Guid.NewGuid():N}";
 
-    public static UserContextSnapshot Agent(Guid? id = null) =>
-        UserContextSnapshot.ForUser(id ?? Guid.CreateVersion7(), $"agent-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(Roles.Agent));
+    /// <summary>An agent of the agency served by the WhatsApp number of the host (the demo agency, ADR-0067).</summary>
+    public static UserContextSnapshot Agent(IntegrationHost host, Guid? id = null)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        return TestActors.Staff(host.DemoAgencyId, Roles.Agent, $"agent-{Guid.NewGuid():N}@tests.local", id);
+    }
 
     public static string Text(string from, string body, string? profileName = "Client test", string? metaId = null, DateTimeOffset? at = null) =>
         MetaWebhookPayloads.TextMessage(
@@ -104,6 +111,26 @@ internal static class WhatsAppTestData
             .ToListAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// The demo agency served by the WhatsApp number of the host, as a world of the booking tests: its office (AGC), its
+    /// airport (TUN) and its ECMR and CDMR categories of the demo fleet.
+    /// </summary>
+    public static async Task<BookingAgency> DemoAgencyAsync(IntegrationHost host, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        await using var scope = host.CreateScope();
+        var locations = await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetLocationsAsync(host.DemoAgencyId, cancellationToken);
+        var categories = await scope.ServiceProvider.GetRequiredService<IFleetQueries>().GetCategoriesAsync(host.DemoAgencyId, cancellationToken: cancellationToken);
+        return new BookingAgency(
+            host.DemoAgencyId,
+            locations.Single(l => l.Code == "AGC").Id,
+            locations.Single(l => l.Code == "TUN").Id,
+            categories.Single(c => c.AcrissCode == "ECMR").Id,
+            categories.Single(c => c.AcrissCode == "CDMR").Id,
+            [],
+            []);
+    }
+
     /// <summary>A first name of letters only, unique enough for a test.</summary>
     public static string NewName()
     {
@@ -121,8 +148,8 @@ internal static class WhatsAppTestData
     /// <summary>A person with this phone (E.164 or <c>wa_id</c>), created by an agent, with the WhatsApp notifications consent when asked.</summary>
     public static async Task<Guid> NewPersonAsync(IntegrationHost host, string phone, bool consent, CancellationToken cancellationToken)
     {
-        // A customer of the main demo agency (the customers of an agency are its own, ADR-0067).
-        await using var scope = host.CreateScope(Agent() with { AgencyId = await TestStaff.DemoAgencyIdAsync(host) });
+        // A customer of the main demo agency, served by the number (the customers of an agency are its own, ADR-0067).
+        await using var scope = host.CreateScope(Agent(host));
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
         var person = await registration.FindOrCreatePersonAsync(
             new PersonRegistrationRequest(NewName(), "Whatsapp", Phone: phone.StartsWith('+') ? phone : "+" + phone),

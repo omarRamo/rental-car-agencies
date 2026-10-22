@@ -24,7 +24,8 @@ public enum WhatsAppMode
 /// WhatsApp Business Platform (Cloud API) settings, section <c>WhatsApp</c>. The access token, the app secret (webhook
 /// signature) and the verify token (webhook handshake) are secrets: Key Vault <c>WhatsApp--AccessToken</c>,
 /// <c>WhatsApp--AppSecret</c>, <c>WhatsApp--VerifyToken</c> in Azure; development and tests use the values of
-/// <see cref="WhatsAppDevelopmentKeys"/> when none is configured. Validated at startup.
+/// <see cref="WhatsAppDevelopmentKeys"/> when none is configured. Validated at startup. The agency served by the number
+/// is read from the same section (<see cref="CarRental.Application.Messaging.Webhooks.WhatsAppRoutingOptions"/>).
 /// </summary>
 public sealed class WhatsAppOptions
 {

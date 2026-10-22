@@ -78,7 +78,7 @@ public sealed class WhatsAppWebhookTests(IntegrationHost host)
         var conversation = await WaitForAsync(() => ConversationAsync(host, waId, Ct), c => c is not null, "the conversation", Ct);
         var message = (await MessagesAsync(host, conversation!.Id, Ct)).ShouldHaveSingleItem();
         message.Content.ShouldBeOfType<TextContent>().Body.ShouldBeEmpty();
-        await using var scope = host.CreateScope(Agent());
+        await using var scope = host.CreateScope(Agent(host));
         var details = await scope.ServiceProvider.GetRequiredService<CarRental.Application.Messaging.Inbox.WhatsAppInboxQueries>().GetAsync(conversation.Id, Ct);
         details.IsSuccess.ShouldBeTrue();
         details.Value.Messages.ShouldHaveSingleItem().Kind.ShouldBe(CarRental.Application.Messaging.Contracts.MessageKindInfo.Text);
@@ -130,7 +130,7 @@ public sealed class WhatsAppWebhookTests(IntegrationHost host)
         using var client = host.CreateClient();
         (await PostAsync(client, Text(waId, "Bonjour"), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         var conversation = await WaitForAsync(() => ConversationAsync(host, waId, Ct), c => c is not null, "the conversation", Ct);
-        var agent = Agent();
+        var agent = Agent(host);
         await using (var scope = host.CreateScope(agent))
         {
             var inbox = scope.ServiceProvider.GetRequiredService<CarRental.Application.Messaging.Inbox.WhatsAppInboxService>();

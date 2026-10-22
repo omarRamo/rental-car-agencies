@@ -9,7 +9,7 @@ namespace CarRental.Domain.Channels;
 /// API key and/or client certificate thumbprint, allowed addresses), the commission rule, the default payment mode, and
 /// its mappings.
 /// </summary>
-public sealed class Channel : AggregateRoot
+public sealed class Channel : AggregateRoot, IAgencyOwned
 {
     public const int NameMaxLength = 80;
 
@@ -43,7 +43,10 @@ public sealed class Channel : AggregateRoot
 
     public Guid AgencyId { get; private set; }
 
-    /// <summary>Lower-case code, unique on the platform: <c>/api/channels/{code}/…</c>.</summary>
+    /// <summary>
+    /// Lower-case code, unique on the whole platform (not only in the agency): it is the address segment of the inbound
+    /// endpoint <c>/api/channels/{code}/…</c>, shared by every agency, which finds the channel — hence its agency — from it.
+    /// </summary>
     public string Code { get; private set; } = null!;
 
     public string Name { get; private set; } = null!;
@@ -386,8 +389,8 @@ public sealed class Channel : AggregateRoot
         else
         {
             existing = internalId is { } id
-                ? ChannelMapping.ById(Id, kind, id, code.Value, acrissCode, stamp.At)
-                : ChannelMapping.ByCode(Id, kind, internalCode!, code.Value, stamp.At);
+                ? ChannelMapping.ById(Id, AgencyId, kind, id, code.Value, acrissCode, stamp.At)
+                : ChannelMapping.ByCode(Id, AgencyId, kind, internalCode!, code.Value, stamp.At);
             _mappings.Add(existing);
         }
 

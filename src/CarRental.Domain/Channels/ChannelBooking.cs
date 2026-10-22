@@ -8,7 +8,7 @@ namespace CarRental.Domain.Channels;
 /// commission (the rule of the channel, or the amount it reported) and the net, the engine's total for comparison, and
 /// the state mirrored from the rental file. No personal data: the drivers live in the Customers module.
 /// </summary>
-public sealed class ChannelBooking : AggregateRoot
+public sealed class ChannelBooking : AggregateRoot, IAgencyOwned
 {
     /// <summary>Length of a request fingerprint (SHA-256, hexadecimal).</summary>
     public const int FingerprintLength = 64;

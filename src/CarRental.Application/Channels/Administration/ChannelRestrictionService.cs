@@ -229,7 +229,7 @@ public sealed class ChannelRestrictionService
         switch (channel.State)
         {
             case ChannelState.Connected:
-                await _queue.EnqueueAsync(channel.Id, ChannelSyncOperation.PushAvailability, quota.CategoryId, "restriction", cancellationToken);
+                await _queue.EnqueueAsync(channel.Id, channel.AgencyId, ChannelSyncOperation.PushAvailability, quota.CategoryId, "restriction", cancellationToken);
                 break;
             case ChannelState.Manual:
                 _db.Set<ChannelReplicationItem>().Add(ChannelReplicationItem.ForRestriction(quota, kind, stamp));

@@ -1,15 +1,18 @@
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Domain.Messaging;
 
 namespace CarRental.Application.Messaging.Agent.Tools;
 
 /// <summary>
 /// <c>statut_reservation</c>: the state of a rental file in plain words (dates, places, category — no personal data, no
-/// amount, no payment detail), given <b>only</b> when the WhatsApp number of the conversation belongs to its main or
-/// second driver or to its payer (persons found by this phone, E.164). An unknown number and a file of somebody else get
-/// the same answer, so that the tool tells nothing about the files of others; lookups are limited per conversation.
+/// amount, no payment detail), given <b>only</b> for a file of the agency of the conversation (numbers are unique within
+/// an agency only, ADR-0067) and when the WhatsApp number of the conversation belongs to its main or second driver or to
+/// its payer (persons found by this phone, E.164). An unknown number, a file of another agency and a file of somebody
+/// else get the same answer, so that the tool tells nothing about the files of others; lookups are limited per
+/// conversation.
 /// </summary>
 internal sealed class BookingStatusTool(IBookingsQueries bookings, ICustomersQueries customers, IFleetQueries fleet) : IAgentTool
 {
@@ -50,9 +53,8 @@ internal sealed class BookingStatusTool(IBookingsQueries bookings, ICustomersQue
             });
         }
 
-        // A reference is unique within an agency only: looked up in the agency the bot answers for.
-        var booking = await bookings.FindByNumberAsync(context.Agency.Agency.Id, arguments.String("reference")!, cancellationToken);
-        if (booking is null || !await BelongsToAsync(booking, context.Turn.WhatsAppNumber, cancellationToken))
+        var booking = await FindAsync(arguments.String("reference")!, context.Turn, cancellationToken);
+        if (booking is null)
         {
             return new AgentToolOutcome(NotFound);
         }
@@ -78,6 +80,18 @@ internal sealed class BookingStatusTool(IBookingsQueries bookings, ICustomersQue
             note = "Pour toute modification ou annulation, passe la main à un agent.",
         });
     }
+
+    /// <summary>
+    /// The file with this number in the agency of the conversation (numbers are unique within an agency only; the scope
+    /// of the turn works for that agency, and the agency of the file is checked as well), when the WhatsApp number of the
+    /// conversation belongs to it.
+    /// </summary>
+    private async Task<BookingSummaryInfo?> FindAsync(string reference, ConversationTurn turn, CancellationToken cancellationToken) =>
+        await bookings.FindByNumberAsync(turn.AgencyId, reference, cancellationToken) is { } booking
+        && booking.AgencyId == turn.AgencyId
+        && await BelongsToAsync(booking, turn.WhatsAppNumber, cancellationToken)
+            ? booking
+            : null;
 
     /// <summary>Whether the number belongs to a driver of the file or to its payer (persons with this phone; a company payer by its phone).</summary>
     private async Task<bool> BelongsToAsync(BookingSummaryInfo booking, string whatsAppNumber, CancellationToken cancellationToken)

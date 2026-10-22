@@ -1,5 +1,6 @@
 @page "/admin/whatsapp"
 @attribute [HasPermission(Permissions.WhatsAppInbox)]
+@attribute [RequiresModule(AgencyModules.WhatsApp)]
 @implements IDisposable
 @using CarRental.Application.Common.Paging
 @using CarRental.Application.Messaging.Contracts

@@ -2,6 +2,8 @@ using System.Globalization;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Customers.Contracts;
+using CarRental.Application.Referential.Contracts;
+using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,10 +12,11 @@ namespace CarRental.Application.Messaging.Sending;
 
 /// <summary>
 /// Sends a queued outbound message through <see cref="IWhatsAppClient"/> and records the outcome (Meta id, or the
-/// refusal). Checked again at the time of sending: a bot message is dropped when an agent took the conversation over
-/// since it was queued (the last message of a hand-over by the bot itself still leaves), a free-form message when the
-/// 24-hour window closed meanwhile (an outbox retry hours later), and a booking notification when the person withdrew the
-/// WhatsApp consent (or was anonymized) since it was queued.
+/// refusal). Checked again at the time of sending: nothing leaves for an agency suspended or whose WhatsApp module was
+/// switched off meanwhile (ADR-0067), a bot message is dropped when an agent took the conversation over since it was
+/// queued (the last message of a hand-over by the bot itself still leaves), a free-form message when the 24-hour window
+/// closed meanwhile (an outbox retry hours later), and a booking notification when the person withdrew the WhatsApp
+/// consent (or was anonymized) since it was queued. Run in a scope working for the agency of the message.
 /// </summary>
 /// <remarks>
 /// <para>At most once: the message is marked <see cref="MessageStatus.Sending"/> and saved before the Graph API is
@@ -29,6 +32,7 @@ internal sealed partial class OutboundMessageSender(
     IAppDbContext db,
     IWhatsAppClient client,
     ICustomersQueries customers,
+    IAgencyDirectory agencies,
     TimeProvider clock,
     ILogger<OutboundMessageSender> logger)
 {
@@ -63,6 +67,10 @@ internal sealed partial class OutboundMessageSender(
         if (!client.IsEnabled)
         {
             message.MarkNotSent(MessagingErrors.Disabled, null, null, now);
+        }
+        else if (!await agencies.HasModuleAsync(message.AgencyId, AgencyModules.WhatsApp, cancellationToken))
+        {
+            message.MarkNotSent(MessagingErrors.ModuleOff, null, null, now);
         }
         else if (message.Author == MessageAuthor.Bot && conversation is { Mode: ConversationMode.Human, HumanAgentId: not null })
         {
@@ -170,16 +178,26 @@ internal sealed partial class OutboundMessageSender(
     private partial void LogChangedMeanwhile(string kind);
 }
 
-/// <summary>Sends each queued outbound message (<see cref="OutboundMessageQueued"/>), in a scope of its own, never replayed in-process.</summary>
+/// <summary>
+/// Sends each queued outbound message (<see cref="OutboundMessageQueued"/>), in a scope of its own working for the agency
+/// of the message, never replayed in-process.
+/// </summary>
 internal sealed class OutboundMessageQueuedHandler(MessagingScopes scopes) : IOutboxHandler<OutboundMessageQueued>
 {
-    public Task HandleAsync(OutboundMessageQueued message, OutboxMessageContext context, CancellationToken cancellationToken)
+    public async Task HandleAsync(OutboundMessageQueued message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
-        return scopes.RunOnceAsync<OutboundMessageSender, MessageStatus?>(
+        if (await scopes.AgencyOfMessageAsync(message.MessageId, cancellationToken) is not { } agencyId)
+        {
+            // Purged meanwhile: nothing to send.
+            return;
+        }
+
+        await scopes.RunOnceAsync<OutboundMessageSender, MessageStatus?>(
             (sender, ct) => sender.SendAsync(message.MessageId, context.Attempt, ct),
             context.CorrelationId,
-            cancellationToken);
+            cancellationToken,
+            agencyId);
     }
 }

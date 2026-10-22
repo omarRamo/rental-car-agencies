@@ -67,6 +67,7 @@ internal sealed partial class ConversationTurns(IAppDbContext db, TimeProvider c
 
         return new ConversationTurn(
             conversation.Id,
+            conversation.AgencyId,
             trigger.Id,
             conversation.WhatsAppNumber,
             conversation.ProfileName,

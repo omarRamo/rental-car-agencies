@@ -3931,6 +3931,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(4)");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ChannelCode")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -3977,6 +3980,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelMessageLog", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("BookingId")
@@ -4038,6 +4044,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OccurredAtUtc");
 
+                    b.HasIndex("AgencyId", "OccurredAtUtc");
+
                     b.HasIndex("ChannelId", "OccurredAtUtc");
 
                     b.ToTable("ChannelMessageLogs", "channels");
@@ -4048,6 +4056,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelPayout", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -4095,6 +4106,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AgencyId", "RecordedAtUtc");
 
                     b.HasIndex("ChannelId", "Year", "Month")
                         .IsUnique();
@@ -4187,6 +4200,8 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AgencyId", "EndDate");
+
                     b.HasIndex("ChannelId", "EndDate");
 
                     b.HasIndex("CategoryId", "SalesChannel", "EndDate");
@@ -4216,6 +4231,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<string>("AcknowledgedBy")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uniqueidentifier");
@@ -4262,6 +4280,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelSyncItem", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Attempts")
@@ -4328,7 +4349,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ChannelId", "CreatedAtUtc");
 
-                    b.HasIndex("Status", "NextAttemptAtUtc");
+                    b.HasIndex("AgencyId", "Status", "NextAttemptAtUtc");
 
                     b.ToTable("ChannelSyncItems", "channels");
 
@@ -4338,6 +4359,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelSyncState", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset?>("LastFullResyncAtUtc")
@@ -5865,6 +5889,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -5915,6 +5942,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("AiCostUsd")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
@@ -5962,7 +5992,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ConversationId");
 
-                    b.HasIndex("OccurredAtUtc");
+                    b.HasIndex("AgencyId", "OccurredAtUtc");
 
                     b.ToTable("AgentTurnRecords", "messaging");
 
@@ -5972,6 +6002,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Messaging.Agent.BotTurnRetry", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Attempts")
@@ -5993,6 +6026,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Messaging.Agent.KnowledgeEntry", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AnswerArabic")
@@ -6064,7 +6100,7 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TopicKey")
+                    b.HasIndex("AgencyId", "TopicKey")
                         .IsUnique();
 
                     b.ToTable("KnowledgeEntries", "messaging");
@@ -6084,6 +6120,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Messaging.BookingNotification", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BookingId")
@@ -6106,10 +6145,10 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAtUtc");
-
                     b.HasIndex("MessageId")
                         .IsUnique();
+
+                    b.HasIndex("AgencyId", "CreatedAtUtc");
 
                     b.HasIndex("BookingId", "Kind")
                         .IsUnique();
@@ -6122,6 +6161,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Messaging.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("BookingId")
@@ -6299,10 +6341,10 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasIndex("PersonId")
                         .HasFilter("[PersonId] IS NOT NULL");
 
-                    b.HasIndex("WhatsAppNumber")
+                    b.HasIndex("AgencyId", "WhatsAppNumber")
                         .IsUnique();
 
-                    b.HasIndex("Status", "LastActivityAtUtc");
+                    b.HasIndex("AgencyId", "Status", "LastActivityAtUtc");
 
                     b.ToTable("Conversations", "messaging");
                 });
@@ -6314,6 +6356,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("AcceptedAtUtc")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Author")
                         .HasColumnType("int");
@@ -6404,11 +6449,11 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAtUtc");
-
                     b.HasIndex("MetaMessageId")
                         .IsUnique()
                         .HasFilter("[MetaMessageId] IS NOT NULL");
+
+                    b.HasIndex("AgencyId", "CreatedAtUtc");
 
                     b.HasIndex("ConversationId", "CreatedAtUtc");
 
@@ -6423,6 +6468,9 @@ namespace CarRental.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CarRental.Domain.Messaging.MessageStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("ErrorCode")
@@ -8618,6 +8666,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelBooking", b =>
                 {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarRental.Domain.Channels.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelId")
@@ -8636,6 +8690,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelPayout", b =>
                 {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarRental.Domain.Channels.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelId")
@@ -8645,6 +8705,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelQuota", b =>
                 {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarRental.Domain.Channels.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelId")
@@ -8663,6 +8729,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarRental.Domain.Channels.ChannelSyncItem", b =>
                 {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarRental.Domain.Channels.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelId")
@@ -8867,8 +8939,32 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Messaging.Agent.KnowledgeEntry", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Messaging.Conversation", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarRental.Domain.Messaging.Message", b =>
                 {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarRental.Domain.Messaging.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")

@@ -8,6 +8,9 @@ public sealed class AgentEntitiesTests
 {
     private static readonly DateTimeOffset Now = new(2027, 6, 20, 9, 0, 0, TimeSpan.Zero);
 
+    /// <summary>The agency of the knowledge base and of the conversations.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
+
     private static readonly AuditActor Manager = new(Guid.CreateVersion7(), "gerant@demo.local", null, null);
 
     private static KnowledgeContent Content(string french = "Pour chaque conducteur : CIN ou passeport, et permis.") =>
@@ -16,19 +19,21 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void A_new_entry_is_a_draft_the_bot_cannot_read()
     {
-        var entry = KnowledgeEntry.CreateDraft(" Documents ", Content(), Now).Value;
+        var entry = KnowledgeEntry.CreateDraft(AgencyId, " Documents ", Content(), Now).Value;
 
         entry.TopicKey.ShouldBe("documents");
+        entry.AgencyId.ShouldBe(AgencyId, "each agency has its own knowledge base");
         entry.IsValidated.ShouldBeFalse();
         entry.IsActive.ShouldBeTrue();
         entry.IsUsableByBot.ShouldBeFalse();
         entry.DomainEvents.ShouldHaveSingleItem().ShouldBeOfType<KnowledgeEntryChanged>();
+        Should.Throw<ArgumentException>(() => KnowledgeEntry.CreateDraft(Guid.Empty, "documents", Content(), Now));
     }
 
     [Fact]
     public void A_validated_entry_reaches_the_bot_until_its_texts_change()
     {
-        var entry = KnowledgeEntry.CreateDraft("documents", Content(), Now).Value;
+        var entry = KnowledgeEntry.CreateDraft(AgencyId, "documents", Content(), Now).Value;
 
         entry.Validate(Manager, Now.AddMinutes(1)).IsSuccess.ShouldBeTrue();
         entry.IsUsableByBot.ShouldBeTrue();
@@ -48,7 +53,7 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void A_deactivated_entry_never_reaches_the_bot_and_keeps_its_validation()
     {
-        var entry = KnowledgeEntry.CreateDraft("documents", Content(), Now).Value;
+        var entry = KnowledgeEntry.CreateDraft(AgencyId, "documents", Content(), Now).Value;
         entry.Validate(Manager, Now);
 
         entry.Deactivate(Now);
@@ -61,7 +66,7 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void An_answer_promising_a_confirmation_cannot_be_validated()
     {
-        var entry = KnowledgeEntry.CreateDraft("confirmation", Content("Votre réservation est confirmée dès le paiement."), Now).Value;
+        var entry = KnowledgeEntry.CreateDraft(AgencyId, "confirmation", Content("Votre réservation est confirmée dès le paiement."), Now).Value;
 
         entry.Validate(Manager, Now).Error.ShouldBe(KnowledgeErrors.ConfirmationPromise);
         entry.IsValidated.ShouldBeFalse();
@@ -75,7 +80,7 @@ public sealed class AgentEntitiesTests
     [InlineData("a")]
     public void A_topic_key_is_lower_snake_case(string? key)
     {
-        KnowledgeEntry.CreateDraft(key, Content(), Now).Error.ShouldBe(KnowledgeErrors.TopicInvalid);
+        KnowledgeEntry.CreateDraft(AgencyId, key, Content(), Now).Error.ShouldBe(KnowledgeErrors.TopicInvalid);
     }
 
     [Fact]
@@ -95,7 +100,7 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void The_answer_follows_the_language_of_the_customer()
     {
-        var entry = KnowledgeEntry.CreateDraft("documents", Content(), Now).Value;
+        var entry = KnowledgeEntry.CreateDraft(AgencyId, "documents", Content(), Now).Value;
 
         entry.AnswerFor(AgentLanguage.English).ShouldStartWith("For each driver");
         entry.AnswerFor(AgentLanguage.Arabic).ShouldStartWith("Pour chaque conducteur", customMessage: "no Arabic text: French");
@@ -105,7 +110,7 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void The_agent_remembers_the_options_of_its_latest_search_and_the_amounts_of_its_tools()
     {
-        var state = AgentConversationState.Start(Guid.CreateVersion7(), Now);
+        var state = AgentConversationState.Start(Guid.CreateVersion7(), AgencyId, Now);
         state.NextOptionPrefix().ShouldBe("A");
 
         state.RecordSearch([Option("A1", 681.4m), Option("A2", 720m)], Now);
@@ -126,7 +131,7 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void Status_lookups_are_limited_and_turns_without_progress_counted()
     {
-        var state = AgentConversationState.Start(Guid.CreateVersion7(), Now);
+        var state = AgentConversationState.Start(Guid.CreateVersion7(), AgencyId, Now);
 
         state.TryRecordStatusLookup(2).ShouldBeTrue();
         state.TryRecordStatusLookup(2).ShouldBeTrue();
@@ -143,11 +148,14 @@ public sealed class AgentEntitiesTests
     [Fact]
     public void A_failed_turn_is_retried_after_a_delay()
     {
-        var retry = BotTurnRetry.For(Guid.CreateVersion7());
+        var retry = BotTurnRetry.For(Guid.CreateVersion7(), AgencyId);
 
         retry.Failed(Now, TimeSpan.FromSeconds(20));
         retry.Failed(Now.AddSeconds(20), TimeSpan.FromMinutes(1));
 
+        retry.AgencyId.ShouldBe(AgencyId);
+        Should.Throw<ArgumentException>(() => BotTurnRetry.For(Guid.CreateVersion7(), Guid.Empty));
+        Should.Throw<ArgumentException>(() => AgentConversationState.Start(Guid.CreateVersion7(), Guid.Empty, Now));
         retry.Attempts.ShouldBe(2);
         retry.LastFailedAtUtc.ShouldBe(Now.AddSeconds(20));
         retry.NextAttemptAtUtc.ShouldBe(Now.AddSeconds(80));
@@ -157,13 +165,16 @@ public sealed class AgentEntitiesTests
     public void A_turn_record_keeps_counts_and_costs_only()
     {
         var record = AgentTurnRecord.Create(
-            Guid.CreateVersion7(), Now, "claude-haiku-5-5", AgentTurnOutcome.Replied, AgentLanguage.French, 2, 1, new ModelTokenUsage(10, 20, 30, 40), 0.0001m, 0m);
+            Guid.CreateVersion7(), AgencyId, Now, "claude-haiku-5-5", AgentTurnOutcome.Replied, AgentLanguage.French, 2, 1, new ModelTokenUsage(10, 20, 30, 40), 0.0001m, 0m);
 
         record.InputTokens.ShouldBe(10);
         record.CacheWriteTokens.ShouldBe(40);
         record.ModelCalls.ShouldBe(2);
+        record.AgencyId.ShouldBe(AgencyId, "a turn counts in the cost reports of the agency of its conversation");
+        Should.Throw<ArgumentException>(() => AgentTurnRecord.Create(
+            Guid.CreateVersion7(), Guid.Empty, Now, null, AgentTurnOutcome.Replied, AgentLanguage.French, 0, 0, ModelTokenUsage.Zero, 0m, 0m));
         Should.Throw<ArgumentOutOfRangeException>(() => AgentTurnRecord.Create(
-            Guid.CreateVersion7(), Now, null, AgentTurnOutcome.Replied, AgentLanguage.French, -1, 0, ModelTokenUsage.Zero, 0m, 0m));
+            Guid.CreateVersion7(), AgencyId, Now, null, AgentTurnOutcome.Replied, AgentLanguage.French, -1, 0, ModelTokenUsage.Zero, 0m, 0m));
     }
 
     private static AgentOption Option(string id, decimal total) =>

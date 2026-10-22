@@ -112,6 +112,26 @@ public sealed class AgentCostTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_cost_reports_count_the_turns_and_files_of_the_agency_only()
+    {
+        var other = Guid.CreateVersion7();
+        var now = _harness.Clock.GetUtcNow();
+        var mine = _harness.Bookings.Add(_harness.World.Agency.Id, _harness.World.Carthage.Id, BookingStatusInfo.Confirmed, now.AddDays(5), now.AddDays(8), null);
+        var theirs = _harness.Bookings.Add(other, Guid.CreateVersion7(), BookingStatusInfo.Confirmed, now.AddDays(5), now.AddDays(8), null);
+        Record(now, AgentTurnOutcome.Replied, input: 1_000, cost: 0.001m);
+        Record(now, AgentTurnOutcome.Replied, input: 9_000, cost: 0.009m, agencyId: other);
+        Conversation("+21698000021", mine.Id, (0.001m, 0m));
+        ConversationOf(other, "+21698000021", theirs.Id, (0.5m, 0m));
+
+        var month = (await _harness.RunAsync<AgentCostQueries, Result<IReadOnlyList<AgentMonthSummary>>>(q => q.MonthlyAsync(1, Ct), Reader())).Value.ShouldHaveSingleItem();
+        var files = (await _harness.RunAsync<AgentCostQueries, Result<PagedResult<AgentBookingCost>>>(q => q.ByBookingAsync(new PageRequest(), Ct), Reader())).Value;
+
+        month.Turns.ShouldBe(1);
+        month.AiCostUsd.ShouldBe(0.001m);
+        files.Items.ShouldHaveSingleItem().BookingId.ShouldBe(mine.Id);
+    }
+
+    [Fact]
     public async Task The_cost_reports_need_the_reports_permission()
     {
         var agent = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent@demo.local", [Permissions.WhatsAppInbox]);
@@ -121,10 +141,13 @@ public sealed class AgentCostTests : IAsyncDisposable
         result.Error.ShouldBe(MessagingErrors.Forbidden);
     }
 
-    /// <summary>A conversation linked to <paramref name="bookingId"/> with one bot turn per (AI, Meta) cost.</summary>
-    private void Conversation(string number, Guid? bookingId, params (decimal Ai, decimal Meta)[] turns)
+    /// <summary>A conversation of the agency linked to <paramref name="bookingId"/> with one bot turn per (AI, Meta) cost.</summary>
+    private void Conversation(string number, Guid? bookingId, params (decimal Ai, decimal Meta)[] turns) =>
+        ConversationOf(_harness.World.Agency.Id, number, bookingId, turns);
+
+    private void ConversationOf(Guid agencyId, string number, Guid? bookingId, params (decimal Ai, decimal Meta)[] turns)
     {
-        var conversation = Domain.Messaging.Conversation.Start(number, null, _harness.Clock.GetUtcNow()).Value;
+        var conversation = Domain.Messaging.Conversation.Start(agencyId, number, null, _harness.Clock.GetUtcNow()).Value;
         conversation.LinkBooking(bookingId);
         foreach (var (ai, meta) in turns)
         {
@@ -134,9 +157,10 @@ public sealed class AgentCostTests : IAsyncDisposable
         _harness.Db.Set<Domain.Messaging.Conversation>().Add(conversation);
     }
 
-    private static UserContextSnapshot Reader() => UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", [Permissions.ReportsRead]);
+    private UserContextSnapshot Reader() =>
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", [Permissions.ReportsRead]) with { AgencyId = _harness.World.Agency.Id };
 
-    private void Record(DateTimeOffset at, AgentTurnOutcome outcome, long input, decimal cost, long cacheRead = 0, decimal meta = 0m) =>
+    private void Record(DateTimeOffset at, AgentTurnOutcome outcome, long input, decimal cost, long cacheRead = 0, decimal meta = 0m, Guid? agencyId = null) =>
         _harness.Db.Set<AgentTurnRecord>().Add(AgentTurnRecord.Create(
-            Guid.CreateVersion7(), at, "claude-haiku-5-5", outcome, AgentLanguage.French, 1, 0, new ModelTokenUsage(input, 50, cacheRead, 0), cost, meta));
+            Guid.CreateVersion7(), agencyId ?? _harness.World.Agency.Id, at, "claude-haiku-5-5", outcome, AgentLanguage.French, 1, 0, new ModelTokenUsage(input, 50, cacheRead, 0), cost, meta));
 }

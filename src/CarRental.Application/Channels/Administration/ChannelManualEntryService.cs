@@ -102,6 +102,13 @@ public sealed class ChannelManualEntryService
             return ChannelsErrors.NotFound;
         }
 
+        // Priced for the agency of the channel, with its own category only.
+        var category = await _fleet.GetCategoryAsync(request.CategoryId, cancellationToken);
+        if (category is null || category.AgencyId != channel.AgencyId)
+        {
+            return ChannelsErrors.RestrictionCategoryNotFound;
+        }
+
         var amounts = Amounts(request, channel.CommissionRate);
         if (amounts.IsFailure)
         {
@@ -173,6 +180,7 @@ public sealed class ChannelManualEntryService
         await _log.RecordAsync(
             new ChannelMessageRecord(
                 context.Id,
+                context.AgencyId,
                 context.Code,
                 ChannelMessageDirection.Inbound,
                 ChannelMessageOperation.ManualEntry,

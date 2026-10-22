@@ -28,11 +28,13 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Application.Channels;
 
 /// <summary>
-/// Channels module (docs/conception/phase-5-canaux.md, ADR-0052 and ADR-0053): channels and their mappings, quotas and
-/// stop-sells applied by the availability engine (<see cref="IChannelAvailabilityPolicy"/> replaced), the adapters
-/// (manual, and the test adapter registered by the infrastructure in Development and Testing; Booking.com once its
-/// format is known), the inbound core with its message log, the outbound queue (debounce, retries, nightly
-/// resynchronization), commissions and reconciliation, and the back office services. Called after the Bookings module.
+/// Channels module (docs/conception/phase-5-canaux.md, ADR-0052 and ADR-0053): channels of each agency and their
+/// mappings, quotas and stop-sells applied by the availability engine (<see cref="IChannelAvailabilityPolicy"/>
+/// replaced), the adapters (manual, and the test adapter registered by the infrastructure in Development and Testing;
+/// Booking.com once its format is known), the inbound core with its message log, the outbound queue (debounce, retries,
+/// nightly resynchronization), commissions and reconciliation, and the back office services. Optional module
+/// <c>Channels</c> of the agencies (ADR-0067): the channels of an agency without it do not answer and are not
+/// synchronized, their data is kept. Called after the Bookings module.
 /// </summary>
 public static class ChannelsModule
 {
@@ -72,14 +74,17 @@ public static class ChannelsModule
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<ChannelAdapterRegistry>(),
             provider.GetRequiredService<ChannelMessageLogger>(),
+            provider.GetRequiredService<IAgencyDirectory>(),
             provider.GetRequiredService<TimeProvider>(),
             provider.GetRequiredService<ILogger<ChannelInboundService>>()));
 
-        // Outbound synchronization.
+        // Outbound synchronization (the channels of the agencies whose channels module is on).
         services.AddScoped<ChannelSyncQueue>();
         services.AddScoped<ChannelSyncPayloads>();
         services.AddScoped(provider => new ChannelSyncDispatcher(
             provider.GetRequiredService<IAppDbContext>(),
+            provider.GetRequiredService<IUserContext>(),
+            provider.GetRequiredService<IAgencyDirectory>(),
             provider.GetRequiredService<ChannelSyncSignal>(),
             provider.GetRequiredService<ChannelSyncQueue>(),
             provider.GetRequiredService<ChannelSyncPayloads>(),

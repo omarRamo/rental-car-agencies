@@ -9,9 +9,10 @@ using CarRental.Domain.Messaging.Agent;
 namespace CarRental.Application.Tests.Messaging.Agent;
 
 /// <summary>
-/// The knowledge base of the agent (<c>/admin/whatsapp/knowledge</c>): only the holders of <c>whatsapp.knowledge</c>
-/// manage it, new answers are drafts, a change sends a validated answer back to draft, a validation is audited and
-/// refused for an answer that promises a confirmation, and the drafts seeded from the FAQ wait for a manager.
+/// The knowledge base of the agent (<c>/admin/whatsapp/knowledge</c>): each agency has its own (ADR-0067), only the
+/// holders of <c>whatsapp.knowledge</c> manage it, new answers are drafts, a change sends a validated answer back to
+/// draft, a validation is audited and refused for an answer that promises a confirmation, and the drafts seeded from the
+/// FAQ for each agency wait for its manager.
 /// </summary>
 public sealed class KnowledgeBaseTests : IAsyncDisposable
 {
@@ -19,9 +20,50 @@ public sealed class KnowledgeBaseTests : IAsyncDisposable
         "caution", "Caution", "caution, dépôt", "La caution est restituée au retour.", "The deposit is returned at drop-off.", null);
 
     private readonly AgentHarness _harness = new();
-    private readonly UserContextSnapshot _manager = AgentHarness.Manager();
+    private readonly UserContextSnapshot _manager;
+
+    public KnowledgeBaseTests() => _manager = AgentHarness.Manager(_harness.World.Agency.Id);
 
     public ValueTask DisposeAsync() => _harness.DisposeAsync();
+
+    [Fact]
+    public async Task Each_agency_has_its_own_knowledge_base_and_the_same_topics()
+    {
+        var other = AgentHarness.Manager(Guid.CreateVersion7());
+
+        var mine = await Service(s => s.CreateAsync(Deposit, Ct));
+        var theirs = await Service(s => s.CreateAsync(Deposit with { AnswerFrench = "Caution de l'autre agence." }, Ct), other);
+
+        mine.IsSuccess.ShouldBeTrue();
+        theirs.IsSuccess.ShouldBeTrue("a topic key is unique within an agency only");
+        _harness.Db.Rows<KnowledgeEntry>().Single(e => e.Id == mine.Value).AgencyId.ShouldBe(_harness.World.Agency.Id);
+        _harness.Db.Rows<KnowledgeEntry>().Single(e => e.Id == theirs.Value).AgencyId.ShouldBe(other.AgencyId!.Value);
+        var list = (await _harness.RunAsync<KnowledgeBaseQueries, Result<PagedResult<KnowledgeEntryItem>>>(q => q.ListAsync(new PageRequest(), Ct), _manager)).Value;
+        list.Items.ShouldHaveSingleItem().Id.ShouldBe(mine.Value);
+    }
+
+    [Fact]
+    public async Task An_answer_is_created_for_the_agency_of_the_operation_only()
+    {
+        var support = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "support@demo.local", RolePresets.PermissionsOf(Roles.Support)) with { AllAgencies = true };
+
+        (await Service(s => s.CreateAsync(Deposit, Ct), support)).Error.ShouldBe(KnowledgeErrors.Forbidden, "the support enters an agency first");
+        (await _harness.RunAsync<KnowledgeBaseQueries, Result<PagedResult<KnowledgeEntryItem>>>(q => q.ListAsync(new PageRequest(), Ct), support))
+            .Error.ShouldBe(KnowledgeErrors.Forbidden);
+        (await Service(s => s.CreateAsync(Deposit, Ct), support with { AgencyId = _harness.World.Agency.Id })).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task The_drafts_of_the_faq_are_seeded_for_each_agency()
+    {
+        var other = Guid.CreateVersion7();
+
+        await new KnowledgeSeeder(_harness.Db, _harness.Clock).InitializeAsync(_harness.World.Agency.Id, Ct);
+        await new KnowledgeSeeder(_harness.Db, _harness.Clock).InitializeAsync(other, Ct);
+
+        _harness.Db.Rows<KnowledgeEntry>().Count(e => e.AgencyId == _harness.World.Agency.Id).ShouldBe(KnowledgeSeeder.Drafts.Count);
+        _harness.Db.Rows<KnowledgeEntry>().Count(e => e.AgencyId == other).ShouldBe(KnowledgeSeeder.Drafts.Count);
+    }
 
     [Fact]
     public async Task A_new_answer_is_a_draft_the_bot_ignores()
@@ -134,7 +176,7 @@ public sealed class KnowledgeBaseTests : IAsyncDisposable
     [Fact]
     public async Task Only_the_holders_of_the_permission_manage_the_knowledge_base()
     {
-        var agent = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent@demo.local", RolePresets.PermissionsOf(Roles.Agent));
+        var agent = UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent@demo.local", RolePresets.PermissionsOf(Roles.Agent)) with { AgencyId = _harness.World.Agency.Id };
         var id = (await Service(s => s.CreateAsync(Deposit, Ct))).Value;
 
         (await Service(s => s.CreateAsync(Deposit with { TopicKey = "depot" }, Ct), agent)).Error.ShouldBe(KnowledgeErrors.Forbidden);
@@ -194,5 +236,5 @@ public sealed class KnowledgeBaseTests : IAsyncDisposable
     private Task<TResult> Service<TResult>(Func<KnowledgeBaseService, Task<TResult>> operation, UserContextSnapshot? actor = null) =>
         _harness.RunAsync(operation, actor ?? _manager);
 
-    private Task SeedAsync() => new KnowledgeSeeder(_harness.Db, _harness.Clock).SeedAsync(Ct);
+    private Task SeedAsync() => new KnowledgeSeeder(_harness.Db, _harness.Clock).InitializeAsync(_harness.World.Agency.Id, Ct);
 }

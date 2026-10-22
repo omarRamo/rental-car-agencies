@@ -1,5 +1,6 @@
 @page "/admin/whatsapp/knowledge"
 @attribute [HasPermission(Permissions.WhatsAppKnowledge)]
+@attribute [RequiresModule(AgencyModules.WhatsApp)]
 @* The knowledge base of the WhatsApp assistant (ADR-0056): the answers it may give on the agency, drafts until a
    manager validates them (audited); a change sends an answer back to draft, a deactivation withdraws it. Only the
    validated and active answers ever reach a customer. *@

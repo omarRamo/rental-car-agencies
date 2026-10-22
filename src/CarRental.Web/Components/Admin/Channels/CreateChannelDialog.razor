@@ -1,5 +1,5 @@
-@* Creation of a channel: agency, code (address of the inbound endpoint), name, adapter, payment mode and commission. *@
-@using CarRental.Application.Referential.Contracts
+@* Creation of a channel of the agency of the session (ADR-0067): code (address of the inbound endpoint), name, adapter,
+   payment mode and commission. *@
 @inject IOperationRunner Runner
 @inject IStringLocalizer<ChannelsResources> L
 @inject IStringLocalizer<SharedResources> Shared
@@ -7,14 +7,6 @@
 <MudDialog>
     <DialogContent>
         <MudGrid Spacing="2">
-            <MudItem xs="12">
-                <MudSelect T="Guid" @bind-Value="_agencyId" Label="@L["Field.Agency"]" ToStringFunc="AgencyName" Required="true" RequiredError="@Shared["Validation.Required"]">
-                    @foreach (var agency in _agencies)
-                    {
-                        <MudSelectItem T="Guid" Value="@agency.Id">@agency.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField T="string" @bind-Value="_code" Label="@L["Field.Code"]" HelperText="@L["Field.Code.Help"]" Required="true"
                               RequiredError="@Shared["Validation.Required"]" MaxLength="ChannelCodes.ChannelCodeMaxLength" autocomplete="off" />
@@ -57,8 +49,6 @@
 </MudDialog>
 
 @code {
-    private IReadOnlyList<AgencyInfo> _agencies = [];
-    private Guid _agencyId;
     private string? _code = "booking-com";
     private string? _name = "Booking.com";
     private ChannelAdapterKind _adapter = ChannelAdapterKind.Manual;
@@ -74,19 +64,15 @@
     [Parameter]
     public IReadOnlyList<ChannelAdapterKind> Adapters { get; set; } = [ChannelAdapterKind.Manual];
 
-    protected override async Task OnInitializedAsync()
-    {
-        _agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencyId = _agencies.FirstOrDefault()?.Id ?? Guid.Empty;
-    }
-
-    private string AgencyName(Guid id) => _agencies.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty;
+    /// <summary>The agency of the session: the channel is created for it.</summary>
+    [Parameter]
+    public Guid AgencyId { get; set; }
 
     private async Task SubmitAsync()
     {
         _busy = true;
         _error = null;
-        var request = new CreateChannelRequest(_agencyId, _code ?? string.Empty, _name ?? string.Empty, SalesChannel.BookingCom, _adapter, _paymentMode, decimal.Round(_commissionPercent / 100m, 4));
+        var request = new CreateChannelRequest(AgencyId, _code ?? string.Empty, _name ?? string.Empty, SalesChannel.BookingCom, _adapter, _paymentMode, decimal.Round(_commissionPercent / 100m, 4));
         var result = await Runner.RunAsync<ChannelAdministrationService, Result<Guid>>((service, ct) => service.CreateAsync(request, ct));
         _busy = false;
         if (result.IsSuccess)

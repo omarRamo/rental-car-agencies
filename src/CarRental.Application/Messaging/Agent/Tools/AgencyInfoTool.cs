@@ -5,10 +5,11 @@ using Microsoft.EntityFrameworkCore;
 namespace CarRental.Application.Messaging.Agent.Tools;
 
 /// <summary>
-/// <c>infos_agence</c>: the answers of the knowledge base <b>validated by a manager</b> that match the subject (topic,
-/// keywords, title; in the customer's language when written), and the facts of the referential (name, address, phone,
-/// opening hours, pick-up places) — plus the deposits of the categories when the subject is the deposit. A draft, a
-/// changed answer not validated again or a deactivated one is never returned: nothing unvalidated reaches a customer.
+/// <c>infos_agence</c>: the answers of the knowledge base of the agency of the conversation <b>validated by its
+/// manager</b> that match the subject (topic, keywords, title; in the customer's language when written), and the facts
+/// of the referential (name, address, phone, opening hours, pick-up places) — plus the deposits of the categories when
+/// the subject is the deposit. A draft, a changed answer not validated again, a deactivated one or an answer of another
+/// agency is never returned: nothing unvalidated reaches a customer.
 /// </summary>
 internal sealed class AgencyInfoTool(IAppDbContext db) : IAgentTool
 {
@@ -49,9 +50,10 @@ internal sealed class AgencyInfoTool(IAppDbContext db) : IAgentTool
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(context);
         var subject = AgentText.ForMatching(arguments.String("sujet"));
+        var agencyId = context.Turn.AgencyId;
         var entries = await db.Set<KnowledgeEntry>()
             .AsNoTracking()
-            .Where(e => e.IsActive && e.IsValidated)
+            .Where(e => e.AgencyId == agencyId && e.IsActive && e.IsValidated)
             .OrderBy(e => e.TopicKey)
             .ToListAsync(cancellationToken);
         var matches = entries

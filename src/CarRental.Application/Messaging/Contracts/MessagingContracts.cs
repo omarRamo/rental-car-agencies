@@ -118,11 +118,13 @@ public sealed record ConversationMessageInfo(
     DateTimeOffset OccurredAtUtc);
 
 /// <summary>
-/// A WhatsApp conversation: the customer's number (E.164) and profile name, the links to a person, payer and rental file
-/// (ids of the Customers and Bookings modules), the mode, the end of the 24-hour window, the need and the usage of the bot.
+/// A WhatsApp conversation of an agency: the customer's number (E.164) and profile name, the links to a person, payer and
+/// rental file (ids of the Customers and Bookings modules), the mode, the end of the 24-hour window, the need and the
+/// usage of the bot.
 /// </summary>
 public sealed record ConversationInfo(
     Guid Id,
+    Guid AgencyId,
     string WhatsAppNumber,
     string? ProfileName,
     Guid? PersonId,

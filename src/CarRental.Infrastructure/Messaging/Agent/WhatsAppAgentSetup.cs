@@ -41,7 +41,6 @@ public static class WhatsAppAgentSetup
                 site.PublicBaseUrl = Uri.TryCreate(configuration["PublicSite:BaseUrl"], UriKind.Absolute, out var baseUrl)
                     ? baseUrl
                     : AiOptionsValidator.IsLocal(environment) ? new Uri("https://localhost:7180/") : null;
-                site.AgencyId = Guid.TryParse(configuration["PublicSite:AgencyId"], out var agencyId) ? agencyId : null;
             })
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<AgentSiteOptions>, AgentSiteOptionsValidator>();

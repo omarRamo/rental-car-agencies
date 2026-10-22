@@ -138,7 +138,7 @@ public sealed class ChannelAvailabilityPolicyTests
     {
         public Engine()
         {
-            Channels = new ChannelWorld(World.AgencyId, World.Clock);
+            Channels = new ChannelWorld(World.AgencyId, World.Clock, World.Fleet);
             Services = World.Services(services => services.Replace(ServiceDescriptor.Singleton<IChannelAvailabilityPolicy>(Channels.Policy())));
         }
 
