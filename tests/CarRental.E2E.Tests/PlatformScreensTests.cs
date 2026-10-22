@@ -287,12 +287,18 @@ public sealed partial class PlatformScreensTests(E2EHost host) : BrowserTest(hos
         await BackOfficeSession.WaitUntilInteractiveAsync(Page);
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Journal de la plateforme");
 
-        await Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Agence" }).ClickAsync();
+        var agency = Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Agence" });
+        await agency.ClickAsync();
         await BackOfficeSession.WaitForOpenPopoverAsync(Page);
         await Page.GetByRole(AriaRole.Option, new PageGetByRoleOptions { Name = agencyName }).ClickAsync();
 
-        // The provisioning of an agency writes many rows at once (its chart of account mappings): its office is searched by type.
-        await Page.GetByLabel("Type d'objet", new PageGetByLabelOptions { Exact = true }).FillAsync("Location");
+        // The provisioning of an agency writes many rows at once (its chart of accounts, its knowledge base…): its office is
+        // searched by type, typed once the render of the chosen agency is done (it would wipe a value typed before).
+        await Expect(agency).ToHaveValueAsync(agencyName);
+        var type = Page.GetByLabel("Type d'objet", new PageGetByLabelOptions { Exact = true });
+        await type.FillAsync("Location");
+        await type.PressAsync("Tab");
+        await Expect(type).ToHaveValueAsync("Location");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Rechercher" }).ClickAsync();
         var created = Page.Locator("tr", new PageLocatorOptions { HasText = "Location" }).Filter(new LocatorFilterOptions { HasText = "entity.created" }).First;
         await Expect(created).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
