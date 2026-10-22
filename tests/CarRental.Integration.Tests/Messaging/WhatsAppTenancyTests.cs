@@ -3,7 +3,11 @@ using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Agent.Knowledge;
+using CarRental.Application.Messaging.Agent.Turns;
+using CarRental.Application.Messaging.Contracts;
 using CarRental.Application.Messaging.Inbox;
+using CarRental.Application.Referential.Contracts;
+using CarRental.Application.Referential.Platform;
 using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using CarRental.Domain.Messaging.Agent;
@@ -19,8 +23,9 @@ namespace CarRental.Integration.Tests.Messaging;
 
 /// <summary>
 /// The WhatsApp data of each agency stays its own (ADR-0067), on SQL Server: the platform's number serves the configured
-/// agency, the inbox and the knowledge base of an agency never show nor change those of another (the same number or
-/// topic may exist in both), and the WhatsApp screens are refused while the module of the agency is off.
+/// agency — the only one that sends and receives —, the inbox and the knowledge base of an agency never show nor change
+/// those of another (the same number or topic may exist in both), and the WhatsApp screens are refused while the module
+/// of the agency is off.
 /// </summary>
 public sealed class WhatsAppTenancyTests(IntegrationHost host)
 {
@@ -39,6 +44,69 @@ public sealed class WhatsAppTenancyTests(IntegrationHost host)
         var conversation = await WaitForAsync(() => ConversationAsync(host, waId, Ct), c => c is not null, "the conversation", Ct);
         conversation!.AgencyId.ShouldBe(host.DemoAgencyId, "WhatsApp:AgencySlug designates the demo agency");
         (await MessagesAsync(host, conversation.Id, Ct)).ShouldAllBe(m => m.AgencyId == host.DemoAgencyId);
+
+        // One rule for both directions: WhatsApp is open for the served agency only.
+        await using var scope = host.CreateScope();
+        var number = scope.ServiceProvider.GetRequiredService<IWhatsAppNumber>();
+        (await number.ServedAgencyAsync(Ct)).ShouldBe(host.DemoAgencyId);
+        (await number.ServesAsync(other, Ct)).ShouldBeFalse("its module is on, but its customers' replies would reach the demo agency");
+        (await number.OutlookAsync(other, Ct)).ShouldBe(WhatsAppNumberOutlook.ServesAnotherAgency);
+    }
+
+    [Fact]
+    public async Task An_agency_with_the_module_on_that_the_number_does_not_serve_sends_nothing_and_gets_no_bot_turn()
+    {
+        var other = await NewAgencyAsync("Muette");
+        await TestModules.EnableAsync(host.Factory.Services, other, AgencyModules.WhatsApp, Ct);
+        var waId = NewWaId();
+        var theirs = await ConversationOfAsync(other, "+" + waId, "Bonjour, vous êtes là ?");
+        var agent = TestActors.Staff(other, Roles.Agent);
+
+        // The queue of the bot turns (read as the executor does, across agencies) leaves its customer's message waiting.
+        var due = await RunAsync<IBotTurnQueue, IReadOnlyList<Guid>>(
+            UserContextSnapshot.System("system:whatsapp"),
+            q => q.DueAsync(new BotTurnOptions { QuietPeriod = TimeSpan.Zero }, [], 10_000, Ct));
+        due.ShouldNotContain(theirs, "no bot turn for an agency the number does not serve");
+        (await MessagesAsync(host, theirs, Ct)).ShouldHaveSingleItem().BotTurn.ShouldBe(BotTurnState.Pending);
+
+        var takenOver = await RunAsync<WhatsAppInboxService, Result>(agent, s => s.TakeOverAsync(theirs, Ct));
+        var replied = await RunAsync<WhatsAppInboxService, Result>(agent, s => s.SendTextAsync(theirs, "Bonjour, ici l'agence.", Ct));
+        var overview = await RunAsync<WhatsAppInboxQueries, Result<InboxOverview>>(agent, q => q.GetOverviewAsync(Ct));
+
+        takenOver.IsSuccess.ShouldBeTrue("its history stays workable");
+        replied.Error.ShouldBe(MessagingErrors.NumberNotServed);
+        overview.Value.IsServed.ShouldBeFalse("the inbox says so and disables the composer");
+        host.Factory.WhatsApp.SentTo(waId).ShouldBeEmpty();
+        (await MessagesAsync(host, theirs, Ct)).ShouldHaveSingleItem("nothing is recorded");
+
+        // The served agency answers as before.
+        var ourWaId = NewWaId();
+        using var client = host.CreateClient();
+        (await PostAsync(client, Text(ourWaId, "Bonjour, une voiture ?"), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var ours = await WaitForAsync(() => ConversationAsync(host, ourWaId, Ct), c => c is not null, "the conversation", Ct);
+        var ourAgent = Agent(host);
+        (await RunAsync<WhatsAppInboxService, Result>(ourAgent, s => s.TakeOverAsync(ours!.Id, Ct))).IsSuccess.ShouldBeTrue();
+        (await RunAsync<WhatsAppInboxService, Result>(ourAgent, s => s.SendTextAsync(ours!.Id, "Bonjour, ici Tunis.", Ct))).IsSuccess.ShouldBeTrue();
+        (await RunAsync<WhatsAppInboxQueries, Result<InboxOverview>>(ourAgent, q => q.GetOverviewAsync(Ct))).Value.IsServed.ShouldBeTrue();
+        await WaitForAsync(() => Task.FromResult(host.Factory.WhatsApp.SentTo(ourWaId)), list => list.Count > 0, "the reply of the served agency", Ct);
+    }
+
+    [Fact]
+    public async Task The_platform_page_of_an_agency_says_which_agency_the_number_serves()
+    {
+        var other = await NewAgencyAsync("Fiche");
+        await using var scope = TestAgencies.PlatformScope(host, await TestAgencies.SupportAsync(host));
+        var platform = scope.ServiceProvider.GetRequiredService<AgencyPlatformService>();
+
+        var theirs = (await platform.GetWhatsAppNumberAsync(other, Ct)).Value;
+        var ours = (await platform.GetWhatsAppNumberAsync(host.DemoAgencyId, Ct)).Value;
+        var switchedOn = await platform.SetModulesAsync(other, AgencyModuleCatalog.Defaults | AgencyModules.WhatsApp, Ct);
+
+        var demo = await scope.ServiceProvider.GetRequiredService<IAgencyDirectory>().FindAsync(host.DemoAgencyId, Ct);
+        theirs.ShouldBe(new PlatformWhatsAppNumber(host.DemoAgencyId, demo!.Name, WhatsAppNumberOutlook.ServesAnotherAgency));
+        ours.Outlook.ShouldBe(WhatsAppNumberOutlook.Serves);
+        switchedOn.IsSuccess.ShouldBeTrue("another agency is designated: allowed, its page warns that it sends and receives nothing");
+        (await scope.ServiceProvider.GetRequiredService<IWhatsAppNumber>().ServesAsync(other, Ct)).ShouldBeFalse();
     }
 
     [Fact]

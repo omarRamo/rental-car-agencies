@@ -13,7 +13,8 @@ namespace CarRental.Application.Messaging.Sending;
 /// <summary>
 /// Sends a queued outbound message through <see cref="IWhatsAppClient"/> and records the outcome (Meta id, or the
 /// refusal). Checked again at the time of sending: nothing leaves for an agency suspended or whose WhatsApp module was
-/// switched off meanwhile (ADR-0067), a bot message is dropped when an agent took the conversation over since it was
+/// switched off meanwhile, nor for an agency the platform's number no longer serves (ADR-0067: the customer's reply
+/// would reach another agency), a bot message is dropped when an agent took the conversation over since it was
 /// queued (the last message of a hand-over by the bot itself still leaves), a free-form message when the 24-hour window
 /// closed meanwhile (an outbox retry hours later), and a booking notification when the person withdrew the WhatsApp
 /// consent (or was anonymized) since it was queued. Run in a scope working for the agency of the message.
@@ -33,6 +34,7 @@ internal sealed partial class OutboundMessageSender(
     IWhatsAppClient client,
     ICustomersQueries customers,
     IAgencyDirectory agencies,
+    WhatsAppNumber whatsAppNumber,
     TimeProvider clock,
     ILogger<OutboundMessageSender> logger)
 {
@@ -71,6 +73,11 @@ internal sealed partial class OutboundMessageSender(
         else if (!await agencies.HasModuleAsync(message.AgencyId, AgencyModules.WhatsApp, cancellationToken))
         {
             message.MarkNotSent(MessagingErrors.ModuleOff, null, null, now);
+        }
+        else if (!await whatsAppNumber.IsOpenAsync(message.AgencyId, cancellationToken))
+        {
+            // The number was given to another agency since the message was queued: it would leave from another agency's number.
+            message.MarkNotSent(MessagingErrors.NumberNotServed, null, null, now);
         }
         else if (message.Author == MessageAuthor.Bot && conversation is { Mode: ConversationMode.Human, HumanAgentId: not null })
         {

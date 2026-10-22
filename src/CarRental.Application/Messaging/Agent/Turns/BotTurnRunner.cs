@@ -34,8 +34,9 @@ public enum BotTurnRunOutcome
 /// whole burst), calls the responder outside any transaction, applies its reply on fresh data (a takeover committed
 /// meanwhile wins). A failure of the responder schedules a retry with a growing delay; after the last attempt the
 /// conversation is handed over to a human with a polite message — a turn is never dropped silently. The state lives in
-/// the database (pending messages, <see cref="BotTurnRetry"/>), so a restart loses nothing. An agency suspended or whose
-/// WhatsApp module is off gets no turn: its messages wait for the module (the queue leaves them out).
+/// the database (pending messages, <see cref="BotTurnRetry"/>), so a restart loses nothing. An agency WhatsApp is not open
+/// for (suspended, module off, or not served by the platform's number) gets no turn: its messages wait (the queue leaves
+/// them out).
 /// </summary>
 public interface IBotTurnRunner
 {
@@ -163,7 +164,7 @@ internal sealed class BotTurnRetries(IAppDbContext db, TimeProvider clock)
 /// <summary>
 /// The queue of the bot turn executor, read from the messages themselves: the conversations with a pending customer
 /// message whose customer has been quiet for <see cref="BotTurnOptions.QuietPeriod"/> and whose retry, if any, is due —
-/// the oldest first —, of the active agencies whose WhatsApp module is on (the others' messages wait for the module).
+/// the oldest first —, of the agency served by the platform's WhatsApp number (the others' messages wait).
 /// </summary>
 internal sealed class BotTurnQueue(IAppDbContext db, MessagingScopes scopes, TimeProvider clock) : IBotTurnQueue
 {

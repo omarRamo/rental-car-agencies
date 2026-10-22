@@ -1,7 +1,5 @@
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
-using CarRental.Application.Referential.Contracts;
-using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +15,7 @@ namespace CarRental.Application.Messaging;
 /// processed (a failed unit of work clears its change tracker), and so that one event of a webhook delivery is committed
 /// at a time.
 /// </summary>
-internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory, IAgencyDirectory agencies, ILogger<MessagingScopes> logger)
+internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory, WhatsAppNumber number, ILogger<MessagingScopes> logger)
 {
     public const string ActorName = "system:whatsapp";
 
@@ -98,13 +96,14 @@ internal sealed partial class MessagingScopes(IServiceScopeFactory scopeFactory,
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    /// <summary>Whether the agency is active with its WhatsApp module on: the background work of the module skips it otherwise.</summary>
-    public Task<bool> IsOpenAsync(Guid agencyId, CancellationToken cancellationToken) =>
-        agencies.HasModuleAsync(agencyId, AgencyModules.WhatsApp, cancellationToken);
+    /// <summary>
+    /// Whether WhatsApp is open for the agency — the platform's number serves it (active, module on, and the routing of
+    /// the inbound messages resolves to it): the work of the module skips it otherwise.
+    /// </summary>
+    public Task<bool> IsOpenAsync(Guid agencyId, CancellationToken cancellationToken) => number.IsOpenAsync(agencyId, cancellationToken);
 
-    /// <summary>The active agencies whose WhatsApp module is on.</summary>
-    public async Task<IReadOnlyList<Guid>> OpenAgenciesAsync(CancellationToken cancellationToken) =>
-        [.. (await agencies.ListAsync(cancellationToken)).Where(a => a.IsActive && a.HasModule(AgencyModules.WhatsApp)).Select(a => a.Id)];
+    /// <summary>The agencies WhatsApp is open for: the one the platform's number serves, if any.</summary>
+    public Task<IReadOnlyList<Guid>> OpenAgenciesAsync(CancellationToken cancellationToken) => number.OpenAgenciesAsync(cancellationToken);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "WhatsApp step {Step} met a concurrent change (attempt {Attempt}, {Conflict}); replayed on fresh data.")]
     private partial void LogReplayed(string step, int attempt, string conflict);

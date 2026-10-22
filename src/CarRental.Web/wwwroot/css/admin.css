@@ -84,6 +84,11 @@
   overflow-wrap: anywhere;
 }
 
+/* A configuration setting quoted in a text (e.g. WhatsApp__AgencyId=<id>): breaks anywhere on a phone. */
+.setting-value {
+  overflow-wrap: anywhere;
+}
+
 /* A MudDatePicker without a value renders an empty, nameless title button in its toolbar (axe: button-name, critical).
    With nothing to show it is useless: hidden until a date is selected. */
 .mud-button-date:has(> .mud-button-label:empty) {
