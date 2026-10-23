@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CarRental.Domain.Referential;
 using CarRental.Web.Components.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,7 +19,7 @@ public sealed partial class EndpointInventoryTests(IntegrationHost host)
     /// <summary>Anonymous endpoints without rate limit, by route pattern, with the reason they need none.</summary>
     private static readonly Dictionary<string, string> Unlimited = new(StringComparer.Ordinal)
     {
-        ["/"] = "redirects to the culture of the browser, no data read",
+        ["/"] = "page of the platform (ADR-0067): fixed texts, no data read",
         ["/culture/set"] = "sets the culture cookie, no data read",
         ["/sitemap.xml"] = "built from the settings, cached one hour",
         ["/robots.txt"] = "built from the settings, cached one hour",
@@ -62,7 +63,7 @@ public sealed partial class EndpointInventoryTests(IntegrationHost host)
     [Fact]
     public void The_inbound_and_public_apis_are_rate_limited()
     {
-        string[] prefixes = ["/api", "/webhooks", "/payments", "/media/categories"];
+        string[] prefixes = ["/api", "/{agency}/api", "/webhooks", "/payments", "/media/categories"];
         var unlimited = Endpoints()
             .Where(e => prefixes.Any(p => Pattern(e).StartsWith(p, StringComparison.OrdinalIgnoreCase)))
             .Where(e => !IsRateLimited(e))
@@ -70,7 +71,30 @@ public sealed partial class EndpointInventoryTests(IntegrationHost host)
             .ToList();
 
         Endpoints().ShouldContain(e => Pattern(e).StartsWith("/webhooks", StringComparison.OrdinalIgnoreCase));
+        Endpoints().ShouldContain(e => Pattern(e).StartsWith("/{agency}/api/public/quotes", StringComparison.Ordinal));
         unlimited.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The first segment of an address is the site of an agency (ADR-0067), unless it is a word of the platform that no
+    /// agency can take (<see cref="AgencySlug.Reserved"/>): a new address at the root that forgot it would hide the site
+    /// of an agency whose address is that word.
+    /// </summary>
+    [Fact]
+    public void Every_address_is_on_the_site_of_an_agency_or_under_a_reserved_word_of_the_platform()
+    {
+        var misplaced = Endpoints()
+            .Select(Pattern)
+            .Where(pattern => pattern != "/" && !StaticFile().IsMatch(pattern) && !pattern.StartsWith("/_", StringComparison.Ordinal) && pattern != "/{**path:file}")
+            .Where(pattern => !pattern.StartsWith("/{agency}", StringComparison.Ordinal)
+                              && !AgencySlug.Reserved.Contains(pattern.Split('/', StringSplitOptions.RemoveEmptyEntries)[0]))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        misplaced.ShouldBeEmpty();
+        Endpoints().Select(Pattern).ShouldContain("/{agency}/{culture:length(2)}/reserver");
+        Endpoints().Select(Pattern).ShouldContain("/{agency}");
     }
 
     private List<RouteEndpoint> Endpoints() =>

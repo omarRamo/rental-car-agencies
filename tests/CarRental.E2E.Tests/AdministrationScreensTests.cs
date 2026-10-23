@@ -10,7 +10,10 @@ using static Microsoft.Playwright.Assertions;
 
 namespace CarRental.E2E.Tests;
 
-/// <summary>Administration screens of the manager on a 10-inch tablet: background messages, users and audit log.</summary>
+/// <summary>
+/// Administration screens on a 10-inch tablet: background messages (support), users, audit log and settings (the values of
+/// the agency for its manager, the platform values for the support, ADR-0067).
+/// </summary>
 public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTest(host)
 {
     protected override ViewportSize Viewport => new() { Width = 1280, Height = 800 };
@@ -18,10 +21,10 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_manager_finds_a_failed_message_and_retries_it()
+    public async Task The_support_finds_a_failed_message_and_retries_it()
     {
         var messageId = await InsertFailedMessageAsync();
-        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), "/admin/outbox");
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Support), "/admin/outbox");
         await BackOfficeSession.WaitUntilInteractiveAsync(Page);
 
         var row = Page.Locator("tr", new PageLocatorOptions { HasText = "E2eUnhandledMessage" });
@@ -67,34 +70,37 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
     }
 
     [Fact]
-    public async Task A_manager_edits_settings_of_every_kind_and_overrides_one_for_the_agency()
+    public async Task A_manager_sets_the_values_of_the_agency_of_every_kind_and_reads_the_platform_values()
     {
-        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), "/admin/settings");
+        var agencyId = await BackOfficeSession.NewAgencyAsync(Host, "Paramètres");
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager, agencyId), "/admin/settings");
         await BackOfficeSession.WaitUntilInteractiveAsync(Page);
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Flotte", Level = 2 })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Agence" })).ToHaveTextAsync("Agence Démo Tunis");
+        await Expect(Page.GetByRole(AriaRole.Combobox, new PageGetByRoleOptions { Name = "Agence" })).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameRegex = PlatformValueLabel() })).ToHaveCountAsync(0);
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
 
         // A setting without label resources shows its key; a text is edited in a text field.
         var motto = SettingRow("tests.motto");
-        await motto.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.motto" }).ClickAsync();
+        await motto.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Définir la valeur de l'agence : tests.motto" }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog);
         await BackOfficeSession.WaitForOpenDialogAsync(Page);
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
         await dialog.GetByLabel("Valeur").FillAsync("Bonjour E2E");
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
         await Expect(Page.GetByText("Paramètre enregistré.")).ToBeVisibleAsync();
-        await Expect(motto.Locator("[data-setting-scope='platform']")).ToContainTextAsync("Bonjour E2E");
+        await Expect(motto.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Bonjour E2E");
+        await Expect(motto.Locator("[data-setting-scope='platform']")).Not.ToContainTextAsync("Bonjour E2E");
 
         // A time range, typed in its two time fields.
         var hours = SettingRow("tests.opening_hours");
-        await hours.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.opening_hours" }).ClickAsync();
+        await hours.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Définir la valeur de l'agence : tests.opening_hours" }).ClickAsync();
         await dialog.GetByLabel("Début").FillAsync("09:00");
         await dialog.GetByLabel("Début").PressAsync("Tab");
         await dialog.GetByLabel("Fin").FillAsync("19:30");
         await dialog.GetByLabel("Fin").PressAsync("Tab");
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
-        await Expect(hours.Locator("[data-setting-scope='platform']")).ToContainTextAsync("09:00 – 19:30");
+        await Expect(hours.Locator("[data-setting-scope='agency']")).ToContainTextAsync("09:00 – 19:30");
 
         // A platform-only setting offers no agency value.
         var retention = SettingRow("outbox.processed_retention");
@@ -114,6 +120,40 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retirer", Exact = true }).ClickAsync();
         await Expect(Page.GetByText("Valeur de l'agence retirée")).ToBeVisibleAsync();
         await Expect(buffer.Locator("[data-setting-scope='agency']")).ToContainTextAsync("Valeur de la plateforme");
+    }
+
+    [Fact]
+    public async Task The_support_edits_and_resets_the_platform_values()
+    {
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Support), "/admin/platform/settings");
+        await BackOfficeSession.WaitUntilInteractiveAsync(Page);
+        await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Paramètres de la plateforme", Level = 1 })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameRegex = AgencyValueLabel() })).ToHaveCountAsync(0);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+
+        var motto = SettingRow("tests.motto");
+        await motto.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.motto" }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog);
+        await BackOfficeSession.WaitForOpenDialogAsync(Page);
+        await Expect(dialog).ToContainTextAsync("toutes les agences");
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+        await dialog.GetByLabel("Valeur").FillAsync("Bonjour la plateforme");
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(motto.Locator("[data-setting-scope='platform']")).ToContainTextAsync("Bonjour la plateforme");
+
+        var hours = SettingRow("tests.opening_hours");
+        await hours.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Modifier la valeur de la plateforme : tests.opening_hours" }).ClickAsync();
+        await dialog.GetByLabel("Début").FillAsync("07:30");
+        await dialog.GetByLabel("Début").PressAsync("Tab");
+        await dialog.GetByLabel("Fin").FillAsync("20:00");
+        await dialog.GetByLabel("Fin").PressAsync("Tab");
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Enregistrer" }).ClickAsync();
+        await Expect(hours.Locator("[data-setting-scope='platform']")).ToContainTextAsync("07:30 – 20:00");
+
+        await hours.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Rétablir la valeur par défaut : tests.opening_hours" }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Rétablir", Exact = true }).ClickAsync();
+        await Expect(Page.GetByText("Valeur par défaut rétablie.")).ToBeVisibleAsync();
+        await Expect(hours.Locator("[data-setting-scope='platform']")).ToContainTextAsync("08:00 – 18:00");
     }
 
     [Fact]
@@ -152,6 +192,9 @@ public sealed partial class AdministrationScreensTests(E2EHost host) : BrowserTe
 
     [GeneratedRegex("valeur de l'agence")]
     private static partial Regex AgencyValueLabel();
+
+    [GeneratedRegex("valeur de la plateforme|valeur par défaut")]
+    private static partial Regex PlatformValueLabel();
 
     /// <summary>The table row of a setting, found by its key.</summary>
     private ILocator SettingRow(string key) =>

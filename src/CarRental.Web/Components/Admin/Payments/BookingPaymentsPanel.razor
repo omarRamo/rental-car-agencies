@@ -204,7 +204,6 @@
     private readonly string _id = Guid.NewGuid().ToString("N")[..8];
     private BookingPayments? _payments;
     private BookingDeposits? _deposits;
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private bool _canManage;
     private bool? _canRead;
     private Guid? _loadedBookingId;
@@ -216,9 +215,13 @@
     [Parameter, EditorRequired]
     public Guid BookingId { get; set; }
 
-    /// <summary>The agency of the booking; without it, the first active agency (a choice is offered when there are several).</summary>
+    /// <summary>The agency of the booking; without it, the agency of the session (the only one whose bookings it sees, ADR-0067).</summary>
     [Parameter]
     public Guid? AgencyId { get; set; }
+
+    /// <summary>The agency of the session (cascaded by the layout).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
 
     /// <summary>Amount proposed when recording a payment, e.g. the balance due at the departure.</summary>
     [Parameter]
@@ -236,7 +239,13 @@
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    private bool CanAct => _canManage && !ReadOnly;
+    private bool CanAct => _canManage && !ReadOnly && TargetAgency is not null;
+
+    /// <summary>The agency the payments and deposits are recorded for.</summary>
+    private Guid? TargetAgency => AgencyId ?? Agency?.Id;
+
+    /// <summary>Cash goes through a cash session: offered while the agency of the session uses the cash module.</summary>
+    private bool CashOffered => Agency?.HasModule(AgencyModules.Cash) ?? false;
 
     /// <summary>Interactive and loaded: the actions respond (used by the browser tests).</summary>
     private bool Ready => RendererInfo.IsInteractive && (_canRead is false || (_payments is not null && _deposits is not null));
@@ -246,13 +255,6 @@
         var user = (await AuthenticationState).User;
         _canRead = user.HasPermission(Permissions.PaymentsRead);
         _canManage = _canRead == true && user.HasPermission(Permissions.PaymentsManage);
-        if (_canRead != true)
-        {
-            return;
-        }
-
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencies = [.. agencies.Where(a => a.IsActive)];
     }
 
     /// <summary>Loads the lists for a new booking only: a re-render of the host with the same booking keeps them.</summary>
@@ -276,11 +278,16 @@
 
     private async Task RecordPaymentAsync()
     {
+        if (TargetAgency is not { } agencyId)
+        {
+            return;
+        }
+
         var parameters = new DialogParameters<RecordPaymentDialog>
         {
             { d => d.BookingId, BookingId },
-            { d => d.AgencyId, AgencyId },
-            { d => d.Agencies, _agencies },
+            { d => d.AgencyId, agencyId },
+            { d => d.CashOffered, CashOffered },
             { d => d.SuggestedAmount, AmountDue },
         };
         var dialog = await Dialogs.ShowAsync<RecordPaymentDialog>(L["RecordPayment.Title"], parameters, PaymentsFormat.Dialog());
@@ -293,11 +300,15 @@
 
     private async Task CreatePaymentLinkAsync()
     {
+        if (TargetAgency is not { } agencyId)
+        {
+            return;
+        }
+
         var parameters = new DialogParameters<PaymentLinkDialog>
         {
             { d => d.BookingId, BookingId },
-            { d => d.AgencyId, AgencyId },
-            { d => d.Agencies, _agencies },
+            { d => d.AgencyId, agencyId },
             { d => d.SuggestedAmount, AmountDue },
         };
         var dialog = await Dialogs.ShowAsync<PaymentLinkDialog>(L["Link.Title"], parameters, PaymentsFormat.Dialog());
@@ -309,7 +320,7 @@
 
     private async Task RefundAsync(PaymentInfo payment)
     {
-        var parameters = new DialogParameters<RefundDialog> { { d => d.Payment, payment } };
+        var parameters = new DialogParameters<RefundDialog> { { d => d.Payment, payment }, { d => d.CashOffered, CashOffered } };
         var dialog = await Dialogs.ShowAsync<RefundDialog>(L["Refund.Title"], parameters, PaymentsFormat.Dialog());
         if (await dialog.Result is { Canceled: false })
         {
@@ -352,11 +363,16 @@
 
     private async Task TakeDepositAsync()
     {
+        if (TargetAgency is not { } agencyId)
+        {
+            return;
+        }
+
         var parameters = new DialogParameters<TakeDepositDialog>
         {
             { d => d.BookingId, BookingId },
-            { d => d.AgencyId, AgencyId },
-            { d => d.Agencies, _agencies },
+            { d => d.AgencyId, agencyId },
+            { d => d.CashOffered, CashOffered },
             { d => d.SuggestedAmount, SuggestedDeposit },
         };
         var dialog = await Dialogs.ShowAsync<TakeDepositDialog>(L["TakeDeposit.Title"], parameters, PaymentsFormat.Dialog());

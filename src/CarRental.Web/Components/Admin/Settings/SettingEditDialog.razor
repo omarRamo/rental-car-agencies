@@ -18,6 +18,11 @@
         {
             <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Platform.Current", SettingText.Display(L, Item.Editor.Kind, Item.PlatformOrDefault)]</MudText>
         }
+        else
+        {
+            @* The platform value (support only, ADR-0067) applies to every agency without a value of its own. *@
+            <MudText Typo="Typo.body2" Class="mb-1">@L["Settings.Dialog.Platform.Scope"]</MudText>
+        }
 
         <div class="mt-4" data-setting-editor="@Item.Editor.Kind">
             @switch (Item.Editor.Kind)
@@ -140,9 +145,10 @@
         var key = Item.Key;
         var value = StoredValue();
         var agencyId = Agency?.Id;
-        var result = await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => agencyId is { } id
-            ? service.SetAgencyValueAsync(key, id, value, ct)
-            : service.SetPlatformValueAsync(key, value, ct));
+        // A platform value is written across agencies, by the support inside an agency too (ADR-0067).
+        var result = agencyId is { } id
+            ? await Runner.RunAsync<SettingsAdministrationService, Result>((service, ct) => service.SetAgencyValueAsync(key, id, value, ct))
+            : await Runner.RunAcrossAgenciesAsync<SettingsAdministrationService, Result>((service, ct) => service.SetPlatformValueAsync(key, value, ct));
         _busy = false;
 
         if (result.IsSuccess)

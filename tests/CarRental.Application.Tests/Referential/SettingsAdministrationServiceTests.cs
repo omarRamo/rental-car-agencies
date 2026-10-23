@@ -43,6 +43,22 @@ public sealed class SettingsAdministrationServiceTests
 
     private SettingsAdministrationService AsManager() => AsRole(Roles.Manager);
 
+    /// <summary>The support: the only one who changes the platform values (ADR-0067).</summary>
+    private SettingsAdministrationService AsSupport() => AsRole(Roles.Support);
+
+    [Fact]
+    public async Task A_manager_sets_the_values_of_the_agency_never_the_platform_values()
+    {
+        var service = AsManager();
+
+        (await service.SetPlatformValueAsync(PreparationBuffer, "03:00:00", Ct)).Error.ShouldBe(SettingErrors.PlatformValueForbidden);
+        (await service.ResetPlatformValueAsync(PreparationBuffer, Ct)).Error.ShouldBe(SettingErrors.PlatformValueForbidden);
+        PlatformRow(PreparationBuffer).Value.ShouldBe("02:00:00");
+        _audit.Events.ShouldBeEmpty();
+
+        (await service.SetAgencyValueAsync(PreparationBuffer, _agency.Id, "03:00:00", Ct)).IsSuccess.ShouldBeTrue();
+    }
+
     [Fact]
     public async Task Only_settings_managers_read_and_change_settings()
     {
@@ -81,7 +97,7 @@ public sealed class SettingsAdministrationServiceTests
     [Fact]
     public async Task A_platform_value_is_validated_by_its_definition_audited_and_drops_the_availability_cache()
     {
-        var service = AsManager();
+        var service = AsSupport();
 
         (await service.SetPlatformValueAsync(PreparationBuffer, "2 h", Ct)).Error.Code.ShouldBe("referential.setting_value_invalid");
         (await service.SetPlatformValueAsync(PreparationBuffer, "400.00:00:00", Ct)).Error.Code.ShouldBe("referential.setting_value_invalid");
@@ -102,7 +118,7 @@ public sealed class SettingsAdministrationServiceTests
     [Fact]
     public async Task Setting_the_current_value_again_changes_nothing()
     {
-        (await AsManager().SetPlatformValueAsync(PreparationBuffer, "02:00:00", Ct)).IsSuccess.ShouldBeTrue();
+        (await AsSupport().SetPlatformValueAsync(PreparationBuffer, "02:00:00", Ct)).IsSuccess.ShouldBeTrue();
 
         _audit.Events.ShouldBeEmpty();
         _availability.AllChangedCalls.ShouldBe(0);
@@ -113,7 +129,7 @@ public sealed class SettingsAdministrationServiceTests
     {
         PlatformRow(WellKnownSettings.VatRate.Key).ChangeValue("0.07");
 
-        (await AsManager().ResetPlatformValueAsync(WellKnownSettings.VatRate.Key, Ct)).IsSuccess.ShouldBeTrue();
+        (await AsSupport().ResetPlatformValueAsync(WellKnownSettings.VatRate.Key, Ct)).IsSuccess.ShouldBeTrue();
 
         PlatformRow(WellKnownSettings.VatRate.Key).Value.ShouldBe("0.19");
         var audit = _audit.Events.ShouldHaveSingleItem();
@@ -126,7 +142,7 @@ public sealed class SettingsAdministrationServiceTests
     {
         _db.Rows<Setting>().Remove(PlatformRow(WellKnownSettings.StampDuty.Key));
 
-        (await AsManager().SetPlatformValueAsync(WellKnownSettings.StampDuty.Key, "0.600", Ct)).IsSuccess.ShouldBeTrue();
+        (await AsSupport().SetPlatformValueAsync(WellKnownSettings.StampDuty.Key, "0.600", Ct)).IsSuccess.ShouldBeTrue();
 
         PlatformRow(WellKnownSettings.StampDuty.Key).Value.ShouldBe("0.600");
         _audit.Events.ShouldHaveSingleItem().Details.ShouldBe("billing.stamp_duty [platform]: — → 0.600");
@@ -193,7 +209,7 @@ public sealed class SettingsAdministrationServiceTests
     [Fact]
     public async Task Undeclared_keys_are_rejected()
     {
-        var service = AsManager();
+        var service = AsSupport();
 
         (await service.SetPlatformValueAsync("unknown.key", "x", Ct)).Error.Code.ShouldBe("referential.setting_unknown");
         (await service.RemoveAgencyValueAsync("unknown.key", _agency.Id, Ct)).Error.Code.ShouldBe("referential.setting_unknown");

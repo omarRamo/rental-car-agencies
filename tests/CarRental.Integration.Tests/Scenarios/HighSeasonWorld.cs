@@ -86,6 +86,9 @@ internal sealed class HighSeasonWorld
 
     public Guid AgencyId { get; private set; }
 
+    /// <summary>The address of the public site of the agency (first segment of its public links).</summary>
+    public string Slug { get; private set; } = string.Empty;
+
     public Guid OfficeId { get; private set; }
 
     public Guid AirportId { get; private set; }
@@ -196,7 +199,10 @@ internal sealed class HighSeasonWorld
                 new DateOnly(1988, 3, 9),
                 Digits(20_000_000, 100_000_000),
                 $"{lastName.ToLowerInvariant()}@clients.test",
-                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, Digits(10_000_000, 100_000_000), "TN", today.AddYears(-5))),
+                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, Digits(10_000_000, 100_000_000), "TN", today.AddYears(-5)))
+            {
+                AgencyId = AgencyId,
+            },
             Ct));
         await OkAsync<ICustomerRegistration, Guid>(Agent, r => r.AddOrReplaceDocumentAsync(
             person.PersonId,
@@ -283,7 +289,7 @@ internal sealed class HighSeasonWorld
     public async Task HoldGuaranteeAsync(FunnelSubmitted request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var confirmation = PublicBookingPaths.Confirmation("fr", request.Number);
+        var confirmation = PublicBookingPaths.Confirmation(Slug, "fr", request.Number);
         var redirect = (await OkAsync<FunnelService, OnlinePaymentRedirect?>(Funnel, f => f.StartGuaranteeAsync(request.BookingId, "fr", confirmation, confirmation, Ct))).ShouldNotBeNull();
         redirect.RedirectUrl.ShouldStartWith(FakeClicToPay.PagePathPrefix);
         var gatewayOrderId = redirect.RedirectUrl[FakeClicToPay.PagePathPrefix.Length..];
@@ -453,6 +459,7 @@ internal sealed class HighSeasonWorld
         db.Set<Location>().AddRange(office, airport);
         await db.SaveChangesAsync(Ct);
         (AgencyId, OfficeId, AirportId) = (agency.Id, office.Id, airport.Id);
+        Slug = agency.Slug;
     }
 
     private async Task<SeasonCategory> CreateCategoryAsync(string code, string name, string example, int order, int vehicles)
@@ -540,8 +547,9 @@ internal sealed class HighSeasonWorld
         return OkAsync<ChannelRestrictionService, Guid>(Manager, s => s.AddAsync(BookingComId, new RestrictionRequest(kind, category.Id, null, from, to, vehicles, note), Ct));
     }
 
+    /// <summary>A staff actor of the scenario, across agencies (see <see cref="Fleet.FleetData.Actor"/>).</summary>
     private static UserContextSnapshot Staff(string role, string email) =>
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), email, RolePresets.PermissionsOf(role), "203.0.113.40", Guid.NewGuid().ToString("N"));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), email, RolePresets.PermissionsOf(role), "203.0.113.40", Guid.NewGuid().ToString("N")) with { AllAgencies = true };
 
     private static string Digits(int from, int to) => RandomNumberGenerator.GetInt32(from, to).ToString(CultureInfo.InvariantCulture);
 

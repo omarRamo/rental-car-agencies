@@ -117,7 +117,7 @@ Le contrat de configuration avec l'application ; aucun secret n'y figure.
 | `Email__AcsEndpoint` | `https://<acs>.<zone>.communication.azure.com` (nom d'hôte de la ressource Communication Services) |
 | `Email__SenderAddress` | `DoNotReply@<guid>.azurecomm.net`, puis `noreply@<domaine de l'agence>` |
 | `Seed__Demo` | `true` en recette, `false` en prod |
-| `Identity__InitialManagerEmail` | paramètre `initialManagerEmail` : si aucun gérant n'existe, ce compte est créé au démarrage sans mot de passe ; le gérant le définit par « mot de passe oublié », puis enrôle sa double authentification |
+| `Identity__InitialSupportEmail` | paramètre `initialSupportEmail` : si aucun compte support n'existe, ce compte (l'exploitant de la plateforme, [ADR-0067](../docs/adr/0067-plateforme-multi-agences-cloisonnement-support-modules.md)) est créé au démarrage sans mot de passe ; il le définit par « mot de passe oublié », enrôle sa double authentification, puis crée les agences et invite leurs gérants |
 | `HostFiltering__CustomDomains` | paramètre `customDomains` (`www.agence.tn;agence.tn`) : l'application n'accepte que `*.azurewebsites.net`, `localhost` et ces domaines (réponse 400 sinon, sauf `/health*`) |
 | `ReverseProxy__TrustCloudflareHeader` | `true` seulement avec `restrictToCloudflare` : l'adresse du client (limitation de débit, journal d'audit) est alors lue dans `CF-Connecting-IP`, qu'aucun client ne peut plus forger ; `false` sinon, adresse de connexion ([section 8](#8-cloudflare-devant-lapp-service)) |
 | `PublicSite__BaseUrl` | paramètre `publicSiteBaseUrl`, par défaut `https://<webApp>.azurewebsites.net` (liens absolus des e-mails, sitemap, liens profonds) |
@@ -342,7 +342,7 @@ az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoUserPassw
 az keyvault secret set --vault-name "<keyVaultName>" --name "Seed--DemoAuthenticatorKey" --file ./demo-totp-key.txt
 ```
 
-**Production : premier gérant.** Ne pas activer `Seed__Demo`. Renseigner `initialManagerEmail` au déploiement Bicep : au premier démarrage sans gérant, ce compte est créé sans mot de passe ; utiliser « mot de passe oublié » sur `/account/forgot-password`, puis enrôler l'application d'authentification (la double authentification est obligatoire pour accéder à `/admin`).
+**Production : premier compte support.** Ne pas activer `Seed__Demo`. Renseigner `initialSupportEmail` au déploiement Bicep : au premier démarrage sans compte support, ce compte est créé sans mot de passe ; utiliser « mot de passe oublié » sur `/account/forgot-password`, puis enrôler l'application d'authentification (la double authentification est obligatoire pour accéder à `/admin`). Le support crée ensuite chaque agence depuis `/admin/platform` (adresse de sa vitrine, modules, premier gérant invité par e-mail).
 
 ### 5.8 Premier déploiement de l'application
 
@@ -407,7 +407,7 @@ Le plan F1 n'accepte pas de domaine personnalisé : la recette reste sur `*.azur
    - dans GitHub, environnement `prod` : variable `HEALTHCHECK_BASE_URL` = `https://www.<domaine>` (sinon la vérification après déploiement, faite sur `*.azurewebsites.net`, recevrait un 403) ;
    - dans `main.prod.bicepparam` : `restrictToCloudflare = true`, puis redéployer l'infrastructure (étape 5.3). Le site principal n'accepte plus que les plages de `cloudflareIpRanges` (une règle d'autorisation par plage, refus implicite de tout le reste, réponse 403) et `ReverseProxy__TrustCloudflareHeader` passe à `true` (l'application redémarre) ;
    - le site SCM garde ses propres règles, ouvertes (`scmIpSecurityRestrictionsUseMain = false`) : le déploiement zip depuis GitHub, authentifié par Entra, continue de fonctionner ; le contrôle de santé d'App Service est interne à la plateforme et n'est pas soumis aux restrictions ;
-   - vérifier : `curl -sI https://<webAppHostName>/` répond 403, `curl -sI https://www.<domaine>/fr` répond 200, `https://www.<domaine>/health/ready` répond 200.
+   - vérifier : `curl -sI https://<webAppHostName>/` répond 403, `curl -sI https://www.<domaine>/<adresse-de-l-agence>/fr` répond 200, `https://www.<domaine>/health/ready` répond 200.
 
    **Plages de Cloudflare.** Le paramètre `cloudflareIpRanges` reprend les listes publiées sur <https://www.cloudflare.com/ips-v4> et <https://www.cloudflare.com/ips-v6> (aussi `https://api.cloudflare.com/client/v4/ips`), relevées le 21/10/2026 : 15 plages IPv4 et 7 IPv6. Cloudflare annonce ses changements à l'avance ; comparer une fois par trimestre (`curl -s https://www.cloudflare.com/ips-v4; curl -s https://www.cloudflare.com/ips-v6`), mettre à jour le paramètre et redéployer. Une plage manquante se voit par des 403 pour une partie des visiteurs (runbook, « Cloudflare et DNS »).
 

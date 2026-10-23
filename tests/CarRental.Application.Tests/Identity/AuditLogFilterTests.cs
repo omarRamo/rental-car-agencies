@@ -48,6 +48,24 @@ public sealed class AuditLogFilterTests
     }
 
     [Fact]
+    public void Agency_filter_keeps_the_entries_of_one_agency_or_of_the_platform()
+    {
+        var (tunis, sousse) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        AuditLog[] logs =
+        [
+            AuditLog.Record(Day, new AuditActor(null, "gerant@demo.local", null, "a1"), AuditActions.LoginSucceeded, agencyId: tunis),
+            AuditLog.Record(Day, new AuditActor(null, "gerant.sousse@demo.local", null, "a2"), AuditActions.LoginSucceeded, agencyId: sousse),
+            AuditLog.Record(Day, AuditActor.System("system:outbox"), AuditActions.EntityCreated),
+        ];
+        List<string?> Users(AuditLogFilter filter) => [.. AuditLogQueries.Apply(logs.AsQueryable(), filter).Select(l => l.UserName)];
+
+        Users(new AuditLogFilter { AgencyId = sousse }).ShouldBe(["gerant.sousse@demo.local"]);
+        Users(new AuditLogFilter { PlatformOnly = true }).ShouldBe(["system:outbox"]);
+        Users(new AuditLogFilter { PlatformOnly = true, AgencyId = tunis }).ShouldBe(["system:outbox"], "the platform choice wins");
+        Users(new AuditLogFilter()).Count.ShouldBe(3);
+    }
+
+    [Fact]
     public void Entity_and_correlation_filters_are_exact()
     {
         Actions(new AuditLogFilter { EntityType = "User", EntityId = "2" }).ShouldBe([AuditActions.LoginFailed]);

@@ -52,6 +52,7 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<CircuitHandler, UserContextCircuitHandler>();
         services.AddScoped<RequestOrigin>();
         services.AddScoped<IOperationRunner, OperationRunner>();
+        services.AddScoped<CarRental.Web.Components.Admin.Shared.CurrentAgency>();
         services.AddScoped<AppUrls>();
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();
         services.AddFleetWeb();
@@ -167,6 +168,7 @@ internal static class WebServiceCollectionExtensions
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         services.AddSingleton<IAuthorizationHandler, MfaAuthorizationHandler>();
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationHandler, ModuleAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationResultHandler>();
     }
 

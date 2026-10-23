@@ -19,6 +19,9 @@ public sealed class ConcurrencyTests(IntegrationHost host)
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    /// <summary>The agency of the counters drawn by these tests (counters are per agency, type and year).</summary>
+    private static readonly Guid TestAgency = Guid.CreateVersion7();
+
     /// <summary>Each test uses its own fiscal years: counters are shared by the whole database.</summary>
     private static int UniqueYear() => Interlocked.Increment(ref _nextYear);
 
@@ -113,11 +116,11 @@ public sealed class ConcurrencyTests(IntegrationHost host)
                 {
                     for (var i = 0; i < 3; i++)
                     {
-                        numbers.Add((await generator.NextAsync(DocumentType.Invoice, year, ct)).Value);
+                        numbers.Add((await generator.NextAsync(TestAgency, DocumentType.Invoice, year, ct)).Value);
                     }
 
-                    numbers.Add((await generator.NextAsync(DocumentType.CreditNote, year, ct)).Value);
-                    numbers.Add((await generator.NextAsync(DocumentType.Booking, year, ct)).Value);
+                    numbers.Add((await generator.NextAsync(TestAgency, DocumentType.CreditNote, year, ct)).Value);
+                    numbers.Add((await generator.NextAsync(TestAgency, DocumentType.Booking, year, ct)).Value);
                     return Result.Success();
                 },
                 cancellationToken: Ct);
@@ -153,7 +156,7 @@ public sealed class ConcurrencyTests(IntegrationHost host)
         await using var scope = host.CreateScope();
         var generator = scope.ServiceProvider.GetRequiredService<IDocumentNumberGenerator>();
 
-        await Should.ThrowAsync<InvalidOperationException>(() => generator.NextAsync(DocumentType.Invoice, UniqueYear(), Ct));
+        await Should.ThrowAsync<InvalidOperationException>(() => generator.NextAsync(TestAgency, DocumentType.Invoice, UniqueYear(), Ct));
     }
 
     [Fact]
@@ -210,7 +213,7 @@ public sealed class ConcurrencyTests(IntegrationHost host)
                 {
                     attempts++;
                     (await availabilityLock.AcquireAsync(categoryId, cancellationToken: ct)).IsSuccess.ShouldBeTrue();
-                    number = (await generator.NextAsync(DocumentType.Invoice, year, ct)).Value;
+                    number = (await generator.NextAsync(TestAgency, DocumentType.Invoice, year, ct)).Value;
                     db.Set<Agency>().Add(Agency.Register(new AgencyDetails(agencyName, "Sousse")).Value);
                     if (attempts == 1)
                     {
@@ -239,7 +242,7 @@ public sealed class ConcurrencyTests(IntegrationHost host)
         await unitOfWork.ExecuteAsync(
             async ct =>
             {
-                number = (await generator.NextAsync(DocumentType.Invoice, year, ct)).Value;
+                number = (await generator.NextAsync(TestAgency, DocumentType.Invoice, year, ct)).Value;
                 return commit ? Result.Success() : Result.Failure(Error.Conflict("tests.rollback", "Rollback."));
             },
             cancellationToken: Ct);

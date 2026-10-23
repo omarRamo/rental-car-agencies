@@ -7,16 +7,21 @@ namespace CarRental.Application.Customers.Contracts;
 /// web funnel and "compléter mon dossier". Every method requires <c>customers.manage</c> (the system actor has it),
 /// except <see cref="RecordRentalClosedAsync"/>, a technical signal of the Bookings module.
 /// </summary>
+/// <remarks>
+/// Customers belong to an agency (ADR-0067): a new person, payer or staged image is registered for the agency the
+/// request names (<c>AgencyId</c>), else for the agency of the operation (<c>customers.agency_required</c> without
+/// either); persons are only ever found again among the customers of that agency.
+/// </remarks>
 public interface ICustomerRegistration
 {
     /// <summary>
     /// Finds the person again — same current document (type, country, number) first, then same phone or same e-mail
-    /// with the same name — or creates it (ADR-0027). A found person only gets its missing details filled in (never
-    /// overwritten) and the document added when it had none of that type.
+    /// with the same name, among the persons of the agency — or creates it (ADR-0027). A found person only gets its
+    /// missing details filled in (never overwritten) and the document added when it had none of that type.
     /// </summary>
     Task<Result<PersonRegistrationResult>> FindOrCreatePersonAsync(PersonRegistrationRequest request, CancellationToken cancellationToken = default);
 
-    /// <summary>The individual payer of a person, created on first use. Returns the customer id.</summary>
+    /// <summary>The individual payer of a person (in the agency of the person), created on first use. Returns the customer id.</summary>
     Task<Result<Guid>> GetOrCreateIndividualCustomerAsync(Guid personId, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -53,10 +58,12 @@ public interface ICustomerRegistration
 
     /// <summary>
     /// Public pages (ADR-0050): keeps aside an image uploaded by a visitor before its submission — real format (JPEG,
-    /// PNG, PDF) checked on the content, 10 MB at most, stored privately under an identifier. It is used once by
-    /// <see cref="RegisterSubmittedDriverAsync"/> or <see cref="SubmitDocumentImageAsync"/>, otherwise deleted after a day.
+    /// PNG, PDF) checked on the content, 10 MB at most, stored privately under an identifier — for the agency
+    /// <paramref name="agencyId"/> (the agency of the operation when <see langword="null"/>). It is used once by
+    /// <see cref="RegisterSubmittedDriverAsync"/> or <see cref="SubmitDocumentImageAsync"/> for that agency, otherwise
+    /// deleted after a day.
     /// </summary>
-    Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default);
+    Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, Guid? agencyId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Public request (ADR-0050): registers a driver submitted by a visitor. When nobody matches (same rules as

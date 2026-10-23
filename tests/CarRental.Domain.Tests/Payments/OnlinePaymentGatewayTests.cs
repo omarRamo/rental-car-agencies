@@ -360,6 +360,7 @@ public sealed class OnlinePaymentGatewayTests
     public void The_call_log_keeps_structured_non_sensitive_fields_cut_to_their_length()
     {
         var paymentId = Guid.CreateVersion7();
+        var agencyId = Guid.CreateVersion7();
 
         var log = GatewayCallLog.Record(new GatewayCallLogEntry(
             GatewayOperation.GetOrderStatusExtended,
@@ -373,17 +374,23 @@ public sealed class OnlinePaymentGatewayTests
             GatewayErrorMessage: new string('m', 300),
             OrderStatus: 1,
             ActionCode: "-2007",
-            CorrelationId: new string('c', 100)));
+            CorrelationId: new string('c', 100)),
+            agencyId);
 
         log.PaymentId.ShouldBe(paymentId);
+        log.AgencyId.ShouldBe(agencyId, "the agency of the payment of the order");
         log.OrderNumber.ShouldBe(paymentId.ToString("N"));
         log.GatewayErrorCode.ShouldBe("6");
         log.GatewayErrorMessage!.Length.ShouldBe(GatewayCallLog.ErrorMessageMaxLength);
         log.CorrelationId!.Length.ShouldBe(GatewayCallLog.CorrelationIdMaxLength);
         log.DurationMilliseconds.ShouldBe(0);
         log.ActionCode.ShouldBe("-2007");
-        GatewayCallLog.Record(new GatewayCallLogEntry(GatewayOperation.Register, "not-an-id", GatewayCallOutcome.Succeeded, Now, TimeSpan.Zero)).PaymentId.ShouldBeNull();
+        var foreign = GatewayCallLog.Record(new GatewayCallLogEntry(GatewayOperation.Register, "not-an-id", GatewayCallOutcome.Succeeded, Now, TimeSpan.Zero), agencyId: null);
+        foreign.PaymentId.ShouldBeNull();
+        foreign.AgencyId.ShouldBeNull("a call for no payment of ours is a record of the platform");
         Should.Throw<ArgumentOutOfRangeException>(() =>
-            GatewayCallLog.Record(new GatewayCallLogEntry((GatewayOperation)0, "x", GatewayCallOutcome.Succeeded, Now, TimeSpan.Zero)));
+            GatewayCallLog.Record(new GatewayCallLogEntry((GatewayOperation)0, "x", GatewayCallOutcome.Succeeded, Now, TimeSpan.Zero), agencyId));
+        Should.Throw<ArgumentException>(() =>
+            GatewayCallLog.Record(new GatewayCallLogEntry(GatewayOperation.Register, "x", GatewayCallOutcome.Succeeded, Now, TimeSpan.Zero), Guid.Empty));
     }
 }

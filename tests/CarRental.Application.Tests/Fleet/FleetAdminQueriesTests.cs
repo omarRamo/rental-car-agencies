@@ -180,13 +180,15 @@ public sealed class FleetAdminQueriesTests
         directory.Add("gerant@demo.local", Roles.Manager);
         directory.Add("locked@demo.local", Roles.Manager, locked: true);
         directory.Add("agent@demo.local", Roles.Agent);
+        directory.AddTo(Guid.CreateVersion7(), "gerant@autre-agence.local", Roles.Manager);
         var queries = new IdentityQueries(directory);
 
-        var managers = await queries.GetActiveUsersInRoleAsync(Roles.Manager, Ct);
+        var managers = await queries.GetActiveUsersInRoleAsync(TestUsers.AgencyId, Roles.Manager, Ct);
 
         managers.ShouldHaveSingleItem().Email.ShouldBe("gerant@demo.local");
-        (await queries.GetActiveUsersInRoleAsync(Roles.Preparer, Ct)).ShouldBeEmpty();
-        await Should.ThrowAsync<ArgumentException>(() => queries.GetActiveUsersInRoleAsync(" ", Ct));
+        (await queries.GetActiveUsersInRoleAsync(TestUsers.AgencyId, Roles.Preparer, Ct)).ShouldBeEmpty();
+        await Should.ThrowAsync<ArgumentException>(() => queries.GetActiveUsersInRoleAsync(TestUsers.AgencyId, " ", Ct));
+        await Should.ThrowAsync<ArgumentException>(() => queries.GetActiveUsersInRoleAsync(Guid.Empty, Roles.Manager, Ct));
     }
 
     [Fact]
@@ -198,7 +200,7 @@ public sealed class FleetAdminQueriesTests
             directory.Add($"gerant{i:D3}@demo.local", Roles.Manager);
         }
 
-        (await new IdentityQueries(directory).GetActiveUsersInRoleAsync(Roles.Manager, Ct)).Count.ShouldBe(PageRequest.MaxPageSize + 5);
+        (await new IdentityQueries(directory).GetActiveUsersInRoleAsync(TestUsers.AgencyId, Roles.Manager, Ct)).Count.ShouldBe(PageRequest.MaxPageSize + 5);
     }
 
     [Fact]

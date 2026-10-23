@@ -40,16 +40,23 @@ public sealed class HandoverQueries
         _balances = balances;
     }
 
-    /// <summary>The active agencies the screen can show (the first one by default).</summary>
-    public async Task<Result<IReadOnlyList<AgencyInfo>>> GetAgenciesAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The agency the screen shows: the agency of the session (ADR-0067); <c>booking.agency_required</c> outside any agency.
+    /// </summary>
+    public async Task<Result<AgencyInfo>> GetCurrentAgencyAsync(CancellationToken cancellationToken = default)
     {
         if (!_store.User.HasPermission(Permissions.HandoversManage))
         {
             return BookingErrors.Forbidden;
         }
 
-        var agencies = await _referential.GetAgenciesAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<AgencyInfo>>([.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.Ordinal)]);
+        if (_store.User.AgencyId is not { } agencyId)
+        {
+            return BookingErrors.AgencyRequired;
+        }
+
+        var agency = (await _referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId);
+        return agency is null ? BookingErrors.AgencyRequired : agency;
     }
 
     /// <summary>The departures and returns of an agency on a Tunis day, and every late return, with their readiness.</summary>

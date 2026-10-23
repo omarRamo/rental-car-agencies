@@ -50,7 +50,9 @@ public sealed class BookingsQueriesTests
         files[0].Roles.ShouldBe([BookingPartyRoleInfo.SecondaryDriver]);
         files[1].Roles.ShouldBe([BookingPartyRoleInfo.MainDriver, BookingPartyRoleInfo.Payer]);
         files[1].CategoryCode.ShouldBe("ECMR");
-        (await harness.Queries.FindByNumberAsync(" loc-2027-000001 ", Ct)).ShouldNotBeNull().Id.ShouldBe(own.Id);
+        (await harness.Queries.FindByNumberAsync(harness.AgencyId, " loc-2027-000001 ", Ct)).ShouldNotBeNull().Id.ShouldBe(own.Id);
+        (await harness.Queries.FindByNumberAsync(null, "LOC-2027-000001", Ct)).ShouldNotBeNull("in the agency of the operation").Id.ShouldBe(own.Id);
+        (await harness.Queries.FindByNumberAsync(Guid.CreateVersion7(), "LOC-2027-000001", Ct)).ShouldBeNull("a number is unique within an agency only");
         (await harness.Queries.GetSummaryAsync(own.Id, Ct)).ShouldNotBeNull().Status.ShouldBe(BookingStatusInfo.Confirmed);
     }
 

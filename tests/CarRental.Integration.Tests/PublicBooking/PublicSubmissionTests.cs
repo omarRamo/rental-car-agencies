@@ -6,6 +6,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Administration;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Integration.Tests.Bookings;
+using CarRental.Integration.Tests.Support;
 using CarRental.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Public.PublicTestData;
@@ -33,8 +34,8 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
 
         using var visitor = Create(host.Factory);
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={LocalDate(91)}&retour={LocalDate(94)}", "ECMR", Ct);
-        var drivers = $"/fr/reserver/{token}/conducteurs";
-        (await visitor.UploadAsync(drivers, $"/fr/reserver/{token}/pieces", "main.identity.front", Visitor.Jpeg, "image/jpeg", Ct)).Status.ShouldBe(HttpStatusCode.OK);
+        var drivers = $"/agence-demo-tunis/fr/reserver/{token}/conducteurs";
+        (await visitor.UploadAsync(drivers, $"/agence-demo-tunis/fr/reserver/{token}/pieces", "main.identity.front", Visitor.Jpeg, "image/jpeg", Ct)).Status.ShouldBe(HttpStatusCode.OK);
         var typedEmail = $"other.{suffix.ToLowerInvariant()}@example.test";
         using var saved = await visitor.SubmitAsync(
             drivers,
@@ -53,12 +54,12 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
                 new("consent.documents", "1"),
             ],
             Ct);
-        Location(saved).ShouldBe($"/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
+        Location(saved).ShouldBe($"/agence-demo-tunis/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync(drivers, Ct)));
 
-        using var submitted = await visitor.SubmitAsync($"/fr/reserver/{token}/paiement", [new("terms", "1"), new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
+        using var submitted = await visitor.SubmitAsync($"/agence-demo-tunis/fr/reserver/{token}/paiement", [new("terms", "1"), new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
 
         // Nothing tells the visitor that the document is known: the request goes on to the bank like any other.
-        Location(submitted).ShouldStartWith("/fr/reserver/redirection/");
+        Location(submitted).ShouldStartWith("/agence-demo-tunis/fr/reserver/redirection/");
         var after = await PersonAsync(known);
         after.FirstName.ShouldBe(before.FirstName);
         after.LastName.ShouldBe(before.LastName);
@@ -84,10 +85,11 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
     private static string Snapshot(IdentityDocumentInfo document) =>
         string.Create(CultureInfo.InvariantCulture, $"{document.Type}|{document.Number}|{document.IssuingCountry}|{document.IssuedOn}|{document.ExpiresOn}|{document.HasFrontImage}|{document.HasBackImage}|{document.VerifiedAtUtc}");
 
-    /// <summary>A Tunisian person entered at the counter, CIN and licence verified, with a photo of the licence.</summary>
+    /// <summary>A Tunisian person entered at the counter of the agency of the site, CIN and licence verified, with a photo of the licence.</summary>
     private async Task<Guid> KnownPersonAsync(string suffix, string cin)
     {
         var today = Domain.Common.TunisTime.Today(TimeProvider.System);
+        var siteAgencyId = await TestStaff.DemoAgencyIdAsync(host);
         Guid personId;
         await using (var scope = host.CreateScope(BookingWorld.Agent))
         {
@@ -100,7 +102,10 @@ public sealed class PublicSubmissionTests(IntegrationHost host)
                     new DateOnly(1980, 1, 1),
                     $"+2169{RandomNumberGenerator.GetInt32(1_000_000, 9_999_999)}",
                     $"connue.{suffix.ToLowerInvariant()}@example.test",
-                    Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, cin, "TN", today.AddYears(-5))),
+                    Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, cin, "TN", today.AddYears(-5)))
+                {
+                    AgencyId = siteAgencyId,
+                },
                 Ct);
             person.IsSuccess.ShouldBeTrue(person.IsFailure ? person.Error.ToString() : null);
             personId = person.Value.PersonId;

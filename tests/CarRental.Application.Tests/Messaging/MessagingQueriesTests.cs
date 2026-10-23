@@ -23,8 +23,8 @@ public sealed class MessagingQueriesTests : IAsyncDisposable
         var id = _harness.Conversations.ShouldHaveSingleItem().Id;
 
         var byId = await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.GetConversationAsync(id, Ct));
-        var byNumber = await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync("+21698765432", Ct));
-        var byWaId = await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync(Customer, Ct));
+        var byNumber = await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync(_harness.AgencyId, "+21698765432", Ct));
+        var byWaId = await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync(_harness.AgencyId, Customer, Ct));
         var ofPerson = await _harness.RunAsync<IMessagingQueries, IReadOnlyList<ConversationInfo>>(q => q.GetConversationsOfPersonAsync(personId, Ct));
         var messages = await _harness.RunAsync<IMessagingQueries, IReadOnlyList<ConversationMessageInfo>>(q => q.GetMessagesAsync(id, cancellationToken: Ct));
         var last = await _harness.RunAsync<IMessagingQueries, IReadOnlyList<ConversationMessageInfo>>(q => q.GetMessagesAsync(id, 1, Ct));
@@ -38,6 +38,9 @@ public sealed class MessagingQueriesTests : IAsyncDisposable
         ofPerson.ShouldHaveSingleItem().Id.ShouldBe(id);
         messages.Select(m => (m.Author, m.Text)).ShouldBe([(MessageAuthorInfo.Customer, "Salam"), (MessageAuthorInfo.Bot, "Bonjour !")]);
         last.ShouldHaveSingleItem().Author.ShouldBe(MessageAuthorInfo.Bot);
-        (await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync("not a number", Ct))).ShouldBeNull();
+        (await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync(_harness.AgencyId, "not a number", Ct))).ShouldBeNull();
+        (await _harness.RunAsync<IMessagingQueries, ConversationInfo?>(q => q.FindByNumberAsync(Guid.CreateVersion7(), "+21698765432", Ct)))
+            .ShouldBeNull("a number has a conversation per agency: another agency has none with it");
+        byId.AgencyId.ShouldBe(_harness.AgencyId, "the agency served by the platform's number");
     }
 }

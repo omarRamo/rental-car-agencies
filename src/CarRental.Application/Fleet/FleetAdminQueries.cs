@@ -75,7 +75,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
                  && (status == null ? includeSold || v.Status != VehicleStatus.Sold : v.Status == status),
             VehicleParts.Documents | VehicleParts.MaintenancePlans,
             cancellationToken);
-        var categories = await CategoryLabelsAsync(cancellationToken);
+        var categories = await CategoryLabelsAsync(vehicles, cancellationToken);
         var today = TunisTime.Today(timeProvider);
         var margins = await MarginsAsync(cancellationToken);
         var search = string.IsNullOrWhiteSpace(filter.Search) ? null : filter.Search.Trim();
@@ -126,8 +126,8 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
 
         var category = await db.Set<VehicleCategory>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
-            .Where(c => c.Id == vehicle.CategoryId)
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
+            .Where(c => c.Id == vehicle.CategoryId && c.AgencyId == vehicle.AgencyId)
             .Select(c => new { c.Code, c.Name })
             .FirstOrDefaultAsync(cancellationToken);
         var history = await db.Set<VehicleHistoryEntry>()
@@ -245,7 +245,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
         }
 
         var vehicles = await db.LoadVehiclesAsync(v => v.Status != VehicleStatus.Sold, VehicleParts.Documents, cancellationToken);
-        return Result.Success(DeadlinesOf(vehicles, await CategoryLabelsAsync(cancellationToken), TunisTime.Today(timeProvider), Math.Clamp(horizonDays, 0, 366)));
+        return Result.Success(DeadlinesOf(vehicles, await CategoryLabelsAsync(vehicles, cancellationToken), TunisTime.Today(timeProvider), Math.Clamp(horizonDays, 0, 366)));
     }
 
     public async Task<Result<FleetDashboard>> GetDashboardAsync(CancellationToken cancellationToken = default)
@@ -256,7 +256,7 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
         }
 
         var vehicles = await db.LoadVehiclesAsync(v => v.Status != VehicleStatus.Sold, VehicleParts.Availability, cancellationToken);
-        var alerts = DeadlinesOf(vehicles, await CategoryLabelsAsync(cancellationToken), TunisTime.Today(timeProvider), 30)
+        var alerts = DeadlinesOf(vehicles, await CategoryLabelsAsync(vehicles, cancellationToken), TunisTime.Today(timeProvider), 30)
             .Where(d => d.State != DeadlineState.Ok)
             .ToList();
 
@@ -360,11 +360,22 @@ public sealed class FleetAdminQueries(IAppDbContext db, IUserContext userContext
         ];
     }
 
-    private async Task<Dictionary<Guid, (string Code, string Name)>> CategoryLabelsAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Code and name of the categories of <paramref name="vehicles"/> only, deleted ones included (a vehicle keeps its
+    /// category; the agency filter still applies, ADR-0067).
+    /// </summary>
+    private async Task<Dictionary<Guid, (string Code, string Name)>> CategoryLabelsAsync(IEnumerable<Vehicle> vehicles, CancellationToken cancellationToken)
     {
+        var ids = vehicles.Select(v => v.CategoryId).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
         var categories = await db.Set<VehicleCategory>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
+            .Where(c => ids.Contains(c.Id))
             .Select(c => new { c.Id, c.Code, c.Name })
             .ToListAsync(cancellationToken);
         return categories.ToDictionary(c => c.Id, c => (c.Code.Value, c.Name));

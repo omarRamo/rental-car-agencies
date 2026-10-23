@@ -39,7 +39,7 @@ internal sealed class CashAccountingQueries(IAppDbContext db) : ICashAccountingQ
             ? new Dictionary<Guid, string>()
             : await db.Set<Expense>()
                 .AsNoTracking()
-                .IgnoreQueryFilters()
+                .IgnoreQueryFilters([QueryFilters.SoftDelete])
                 .Where(e => expenseIds.Contains(e.Id))
                 .ToDictionaryAsync(e => e.Id, e => e.Number, cancellationToken);
         return

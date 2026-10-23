@@ -18,6 +18,7 @@ Pour le prestataire informatique de l'agence : quoi faire quand une alerte arriv
 - [Clôture mensuelle](#clôture-mensuelle)
 - [Restaurations](#restaurations)
 - [Demandes des personnes](#demandes-des-personnes)
+- [Agences de la plateforme](#agences-de-la-plateforme)
 - [Comptes du personnel](#comptes-du-personnel)
 - [Cloudflare et DNS](#cloudflare-et-dns)
 - [Avant la mise en production](#avant-la-mise-en-production)
@@ -332,9 +333,20 @@ Clients et conducteurs ont un droit d'accès, de rectification et d'opposition (
 - **Purge des images des pièces d'identité** : tâche nocturne `customers.purge_document_images`, **désactivée par défaut** (`customers.document_image_retention_enabled` dans `/admin/settings`, durée `customers.document_image_retention_days`, 400 jours après la dernière location clôturée). Ne l'activer qu'après validation de la procédure de destruction par l'avocat (article 45 : procès-verbal d'huissier en présence d'un expert de l'INPDP). Pour une seule personne, l'anonymisation supprime ses images.
 - **Consultations des pièces** : chaque affichage est dans `audit.DocumentAccessLogs` (qui, quand, quelle pièce, motif) : `/admin/audit` pour répondre à « qui a vu ma pièce ? ».
 
+## Agences de la plateforme
+
+Réservé au support (rôle `Support`, [ADR-0067](adr/0067-plateforme-multi-agences-cloisonnement-support-modules.md)) : pages `/admin/platform`. Une agence ne voit jamais les données d'une autre ; le support travaille sur la plateforme ou dans **une** agence à la fois.
+
+- **Ouvrir une agence** : **« Nouvelle agence »** : nom, ville, adresse de vitrine (proposée depuis le nom, minuscules, chiffres et tirets, unique, jamais un mot réservé comme `admin` ou `api`), modules (WhatsApp et canaux de vente décochés : ils demandent les comptes partenaires de l'agence), e-mail du gérant, qui reçoit une invitation. Le plan de comptes et la base de connaissances de l'agence sont créés avec elle. Le gérant complète ensuite l'identité de vendeur (`/admin/agency`, requise pour facturer), les lieux, la flotte, les tarifs et ses utilisateurs.
+- **Modules** : fiche de l'agence > **« Modules »**. Un module fermé disparaît du menu, ses pages et ses points d'entrée répondent 404 pour l'agence, ses tâches de fond la passent ; ses données sont gardées et reviennent à la réouverture (les mises à jour des canaux en attente partent alors). WhatsApp : le numéro de la plateforme ne sert qu'une agence (un numéro par agence est un point ouvert), et seule l'agence servie envoie et reçoit (notifications, boîte partagée, assistant) ; une autre agence au module ouvert garde son historique mais n'envoie ni ne reçoit rien (alerte sur ses écrans WhatsApp, avertissement journalisé). La fiche de l'agence indique l'agence servie. Désigner l'agence servie par `WhatsApp__AgencyId` (son identifiant ne change jamais ; `WhatsApp__AgencySlug` suit l'adresse de vitrine, qui peut changer ou être reprise, et ne sert plus qu'en dépannage), puis redémarrer ; sans désignation, l'ouverture de WhatsApp à une deuxième agence est refusée. Pour passer le numéro à une autre agence : régler `WhatsApp__AgencyId` sur elle, redémarrer, puis ouvrir son module.
+- **Suspendre une agence** (impayé, fin de contrat) : fiche > **« Suspendre l'agence »**. Sa vitrine répond « introuvable », son personnel ne peut plus se connecter et ses sessions s'arrêtent en une à deux minutes ; ses données et ses tâches de fond continuent. **« Réactiver l'agence »** rend tout.
+- **Aider une agence** : **« Ouvrir »** sur la ligne de l'agence : le back office s'affiche comme pour son gérant, avec un bandeau qui rappelle l'agence ouverte ; **« Quitter l'agence »** pour revenir à la plateforme. Ce que fait le support dans l'agence figure dans le journal d'audit de l'agence. Ne pas garder deux onglets du back office ouverts sur deux agences différentes : recharger un onglet après avoir changé d'agence.
+- **Comptes support** : `/admin/platform/support` ; au moins deux comptes (secours), double authentification enrôlée, codes de récupération en lieu sûr. Paramètres et journal de la plateforme : `/admin/platform/settings` et `/admin/platform/audit`.
+- **Gérant parti ou injoignable** : le support invite un nouveau gérant depuis la fiche de l'agence, puis le gérant verrouille l'ancien compte (voir ci-dessous).
+
 ## Comptes du personnel
 
-Le gérant gère les comptes dans `/admin/users` : **« Nouvel utilisateur »** (invitation par e-mail, le collègue choisit son mot de passe puis enrôle son application d'authentification), rôles, permissions supplémentaires, **« Verrouiller »** / **« Déverrouiller »**. Tout est audité.
+Le gérant gère les comptes de son agence dans `/admin/users` : **« Nouvel utilisateur »** (invitation par e-mail, le collègue choisit son mot de passe puis enrôle son application d'authentification), rôles, permissions supplémentaires, **« Verrouiller »** / **« Déverrouiller »**. Tout est audité.
 
 - **Verrouillé après 5 échecs** : déverrouillage automatique après 15 minutes, ou « Déverrouiller » par le gérant (remet le compteur à zéro) après avoir vérifié que c'est bien le collègue qui s'est trompé (sinon : tentative d'intrusion, voir le journal d'audit `identity.login_failed` et l'adresse).
 - **Mot de passe oublié** : le collègue utilise « Mot de passe oublié ? » sur la page de connexion (lien valable une durée limitée) ; le gérant ne connaît jamais les mots de passe.
@@ -387,7 +399,7 @@ Le gérant gère les comptes dans `/admin/users` : **« Nouvel utilisateur »** 
 - [ ] Domaine derrière Cloudflare (« Full (strict) », WebSockets, pas de « Cache Everything », Rocket Loader désactivé), certificat d'origine lié, `HEALTHCHECK_BASE_URL` renseigné, puis **`restrictToCloudflare = true`** et redéploiement ; `https://<webApp>.azurewebsites.net` répond 403.
 - [ ] `ALERT_EMAILS` défini au déploiement de la production, groupe d'actions testé (un e-mail reçu par chaque destinataire) ; surveillance externe gratuite de `https://www.<domaine>/health` ou test de disponibilité (`availabilityTestUrl`) ; `BUDGET_ALERT_EMAIL` défini.
 - [ ] Secrets dans le Key Vault : Clic to Pay (recette Clic to Pay faite), WhatsApp, Turnstile (et `Turnstile__SiteKey`) ; e-mail sur le domaine de l'agence vérifié (SPF, DKIM, DMARC).
-- [ ] Premier gérant créé (`initialManagerEmail`), double authentification enrôlée et **codes de récupération rangés en lieu sûr** ; un second compte de gérant recommandé (secours) ; aucune donnée de démonstration.
+- [ ] Premier compte support créé (`initialSupportEmail`), double authentification enrôlée et **codes de récupération rangés en lieu sûr** ; un second compte support recommandé (secours) ; chaque agence créée depuis `/admin/platform` avec son gérant invité ; aucune donnée de démonstration.
 - [ ] Verrou « CanNotDelete » sur la base et le compte de stockage de production (README de l'infrastructure, section 5.1).
 - [ ] Une restauration d'essai de la base faite et notée ; ce runbook relu, contacts remplis.
 - [ ] GitHub : environnement `prod` limité à `main`, alertes de sécurité de Dependabot activées, analyse CodeQL disponible (dépôt public ou GitHub Advanced Security).

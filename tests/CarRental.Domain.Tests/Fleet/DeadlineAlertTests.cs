@@ -56,7 +56,7 @@ public sealed class DeadlineAlertTests
         var insurance = vehicle.CurrentDocument(VehicleDocumentType.Insurance)!;
         var sentAt = new DateTimeOffset(2026, 10, 20, 7, 0, 0, TimeSpan.FromHours(1));
 
-        var alert = DeadlineAlert.Record(insurance, AgencyId, DeadlineAlertLevel.Within7Days, sentAt, 2);
+        var alert = DeadlineAlert.Record(insurance, DeadlineAlertLevel.Within7Days, sentAt, 2);
 
         alert.DocumentId.ShouldBe(insurance.Id);
         alert.VehicleId.ShouldBe(vehicle.Id);
@@ -66,7 +66,7 @@ public sealed class DeadlineAlertTests
         alert.Level.ShouldBe(DeadlineAlertLevel.Within7Days);
         alert.SentAtUtc.Offset.ShouldBe(TimeSpan.Zero);
         alert.RecipientCount.ShouldBe(2);
-        Should.Throw<ArgumentOutOfRangeException>(() => DeadlineAlert.Record(insurance, AgencyId, DeadlineAlertLevel.Expired, sentAt, -1));
+        Should.Throw<ArgumentOutOfRangeException>(() => DeadlineAlert.Record(insurance, DeadlineAlertLevel.Expired, sentAt, -1));
     }
 
     [Fact]
@@ -75,6 +75,6 @@ public sealed class DeadlineAlertTests
         var vehicle = NewVehicle();
         var card = vehicle.RecordDocument(new VehicleDocumentDetails(VehicleDocumentType.RegistrationCard, "CG-1", null, null), Stamp()).Value;
 
-        Should.Throw<ArgumentException>(() => DeadlineAlert.Record(card, AgencyId, DeadlineAlertLevel.Expired, Now, 1));
+        Should.Throw<ArgumentException>(() => DeadlineAlert.Record(card, DeadlineAlertLevel.Expired, Now, 1));
     }
 }

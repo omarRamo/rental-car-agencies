@@ -3,10 +3,11 @@ using CarRental.Domain.Common;
 namespace CarRental.Domain.Messaging;
 
 /// <summary>
-/// The WhatsApp conversation with one customer number (one per number, closed and reopened over time): who answers
-/// (the bot, or an agent who took it over), the 24-hour customer service window opened by the customer's last message,
-/// the optional links to a person, a payer and a rental file, the structured need understood by the bot and what the bot
-/// cost so far. Every message is created here, so that the rules of Meta and of the platform always hold:
+/// The WhatsApp conversation of an agency with one customer number (one per agency and number, closed and reopened over
+/// time; a customer may write to two agencies): who answers (the bot, or an agent who took it over), the 24-hour
+/// customer service window opened by the customer's last message, the optional links to a person, a payer and a rental
+/// file, the structured need understood by the bot and what the bot cost so far. Every message is created here, with the
+/// agency of the conversation, so that the rules of Meta and of the platform always hold:
 /// <list type="bullet">
 /// <item>a free-form message (text, interactive) is only sent within 24 hours of the customer's last message; outside,
 /// only an approved template;</item>
@@ -14,7 +15,7 @@ namespace CarRental.Domain.Messaging;
 /// after taking the conversation over.</item>
 /// </list>
 /// </summary>
-public sealed class Conversation : AggregateRoot
+public sealed class Conversation : AggregateRoot, IAgencyOwned
 {
     public const int ProfileNameMaxLength = 100;
     public const int HandoverReasonMaxLength = 500;
@@ -27,9 +28,10 @@ public sealed class Conversation : AggregateRoot
     {
     }
 
-    private Conversation(Guid id, string whatsAppNumber, string? profileName, DateTimeOffset now)
+    private Conversation(Guid id, Guid agencyId, string whatsAppNumber, string? profileName, DateTimeOffset now)
         : base(id)
     {
+        AgencyId = agencyId;
         WhatsAppNumber = whatsAppNumber;
         ProfileName = profileName;
         Mode = ConversationMode.Bot;
@@ -40,7 +42,10 @@ public sealed class Conversation : AggregateRoot
         Usage = ConversationUsage.Zero;
     }
 
-    /// <summary>The customer's WhatsApp number in E.164 (<c>+21698123456</c>), unique.</summary>
+    /// <summary>The agency the customer writes to (the agency served by the WhatsApp number of the platform).</summary>
+    public Guid AgencyId { get; private set; }
+
+    /// <summary>The customer's WhatsApp number in E.164 (<c>+21698123456</c>), unique within the agency.</summary>
     public string WhatsAppNumber { get; private set; } = null!;
 
     /// <summary>The WhatsApp profile name of the customer, as reported by Meta.</summary>
@@ -92,15 +97,21 @@ public sealed class Conversation : AggregateRoot
     /// <summary>End of the customer service window, <see langword="null"/> when the customer never wrote.</summary>
     public DateTimeOffset? WindowClosesAtUtc => LastCustomerMessageAtUtc + CustomerServiceWindow;
 
-    public static Result<Conversation> Start(string? whatsAppNumber, string? profileName, DateTimeOffset now)
+    /// <summary>The conversation of <paramref name="agencyId"/> with a customer number (the agency always comes from the platform, never from the customer).</summary>
+    public static Result<Conversation> Start(Guid agencyId, string? whatsAppNumber, string? profileName, DateTimeOffset now)
     {
+        if (agencyId == Guid.Empty)
+        {
+            throw new ArgumentException("A conversation belongs to an agency.", nameof(agencyId));
+        }
+
         var number = WhatsAppNumbers.Normalize(whatsAppNumber);
         if (number.IsFailure)
         {
             return number.Error;
         }
 
-        var conversation = new Conversation(NewId(), number.Value, CleanProfileName(profileName), now);
+        var conversation = new Conversation(NewId(), agencyId, number.Value, CleanProfileName(profileName), now);
         conversation.Raise(new ConversationStarted(conversation.Id));
         return conversation;
     }
@@ -147,7 +158,7 @@ public sealed class Conversation : AggregateRoot
         }
 
         var botTurn = Mode == ConversationMode.Bot;
-        var message = Message.Inbound(Id, MessageTexts.Truncate(metaMessageId.Trim(), Message.MetaMessageIdMaxLength), content, at, botTurn, now);
+        var message = Message.Inbound(AgencyId, Id, MessageTexts.Truncate(metaMessageId.Trim(), Message.MetaMessageIdMaxLength), content, at, botTurn, now);
         if (botTurn)
         {
             Raise(new CustomerMessageReceived(Id, message.Id));
@@ -176,7 +187,7 @@ public sealed class Conversation : AggregateRoot
         }
 
         LastActivityAtUtc = now;
-        return Message.Outbound(Id, MessageAuthor.Bot, content, agent: null, now);
+        return Message.Outbound(AgencyId, Id, MessageAuthor.Bot, content, agent: null, now);
     }
 
     /// <summary>
@@ -211,7 +222,7 @@ public sealed class Conversation : AggregateRoot
 
         MarkRead(now);
         LastActivityAtUtc = now;
-        return Message.Outbound(Id, MessageAuthor.Agent, content, agent, now);
+        return Message.Outbound(AgencyId, Id, MessageAuthor.Agent, content, agent, now);
     }
 
     /// <summary>A booking notification of the platform: an approved template, whatever the mode and the window.</summary>
@@ -219,7 +230,7 @@ public sealed class Conversation : AggregateRoot
     {
         ArgumentNullException.ThrowIfNull(template);
         LastActivityAtUtc = now;
-        return Message.Outbound(Id, MessageAuthor.System, template, agent: null, now);
+        return Message.Outbound(AgencyId, Id, MessageAuthor.System, template, agent: null, now);
     }
 
     /// <summary>An agent takes the conversation over: the bot is silenced. Taking over from another agent reassigns it.</summary>

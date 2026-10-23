@@ -108,7 +108,7 @@ public sealed class AgentPromptTests : IAsyncDisposable
             Message(MessageDirectionInfo.Outbound, MessageAuthorInfo.Agent, MessageKindInfo.Text, "Le parking est gratuit."),
         };
         var turn = new ConversationTurn(
-            conversation.Id, Guid.CreateVersion7(), conversation.Number, "Hédi Ben Salah", null, null, null, now, now.AddHours(20), ConversationNeedInfo.Empty,
+            conversation.Id, _harness.World.Agency.Id, Guid.CreateVersion7(), conversation.Number, "Hédi Ben Salah", null, null, null, now, now.AddHours(20), ConversationNeedInfo.Empty,
             new ConversationUsageInfo(1, 0, 0, 0, 0, 0, 0m, 0m),
             [Message(MessageDirectionInfo.Inbound, MessageAuthorInfo.Customer, MessageKindInfo.ButtonReply, "1. Citadine", "option:A1", status: MessageStatusInfo.Received)],
             history);

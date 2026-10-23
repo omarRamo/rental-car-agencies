@@ -4,6 +4,8 @@ using CarRental.Application.Reporting.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
 using CarRental.Domain.Reporting;
+using CarRental.Integration.Tests.Fleet;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,20 +17,23 @@ public sealed class FunnelEventPersistenceTests(IntegrationHost host)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task The_recorder_writes_an_anonymous_event()
+    public async Task The_recorder_writes_an_anonymous_event_for_the_agency_of_the_public_site()
     {
         var visitId = Guid.NewGuid();
         var bookingId = Guid.CreateVersion7();
-        var recorder = host.Factory.Services.GetRequiredService<IFunnelEvents>();
-
-        await recorder.RecordAsync(
-            new FunnelEventRecord(FunnelStepInfo.Results, visitId, "en", SalesChannel.Web, Source: "google", UtmMedium: "cpc", CategoryCode: "EDAR", BookingId: bookingId),
-            Ct);
+        var agencyId = await FleetData.NewAgencyAsync(host, Ct);
+        await using (var visit = host.CreateScope(TestActors.Visitor(agencyId)))
+        {
+            await visit.ServiceProvider.GetRequiredService<IFunnelEvents>().RecordAsync(
+                new FunnelEventRecord(FunnelStepInfo.Results, visitId, "en", SalesChannel.Web, Source: "google", UtmMedium: "cpc", CategoryCode: "EDAR", BookingId: bookingId),
+                Ct);
+        }
 
         await using var scope = host.CreateScope();
         var saved = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<FunnelEvent>()
             .AsNoTracking()
             .SingleAsync(e => e.VisitId == visitId, Ct);
+        saved.AgencyId.ShouldBe(agencyId);
         saved.Step.ShouldBe(FunnelStep.Results);
         saved.Culture.ShouldBe("en");
         saved.Source.ShouldBe("google");
@@ -43,12 +48,14 @@ public sealed class FunnelEventPersistenceTests(IntegrationHost host)
     {
         var visitId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
+        var (first, second) = (await FleetData.NewAgencyAsync(host, Ct), await FleetData.NewAgencyAsync(host, Ct));
         await using (var scope = host.CreateScope())
         {
+            // The purge runs for the whole platform: the old steps of every agency go.
             var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-            foreach (var age in new[] { 401, 900, 10 })
+            foreach (var (age, agencyId) in new[] { (401, first), (900, second), (10, first) })
             {
-                db.Set<FunnelEvent>().Add(FunnelEvent.Record(new FunnelEventDetails(visitId, FunnelStep.Search, "fr", SalesChannel.Web), now.AddDays(-age)).Value);
+                db.Set<FunnelEvent>().Add(FunnelEvent.Record(agencyId, new FunnelEventDetails(visitId, FunnelStep.Search, "fr", SalesChannel.Web), now.AddDays(-age)).Value);
             }
 
             await db.SaveChangesAsync(Ct);

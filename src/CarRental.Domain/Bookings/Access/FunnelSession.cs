@@ -40,9 +40,10 @@ public sealed record FunnelStart(
 /// <remarks>
 /// The drivers are kept as an opaque JSON document written by the application (personal data: masked in the audit
 /// log, deleted with the session by the purge job). The token is never stored: an unknown or expired token leads back
-/// to the search.
+/// to the search. A session belongs to the agency of the public site it was opened on (ADR-0067): it cannot be continued
+/// on the site of another agency.
 /// </remarks>
-public sealed class FunnelSession : AggregateRoot
+public sealed class FunnelSession : AggregateRoot, IAgencyOwned
 {
     public const int CultureMaxLength = 5;
     public const int CategoryCodeLength = 4;
@@ -375,7 +376,7 @@ public sealed record UploadSlot(FunnelDriver Driver, FunnelDocument Document, Fu
 /// A photo uploaded during a funnel session (insert only: concurrent uploads never conflict); the last one of a slot
 /// counts. The file itself is staged by the Customers module, referenced by <see cref="StagedImageId"/>.
 /// </summary>
-public sealed class FunnelUpload : Entity
+public sealed class FunnelUpload : Entity, IAgencyOwned
 {
     public const int ContentTypeMaxLength = 64;
 
@@ -383,10 +384,11 @@ public sealed class FunnelUpload : Entity
     {
     }
 
-    private FunnelUpload(Guid sessionId, UploadSlot slot, Guid stagedImageId, string contentType, long length, DateTimeOffset now)
+    private FunnelUpload(Guid sessionId, Guid agencyId, UploadSlot slot, Guid stagedImageId, string contentType, long length, DateTimeOffset now)
         : base(NewId())
     {
         SessionId = sessionId;
+        AgencyId = agencyId;
         Slot = slot.Key;
         StagedImageId = stagedImageId;
         ContentType = contentType;
@@ -395,6 +397,9 @@ public sealed class FunnelUpload : Entity
     }
 
     public Guid SessionId { get; private set; }
+
+    /// <summary>The agency of the session (given by the session).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Key of the <see cref="UploadSlot"/>.</summary>
     public string Slot { get; private set; } = null!;
@@ -407,15 +412,17 @@ public sealed class FunnelUpload : Entity
 
     public DateTimeOffset UploadedAtUtc { get; private set; }
 
-    public static FunnelUpload Create(Guid sessionId, UploadSlot slot, Guid stagedImageId, string contentType, long length, DateTimeOffset now)
+    /// <summary>A photo of <paramref name="session"/>, in the agency of the session.</summary>
+    public static FunnelUpload Create(FunnelSession session, UploadSlot slot, Guid stagedImageId, string contentType, long length, DateTimeOffset now)
     {
+        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
-        if (sessionId == Guid.Empty || stagedImageId == Guid.Empty)
+        if (stagedImageId == Guid.Empty)
         {
             throw new ArgumentException("An upload belongs to a session and a staged image.");
         }
 
-        return new FunnelUpload(sessionId, slot, stagedImageId, contentType.Length > ContentTypeMaxLength ? contentType[..ContentTypeMaxLength] : contentType, length, now);
+        return new FunnelUpload(session.Id, session.AgencyId, slot, stagedImageId, contentType.Length > ContentTypeMaxLength ? contentType[..ContentTypeMaxLength] : contentType, length, now);
     }
 }

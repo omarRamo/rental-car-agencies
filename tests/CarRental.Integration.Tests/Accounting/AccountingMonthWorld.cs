@@ -16,6 +16,9 @@ using CarRental.Integration.Tests.Billing;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Integration.Tests.Bookings.Handover;
 using CarRental.Integration.Tests.Channels;
+using CarRental.Integration.Tests.Payments;
+using CarRental.Integration.Tests.Support;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Bookings.BookingWorld;
@@ -42,10 +45,14 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
 
     public SimulatedClock Clock => clock;
 
-    /// <summary>The agency of the month with the stamp duty (1.000) and the management fee of the fines (20.000).</summary>
+    /// <summary>
+    /// The agency of the month, provisioned like an agency the support registers (its own chart of accounts, ADR-0067), with
+    /// the stamp duty (1.000) and the management fee of the fines (20.000).
+    /// </summary>
     public async Task<MonthAgency> AgencyAsync()
     {
         var agency = await BookingWorld.CreateAsync(host, cancellationToken, ecmrVehicles: 5, cdmrVehicles: 0);
+        await FinanceData.ProvisionAsync(host, agency.AgencyId, cancellationToken);
         var legalName = await BillingWorld.IdentifyAsync(host, agency.AgencyId, cancellationToken);
         await SetAsync(host, agency.AgencyId, "billing.stamp_duty", "1.000", cancellationToken);
         await SetAsync(host, agency.AgencyId, "billing.fine_management_fee", "20.000", cancellationToken);
@@ -56,7 +63,7 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
     /// <summary>A confirmed file of <paramref name="days"/> days picked up 10 minutes ago, on <paramref name="vehicleId"/>.</summary>
     public async Task<HandoverFile> FileAsync(MonthAgency agency, Guid vehicleId, int days, SalesChannel channel = SalesChannel.Counter, TimeSpan? pickupIn = null)
     {
-        var (driverId, email) = await DriverAsync();
+        var (driverId, email) = await DriverAsync(agency.AgencyId);
         var pickup = clock.GetUtcNow() + (pickupIn ?? TimeSpan.FromMinutes(-10));
         var request = new QuickBookingRequest(agency.AgencyId, channel, agency.Agency.Ecmr, agency.Agency.OfficeId, agency.Agency.OfficeId, pickup, pickup.AddDays(days), driverId, QuickBookingOutcome.Confirmed);
         var created = await BookingWorld.CreateAsync(host, request, cancellationToken);
@@ -151,9 +158,13 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
             .SingleAsync(cancellationToken);
     }
 
-    /// <summary>An eligible Tunisian driver (CIN, licence held ten years) with an e-mail address of his own.</summary>
-    public async Task<(Guid PersonId, string Email)> DriverAsync()
+    /// <summary>
+    /// An eligible Tunisian driver (CIN, licence held ten years) with an e-mail address of his own: a customer of
+    /// <paramref name="agencyId"/> (the main demo agency by default; the customers of an agency are its own, ADR-0067).
+    /// </summary>
+    public async Task<(Guid PersonId, string Email)> DriverAsync(Guid? agencyId = null)
     {
+        var agency = agencyId ?? await TestStaff.DemoAgencyIdAsync(host);
         var email = $"conducteur-{Guid.NewGuid():N}@tests.local";
         await using var scope = host.CreateScope(Agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
@@ -170,7 +181,10 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agency,
+            },
             cancellationToken));
         Ok(await registration.AddOrReplaceDocumentAsync(
             person.PersonId,
@@ -179,9 +193,13 @@ internal sealed class AccountingMonthWorld(IntegrationHost host, SimulatedClock 
         return (person.PersonId, email);
     }
 
-    /// <summary>A Booking.com channel of the agency (fake adapter, prepaid allowed per reservation, 15 % by default).</summary>
+    /// <summary>
+    /// A Booking.com channel of the agency (fake adapter, prepaid allowed per reservation, 15 % by default); the agency's
+    /// channels module, off for a new agency (ADR-0067), is switched on.
+    /// </summary>
     private async Task<TestChannel> ChannelAsync(BookingAgency agency)
     {
+        await TestModules.EnableAsync(host.Factory.Services, agency.AgencyId, AgencyModules.Channels, cancellationToken);
         var code = "m" + Guid.NewGuid().ToString("N")[..16];
         var channelId = await ChannelTestWorld.AdministerAsync(host, s => s.CreateAsync(
             new CreateChannelRequest(agency.AgencyId, code, $"Booking.com {code[..6]}", SalesChannel.BookingCom, ChannelAdapterKind.Fake, ChannelPaymentMode.PayOnSite, 0.15m),

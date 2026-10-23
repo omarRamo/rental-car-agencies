@@ -85,7 +85,8 @@ internal sealed class BookingsHarness
 
     public FakeManagers Managers { get; } = new();
 
-    public Guid AgencyId { get; } = Guid.CreateVersion7();
+    /// <summary>The agency of the files: the agency of the staff of the tests (ADR-0067).</summary>
+    public Guid AgencyId { get; } = TestUsers.AgencyId;
 
     public Guid OfficeId { get; } = Guid.CreateVersion7();
 
@@ -137,7 +138,7 @@ internal sealed class BookingsHarness
 
     public AvailabilitySnapshotLoader Loader => new(Fleet, OccupancyReader, new AvailabilityFakes.FakeChannelPolicy(Journal), new AvailabilityFakes.FakeSettingsReader(Journal), Clock);
 
-    public BookingsQueries Queries => new(Db, Fleet, Customers, Availability, Settings, Parties, Clock);
+    public BookingsQueries Queries => new(Db, User, Fleet, Customers, Availability, Settings, Parties, Clock);
 
     public BookingAdministrationQueries Administration =>
         new(Db, User, Queries, Fleet, Referential, Customers, Pricing, PricingQueries, Availability, Settings, Parties, Checks, Clock);

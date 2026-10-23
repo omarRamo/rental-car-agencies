@@ -45,6 +45,8 @@ internal sealed class FunnelSessionConfiguration : IEntityTypeConfiguration<Funn
         builder.Ignore(s => s.HasDrivers);
 
         builder.HasOne<Agency>().WithMany().HasForeignKey(s => s.AgencyId).OnDelete(DeleteBehavior.Restrict);
+
+        // Unique on the whole platform on purpose: the hash of a random secret token, the only key of the addresses.
         builder.HasIndex(s => s.TokenHash).IsUnique();
         builder.HasIndex(s => s.ExpiresAtUtc);
     }
@@ -81,6 +83,9 @@ internal sealed class BookingAccessGrantConfiguration : IEntityTypeConfiguration
         builder.Property(g => g.CodeSalt).HasMaxLength(AccessSecrets.SaltLength).IsFixedLength();
         builder.Property(g => g.Culture).HasMaxLength(BookingAccessGrant.CultureMaxLength).IsUnicode(false).IsRequired();
         builder.Ignore(g => g.IsUsed);
+        builder.HasOne<Agency>().WithMany().HasForeignKey(g => g.AgencyId).OnDelete(DeleteBehavior.Restrict);
+
+        // Unique on the whole platform on purpose: the hash of a random secret token of a link.
         builder.HasIndex(g => g.TokenHash).IsUnique();
         builder.HasIndex(g => new { g.BookingId, g.CreatedAtUtc });
         builder.HasIndex(g => g.CreatedAtUtc);

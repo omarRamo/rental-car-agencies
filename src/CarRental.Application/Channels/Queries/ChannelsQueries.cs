@@ -90,6 +90,7 @@ internal sealed class ChannelCommissions(IAppDbContext db) : IChannelCommissions
     }
 
     public async Task<IReadOnlyDictionary<Guid, Money>> GetCommissionsByBookingAsync(
+        Guid agencyId,
         IReadOnlyCollection<Guid> bookingIds,
         CancellationToken cancellationToken = default)
     {
@@ -105,7 +106,7 @@ internal sealed class ChannelCommissions(IAppDbContext db) : IChannelCommissions
         foreach (var chunk in bookingIds.Distinct().Chunk(500))
         {
             var rows = await db.Set<ChannelBooking>().AsNoTracking()
-                .Where(b => chunk.Contains(b.BookingId))
+                .Where(b => b.AgencyId == agencyId && chunk.Contains(b.BookingId))
                 .Select(b => new { b.BookingId, b.Commission })
                 .ToListAsync(cancellationToken);
             foreach (var row in rows)

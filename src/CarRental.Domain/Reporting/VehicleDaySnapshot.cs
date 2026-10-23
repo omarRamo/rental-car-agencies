@@ -15,7 +15,7 @@ namespace CarRental.Domain.Reporting;
 /// <para>Plate, category code and booking number are copied so that the table reads on its own (exports, future SQL
 /// views for Power BI) without joining the tables of other modules.</para>
 /// </remarks>
-public sealed class VehicleDaySnapshot : Entity
+public sealed class VehicleDaySnapshot : Entity, IAgencyOwned
 {
     /// <summary>Same limit as the plate of a vehicle (Fleet module).</summary>
     public const int PlateNumberMaxLength = 20;
@@ -165,7 +165,7 @@ public sealed class VehicleDaySnapshot : Entity
 /// The share of one rental in a vehicle-day: its booking, channel, revenue and commission of the day (excluding VAT).
 /// The shares of a day add up to the revenue and commission of the snapshot.
 /// </summary>
-public sealed class VehicleDayRental : Entity
+public sealed class VehicleDayRental : Entity, IAgencyOwned
 {
     private VehicleDayRental()
     {

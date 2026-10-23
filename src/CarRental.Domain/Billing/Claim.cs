@@ -28,7 +28,7 @@ public sealed record ClaimFileInput(ClaimDocumentKind Kind, string FileName, str
 /// capped at the franchise of the rental) and counted as revenue. A repair recorded on the claim is not recorded again as
 /// a cost of the vehicle in the Fleet module (it would count twice in the margin).
 /// </remarks>
-public sealed class Claim : AggregateRoot
+public sealed class Claim : AggregateRoot, IAgencyOwned
 {
     public const int PlaceMaxLength = 200;
     public const int DescriptionMinLength = 3;
@@ -180,7 +180,7 @@ public sealed class Claim : AggregateRoot
         }
 
         var (label, amount, reference) = checkedEntry.Value;
-        var cost = new ClaimCost(Id, input.Date, label, amount, reference, actor, now);
+        var cost = new ClaimCost(Id, AgencyId, input.Date, label, amount, reference, actor, now);
         _costs.Add(cost);
         var touched = Touch(actor, now);
         return touched.IsFailure ? touched.Error : cost.Id;
@@ -215,7 +215,7 @@ public sealed class Claim : AggregateRoot
         }
 
         var (label, amount, reference) = checkedEntry.Value;
-        var reimbursement = new ClaimReimbursement(Id, input.Date, label, amount, reference, actor, now);
+        var reimbursement = new ClaimReimbursement(Id, AgencyId, input.Date, label, amount, reference, actor, now);
         _reimbursements.Add(reimbursement);
         var touched = Touch(actor, now);
         return touched.IsFailure ? touched.Error : reimbursement.Id;
@@ -265,7 +265,7 @@ public sealed class Claim : AggregateRoot
             return BillingErrors.ClaimFileInvalid;
         }
 
-        var document = new ClaimDocument(Id, file.Kind, name.Length > FileNameMaxLength ? name[..FileNameMaxLength] : name, file.StoragePath, file.ContentType, file.Length, file.ContentHash, actor, now);
+        var document = new ClaimDocument(Id, AgencyId, file.Kind, name.Length > FileNameMaxLength ? name[..FileNameMaxLength] : name, file.StoragePath, file.ContentType, file.Length, file.ContentHash, actor, now);
         _documents.Add(document);
         var touched = Touch(actor, now);
         return touched.IsFailure ? touched.Error : document.Id;
@@ -403,16 +403,17 @@ public sealed class Claim : AggregateRoot
 }
 
 /// <summary>A cost of a claim: date, label, amount (as paid), reference (invoice of the garage…).</summary>
-public sealed class ClaimCost : Entity
+public sealed class ClaimCost : Entity, IAgencyOwned
 {
     private ClaimCost()
     {
     }
 
-    internal ClaimCost(Guid claimId, DateOnly date, string label, Money amount, string? reference, BillingActor actor, DateTimeOffset now)
+    internal ClaimCost(Guid claimId, Guid agencyId, DateOnly date, string label, Money amount, string? reference, BillingActor actor, DateTimeOffset now)
         : base(NewId())
     {
         ClaimId = claimId;
+        AgencyId = agencyId;
         Date = date;
         Label = label;
         Amount = amount;
@@ -422,6 +423,9 @@ public sealed class ClaimCost : Entity
     }
 
     public Guid ClaimId { get; private set; }
+
+    /// <summary>The agency of the claim.</summary>
+    public Guid AgencyId { get; private set; }
 
     public DateOnly Date { get; private set; }
 
@@ -437,16 +441,17 @@ public sealed class ClaimCost : Entity
 }
 
 /// <summary>A reimbursement of a claim (insurer, third party): date, label, amount, reference.</summary>
-public sealed class ClaimReimbursement : Entity
+public sealed class ClaimReimbursement : Entity, IAgencyOwned
 {
     private ClaimReimbursement()
     {
     }
 
-    internal ClaimReimbursement(Guid claimId, DateOnly date, string label, Money amount, string? reference, BillingActor actor, DateTimeOffset now)
+    internal ClaimReimbursement(Guid claimId, Guid agencyId, DateOnly date, string label, Money amount, string? reference, BillingActor actor, DateTimeOffset now)
         : base(NewId())
     {
         ClaimId = claimId;
+        AgencyId = agencyId;
         Date = date;
         Label = label;
         Amount = amount;
@@ -456,6 +461,9 @@ public sealed class ClaimReimbursement : Entity
     }
 
     public Guid ClaimId { get; private set; }
+
+    /// <summary>The agency of the claim.</summary>
+    public Guid AgencyId { get; private set; }
 
     public DateOnly Date { get; private set; }
 
@@ -471,7 +479,7 @@ public sealed class ClaimReimbursement : Entity
 }
 
 /// <summary>A file of a claim in the private storage (accident report, photo, other document).</summary>
-public sealed class ClaimDocument : Entity
+public sealed class ClaimDocument : Entity, IAgencyOwned
 {
     private ClaimDocument()
     {
@@ -479,6 +487,7 @@ public sealed class ClaimDocument : Entity
 
     internal ClaimDocument(
         Guid claimId,
+        Guid agencyId,
         ClaimDocumentKind kind,
         string fileName,
         string storagePath,
@@ -490,6 +499,7 @@ public sealed class ClaimDocument : Entity
         : base(NewId())
     {
         ClaimId = claimId;
+        AgencyId = agencyId;
         Kind = kind;
         FileName = fileName;
         StoragePath = storagePath;
@@ -501,6 +511,9 @@ public sealed class ClaimDocument : Entity
     }
 
     public Guid ClaimId { get; private set; }
+
+    /// <summary>The agency of the claim.</summary>
+    public Guid AgencyId { get; private set; }
 
     public ClaimDocumentKind Kind { get; private set; }
 

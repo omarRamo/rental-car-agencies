@@ -1,5 +1,6 @@
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Notifications;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Emails;
 using CarRental.Web.Components.Public;
@@ -23,24 +24,29 @@ public sealed class PublicBookingUnitTests
     private const string Token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE";
 
     [Fact]
-    public void The_funnel_and_my_booking_have_an_address_in_each_language()
+    public void The_funnel_and_my_booking_have_an_address_in_each_language_on_the_site_of_the_agency()
     {
-        BookingRoutes.Step("fr", Token, FunnelStep.Options).ShouldBe($"/fr/reserver/{Token}/options");
-        BookingRoutes.Step("en", Token, FunnelStep.Drivers).ShouldBe($"/en/book/{Token}/drivers");
-        BookingRoutes.Step("fr", Token, FunnelStep.Payment).ShouldBe($"/fr/reserver/{Token}/paiement");
-        BookingRoutes.PaymentRedirect("en", Guid.Empty).ShouldBe("/en/book/redirect/00000000-0000-0000-0000-000000000000");
-        BookingRoutes.Confirmation("fr", "LOC-2027-000001").ShouldBe("/fr/reserver/confirmation/LOC-2027-000001");
-        BookingRoutes.MyBookingCancellation("en").ShouldBe("/en/my-booking/file/cancellation");
-        BookingRoutes.MyBookingDocuments("fr").ShouldBe("/fr/ma-reservation/dossier#pieces");
-        PublicBookingPaths.AccessLink("en", Token, documents: true).ShouldBe($"/en/my-booking/access/{Token}?section=pieces");
+        BookingRoutes.Step("agence-1", "fr", Token, FunnelStep.Options).ShouldBe($"/agence-1/fr/reserver/{Token}/options");
+        BookingRoutes.Step("agence-1", "en", Token, FunnelStep.Drivers).ShouldBe($"/agence-1/en/book/{Token}/drivers");
+        BookingRoutes.Step("agence-1", "fr", Token, FunnelStep.Payment).ShouldBe($"/agence-1/fr/reserver/{Token}/paiement");
+        BookingRoutes.PaymentRedirect("agence-1", "en", Guid.Empty).ShouldBe("/agence-1/en/book/redirect/00000000-0000-0000-0000-000000000000");
+        BookingRoutes.Confirmation("agence-1", "fr", "LOC-2027-000001").ShouldBe("/agence-1/fr/reserver/confirmation/LOC-2027-000001");
+        BookingRoutes.MyBookingCancellation("agence-1", "en").ShouldBe("/agence-1/en/my-booking/file/cancellation");
+        BookingRoutes.MyBookingDocuments("agence-1", "fr").ShouldBe("/agence-1/fr/ma-reservation/dossier#pieces");
+        PublicBookingPaths.AccessLink("agence-1", "en", Token, documents: true).ShouldBe($"/agence-1/en/my-booking/access/{Token}?section=pieces");
+        PublicBookingPaths.AccessLink("Agence-2", "fr", Token).ShouldBe($"/agence-2/fr/ma-reservation/acces/{Token}");
+        PublicBookingPaths.PaymentResult("agence-1", "en").ShouldBe("/agence-1/en/payment/{paymentId}");
+        PublicBookingPaths.Site("agence-1", "xx-bad").ShouldBe("/agence-1/fr");
+        Should.Throw<ArgumentException>(() => PublicBookingPaths.MyBooking(" ", "fr"));
+        Should.Throw<ArgumentException>(() => PublicBookingPaths.MyBooking("agence/../admin", "fr"));
     }
 
     [Theory]
-    [InlineData("/fr/reserver/" + Token + "/conducteurs", "en", "/en/book/" + Token + "/drivers")]
-    [InlineData("/en/book/" + Token + "/payment?erreur=x", "fr", "/fr/reserver/" + Token + "/paiement?erreur=x")]
-    [InlineData("/fr/ma-reservation/dossier/annulation", "en", "/en/my-booking/file/cancellation")]
-    [InlineData("/en/my-booking/access/" + Token, "fr", "/fr/ma-reservation/acces/" + Token)]
-    [InlineData("/fr/reserver/confirmation/LOC-2027-000001", "en", "/en/book/confirmation/LOC-2027-000001")]
+    [InlineData("/agence-1/fr/reserver/" + Token + "/conducteurs", "en", "/agence-1/en/book/" + Token + "/drivers")]
+    [InlineData("/agence-1/en/book/" + Token + "/payment?erreur=x", "fr", "/agence-1/fr/reserver/" + Token + "/paiement?erreur=x")]
+    [InlineData("/agence-1/fr/ma-reservation/dossier/annulation", "en", "/agence-1/en/my-booking/file/cancellation")]
+    [InlineData("/agence-1/en/my-booking/access/" + Token, "fr", "/agence-1/fr/ma-reservation/acces/" + Token)]
+    [InlineData("/agence-1/fr/reserver/confirmation/LOC-2027-000001", "en", "/agence-1/en/book/confirmation/LOC-2027-000001")]
     public void The_language_switch_translates_the_steps(string path, string culture, string expected) =>
         PublicRoutes.Localize(path, culture).ShouldBe(expected);
 
@@ -98,10 +104,10 @@ public sealed class PublicBookingUnitTests
     }
 
     [Theory]
-    [InlineData("/fr/reserver/" + Token + "/options", "/fr/reserver/{token}/options")]
-    [InlineData("/en/my-booking/access/" + Token, "/en/my-booking/access/{token}")]
-    [InlineData("/fr/reserver", null)]
-    [InlineData("/fr/reserver/confirmation/LOC-2027-000001", null)]
+    [InlineData("/agence-1/fr/reserver/" + Token + "/options", "/agence-1/fr/reserver/{token}/options")]
+    [InlineData("/agence-1/en/my-booking/access/" + Token, "/agence-1/en/my-booking/access/{token}")]
+    [InlineData("/agence-1/fr/reserver", null)]
+    [InlineData("/agence-1/fr/reserver/confirmation/LOC-2027-000001", null)]
     [InlineData(null, null)]
     public void Tokens_never_reach_the_telemetry(string? path, string? expected) => SecretPaths.Redact(path).ShouldBe(expected);
 
@@ -111,25 +117,25 @@ public sealed class PublicBookingUnitTests
         var composer = Composer(baseUrl: null);
 
         var french = await composer.ComposeAccessAsync(
-            new AccessEmail("LOC-2027-000123", "fr", $"/fr/ma-reservation/acces/{Token}", "042817", new DateTimeOffset(2027, 3, 1, 9, 30, 0, TimeSpan.Zero), "https://www.agence.tn/"),
+            new AccessEmail("LOC-2027-000123", "fr", $"/agence-1/fr/ma-reservation/acces/{Token}", "042817", new DateTimeOffset(2027, 3, 1, 9, 30, 0, TimeSpan.Zero), "https://www.agence.tn/", SiteAgency.Id),
             new CustomerRecipient("amel@example.test", "Amel Ben Salah"),
             TestContext.Current.CancellationToken);
         var english = await composer.ComposeAccessAsync(
-            new AccessEmail("LOC-2027-000123", "en", $"/en/my-booking/access/{Token}", "042817", new DateTimeOffset(2027, 3, 1, 9, 30, 0, TimeSpan.Zero), "https://www.agence.tn/"),
+            new AccessEmail("LOC-2027-000123", "en", $"/agence-1/en/my-booking/access/{Token}", "042817", new DateTimeOffset(2027, 3, 1, 9, 30, 0, TimeSpan.Zero), "https://www.agence.tn/"),
             new CustomerRecipient("amel@example.test", null),
             TestContext.Current.CancellationToken);
 
-        french.Subject.ShouldBe("Agence Démo — Votre accès à la réservation LOC-2027-000123");
+        french.Subject.ShouldBe("Agence Démo Tunis — Votre accès à la réservation LOC-2027-000123", "the name of the agency of the booking");
         french.To.ShouldBe("amel@example.test");
         french.ToName.ShouldBe("Amel Ben Salah");
         french.TextBody.ShouldNotBeNull().ShouldContain("Bonjour Amel Ben Salah,");
         french.TextBody.ShouldContain("Votre code : 042817");
-        french.TextBody.ShouldContain($"https://www.agence.tn/fr/ma-reservation/acces/{Token}");
+        french.TextBody.ShouldContain($"https://www.agence.tn/agence-1/fr/ma-reservation/acces/{Token}");
         french.TextBody.ShouldContain("lundi 1 mars 2027 à 10:30", customMessage: "Tunis time");
         french.HtmlBody.ShouldStartWith("<!DOCTYPE html>");
         french.HtmlBody.ShouldContain("<html lang=\"fr\">");
-        french.HtmlBody.ShouldContain($"href=\"https://www.agence.tn/fr/ma-reservation/acces/{Token}\"");
-        english.Subject.ShouldBe("Agence Démo — Your access to booking LOC-2027-000123");
+        french.HtmlBody.ShouldContain($"href=\"https://www.agence.tn/agence-1/fr/ma-reservation/acces/{Token}\"");
+        english.Subject.ShouldBe("CarRental — Your access to booking LOC-2027-000123", "without the agency of the booking, the name of the platform");
         english.TextBody.ShouldNotBeNull().ShouldContain("Hello,");
         english.TextBody.ShouldContain("Your code: 042817");
         english.HtmlBody.ShouldContain("<html lang=\"en\">");
@@ -151,23 +157,41 @@ public sealed class PublicBookingUnitTests
             recipient,
             TestContext.Current.CancellationToken);
 
-        refused.Subject.ShouldBe("Agence Démo — Votre demande LOC-2027-000123");
+        refused.Subject.ShouldBe("Agence Démo Tunis — Votre demande LOC-2027-000123");
         refused.TextBody.ShouldNotBeNull().ShouldNotContain("Liste noire");
         refused.TextBody.ShouldContain("libéré");
-        refused.TextBody.ShouldContain("https://www.agence.tn/fr");
+        refused.TextBody.ShouldContain("https://www.agence.tn/agence-1/fr", customMessage: "the site of the agency of the booking");
         cancelled.TextBody.ShouldNotBeNull().ShouldContain("Frais d'annulation : 80,000 TND");
         cancelled.TextBody.ShouldContain("Le remboursement de 320,000 TND a été demandé à votre banque");
         link.TextBody.ShouldNotBeNull().ShouldContain("https://test.clictopay.com/pay/1");
         link.TextBody.ShouldContain("Montant à payer : 400,000 TND");
     }
 
+    private static readonly AgencySummary SiteAgency = new(Guid.CreateVersion7(), "Agence Démo Tunis", "agence-1", "Tunis", true, AgencyModuleCatalog.Defaults);
+
     private static BookingCustomerNotification Notification(BookingNotificationKind kind) =>
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "LOC-2027-000123", kind, "fr", new DateTimeOffset(2027, 3, 1, 9, 0, 0, TimeSpan.Zero), BaseUrl: "https://ignored.example/");
+        new(Guid.NewGuid(), Guid.NewGuid(), SiteAgency.Id, "LOC-2027-000123", kind, "fr", new DateTimeOffset(2027, 3, 1, 9, 0, 0, TimeSpan.Zero), BaseUrl: "https://ignored.example/");
 
     private static CustomerEmailComposer Composer(Uri? baseUrl)
     {
         var services = new ServiceCollection().AddLogging().BuildServiceProvider();
-        var site = Options.Create(new PublicSiteOptions { AgencyName = "Agence Démo", BaseUrl = baseUrl });
-        return new CustomerEmailComposer(services, NullLoggerFactory.Instance, site);
+        var site = Options.Create(new PublicSiteOptions { AgencyName = "CarRental", BaseUrl = baseUrl });
+        return new CustomerEmailComposer(services, NullLoggerFactory.Instance, new OneAgencyDirectory(SiteAgency), site);
+    }
+
+    /// <summary>A directory of one agency, for the e-mails composed without host.</summary>
+    private sealed class OneAgencyDirectory(AgencySummary agency) : IAgencyDirectory
+    {
+        public Task<AgencySummary?> FindBySlugAsync(string? slug, CancellationToken cancellationToken = default) =>
+            Task.FromResult(string.Equals(slug, agency.Slug, StringComparison.OrdinalIgnoreCase) ? agency : null);
+
+        public Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(agencyId == agency.Id ? agency : null);
+
+        public Task<IReadOnlyList<AgencySummary>> ListAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AgencySummary>>([agency]);
+
+        public Task<bool> HasModuleAsync(Guid agencyId, AgencyModules module, CancellationToken cancellationToken = default) =>
+            Task.FromResult(agencyId == agency.Id && agency.IsActive && agency.HasModule(module));
     }
 }

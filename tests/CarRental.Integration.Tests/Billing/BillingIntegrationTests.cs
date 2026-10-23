@@ -97,7 +97,7 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
 
         // The e-mail of the buyer carries the stored PDF.
         invoice.EmailedTo.ShouldBe(file.DriverEmail);
-        var email = await QueuedEmailAsync(invoice.Number);
+        var email = await QueuedEmailAsync(invoice);
         email.To.ShouldBe(file.DriverEmail);
         var attachment = email.Attachments.ShouldHaveSingleItem();
         (attachment.Container, attachment.Path, attachment.ContentType).ShouldBe((FileContainers.Invoices, invoice.PdfPath, "application/pdf"));
@@ -122,8 +122,8 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         issued.Select(r => r.Value.Number).Distinct().Count().ShouldBe(20);
         issued.ShouldAllBe(r => !r.Value.AlreadyIssued);
 
-        // Every number of the year from 1 to the counter is used exactly once (other tests issue meanwhile: the counter row
-        // is locked while the invoices are read, so no issue is in flight).
+        // Every number of the year of the agency, from 1 to its counter, is used exactly once: the series is the agency's
+        // (ADR-0067). The counter row is locked while the invoices are read, so no issue of the agency is in flight.
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var year = int.Parse(issued[0].Value.Number.AsSpan(4, 4), CultureInfo.InvariantCulture);
@@ -133,14 +133,17 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
             async ct =>
             {
                 last = await db.Database
-                    .SqlQuery<long>($"SELECT [LastValue] AS [Value] FROM [infra].[DocumentCounters] WITH (UPDLOCK, HOLDLOCK) WHERE [DocumentType] = 'Invoice' AND [Year] = {year}")
+                    .SqlQuery<long>($"SELECT [LastValue] AS [Value] FROM [infra].[DocumentCounters] WITH (UPDLOCK, HOLDLOCK) WHERE [AgencyId] = {agency.AgencyId} AND [DocumentType] = 'Invoice' AND [Year] = {year}")
                     .SingleAsync(ct);
-                sequences = await db.Set<Invoice>().AsNoTracking().IgnoreAutoIncludes().Where(i => i.FiscalYear == year).Select(i => i.Sequence).ToListAsync(ct);
+                sequences = await db.Set<Invoice>().AsNoTracking().IgnoreAutoIncludes()
+                    .Where(i => i.AgencyId == agency.AgencyId && i.FiscalYear == year)
+                    .Select(i => i.Sequence)
+                    .ToListAsync(ct);
                 return Result.Success();
             },
             cancellationToken: Ct));
 
-        last.ShouldBeGreaterThanOrEqualTo(20);
+        last.ShouldBe(20, "a new agency starts its own series");
         sequences.Order().ShouldBe(Enumerable.Range(1, (int)last).Select(n => (long)n));
     }
 
@@ -205,14 +208,14 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         HttpSignIn.PathAndQuery(visitor.Headers.Location!).ShouldContain("/account/login");
 
         using var preparer = host.CreateClient();
-        var (_, preparerEmail) = await TestStaff.CreateAsync(host, Roles.Preparer);
+        var (_, preparerEmail) = await TestStaff.CreateAsync(host, Roles.Preparer, agencyId: agency.AgencyId);
         await HttpSignIn.SignInWithTwoFactorAsync(preparer, preparerEmail, "/admin", Ct);
         var refused = await preparer.GetAsync(url, Ct);
         refused.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         HttpSignIn.PathAndQuery(refused.Headers.Location!).ShouldContain("/account/access-denied");
 
         using var accountant = host.CreateClient();
-        var (_, accountantEmail) = await TestStaff.CreateAsync(host, Roles.Accountant);
+        var (_, accountantEmail) = await TestStaff.CreateAsync(host, Roles.Accountant, agencyId: agency.AgencyId);
         await HttpSignIn.SignInWithTwoFactorAsync(accountant, accountantEmail, "/admin", Ct);
         var response = await accountant.GetAsync(url, Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -282,13 +285,17 @@ public sealed partial class BillingIntegrationTests(IntegrationHost host)
         return new BillingAgency(agency, string.Empty);
     }
 
-    /// <summary>The e-mail queued in the outbox whose subject names <paramref name="number"/>.</summary>
-    private async Task<EmailMessage> QueuedEmailAsync(string number)
+    /// <summary>
+    /// The e-mail queued in the outbox for <paramref name="invoice"/>: its subject names the number and it carries the PDF
+    /// of that very invoice (numbers are unique within an agency only, ADR-0067).
+    /// </summary>
+    private async Task<EmailMessage> QueuedEmailAsync(Invoice invoice)
     {
         await using var scope = host.CreateScope();
+        var path = invoice.PdfPath.ShouldNotBeNull();
         var payloads = await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<OutboxMessage>()
             .AsNoTracking()
-            .Where(m => m.Type == typeof(EmailRequested).FullName && m.Payload.Contains(number))
+            .Where(m => m.Type == typeof(EmailRequested).FullName && m.Payload.Contains(invoice.Number) && m.Payload.Contains(path))
             .Select(m => m.Payload)
             .ToListAsync(Ct);
         return ((EmailRequested)new OutboxSerializer().Deserialize(payloads.ShouldHaveSingleItem(), typeof(EmailRequested))).Message;

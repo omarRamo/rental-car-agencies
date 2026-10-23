@@ -11,6 +11,9 @@ namespace CarRental.Domain.Tests.Customers;
 public sealed class DriverSubmissionTests
 {
     private static readonly DateTimeOffset Now = new(2027, 3, 1, 9, 0, 0, TimeSpan.Zero);
+
+    /// <summary>The agency of the customers of these tests.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
     private static readonly AuditActor Reviewer = new(Guid.NewGuid(), "agent@demo.local", null, null);
 
     private static PersonDetails Details => new("Amel", "Ben Salah", "FR", new DateOnly(1984, 3, 14), "+33612345678", "amel@example.test");
@@ -19,6 +22,7 @@ public sealed class DriverSubmissionTests
     public void A_submission_for_a_new_person_is_applied_and_hands_its_images_to_the_documents()
     {
         var submission = DriverSubmission.Create(
+            AgencyId,
             Guid.NewGuid(),
             Guid.NewGuid(),
             ConsentChannel.Web,
@@ -31,7 +35,9 @@ public sealed class DriverSubmissionTests
 
         submission.State.ShouldBe(DriverSubmissionState.Applied);
         submission.IsPending.ShouldBeFalse();
+        submission.AgencyId.ShouldBe(AgencyId);
         submission.Documents.ShouldHaveSingleItem().HasFrontImage.ShouldBeTrue();
+        submission.Documents[0].AgencyId.ShouldBe(AgencyId, "a submitted document belongs to the agency of its submission");
         submission.Documents[0].FrontImage.ShouldBeNull("the image now belongs to the document of the person");
         submission.DomainEvents.OfType<DriverSubmissionReceived>().ShouldHaveSingleItem().IsPending.ShouldBeFalse();
     }
@@ -68,6 +74,7 @@ public sealed class DriverSubmissionTests
     public void Documents_need_the_consent_to_their_processing()
     {
         DriverSubmission.Create(
+                AgencyId,
                 Guid.NewGuid(),
                 Guid.NewGuid(),
                 ConsentChannel.Web,
@@ -78,7 +85,7 @@ public sealed class DriverSubmissionTests
                 [new SubmittedDocumentEntry(IdentityDocumentType.DrivingLicense, License())],
                 Now)
             .Error.ShouldBe(CustomersErrors.SubmissionConsentRequired);
-        DriverSubmission.Create(Guid.NewGuid(), Guid.NewGuid(), ConsentChannel.Web, null, SubmissionMatch.Booking, false, SubmittedConsents.ImagesOnly, [], Now)
+        DriverSubmission.Create(AgencyId, Guid.NewGuid(), Guid.NewGuid(), ConsentChannel.Web, null, SubmissionMatch.Booking, false, SubmittedConsents.ImagesOnly, [], Now)
             .Error.ShouldBe(CustomersErrors.SubmissionEmpty);
     }
 
@@ -119,6 +126,7 @@ public sealed class DriverSubmissionTests
     }
 
     private static DriverSubmission Pending() => DriverSubmission.Create(
+        AgencyId,
         Guid.NewGuid(),
         Guid.NewGuid(),
         ConsentChannel.Web,

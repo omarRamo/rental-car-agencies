@@ -144,7 +144,7 @@ public sealed class JournalService
         }
 
         var journals = await JournalsOfAsync(agencyId, month, cancellationToken);
-        var labels = await AccountLabelsAsync(cancellationToken);
+        var labels = await ChartOfAccountsService.LabelsAsync(_db, agencyId, cancellationToken);
         var shown = journal is { } wanted ? journals.Entries.Where(e => e.Journal == wanted) : journals.Entries;
         return new JournalMonthView(
             agencyId,
@@ -229,7 +229,7 @@ public sealed class JournalService
     internal async Task<JournalGeneration> GenerateAsync(Guid agencyId, AccountingMonth month, CancellationToken cancellationToken)
     {
         var facts = await LoadFactsAsync(agencyId, month, cancellationToken);
-        var accounts = await ChartOfAccountsService.ResolverAsync(_db, cancellationToken);
+        var accounts = await ChartOfAccountsService.ResolverAsync(_db, agencyId, cancellationToken);
         var generated = JournalGenerator.Generate(facts, accounts, _texts);
         if (!generated.IsComplete)
         {
@@ -272,9 +272,6 @@ public sealed class JournalService
 
     private async Task<AgencyInfo?> AgencyAsync(Guid agencyId, CancellationToken cancellationToken) =>
         (await _referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId);
-
-    private async Task<IReadOnlyDictionary<string, string>> AccountLabelsAsync(CancellationToken cancellationToken) =>
-        await _db.Set<LedgerAccount>().AsNoTracking().ToDictionaryAsync(a => a.Number, a => a.Label, StringComparer.Ordinal, cancellationToken);
 
     /// <summary>The frozen journals of a closed month, else the journals generated from the live facts.</summary>
     private async Task<MonthJournals> JournalsOfAsync(Guid agencyId, AccountingMonth month, CancellationToken cancellationToken)

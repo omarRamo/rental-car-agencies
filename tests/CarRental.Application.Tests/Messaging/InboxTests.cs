@@ -144,6 +144,67 @@ public sealed class InboxTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_file_is_linked_by_its_number_in_the_agency_of_the_conversation_even_by_the_support()
+    {
+        var conversationId = await ConversationAsync();
+        var start = _harness.Clock.GetUtcNow();
+        var theirs = _harness.Bookings.Add(Guid.CreateVersion7(), _harness.OfficeId, BookingStatusInfo.Confirmed, start.AddDays(3), start.AddDays(5), null);
+        var ours = _harness.Bookings.Add(_harness.AgencyId, _harness.OfficeId, BookingStatusInfo.Confirmed, start.AddDays(4), start.AddDays(6), null);
+
+        // Numbers are unique within an agency only (ADR-0067): another agency's file, listed first, has the same number.
+        _harness.Bookings.Bookings[theirs.Id] = theirs with { Number = ours.Number };
+        var support = _agent with { AgencyId = null, AllAgencies = true };
+
+        (await Inbox(s => s.LinkBookingAsync(conversationId, ours.Number, TestContext.Current.CancellationToken), support)).IsSuccess.ShouldBeTrue();
+
+        _harness.Conversations.ShouldHaveSingleItem().BookingId.ShouldBe(ours.Id);
+    }
+
+    [Fact]
+    public async Task A_person_of_another_agency_is_never_linked_even_by_the_support()
+    {
+        var conversationId = await ConversationAsync();
+        var theirs = _harness.AddPerson("+21699999997", agencyId: Guid.CreateVersion7());
+        var ours = _harness.AddPerson("+21699999996");
+        var support = _agent with { AgencyId = null, AllAgencies = true };
+
+        (await Inbox(s => s.LinkPersonAsync(conversationId, theirs, TestContext.Current.CancellationToken), support)).Error.ShouldBe(MessagingErrors.PersonNotFound);
+        _harness.Conversations.ShouldHaveSingleItem().PersonId.ShouldBeNull();
+        _harness.Audit.Events.ShouldNotContain(e => e.Action == MessagingAuditActions.ConversationLinked);
+
+        (await Inbox(s => s.LinkPersonAsync(conversationId, ours, TestContext.Current.CancellationToken), support)).IsSuccess.ShouldBeTrue();
+        _harness.Conversations.ShouldHaveSingleItem().PersonId.ShouldBe(ours);
+    }
+
+    [Fact]
+    public async Task Nothing_is_sent_from_the_inbox_once_the_number_serves_another_agency()
+    {
+        var conversationId = await ConversationAsync();
+        (await Inbox(s => s.TakeOverAsync(conversationId, TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+        var other = Guid.CreateVersion7();
+        _harness.Agencies.Set(other, AgencyModuleCatalog.Every);
+        _harness.Routing.AgencyId = other;
+
+        (await Inbox(s => s.SendTextAsync(conversationId, "Bonjour, ici l'agence.", TestContext.Current.CancellationToken))).Error.ShouldBe(MessagingErrors.NumberNotServed);
+        (await Inbox(s => s.SendTemplateAsync(conversationId, InboxTemplateKind.FollowUp, ["Nour"], TestContext.Current.CancellationToken))).Error
+            .ShouldBe(MessagingErrors.NumberNotServed);
+        var overview = (await _harness.RunAsync<WhatsAppInboxQueries, Result<InboxOverview>>(
+            q => q.GetOverviewAsync(TestContext.Current.CancellationToken),
+            _harness.Staff(Roles.Agent))).Value;
+        await _harness.DrainAsync();
+
+        overview.IsServed.ShouldBeFalse("the screen says so and disables the composer");
+        _harness.WhatsApp.Sent.ShouldBeEmpty();
+        _harness.Messages.ShouldNotContain(m => m.Author == MessageAuthor.Agent, "nothing is recorded");
+        _harness.Audit.Events.ShouldNotContain(e => e.Action == MessagingAuditActions.MessageSentByAgent);
+
+        _harness.Routing.AgencyId = _harness.AgencyId;
+        (await Inbox(s => s.SendTextAsync(conversationId, "Bonjour, ici l'agence.", TestContext.Current.CancellationToken))).IsSuccess.ShouldBeTrue();
+        await _harness.DrainAsync();
+        _harness.WhatsApp.Sent.ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task Linking_a_person_requires_reading_customers()
     {
         var conversationId = await ConversationAsync();

@@ -35,9 +35,13 @@ internal sealed class OnlinePaymentsHarness
             DeclinedStatusCodes = configuredStatusCodes ? "6" : null,
         };
         Gateway = new FakeClicToPay(Microsoft.Extensions.Options.Options.Create(Options), CallLog, Time);
+        Bookings = new FakePaymentBookings(AgencyId);
     }
 
     public InMemoryFinanceDb Db { get; } = new();
+
+    /// <summary>The rental files the payments point to: of <see cref="AgencyId"/> unless a test says otherwise.</summary>
+    public FakePaymentBookings Bookings { get; }
 
     public FakeTimeProvider Time { get; }
 
@@ -74,7 +78,7 @@ internal sealed class OnlinePaymentsHarness
     public FakeAccountingPeriods Periods { get; } = new();
 
     public OnlinePayments Online(IUserContext? user = null, IClicToPayGateway? gateway = null) =>
-        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Settings, Time, NullLogger<OnlinePayments>.Instance, Periods);
+        new(Db, UnitOfWork, Outbox, user ?? Visitor(), gateway ?? Gateway, Referential, Bookings, Settings, Time, NullLogger<OnlinePayments>.Instance, Periods);
 
     /// <summary>The status changes told to the other modules for one payment, in order.</summary>
     public IReadOnlyList<OnlinePaymentStatusChanged> StatusChangesOf(Guid paymentId) =>
@@ -82,11 +86,14 @@ internal sealed class OnlinePaymentsHarness
 
     public OnlinePaymentAdministration Admin(IUserContext user) => new(Db, UnitOfWork, user, Online(user), Settings);
 
+    /// <summary>The agencies the jobs worked for, in order (one scope per agency).</summary>
+    public List<Guid> JobAgencies { get; } = [];
+
     public OnlinePaymentCatchUpJob CatchUpJob() =>
-        new(Db, Online(System()), Gateway, Time, NullLogger<OnlinePaymentCatchUpJob>.Instance);
+        new(Db, new InlineAgencyScopes(this), Gateway, Time, NullLogger<OnlinePaymentCatchUpJob>.Instance);
 
     public OnlinePaymentReconciliationJob ReconciliationJob() =>
-        new(Db, Online(System()), Gateway, Time, NullLogger<OnlinePaymentReconciliationJob>.Instance);
+        new(Db, new InlineAgencyScopes(this), Gateway, Time, NullLogger<OnlinePaymentReconciliationJob>.Instance);
 
     public OnlinePaymentRequest Request(decimal amount, Guid? bookingId = null, string? description = null, bool isLink = false, TimeSpan? validity = null) =>
         new(bookingId ?? Guid.CreateVersion7(), AgencyId, amount, "fr", ReturnPath, FailPath, description, isLink, validity);
@@ -119,6 +126,19 @@ internal sealed class OnlinePaymentsHarness
         (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), cancellationToken)).IsSuccess.ShouldBeTrue();
         payment.Status.ShouldBe(PaymentStatus.Captured);
         return payment;
+    }
+}
+
+/// <summary>The scopes of the jobs on the harness: the flows of each agency as the system working for that agency.</summary>
+internal sealed class InlineAgencyScopes(OnlinePaymentsHarness harness) : IOnlinePaymentAgencyScopes
+{
+    public Task RunAsync(Guid agencyId, Func<OnlinePayments, CancellationToken, Task> work, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        harness.JobAgencies.Add(agencyId);
+        var system = new ScopedUserContext([]);
+        system.Initialize(UserContextSnapshot.System("system:tests", agencyId: agencyId));
+        return work(harness.Online(system), cancellationToken);
     }
 }
 
@@ -155,7 +175,12 @@ internal sealed class RecordingGatewayCallLog(InMemoryFinanceDb db) : IGatewayCa
         lock (_entries)
         {
             _entries.Add(entry);
-            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry));
+
+            // Like the adapter of the infrastructure: the call belongs to the agency of the payment of its order.
+            var agencyId = GatewayCallLog.PaymentIdOf(entry.OrderNumber) is { } paymentId
+                ? db.Set<Payment>().Where(p => p.Id == paymentId).Select(p => (Guid?)p.AgencyId).FirstOrDefault()
+                : null;
+            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry, agencyId));
         }
 
         return Task.CompletedTask;

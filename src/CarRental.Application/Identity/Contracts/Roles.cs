@@ -2,10 +2,13 @@ using System.Collections.Frozen;
 
 namespace CarRental.Application.Identity.Contracts;
 
-/// <summary>The four internal profiles of SPEC §3. Role names are stable identifiers stored in the database.</summary>
+/// <summary>
+/// The four profiles of an agency's staff (SPEC §3) and the support of the platform (ADR-0067). Role names are stable
+/// identifiers stored in the database.
+/// </summary>
 public static class Roles
 {
-    /// <summary>Gérant: everything, including users, settings, audit log and background jobs.</summary>
+    /// <summary>Gérant: everything in their agency, including its users, settings and audit log.</summary>
     public const string Manager = "Manager";
 
     /// <summary>Agent de location: requests, bookings, hand-overs, payments, own cash session.</summary>
@@ -17,9 +20,22 @@ public static class Roles
     /// <summary>Préparateur / mécanicien: planning, hand-overs and fleet maintenance.</summary>
     public const string Preparer = "Preparer";
 
-    public static IReadOnlyList<string> All { get; } = [Manager, Agent, Accountant, Preparer];
+    /// <summary>
+    /// Support of the platform (its operator): every permission, in every agency, plus the platform itself (agencies,
+    /// modules, background jobs). Belongs to no agency; never granted from an agency's back office.
+    /// </summary>
+    public const string Support = "Support";
+
+    /// <summary>The roles of an agency's staff, in display order.</summary>
+    public static IReadOnlyList<string> AgencyRoles { get; } = [Manager, Agent, Accountant, Preparer];
+
+    /// <summary>Every role (the agency roles, then <see cref="Support"/>).</summary>
+    public static IReadOnlyList<string> All { get; } = [Manager, Agent, Accountant, Preparer, Support];
 
     public static bool IsKnown(string? role) => role is not null && All.Contains(role, StringComparer.Ordinal);
+
+    /// <summary>True for a role of an agency's staff (not <see cref="Support"/>).</summary>
+    public static bool IsAgencyRole(string? role) => role is not null && AgencyRoles.Contains(role, StringComparer.Ordinal);
 }
 
 /// <summary>
@@ -30,7 +46,8 @@ public static class RolePresets
 {
     private static readonly FrozenDictionary<string, FrozenSet<string>> Presets = new Dictionary<string, FrozenSet<string>>
     {
-        [Roles.Manager] = Permissions.All.ToFrozenSet(StringComparer.Ordinal),
+        [Roles.Manager] = Permissions.Agency.ToFrozenSet(StringComparer.Ordinal),
+        [Roles.Support] = Permissions.All.ToFrozenSet(StringComparer.Ordinal),
         [Roles.Agent] = new[]
         {
             Permissions.DashboardRead,

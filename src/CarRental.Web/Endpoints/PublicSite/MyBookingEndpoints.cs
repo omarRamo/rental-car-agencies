@@ -4,6 +4,7 @@ using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Public.Booking;
+using CarRental.Web.Components.Public.Site;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -18,7 +19,8 @@ namespace CarRental.Web.Endpoints.PublicSite;
 /// <remarks>
 /// The session is a Data Protection cookie (<see cref="PublicBookingCookies.MyBookingCookie"/>) naming a grant and its
 /// booking; every request checks the grant again on the server (revoked, expired, other booking) and slides it.
-/// Writes run as the system actor <see cref="PublicActors.MyBooking"/>, for the booking of the session only.
+/// Writes run as the system actor <see cref="PublicActors.MyBooking"/> of the agency of the site, for the booking of the
+/// session only.
 /// </remarks>
 public static partial class MyBookingEndpoints
 {
@@ -95,15 +97,23 @@ public static partial class MyBookingEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
-        var page = BookingRoutes.MyBooking(lang);
+        var site = PublicSiteAgency.SlugOf(context);
+        var page = BookingRoutes.MyBooking(site, lang);
         if (!await PublicForms.IsHumanAsync(context, form, AccessAction))
         {
             return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(page, FunnelErrors.VerificationFailed.Code));
         }
 
+        // A booking is looked for among the bookings of the agency of the site only (ADR-0067).
+        if (PublicSiteAgency.Of(context) is not { } agencyId)
+        {
+            return PublicForms.SeeOther(context, page);
+        }
+
         await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         var outcome = await service.RequestAccessAsync(
+            agencyId,
             PublicForms.Text(form, EmailField),
             PublicForms.Text(form, NumberField),
             lang,
@@ -115,7 +125,7 @@ public static partial class MyBookingEndpoints
             return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(page, problems));
         }
 
-        return PublicForms.SeeOther(context, BookingRoutes.MyBookingCode(lang, outcome.RequestId!.Value));
+        return PublicForms.SeeOther(context, BookingRoutes.MyBookingCode(site, lang, outcome.RequestId!.Value));
     }
 
     /// <summary>The code of an access request: the session of its booking, or the code page again with the same error.</summary>
@@ -127,18 +137,19 @@ public static partial class MyBookingEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         if (!Guid.TryParse(PublicForms.Text(form, RequestParameter), out var requestId))
         {
-            return PublicForms.SeeOther(context, BookingRoutes.MyBooking(lang));
+            return PublicForms.SeeOther(context, BookingRoutes.MyBooking(site, lang));
         }
 
         await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         var opened = await service.OpenWithCodeAsync(requestId, PublicForms.Text(form, CodeField), context.RequestAborted);
-        if (opened.IsFailure)
+        if (opened.IsFailure || !await IsOfSiteAsync(context, scope, service, opened.Value))
         {
-            var code = opened.Error.Code == AccessErrors.AccessLocked.Code ? AccessErrors.AccessLocked.Code : AccessErrors.AccessInvalid.Code;
-            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingCode(lang, requestId), code));
+            var code = opened.IsFailure && opened.Error.Code == AccessErrors.AccessLocked.Code ? AccessErrors.AccessLocked.Code : AccessErrors.AccessInvalid.Code;
+            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingCode(site, lang, requestId), code));
         }
 
         return Open(context, cookies, opened.Value, lang, documents: false);
@@ -153,12 +164,13 @@ public static partial class MyBookingEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         var opened = await service.OpenWithLinkAsync(token, context.RequestAborted);
-        if (opened.IsFailure)
+        if (opened.IsFailure || !await IsOfSiteAsync(context, scope, service, opened.Value))
         {
-            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(lang), AccessErrors.AccessInvalid.Code));
+            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(site, lang), AccessErrors.AccessInvalid.Code));
         }
 
         var documents = PublicForms.Text(form, SectionParameter) == PublicBookingPaths.DocumentsSection || opened.Value.Purpose == AccessPurpose.CompleteFile;
@@ -169,6 +181,7 @@ public static partial class MyBookingEndpoints
     internal static async Task<IResult> UploadAsync(string culture, HttpContext context, PublicBookingCookies cookies)
     {
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         var json = PublicForms.WantsJson(context.Request);
         if (context.Features.Get<IAntiforgeryValidationFeature>() is { IsValid: false } || !context.Request.HasFormContentType)
         {
@@ -187,7 +200,7 @@ public static partial class MyBookingEndpoints
         {
             return json
                 ? BookingFunnelEndpoints.UploadOutcome(context, null, AccessErrors.SessionRequired.Code)
-                : PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(lang), AccessErrors.SessionRequired.Code));
+                : PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(site, lang), AccessErrors.SessionRequired.Code));
         }
 
         var form = await context.Request.ReadFormAsync(context.RequestAborted);
@@ -211,7 +224,7 @@ public static partial class MyBookingEndpoints
                 : BookingFunnelEndpoints.UploadOutcome(context, slot, PublicForms.VisibleCode(sent.Error));
         }
 
-        var file2 = BookingRoutes.MyBookingFile(lang);
+        var file2 = BookingRoutes.MyBookingFile(site, lang);
         var next = sent.IsSuccess
             ? QueryHelpers.AddQueryString(file2, NoticeParameter, Notices.DocumentReceived)
             : BookingFunnelEndpoints.WithError(file2, PublicForms.VisibleCode(sent.Error));
@@ -220,43 +233,43 @@ public static partial class MyBookingEndpoints
 
     /// <summary>The customer sent what the agent asked for: the request goes back to the agent.</summary>
     internal static Task<IResult> InformationAsync(string culture, HttpContext context, PublicBookingCookies cookies) =>
-        ActAsync(culture, context, cookies, async (service, session, lang) =>
+        ActAsync(culture, context, cookies, async (service, session, site, lang) =>
         {
             var provided = await service.ProvideInformationAsync(session.BookingId, context.RequestAborted);
-            return provided.IsSuccess ? Notice(lang, Notices.InformationSent) : Failed(lang, provided.Error);
+            return provided.IsSuccess ? Notice(site, lang, Notices.InformationSent) : Failed(site, lang, provided.Error);
         });
 
     /// <summary>The balance, paid online: the page leading to the payment page of the bank.</summary>
     internal static Task<IResult> PayAsync(string culture, HttpContext context, PublicBookingCookies cookies) =>
-        ActAsync(culture, context, cookies, async (service, session, lang) =>
+        ActAsync(culture, context, cookies, async (service, session, site, lang) =>
         {
             // Not encoded: the Payments module replaces the placeholder as written.
-            var back = $"{BookingRoutes.MyBookingFile(lang)}?paiement={PublicBookingPaths.PaymentIdPlaceholder}";
+            var back = $"{BookingRoutes.MyBookingFile(site, lang)}?paiement={PublicBookingPaths.PaymentIdPlaceholder}";
             var started = await service.StartBalancePaymentAsync(session.BookingId, lang, back, back, context.RequestAborted);
-            return started.IsSuccess ? BookingRoutes.PaymentRedirect(lang, started.Value.PaymentId) : Failed(lang, started.Error);
+            return started.IsSuccess ? BookingRoutes.PaymentRedirect(site, lang, started.Value.PaymentId) : Failed(site, lang, started.Error);
         });
 
     /// <summary>The cancellation, at the fee shown on the cancellation page (a different fee shows the page again).</summary>
     internal static Task<IResult> CancelAsync(string culture, HttpContext context, PublicBookingCookies cookies) =>
-        ActAsync(culture, context, cookies, async (service, session, lang) =>
+        ActAsync(culture, context, cookies, async (service, session, site, lang) =>
         {
             var form = await context.Request.ReadFormAsync(context.RequestAborted);
             var file = await service.GetFileAsync(session.BookingId, context.RequestAborted);
             var shown = decimal.TryParse(PublicForms.Text(form, FeeField), NumberStyles.Number, CultureInfo.InvariantCulture, out var fee) ? fee : (decimal?)null;
             if (file.IsFailure || file.Value.Cancellation is not { } cancellation)
             {
-                return Failed(lang, AccessErrors.CancellationNotAllowed);
+                return Failed(site, lang, AccessErrors.CancellationNotAllowed);
             }
 
             if (shown != cancellation.Fee.Amount)
             {
-                return QueryHelpers.AddQueryString(BookingRoutes.MyBookingCancellation(lang), NoticeParameter, Notices.FeeChanged);
+                return QueryHelpers.AddQueryString(BookingRoutes.MyBookingCancellation(site, lang), NoticeParameter, Notices.FeeChanged);
             }
 
             var cancelled = await service.CancelAsync(session.BookingId, context.RequestAborted);
             return cancelled.IsSuccess
-                ? QueryHelpers.AddQueryString(Notice(lang, Notices.Cancelled), "remboursement", cancelled.Value.Refund.ToString())
-                : BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingCancellation(lang), PublicForms.VisibleCode(cancelled.Error));
+                ? QueryHelpers.AddQueryString(Notice(site, lang, Notices.Cancelled), "remboursement", cancelled.Value.Refund.ToString())
+                : BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingCancellation(site, lang), PublicForms.VisibleCode(cancelled.Error));
         });
 
     /// <summary>Ends the session of this browser.</summary>
@@ -268,6 +281,7 @@ public static partial class MyBookingEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         if (cookies.ReadSession(context) is { } session)
         {
             await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
@@ -275,7 +289,7 @@ public static partial class MyBookingEndpoints
         }
 
         cookies.ClearSession(context);
-        return PublicForms.SeeOther(context, QueryHelpers.AddQueryString(BookingRoutes.MyBooking(lang), NoticeParameter, Notices.SignedOut));
+        return PublicForms.SeeOther(context, QueryHelpers.AddQueryString(BookingRoutes.MyBooking(site, lang), NoticeParameter, Notices.SignedOut));
     }
 
     /// <summary>A document of the booking of the session (contract, invoice), never cached.</summary>
@@ -286,7 +300,7 @@ public static partial class MyBookingEndpoints
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         if (await SessionAsync(context, cookies, service) is not { } session)
         {
-            return PublicForms.SeeOther(context, BookingRoutes.MyBooking(culture.ToLowerInvariant()));
+            return PublicForms.SeeOther(context, BookingRoutes.MyBooking(PublicSiteAgency.SlugOf(context), culture.ToLowerInvariant()));
         }
 
         var document = await service.OpenDocumentAsync(session.BookingId, documentId, context.RequestAborted);
@@ -328,12 +342,28 @@ public static partial class MyBookingEndpoints
         return resumed.Value;
     }
 
+    /// <summary>
+    /// Whether the booking a link or a code opened belongs to the agency of the site (ADR-0067): the session of a booking
+    /// of another agency is closed at once and never reaches this site.
+    /// </summary>
+    private static async Task<bool> IsOfSiteAsync(HttpContext context, AsyncServiceScope scope, MyBookingService service, MyBookingTicket ticket)
+    {
+        var booking = await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().GetSummaryAsync(ticket.BookingId, context.RequestAborted);
+        if (booking?.AgencyId == PublicSiteAgency.Require(context).Id)
+        {
+            return true;
+        }
+
+        await service.SignOutAsync(ticket.GrantId, context.RequestAborted);
+        return false;
+    }
+
     /// <summary>An action on the booking of the session: the form checked, the session required, then a 303 to the path returned.</summary>
     private static async Task<IResult> ActAsync(
         string culture,
         HttpContext context,
         PublicBookingCookies cookies,
-        Func<MyBookingService, MyBookingTicket, string, Task<string>> action)
+        Func<MyBookingService, MyBookingTicket, string, string, Task<string>> action)
     {
         if (await PublicForms.ReadAsync(context) is null)
         {
@@ -341,23 +371,25 @@ public static partial class MyBookingEndpoints
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.SlugOf(context);
         await using var scope = PublicActors.CreateScope(context, PublicActors.MyBooking);
         var service = scope.ServiceProvider.GetRequiredService<MyBookingService>();
         if (await SessionAsync(context, cookies, service) is not { } session)
         {
-            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(lang), AccessErrors.SessionRequired.Code));
+            return PublicForms.SeeOther(context, BookingFunnelEndpoints.WithError(BookingRoutes.MyBooking(site, lang), AccessErrors.SessionRequired.Code));
         }
 
-        return PublicForms.SeeOther(context, await action(service, session, lang));
+        return PublicForms.SeeOther(context, await action(service, session, site, lang));
     }
 
     private static IResult Open(HttpContext context, PublicBookingCookies cookies, MyBookingTicket ticket, string lang, bool documents)
     {
+        var site = PublicSiteAgency.SlugOf(context);
         cookies.SetSession(context, ticket.GrantId, ticket.BookingId, ticket.ExpiresAtUtc);
-        return PublicForms.SeeOther(context, documents ? BookingRoutes.MyBookingDocuments(lang) : BookingRoutes.MyBookingFile(lang));
+        return PublicForms.SeeOther(context, documents ? BookingRoutes.MyBookingDocuments(site, lang) : BookingRoutes.MyBookingFile(site, lang));
     }
 
-    private static string Notice(string lang, string notice) => QueryHelpers.AddQueryString(BookingRoutes.MyBookingFile(lang), NoticeParameter, notice);
+    private static string Notice(string site, string lang, string notice) => QueryHelpers.AddQueryString(BookingRoutes.MyBookingFile(site, lang), NoticeParameter, notice);
 
-    private static string Failed(string lang, Error error) => BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingFile(lang), PublicForms.VisibleCode(error));
+    private static string Failed(string site, string lang, Error error) => BookingFunnelEndpoints.WithError(BookingRoutes.MyBookingFile(site, lang), PublicForms.VisibleCode(error));
 }

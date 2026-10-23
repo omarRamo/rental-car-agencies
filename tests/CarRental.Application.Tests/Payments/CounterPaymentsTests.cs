@@ -38,6 +38,31 @@ public sealed class CounterPaymentsTests
     }
 
     [Fact]
+    public async Task Money_is_recorded_for_a_booking_of_its_agency_only()
+    {
+        // ADR-0067: a booking of another agency (seen by the support) or one the operation does not see is refused alike.
+        var agent = _harness.User(Roles.Agent);
+        var elsewhere = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(elsewhere, Guid.CreateVersion7());
+        var unseen = Guid.CreateVersion7();
+        _harness.Bookings.Hide(unseen);
+
+        foreach (var bookingId in new[] { elsewhere, unseen })
+        {
+            (await _harness.Payments(agent).RecordPaymentAsync(new CounterPaymentRequest(bookingId, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 50m, "TPE"), Ct))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await _harness.Deposits(agent).TakeAsync(new DepositRequest(bookingId, _harness.AgencyId, DepositModeInfo.CardImprint, 500m, "AUT"), Ct))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+        }
+
+        (await _harness.Payments(agent).RecordPaymentAsync(new CounterPaymentRequest(Guid.Empty, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 50m, "TPE"), Ct))
+            .Error.ShouldBe(PaymentsErrors.BookingRequired);
+        _harness.Db.Rows<Payment>().ShouldBeEmpty();
+        _harness.Db.Rows<DepositHold>().ShouldBeEmpty();
+        _harness.UnitOfWork.Executions.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task A_cash_payment_goes_into_the_open_cash_session_of_the_agent_in_the_same_unit_of_work()
     {
         var agent = _harness.User(Roles.Agent);
@@ -54,6 +79,22 @@ public sealed class CounterPaymentsTests
         movement.PaymentId.ShouldBe(id);
         movement.BookingId.ShouldBe(bookingId);
         movement.RecordedByUserId.ShouldBe(agent.UserId);
+    }
+
+    [Fact]
+    public async Task An_agency_without_the_cash_module_takes_no_cash_but_the_other_means_of_payment()
+    {
+        var agent = _harness.User(Roles.Agent);
+        await _harness.OpenSessionAsync(agent, openingFloat: 100m, cancellationToken: Ct);
+        _harness.Referential.Modules[_harness.AgencyId] = AgencyModuleCatalog.Defaults & ~AgencyModules.Cash;
+        var bookingId = Guid.CreateVersion7();
+
+        (await _harness.Payments(agent).RecordPaymentAsync(CashPayment(bookingId, _harness.AgencyId, 250m), cancellationToken: Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        (await _harness.Deposits(agent).TakeAsync(new DepositRequest(bookingId, _harness.AgencyId, DepositModeInfo.Cash, 300m), Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        var card = (await _harness.Payments(agent).RecordPaymentAsync(
+            new CounterPaymentRequest(bookingId, _harness.AgencyId, PaymentMethodInfo.CardTerminal, 250m, "TPE 1"), cancellationToken: Ct)).Value;
+        (await _harness.Payments(agent).RecordRefundAsync(new CounterRefundRequest(card, PaymentMethodInfo.Cash, 50m, "Trop-perçu"), Ct)).Error.ShouldBe(CashErrors.ModuleOff);
+        _harness.Db.Rows<Payment>().ShouldHaveSingleItem().Id.ShouldBe(card);
     }
 
     [Fact]
@@ -86,8 +127,10 @@ public sealed class CounterPaymentsTests
         _harness.Referential.Agencies.Add(new AgencyInfo(otherAgency, "Agence Djerba", "Djerba", null, null, IsActive: true));
         var agent = _harness.User(Roles.Agent);
         await _harness.OpenSessionAsync(agent, cancellationToken: Ct);
+        var bookingId = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(bookingId, otherAgency);
 
-        var result = await _harness.Payments(agent).RecordPaymentAsync(CashPayment(Guid.CreateVersion7(), otherAgency, 50m), cancellationToken: Ct);
+        var result = await _harness.Payments(agent).RecordPaymentAsync(CashPayment(bookingId, otherAgency, 50m), cancellationToken: Ct);
 
         result.Error.ShouldBe(CashErrors.SessionAgencyMismatch);
     }

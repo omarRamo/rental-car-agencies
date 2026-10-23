@@ -21,6 +21,9 @@
   <data name="Inbox.Disabled" xml:space="preserve">
     <value>WhatsApp is not configured on this platform yet: conversations are shown, but no message can be sent.</value>
   </data>
+  <data name="Number.NotServed" xml:space="preserve">
+    <value>The platform's WhatsApp number currently serves another agency: sending is disabled for your agency (notifications, replies, assistant) and your customers' messages do not arrive here. The history stays readable; contact the platform's support to get the number back.</value>
+  </data>
   <data name="List.Title" xml:space="preserve">
     <value>Conversations</value>
   </data>
@@ -332,6 +335,9 @@
   </data>
   <data name="Reply.Disabled" xml:space="preserve">
     <value>WhatsApp is not configured: no message can be sent.</value>
+  </data>
+  <data name="Reply.NotServed" xml:space="preserve">
+    <value>The platform's WhatsApp number serves another agency: sending is disabled for your agency.</value>
   </data>
   <data name="Reply.TakeOverFirst" xml:space="preserve">
     <value>The bot answers this customer. Take over to write to them.</value>

@@ -7,6 +7,9 @@ public sealed class IdentityDocumentTests
 {
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 9, 0, 0, TimeSpan.Zero);
 
+    /// <summary>The agency of the customers of these tests.</summary>
+    private static readonly Guid AgencyId = Guid.CreateVersion7();
+
     internal static IdentityDocumentDetails Cin(string number = "01234567") =>
         new(IdentityDocumentType.NationalId, number, "TN", IssuedOn: new DateOnly(2015, 5, 4));
 
@@ -22,7 +25,7 @@ public sealed class IdentityDocumentTests
     internal static DocumentImage Image(string name, DateTimeOffset? uploadedAt = null) =>
         DocumentImage.Create($"persons/{name}.jpg", "image/jpeg", 1234, uploadedAt ?? Now).Value;
 
-    private static Person NewPerson() => Person.Register(new PersonDetails("Hédi", "Ben Salah", "TN"), Now).Value;
+    private static Person NewPerson() => Person.Register(AgencyId, new PersonDetails("Hédi", "Ben Salah", "TN"), Now).Value;
 
     [Fact]
     public void A_document_is_added_with_a_cleaned_number_and_a_search_key()

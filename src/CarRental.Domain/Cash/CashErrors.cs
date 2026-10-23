@@ -14,6 +14,10 @@ public static class CashErrors
 
     public static readonly Error AgencyNotFound = Error.NotFound("cash.agency_not_found", "The agency does not exist or is inactive.");
 
+    public static readonly Error ModuleOff = Error.Conflict(
+        "cash.module_off",
+        "The agency does not use the cash module: no cash session takes cash; choose another means of payment.");
+
     public static readonly Error CashierRequired = Error.Validation(
         "cash.cashier_required",
         "A cash session belongs to a signed-in user.");

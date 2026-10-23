@@ -63,8 +63,9 @@ internal sealed class PermissionAuthorizationHandler : AuthorizationHandler<Perm
 }
 
 /// <summary>
-/// Resolves <c>Permission:{name}</c> policies on demand: authenticated, MFA sign-in and the permission. Unknown
-/// permission names fail closed (no policy), other names go to the default provider.
+/// Resolves <c>Permission:{name}</c> policies on demand: authenticated, MFA sign-in and the permission; and
+/// <c>Module:{module}</c> policies (ADR-0067): authenticated, MFA sign-in and the module on for the agency of the session.
+/// Unknown permission or module names fail closed (no policy), other names go to the default provider.
 /// </summary>
 internal sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> options) : IAuthorizationPolicyProvider
 {
@@ -85,6 +86,21 @@ internal sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> op
                 _ => new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddRequirements(new MfaRequirement(), new PermissionRequirement(permission))
+                    .Build()));
+        }
+
+        if (policyName.StartsWith(ModulePolicy.Prefix, StringComparison.Ordinal))
+        {
+            if (!ModulePolicy.TryGetModule(policyName, out var module))
+            {
+                throw new InvalidOperationException($"Unknown module in policy '{policyName}'.");
+            }
+
+            return Task.FromResult<AuthorizationPolicy?>(_policies.GetOrAdd(
+                policyName,
+                _ => new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddRequirements(new MfaRequirement(), new ModuleRequirement(module.Value))
                     .Build()));
         }
 
@@ -141,6 +157,16 @@ public static class ClaimsPrincipalExtensions
         ArgumentNullException.ThrowIfNull(principal);
         return principal.FindFirstValue(CarRentalClaimTypes.DisplayName) ?? principal.Identity?.Name;
     }
+
+    /// <summary>The agency the session works for (ADR-0067), <see langword="null"/> for the support outside any agency.</summary>
+    public static Guid? GetAgencyId(this ClaimsPrincipal principal)
+    {
+        ArgumentNullException.ThrowIfNull(principal);
+        return Guid.TryParse(principal.FindFirstValue(CarRentalClaimTypes.Agency), out var id) && id != Guid.Empty ? id : null;
+    }
+
+    /// <summary>True for the support of the platform (<see cref="Permissions.PlatformAgencies"/>).</summary>
+    public static bool IsSupport(this ClaimsPrincipal principal) => principal.HasPermission(Permissions.PlatformAgencies);
 
     public static IEnumerable<string> GetPermissions(this ClaimsPrincipal principal)
     {

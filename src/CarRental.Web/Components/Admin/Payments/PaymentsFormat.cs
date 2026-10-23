@@ -30,6 +30,20 @@ public static class PaymentsFormat
         PaymentMethodInfo.BankTransfer,
     ];
 
+    /// <summary>
+    /// <paramref name="methods"/> as an agency offers them: cash goes through a cash session, so only an agency with the
+    /// cash module on (<paramref name="cashOffered"/>) takes or pays back cash (ADR-0067).
+    /// </summary>
+    public static IReadOnlyList<PaymentMethodInfo> Offered(IReadOnlyList<PaymentMethodInfo> methods, bool cashOffered)
+    {
+        ArgumentNullException.ThrowIfNull(methods);
+        return cashOffered ? methods : [.. methods.Where(m => m != PaymentMethodInfo.Cash)];
+    }
+
+    /// <summary>The modes of a deposit an agency offers: a cash deposit only with the cash module on.</summary>
+    public static IReadOnlyList<DepositModeInfo> DepositModes(bool cashOffered) =>
+        [.. Enum.GetValues<DepositModeInfo>().Where(m => cashOffered || m != DepositModeInfo.Cash)];
+
     /// <summary>Options of the dialogs: full width up to <paramref name="maxWidth"/>, closed by the Escape key.</summary>
     public static DialogOptions Dialog(MaxWidth maxWidth = MaxWidth.Small) =>
         new() { MaxWidth = maxWidth, FullWidth = true, CloseOnEscapeKey = true };

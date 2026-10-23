@@ -38,6 +38,12 @@ internal sealed class BookingWriter(
     public BookingActor Actor(SalesChannel? channel = null) => BookingMapping.ActorFor(user, channel);
 
     /// <summary>
+    /// Whether the operation may write the files of <paramref name="agencyId"/> (ADR-0067): an operation across agencies
+    /// writes for any, an operation of one agency for its own only.
+    /// </summary>
+    public bool WorksFor(Guid agencyId) => user.IsAcrossAgencies || (agencyId != Guid.Empty && user.AgencyId == agencyId);
+
+    /// <summary>
     /// Runs <paramref name="operation"/> in a unit of work. The categories it adds to the set are told to the availability
     /// cache after the commit, never before nor after a rollback; a concurrent change of the same file becomes
     /// <see cref="BookingErrors.ConcurrentUpdate"/>.
@@ -94,9 +100,12 @@ internal sealed class BookingWriter(
     public Task<Booking?> LoadAsync(Guid bookingId, CancellationToken cancellationToken) =>
         db.Set<Booking>().FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
 
-    /// <summary>The next <c>LOC</c> number of the Tunis year of <paramref name="at"/>, inside the transaction (ADR-0016).</summary>
-    public Task<DocumentNumber> NextNumberAsync(DateTimeOffset at, CancellationToken cancellationToken) =>
-        numbers.NextForDateAsync(DocumentType.Booking, at, cancellationToken);
+    /// <summary>
+    /// The next <c>LOC</c> number of <paramref name="agencyId"/> for the Tunis year of <paramref name="at"/>, inside the
+    /// transaction (ADR-0016, one series per agency).
+    /// </summary>
+    public Task<DocumentNumber> NextNumberAsync(Guid agencyId, DateTimeOffset at, CancellationToken cancellationToken) =>
+        numbers.NextForDateAsync(agencyId, DocumentType.Booking, at, cancellationToken);
 
     /// <summary>Publishes the status change of a file to the outbox (same transaction).</summary>
     public void PublishStatusChange(Booking booking, BookingStatus? previousStatus, DateTimeOffset at)

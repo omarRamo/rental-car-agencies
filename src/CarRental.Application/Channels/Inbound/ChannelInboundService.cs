@@ -4,6 +4,7 @@ using CarRental.Application.Channels.Adapters;
 using CarRental.Application.Channels.Core;
 using CarRental.Application.Channels.Logging;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Channels;
 using CarRental.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,17 +35,23 @@ public sealed record ChannelInboundEnvelope(
 public sealed record ChannelHttpAnswer(int StatusCode, string ContentType, ReadOnlyMemory<byte> Body);
 
 /// <summary>
-/// The inbound pipeline of the channels (docs/conception/phase-5-canaux.md §3 "Entrant"): authentication — the channel
-/// is connected, the caller's address is allowed (CIDR, fail closed), the API key matches its hash in constant time and
-/// the client certificate its thumbprint when one is configured — then the adapter of the channel reads the message,
-/// the core answers it in a DI scope acting as the channel (<c>system:channel:{code}</c>), and every message, accepted,
-/// refused or rejected, is written to the message log without personal data.
+/// The inbound pipeline of the channels (docs/conception/phase-5-canaux.md §3 "Entrant"): the channel is found by its
+/// address segment on the whole platform (codes are unique across agencies) and only answers while its agency is active
+/// with its channels module on — otherwise it does not exist for the outside world (404, ADR-0067); then authentication
+/// — the channel is connected, the caller's address is allowed (CIDR, fail closed), the API key matches its hash in
+/// constant time and the client certificate its thumbprint when one is configured —, the adapter of the channel reads the
+/// message, and the core answers it in a DI scope acting as the channel (<c>system:channel:{code}</c>) for the agency of
+/// the channel only. Every message, accepted, refused or rejected, is written to the message log without personal data.
 /// </summary>
 public sealed partial class ChannelInboundService
 {
+    /// <summary>The actor that finds the channel of an address segment, across agencies.</summary>
+    internal const string LookupActorName = "system:channels-inbound";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ChannelAdapterRegistry _adapters;
     private readonly ChannelMessageLogger _log;
+    private readonly IAgencyDirectory _agencies;
     private readonly TimeProvider _clock;
     private readonly ILogger<ChannelInboundService> _logger;
 
@@ -52,12 +59,14 @@ public sealed partial class ChannelInboundService
         IServiceScopeFactory scopeFactory,
         ChannelAdapterRegistry adapters,
         ChannelMessageLogger log,
+        IAgencyDirectory agencies,
         TimeProvider clock,
         ILogger<ChannelInboundService> logger)
     {
         _scopeFactory = scopeFactory;
         _adapters = adapters;
         _log = log;
+        _agencies = agencies;
         _clock = clock;
         _logger = logger;
     }
@@ -71,16 +80,7 @@ public sealed partial class ChannelInboundService
         var started = _clock.GetTimestamp();
         var occurredAt = _clock.GetUtcNow();
 
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(new UserContextSnapshot
-        {
-            UserName = ActorOf(SafeCode(envelope.ChannelCode)),
-            IsSystem = true,
-            IpAddress = envelope.RemoteAddress?.ToString(),
-            CorrelationId = envelope.CorrelationId,
-        });
-        var contexts = scope.ServiceProvider.GetRequiredService<ChannelContextLoader>();
-        var channel = await contexts.FindByCodeAsync(envelope.ChannelCode, cancellationToken);
+        var channel = await FindOpenChannelAsync(envelope, cancellationToken);
         var rejection = Authenticate(channel, envelope);
         if (rejection is not null)
         {
@@ -102,6 +102,11 @@ public sealed partial class ChannelInboundService
             return Problem(ChannelsErrors.AdapterNotConfigured, 501);
         }
 
+        // The message is processed for the agency of the channel only: the core sees and writes nothing of another agency.
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(
+            UserContextSnapshot.System(ActorOf(channel.Code), envelope.CorrelationId, channel.AgencyId) with { IpAddress = envelope.RemoteAddress?.ToString() });
+        var contexts = scope.ServiceProvider.GetRequiredService<ChannelContextLoader>();
         var context = await contexts.ToContextAsync(channel, cancellationToken);
         var core = new BoundChannelCore(scope.ServiceProvider.GetRequiredService<ChannelReservationCore>(), context, adapter);
         ChannelInboundResult result;
@@ -127,6 +132,29 @@ public sealed partial class ChannelInboundService
         };
         await LogAsync(envelope, channel, result.Request, result.Outcome, result.Outcome?.Error ?? result.FormatError, result.StatusCode, status, started, occurredAt);
         return new ChannelHttpAnswer(result.StatusCode, result.ContentType, result.Body);
+    }
+
+    /// <summary>
+    /// The channel of the address segment, found on the whole platform by a scope working across agencies (the code is
+    /// unique on the platform); <see langword="null"/> when there is none, or when its agency is suspended or has its
+    /// channels module off: the channel then does not exist for the outside world.
+    /// </summary>
+    private async Task<Channel?> FindOpenChannelAsync(ChannelInboundEnvelope envelope, CancellationToken cancellationToken)
+    {
+        Channel? channel;
+        await using (var lookup = _scopeFactory.CreateAsyncScope())
+        {
+            lookup.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(LookupActorName, envelope.CorrelationId));
+            channel = await lookup.ServiceProvider.GetRequiredService<ChannelContextLoader>().FindByCodeAsync(envelope.ChannelCode, cancellationToken);
+        }
+
+        if (channel is not null && !await _agencies.HasModuleAsync(channel.AgencyId, AgencyModules.Channels, cancellationToken))
+        {
+            LogClosedAgency(channel.Code);
+            return null;
+        }
+
+        return channel;
     }
 
     /// <summary>The first security check that fails, with the HTTP status to answer; <see langword="null"/> when the caller is the channel.</summary>
@@ -182,6 +210,7 @@ public sealed partial class ChannelInboundService
             : ChannelExcerpts.Of(request) + (ChannelExcerpts.Of(outcome) is { } answer ? " → " + answer : string.Empty);
         await _log.RecordAsync(new ChannelMessageRecord(
             channel?.Id,
+            channel?.AgencyId,
             channel?.Code ?? SafeCode(envelope.ChannelCode),
             ChannelMessageDirection.Inbound,
             ChannelExcerpts.OperationOf(request),
@@ -206,6 +235,9 @@ public sealed partial class ChannelInboundService
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Inbound message for channel {ChannelCode} rejected ({Reason}) from {RemoteAddress}.")]
     private partial void LogRejected(string channelCode, string reason, string remoteAddress);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Inbound message for channel {ChannelCode}: its agency is suspended or has the channels module off; answered as an unknown channel.")]
+    private partial void LogClosedAgency(string channelCode);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Inbound message of channel {ChannelCode} failed.")]
     private partial void LogFailed(Exception exception, string channelCode);

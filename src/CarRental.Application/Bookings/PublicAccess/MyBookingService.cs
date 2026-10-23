@@ -22,8 +22,9 @@ namespace CarRental.Application.Bookings.PublicAccess;
 /// with the fee kept; above the approval threshold it waits for a manager), download the contract and invoices.
 /// </summary>
 /// <remarks>
-/// Runs as a system actor for the writes (the caller checked the session of the booking first); nothing here reads or
-/// shows the data stored about a person beyond what was typed for the booking.
+/// Runs as a system actor working for the agency of the public site (the caller checked the session of the booking
+/// first): a grant, a session and a booking of another agency are unknown here (ADR-0067). Nothing here reads or shows
+/// the data stored about a person beyond what was typed for the booking.
 /// </remarks>
 public sealed partial class MyBookingService(
     IAppDbContext db,
@@ -37,6 +38,7 @@ public sealed partial class MyBookingService(
     IEnumerable<ICustomerDocumentProvider> documentProviders,
     IOutbox outbox,
     ISettingsReader settings,
+    IAgencyDirectory agencies,
     TimeProvider clock,
     ILogger<MyBookingService> logger)
 {
@@ -60,13 +62,16 @@ public sealed partial class MyBookingService(
     private static readonly TimeSpan ThrottleWindow = TimeSpan.FromHours(1);
 
     /// <summary>
-    /// An access request: when the number designates a booking whose contact has this e-mail (main or second driver as
-    /// typed with the request, or the payer), a link and a code are sent to it (at most a few per hour and per booking).
-    /// The same answer is given in every case, and for a booking the same queries are made whether the address matches
-    /// or not, the e-mail being composed out of the request (<see cref="AccessEmailRequested"/>): nothing tells whether
-    /// the address is the one of the booking.
+    /// An access request on the public site of <paramref name="agencyId"/>: when the number designates a booking of that
+    /// agency whose contact has this e-mail (main or second driver as typed with the request, or the payer), a link and a
+    /// code are sent to it (at most a few per hour and per booking). Numbers are unique within an agency only: a booking
+    /// of another agency is never found, whatever the number and the e-mail (ADR-0067). The same answer is given in
+    /// every case, and for a booking the same queries are made whether the address matches or not, the e-mail being
+    /// composed out of the request (<see cref="AccessEmailRequested"/>): nothing tells whether the address is the one of
+    /// the booking.
     /// </summary>
     public async Task<AccessRequestOutcome> RequestAccessAsync(
+        Guid agencyId,
         string? email,
         string? number,
         string culture,
@@ -92,10 +97,13 @@ public sealed partial class MyBookingService(
         }
 
         var now = clock.GetUtcNow();
-        var booking = await bookings.FindByNumberAsync(typedNumber!, cancellationToken);
+        var booking = await bookings.FindByNumberAsync(agencyId, typedNumber!, cancellationToken);
         CustomerRecipient? recipient = null;
+        string? site = null;
         if (booking is not null && booking.Status != BookingStatusInfo.Draft)
         {
+            // The link leads to the site of the agency of the booking (read whether the address matches or not).
+            site = await agencies.SlugAsync(booking.AgencyId, cancellationToken);
             var matched = await MatchContactAsync(booking, typedEmail!, cancellationToken);
             var limit = await settings.GetAsync(PublicBookingSettings.AccessRequestsPerHour, cancellationToken: cancellationToken);
             var since = now - ThrottleWindow;
@@ -116,6 +124,7 @@ public sealed partial class MyBookingService(
         var salt = AccessSecrets.NewSalt();
         var validity = await settings.GetAsync(PublicBookingSettings.AccessLinkValidity, cancellationToken: cancellationToken);
         var grant = BookingAccessGrant.Issue(
+            agencyId,
             recipient is null ? null : booking!.Id,
             AccessPurpose.MyBooking,
             AccessSecrets.HashToken(token),
@@ -128,7 +137,7 @@ public sealed partial class MyBookingService(
         if (recipient is not null)
         {
             outbox.Enqueue(new AccessEmailRequested(
-                new AccessEmail(booking!.Number, culture, PublicBookingPaths.AccessLink(culture, token), code, grant.ExpiresAtUtc, publicBaseUrl),
+                new AccessEmail(booking!.Number, culture, PublicBookingPaths.AccessLink(site!, culture, token), code, grant.ExpiresAtUtc, publicBaseUrl, booking.AgencyId),
                 recipient));
         }
 
@@ -349,7 +358,7 @@ public sealed partial class MyBookingService(
             return FunnelErrors.UploadSlotInvalid;
         }
 
-        var staged = await registration.StageDocumentImageAsync(content, cancellationToken);
+        var staged = await registration.StageDocumentImageAsync(content, booking.AgencyId, cancellationToken);
         if (staged.IsFailure)
         {
             return staged.Error;

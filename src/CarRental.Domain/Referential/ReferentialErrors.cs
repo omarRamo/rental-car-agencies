@@ -22,6 +22,20 @@ public static class ReferentialErrors
         "referential.agency_coordinates_invalid",
         "The agency coordinates need both a latitude (-90 to 90) and a longitude (-180 to 180).");
 
+    public static readonly Error AgencySlugInvalid = Error.Validation(
+        "referential.agency_slug_invalid",
+        $"The address of the public site has {AgencySlug.MinLength} to {AgencySlug.MaxLength} characters: lower-case letters and digits separated by single hyphens.");
+
+    public static readonly Error AgencySlugReserved = Error.Validation(
+        "referential.agency_slug_reserved",
+        "This address is used by the platform itself: choose another one.");
+
+    public static readonly Error AgencySlugTaken = Error.Conflict(
+        "referential.agency_slug_taken",
+        "Another agency already uses this address.");
+
+    public static readonly Error AgencyModulesInvalid = Error.Validation("referential.agency_modules_invalid", "Unknown module.");
+
     public static readonly Error LocationCodeInvalid = Error.Validation(
         "referential.location_code_invalid",
         $"A location code has {Location.CodeMinLength} to {Location.CodeMaxLength} characters: A-Z, 0-9 or '-'.");

@@ -47,8 +47,8 @@ param appServicePlanSku string = 'B1'
 @description('Load the demo data set at startup (Seed__Demo). Recette only.')
 param seedDemoData bool = false
 
-@description('E-mail of the first manager account, created at startup without password when no manager exists (Identity__InitialManagerEmail). The manager sets the password with "forgot password".')
-param initialManagerEmail string = ''
+@description('E-mail of the first support account (the platform operator, ADR-0067), created at startup without password when no support account exists (Identity__InitialSupportEmail). The support sets the password with "forgot password", then registers the agencies and invites their managers.')
+param initialSupportEmail string = ''
 
 @description('Custom domains accepted by the host filter, separated by semicolons (HostFiltering__CustomDomains), e.g. "www.example.tn;example.tn". *.azurewebsites.net is always accepted.')
 param customDomains string = ''
@@ -415,7 +415,7 @@ module web 'modules/appservice.bicep' = {
       Email__AcsEndpoint: communication.outputs.endpoint
       Email__SenderAddress: communication.outputs.senderAddress
       Seed__Demo: seedDemoData ? 'true' : 'false'
-      Identity__InitialManagerEmail: initialManagerEmail
+      Identity__InitialSupportEmail: initialSupportEmail
       HostFiltering__CustomDomains: customDomains
       PublicSite__BaseUrl: empty(publicSiteBaseUrl) ? 'https://${names.webApp}.azurewebsites.net' : publicSiteBaseUrl
       PublicSite__AgencyName: publicSiteAgencyName

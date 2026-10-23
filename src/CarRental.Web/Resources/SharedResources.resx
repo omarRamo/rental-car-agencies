@@ -603,6 +603,9 @@
   <data name="Error.payments.booking_required" xml:space="preserve">
     <value>Un dossier est obligatoire.</value>
   </data>
+  <data name="Error.payments.booking_not_found" xml:space="preserve">
+    <value>Ce dossier de location n'existe pas.</value>
+  </data>
   <data name="Error.payments.amount_invalid" xml:space="preserve">
     <value>Le montant est positif, en dinars avec au plus 3 décimales (millimes), et ne dépasse pas 1 000 000 TND.</value>
   </data>
@@ -1199,6 +1202,9 @@
   </data>
   <data name="Error.messaging.disabled" xml:space="preserve">
     <value>WhatsApp n'est pas configuré sur cette plateforme : aucun message ne peut partir.</value>
+  </data>
+  <data name="Error.messaging.module_off" xml:space="preserve">
+    <value>WhatsApp n'est pas ouvert pour l'agence (module désactivé ou agence suspendue) : le message n'est pas parti.</value>
   </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta a refusé le message.</value>
@@ -2030,5 +2036,80 @@
   </data>
   <data name="Error.accounting.export.format_unknown" xml:space="preserve">
     <value>Format d'export inconnu.</value>
+  </data>
+  <data name="Error.referential.agency_slug_invalid" xml:space="preserve">
+    <value>L'adresse de la vitrine compte 3 à 60 caractères : lettres minuscules et chiffres séparés par des tirets simples.</value>
+  </data>
+  <data name="Error.referential.agency_slug_reserved" xml:space="preserve">
+    <value>Cette adresse est utilisée par la plateforme elle-même : choisissez-en une autre.</value>
+  </data>
+  <data name="Error.referential.agency_slug_taken" xml:space="preserve">
+    <value>Une autre agence utilise déjà cette adresse.</value>
+  </data>
+  <data name="Error.referential.agency_modules_invalid" xml:space="preserve">
+    <value>Module inconnu.</value>
+  </data>
+  <data name="Error.referential.platform_value_forbidden" xml:space="preserve">
+    <value>Seul le support modifie la valeur commune à toute la plateforme ; réglez plutôt la valeur de votre agence.</value>
+  </data>
+  <data name="Error.referential.platform_forbidden" xml:space="preserve">
+    <value>Seul le support gère les agences de la plateforme.</value>
+  </data>
+  <data name="Error.referential.platform_leave_agency_first" xml:space="preserve">
+    <value>Quittez l'agence ouverte pour gérer les agences de la plateforme.</value>
+  </data>
+  <data name="Error.referential.platform_agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas.</value>
+  </data>
+  <data name="Error.referential.platform_concurrent_update" xml:space="preserve">
+    <value>L'agence a été modifiée entre-temps : rechargez-la et recommencez.</value>
+  </data>
+  <data name="Error.identity.last_support" xml:space="preserve">
+    <value>Le dernier compte support actif ne peut pas être verrouillé.</value>
+  </data>
+  <data name="Error.identity.agency_required" xml:space="preserve">
+    <value>Ouvrez d'abord une agence : ses utilisateurs se gèrent depuis son back office.</value>
+  </data>
+  <data name="Error.identity.permission_not_for_agency" xml:space="preserve">
+    <value>Une permission de la plateforme ne peut pas être donnée à un membre d'une agence.</value>
+  </data>
+  <data name="Error.identity.agency_not_found" xml:space="preserve">
+    <value>Cette agence n'existe pas.</value>
+  </data>
+  <data name="Error.identity.platform_scope_required" xml:space="preserve">
+    <value>Cette opération se fait depuis les pages de la plateforme, hors de toute agence.</value>
+  </data>
+  <data name="Error.identity.not_support_account" xml:space="preserve">
+    <value>Seul un compte support ouvre et quitte les agences.</value>
+  </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission de gérer les lieux de l'agence.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>Ce lieu n'existe pas.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Un autre lieu de l'agence utilise déjà ce code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Gardez au moins un lieu actif : sans lieu, l'agence ne peut plus prendre de réservation.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>Le lieu a été modifié entre-temps : rechargez la page puis recommencez.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>Une étape du parcours est mesurée pour l'agence de la vitrine consultée.</value>
+  </data>
+  <data name="Error.cash.module_off" xml:space="preserve">
+    <value>Le module caisse n'est pas activé pour cette agence : aucune caisse ne reçoit d'espèces. Choisissez un autre moyen de paiement.</value>
+  </data>
+  <data name="Error.customers.agency_required" xml:space="preserve">
+    <value>Les clients sont enregistrés pour une agence : ouvrez d'abord l'agence concernée.</value>
+  </data>
+  <data name="Error.messaging.number_not_served" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme ne sert pas cette agence (il sert une autre agence, ou aucune) : aucun message ne peut partir pour elle.</value>
+  </data>
+  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert déjà une autre agence et ne peut en servir qu'une : avec ce module ouvert ici, il ne servirait plus aucune des deux. Désignez d'abord l'agence à servir (réglage WhatsApp__AgencyId), puis ouvrez le module.</value>
   </data>
 </root>

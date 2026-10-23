@@ -3,6 +3,8 @@ using CarRental.Application.Channels.Adapters;
 using CarRental.Application.Channels.Administration;
 using CarRental.Application.Channels.Outbound;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Referential.Contracts;
+using CarRental.Domain.Common;
 using CarRental.Infrastructure.BackgroundJobs;
 using CarRental.Infrastructure.Persistence;
 using Hangfire;
@@ -135,13 +137,24 @@ internal sealed partial class ChannelSyncPump(
 /// <summary>
 /// Readiness entry <c>channels</c>: Degraded — never Unhealthy, the application keeps serving — when an outbound update
 /// failed for good (replay it from <c>/admin/channels/sync</c>) or when the oldest pending update is due for longer than
-/// <see cref="ChannelSyncOptions.StaleAfter"/> (synchronization stopped, or a channel failing again and again).
+/// <see cref="ChannelSyncOptions.StaleAfter"/> (synchronization stopped, or a channel failing again and again). Read
+/// across agencies in a scope of its own (the platform's entry, ADR-0067), for the agencies whose channels module is on:
+/// the updates of the others wait for the module on purpose.
 /// </summary>
-internal sealed class ChannelsHealthCheck(CarRentalDbContext db, IOptions<ChannelSyncOptions> options, TimeProvider timeProvider) : IHealthCheck
+internal sealed class ChannelsHealthCheck(IServiceScopeFactory scopes, IAgencyDirectory agencies, IOptions<ChannelSyncOptions> options, TimeProvider timeProvider) : IHealthCheck
 {
+    internal const string ActorName = "system:health";
+
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var statistics = await ChannelMonitoringService.ReadStatisticsAsync(db, cancellationToken);
+        var open = (await agencies.ListAsync(cancellationToken)).Where(a => a.IsActive && a.HasModule(AgencyModules.Channels)).Select(a => a.Id).ToList();
+        ChannelSyncStatistics statistics;
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName));
+            statistics = await ChannelMonitoringService.ReadStatisticsAsync(scope.ServiceProvider.GetRequiredService<CarRentalDbContext>(), open, cancellationToken);
+        }
+
         var overdue = statistics.OldestDueAtUtc is { } due ? timeProvider.GetUtcNow() - due : (TimeSpan?)null;
         var data = new Dictionary<string, object>
         {

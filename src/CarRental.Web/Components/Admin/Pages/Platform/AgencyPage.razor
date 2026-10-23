@@ -1,0 +1,357 @@
+@page "/admin/platform/agencies/{AgencyId:guid}"
+@attribute [HasPermission(Permissions.PlatformAgencies)]
+@using CarRental.Application.Common.Paging
+@using CarRental.Application.Identity.Users
+@using CarRental.Application.Messaging.Contracts
+@using CarRental.Application.Referential.Platform
+@using CarRental.Domain.Referential
+@using CarRental.Web.Resources.Admin.Identity
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<IdentityAdminResources> Users
+@inject IStringLocalizer<SharedResources> Shared
+
+@* One agency of the platform for the support (ADR-0067): its identity, the address of its public site, its modules, its
+   suspension and its users (managers invited from here), and the way into its back office. Runs across agencies. *@
+<PageTitle>@(_agency?.Name ?? L["Platform.Agencies.Title"].Value)</PageTitle>
+
+<MudLink Href="@PlatformPaths.Agencies" Underline="Underline.Always" Class="d-inline-block mb-2">@L["Platform.Agency.Back"]</MudLink>
+
+@if (_error is not null)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">@L["Platform.Agencies.Title"]</MudText>
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_agency is not { } agency)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive ? "true" : "false")">@agency.Name</MudText>
+            <AgencyStatusChip IsActive="agency.IsActive" />
+        </MudStack>
+        <form method="post" action="@PlatformPaths.Enter">
+            <AntiforgeryToken />
+            <input type="hidden" name="agencyId" value="@agency.Id.ToString("D")" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Login">@L["Platform.Agency.Enter"]</MudButton>
+        </form>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <section aria-labelledby="agency-identity">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-identity" GutterBottom="true">@L["Platform.Agency.Identity"]</MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudTextField T="string" @bind-Value="_name" Label="@L["Platform.Register.Name"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                                          MaxLength="Agency.NameMaxLength" data-testid="agency-name" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField T="string" @bind-Value="_city" Label="@L["Platform.Agencies.City"]" Required="true" RequiredError="@Shared["Validation.Required"]"
+                                          MaxLength="Agency.CityMaxLength" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField T="string" @bind-Value="_phone" Label="@L["Platform.Register.Phone"]" InputType="InputType.Telephone" MaxLength="Agency.PhoneMaxLength" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField T="string" @bind-Value="_address" Label="@L["Platform.Register.Address"]" MaxLength="Agency.AddressMaxLength" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField T="string" @bind-Value="_email" Label="@L["Platform.Register.Email"]" InputType="InputType.Email" MaxLength="Agency.EmailMaxLength" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveDetailsAsync" Disabled="_busy"
+                                   data-testid="agency-save-details">@L["Platform.Agency.Save"]</MudButton>
+                    </MudStack>
+                </MudPaper>
+            </section>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <section aria-labelledby="agency-site" class="mb-4">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-site" GutterBottom="true">@L["Platform.Agencies.Site"]</MudText>
+                    <MudText Typo="Typo.body1" Class="mb-3">
+                        @L["Platform.Agency.Site.Current"]
+                        <MudLink Href="@PlatformPaths.PublicSite(agency.Slug)" Target="_blank" rel="noopener" Underline="Underline.Always"
+                                 aria-label="@L["Platform.Agencies.SiteLink", agency.Name, PlatformPaths.PublicSite(agency.Slug)]"><code data-testid="agency-site">@PlatformPaths.PublicSite(agency.Slug)</code></MudLink>
+                    </MudText>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["Platform.Agency.Site.Warning"]</MudAlert>
+                    <MudTextField T="string" Value="_slug" ValueChanged="SlugChanged" Label="@L["Platform.Agency.Site.New"]" Immediate="true" MaxLength="AgencySlug.MaxLength"
+                                  Error="@(_slugError is not null)" ErrorText="@_slugError" autocomplete="off" spellcheck="false" data-testid="agency-slug" />
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-3">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ChangeSlugAsync" Disabled="@(_busy || !CanChangeSlug)">@L["Platform.Agency.Site.Change"]</MudButton>
+                    </MudStack>
+                </MudPaper>
+            </section>
+
+            <section aria-labelledby="agency-status">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-status" GutterBottom="true">@L["Platform.Agency.Status"]</MudText>
+                    @if (agency.IsActive)
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-3">@L["Platform.Agency.Active.Text"]</MudText>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Block" OnClick="() => SetActiveAsync(false)" Disabled="_busy">@L["Platform.Agency.Suspend"]</MudButton>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-3">@L["Platform.Agency.Suspended.Text"]</MudText>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.CheckCircle" OnClick="() => SetActiveAsync(true)" Disabled="_busy">@L["Platform.Agency.Reactivate"]</MudButton>
+                    }
+                </MudPaper>
+            </section>
+        </MudItem>
+
+        <MudItem xs="12">
+            <section aria-labelledby="agency-modules">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-modules" GutterBottom="true">@L["Platform.Agencies.Modules"]</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@L["Platform.Agency.Modules.Intro"]</MudText>
+                    @foreach (var module in AgencyModuleCatalog.All)
+                    {
+                        var current = module;
+                        <div class="mb-2" data-module-row="@current">
+                            <MudSwitch T="bool" Value="@((_modules & current) == current)" ValueChanged="@(on => ToggleModule(current, on))" Color="Color.Primary"
+                                       Label="@L[$"Module.{current}"]" data-module="@current" />
+                            <MudText Typo="Typo.body2" Class="ms-14">@L[$"Module.{current}.Description"]</MudText>
+                            @if (current == AgencyModules.WhatsApp && _whatsAppNumber is { } number)
+                            {
+                                @* One platform number for all the agencies (ADR-0067): which one it serves, and what switching the module on does here. *@
+                                <MudText Typo="Typo.body2" Class="ms-14 mt-1" data-testid="agency-whatsapp-number">@WhatsAppNumberText(number, agency)</MudText>
+                                @if ((_modules & AgencyModules.WhatsApp) == AgencyModules.WhatsApp && number.Outlook != WhatsAppNumberOutlook.Serves)
+                                {
+                                    <MudAlert Severity="Severity.Warning" Dense="true" Class="ms-14 mt-2" data-testid="agency-whatsapp-warning">
+                                        @(L[number.Outlook == WhatsAppNumberOutlook.WouldBeAmbiguous ? "Platform.Agency.WhatsAppNumber.Ambiguous" : "Platform.Agency.WhatsAppNumber.Elsewhere"])
+                                        <code class="setting-value">WhatsApp__AgencyId=@(agency.Id.ToString("D"))</code>
+                                    </MudAlert>
+                                }
+                            }
+                        </div>
+                    }
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveModulesAsync"
+                                   Disabled="@(_busy || _modules == agency.Modules)" data-testid="agency-save-modules">@L["Platform.Agency.Modules.Save"]</MudButton>
+                    </MudStack>
+                </MudPaper>
+            </section>
+        </MudItem>
+
+        <MudItem xs="12">
+            <section aria-labelledby="agency-users">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-users">@L["Platform.Agency.Users"]</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="InviteManagerAsync">@L["Platform.Agency.InviteManager"]</MudButton>
+                </MudStack>
+                <MudTable @ref="_users" T="UserSummary" ServerData="LoadUsersAsync" RowsPerPage="25" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+                          TableAttributes="@(new Dictionary<string, object> { ["aria-labelledby"] = "agency-users" })">
+                    <HeaderContent>
+                        <MudTh>@Users["Users.Column.Name"]</MudTh>
+                        <MudTh>@Users["Users.Column.Email"]</MudTh>
+                        <MudTh>@Users["Users.Column.Roles"]</MudTh>
+                        <MudTh>@Users["Users.Column.TwoFactor"]</MudTh>
+                        <MudTh>@Users["Users.Column.Status"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@Users["Users.Column.Name"]" data-user-email="@context.Email">@context.DisplayName</MudTd>
+                        <MudTd DataLabel="@Users["Users.Column.Email"]">@context.Email</MudTd>
+                        <MudTd DataLabel="@Users["Users.Column.Roles"]">
+                            @foreach (var role in context.Roles)
+                            {
+                                <MudChip T="string" Size="Size.Small">@Users[$"Role.{role}"]</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="@Users["Users.Column.TwoFactor"]">@(context.TwoFactorEnabled ? Users["Users.TwoFactor.On"] : Users["Users.TwoFactor.Off"])</MudTd>
+                        <MudTd DataLabel="@Users["Users.Column.Status"]">@(context.IsLockedOut ? Users["Users.Status.Locked"] : Users["Users.Status.Active"])</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText>@Users["Users.Empty"]</MudText>
+                    </NoRecordsContent>
+                    <PagerContent>
+                        <AdminTablePager />
+                    </PagerContent>
+                </MudTable>
+            </section>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private PlatformAgencyItem? _agency;
+    private MudTable<UserSummary>? _users;
+    private string? _error;
+    private bool _busy;
+    private string? _name;
+    private string? _city;
+    private string? _address;
+    private string? _phone;
+    private string? _email;
+    private string? _slug;
+    private string? _slugError;
+    private AgencyModules _modules;
+    private PlatformWhatsAppNumber? _whatsAppNumber;
+
+    [Parameter]
+    public Guid AgencyId { get; set; }
+
+    private bool CanChangeSlug =>
+        _agency is { } agency && _slugError is null && !string.IsNullOrWhiteSpace(_slug)
+        && !string.Equals(_slug.Trim(), agency.Slug, StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var agencyId = AgencyId;
+        var result = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<PlatformAgencyItem>>((service, ct) => service.GetAsync(agencyId, ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        var agency = result.Value;
+        _agency = agency;
+        (_name, _city, _address, _phone, _email) = (agency.Name, agency.City, agency.Address, agency.Phone, agency.Email);
+        _slug = agency.Slug;
+        _slugError = null;
+        _modules = agency.Modules;
+        var number = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<PlatformWhatsAppNumber>>((service, ct) => service.GetWhatsAppNumberAsync(agencyId, ct));
+        _whatsAppNumber = number.IsSuccess ? number.Value : null;
+    }
+
+    private string WhatsAppNumberText(PlatformWhatsAppNumber number, PlatformAgencyItem agency) =>
+        number.ServedAgencyId == agency.Id ? L["Platform.Agency.WhatsAppNumber.ServesThis"]
+        : number.ServedAgencyName is { } served ? L["Platform.Agency.WhatsAppNumber.ServesOther", served]
+        : L["Platform.Agency.WhatsAppNumber.ServesNone"];
+
+    private void SlugChanged(string? slug)
+    {
+        _slug = slug;
+        var normalized = AgencySlug.Normalize(slug);
+        _slugError = string.IsNullOrWhiteSpace(slug) || normalized.IsSuccess ? null : ErrorMessages.For(Shared, normalized.Error);
+    }
+
+    private void ToggleModule(AgencyModules module, bool on) => _modules = on ? _modules | module : _modules & ~module;
+
+    private Task SaveDetailsAsync()
+    {
+        var request = new AgencyDetailsRequest(_name ?? string.Empty, _city ?? string.Empty, _address, _phone, _email);
+        return ChangeAsync((service, agencyId, ct) => service.UpdateDetailsAsync(agencyId, request, ct), L["Platform.Agency.Saved"]);
+    }
+
+    private async Task ChangeSlugAsync()
+    {
+        if (_agency is not { } agency || !CanChangeSlug)
+        {
+            return;
+        }
+
+        var slug = _slug!.Trim().ToLowerInvariant();
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Platform.Agency.Site.Confirm.Title"],
+            L["Platform.Agency.Site.Confirm.Message", PlatformPaths.PublicSite(agency.Slug), PlatformPaths.PublicSite(slug)],
+            yesText: L["Platform.Agency.Site.Change"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed == true)
+        {
+            await ChangeAsync((service, agencyId, ct) => service.ChangeSlugAsync(agencyId, slug, ct), L["Platform.Agency.Site.Changed"]);
+        }
+    }
+
+    private Task SaveModulesAsync()
+    {
+        var modules = _modules;
+        return ChangeAsync((service, agencyId, ct) => service.SetModulesAsync(agencyId, modules, ct), L["Platform.Agency.Modules.Saved"]);
+    }
+
+    private async Task SetActiveAsync(bool active)
+    {
+        if (_agency is not { } agency)
+        {
+            return;
+        }
+
+        var prefix = active ? "Platform.Agency.Reactivate" : "Platform.Agency.Suspend";
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L[$"{prefix}.Confirm.Title"],
+            L[$"{prefix}.Confirm.Message", agency.Name],
+            yesText: L[prefix],
+            cancelText: Shared["Cancel"]);
+        if (confirmed == true)
+        {
+            await ChangeAsync(
+                (service, agencyId, ct) => service.SetActiveAsync(agencyId, active, ct),
+                active ? L["Platform.Agency.Reactivated"] : L["Platform.Agency.Suspended"]);
+        }
+    }
+
+    private async Task ChangeAsync(Func<AgencyPlatformService, Guid, CancellationToken, Task<Result>> change, string success)
+    {
+        _busy = true;
+        try
+        {
+            var agencyId = AgencyId;
+            var result = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result>((service, ct) => change(service, agencyId, ct));
+            if (result.IsFailure)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+                return;
+            }
+
+            Snackbar.Add(success, Severity.Success);
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task<TableData<UserSummary>> LoadUsersAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var agencyId = AgencyId;
+        var page = new PageRequest(state.Page + 1, state.PageSize);
+        var result = await Runner.RunAcrossAgenciesAsync<UserAdministrationService, Result<PagedResult<UserSummary>>>(
+            (service, ct) => service.ListAgencyUsersAsync(agencyId, page, ct),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return new TableData<UserSummary> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<UserSummary> { Items = result.Value.Items, TotalItems = result.Value.TotalCount };
+    }
+
+    private async Task InviteManagerAsync()
+    {
+        var parameters = new DialogParameters<InviteAccountDialog> { { d => d.AgencyId, AgencyId } };
+        var dialog = await Dialogs.ShowAsync<InviteAccountDialog>(
+            L["Platform.Agency.InviteManager"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(L["Platform.Agency.ManagerInvited"], Severity.Success);
+            if (_users is not null)
+            {
+                await _users.ReloadServerData();
+            }
+        }
+    }
+}

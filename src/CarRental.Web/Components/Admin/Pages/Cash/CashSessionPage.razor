@@ -1,5 +1,6 @@
 @page "/admin/cash/sessions/{SessionId:guid}"
 @attribute [HasPermission(Permissions.CashOwn)]
+@attribute [RequiresModule(AgencyModules.Cash)]
 @inject IOperationRunner Runner
 @inject IStringLocalizer<CashResources> L
 @inject IStringLocalizer<SharedResources> Shared

@@ -7,7 +7,7 @@ namespace CarRental.Application.Fleet.Photos;
 /// <summary>
 /// Where fleet photos live: the private blob container <see cref="Container"/> (created on the first upload) and the
 /// application URLs that stream them (ADR-0022). Category photos are public (<c>PhotoUrl</c> of the Fleet contract),
-/// vehicle photos are reserved to back office users holding <c>fleet.read</c>.
+/// vehicle photos are reserved to the staff of the agency of the vehicle holding <c>fleet.read</c> (ADR-0067).
 /// </summary>
 public static class FleetMedia
 {
@@ -17,7 +17,7 @@ public static class FleetMedia
     /// <summary>Route of the public photo of a category (anonymous, cached).</summary>
     public const string CategoryPhotoRoute = "/media/categories/{categoryId:guid}";
 
-    /// <summary>Route of a vehicle photo (back office only).</summary>
+    /// <summary>Route of a vehicle photo (back office only, never an address of the public site).</summary>
     public const string VehiclePhotoRoute = "/media/vehicles/{vehicleId:guid}/photos/{photoId:guid}";
 
     /// <summary>App-relative URL of a category photo; the version (content hash prefix) changes with the photo, so the URL can be cached.</summary>

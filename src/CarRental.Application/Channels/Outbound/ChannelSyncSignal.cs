@@ -89,6 +89,9 @@ public sealed class ChannelSyncSignal : IDisposable
 /// <summary>Availability changes drained from <see cref="ChannelSyncSignal"/>.</summary>
 public sealed record ChannelSyncChanges(bool All, IReadOnlyList<Guid> Categories)
 {
+    /// <summary>No change.</summary>
+    public static ChannelSyncChanges None { get; } = new(false, []);
+
     public bool IsEmpty => !All && Categories.Count == 0;
 }
 

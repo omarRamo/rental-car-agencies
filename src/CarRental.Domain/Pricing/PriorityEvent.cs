@@ -7,7 +7,7 @@ namespace CarRental.Domain.Pricing;
 /// take precedence over the seasons. When events overlap, the highest <see cref="Priority"/> wins (overlapping events
 /// never share a priority). An event may impose a minimum rental duration.
 /// </summary>
-public sealed class PriorityEvent : Entity
+public sealed class PriorityEvent : Entity, IAgencyOwned
 {
     public const int NameMaxLength = 80;
     public const int MaximumPriority = 1000;
@@ -16,14 +16,18 @@ public sealed class PriorityEvent : Entity
     {
     }
 
-    private PriorityEvent(Guid id, Guid ratePlanId, PriorityEventDefinition definition)
+    private PriorityEvent(Guid id, RatePlan plan, PriorityEventDefinition definition)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         Apply(definition);
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     public string Name { get; private set; } = null!;
 
@@ -50,9 +54,9 @@ public sealed class PriorityEvent : Entity
         && definition.Priority is >= 1 and <= MaximumPriority
         && PricingValues.IsMinimumDays(definition.MinimumDays);
 
-    internal static PriorityEvent Create(Guid ratePlanId, PriorityEventDefinition definition) => new(NewId(), ratePlanId, definition);
+    internal static PriorityEvent Create(RatePlan plan, PriorityEventDefinition definition) => new(NewId(), plan, definition);
 
-    internal PriorityEvent CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null });
+    internal PriorityEvent CopyForNewPlan(RatePlan plan) => new(NewId(), plan, ToDefinition() with { Id = null });
 
     /// <summary>The content of this entity, as edited.</summary>
     public PriorityEventDefinition ToDefinition() => new(Name, StartDate, EndDate, Priority, MinimumDays, Id);

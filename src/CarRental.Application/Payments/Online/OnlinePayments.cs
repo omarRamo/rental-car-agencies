@@ -1,4 +1,5 @@
 using CarRental.Application.Accounting.Contracts;
+using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -28,6 +29,7 @@ internal sealed partial class OnlinePayments(
     IUserContext userContext,
     IClicToPayGateway gateway,
     IReferentialQueries referential,
+    IBookingsQueries bookings,
     ISettingsReader settings,
     TimeProvider timeProvider,
     ILogger<OnlinePayments> logger,
@@ -596,6 +598,13 @@ internal sealed partial class OnlinePayments(
         if (!await referential.IsActiveAgencyAsync(request.AgencyId, cancellationToken))
         {
             return PaymentsErrors.AgencyNotFound;
+        }
+
+        // A payment page or link only for a rental file of the agency of the payment (ADR-0067).
+        var booking = await bookings.EnsureBookingOfAsync(request.BookingId, request.AgencyId, cancellationToken);
+        if (booking.IsFailure)
+        {
+            return booking.Error;
         }
 
         var now = timeProvider.GetUtcNow();

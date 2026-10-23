@@ -16,6 +16,7 @@ using CarRental.Application.Tests.Fakes;
 using CarRental.Domain.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 namespace CarRental.Application.Tests.Messaging.Fakes;
@@ -36,6 +37,9 @@ internal sealed class MessagingHarness : IAsyncDisposable
         OfficeId = Guid.CreateVersion7();
         Referential = new FakeAddressReferential(AgencyId, OfficeId);
 
+        // The agency of the harness, with every module: the only one with WhatsApp, it serves the platform's number.
+        Agencies = new StaticAgencyDirectory(AgencyId);
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(Clock);
@@ -49,10 +53,12 @@ internal sealed class MessagingHarness : IAsyncDisposable
         services.AddSingleton<ICustomersQueries>(Customers);
         services.AddSingleton<IBookingsQueries>(Bookings);
         services.AddSingleton<IReferentialQueries>(Referential);
+        services.AddSingleton<IAgencyDirectory>(Agencies);
         services.AddSingleton<ISettingsReader>(Settings);
         services.AddSingleton<IWhatsAppClient>(WhatsApp);
         services.AddSingleton<IWhatsAppWebhookParser>(Parser);
         services.AddSingleton<IIdentityQueries>(Identity);
+        services.AddSingleton(Options.Create(Routing));
         services.Replace(ServiceDescriptor.Scoped<IConversationResponder>(_ => Responder));
         configure?.Invoke(services);
         Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
@@ -72,6 +78,15 @@ internal sealed class MessagingHarness : IAsyncDisposable
     public FakeMessagingBookings Bookings { get; } = new();
 
     public FakeAddressReferential Referential { get; }
+
+    /// <summary>The agencies of the platform (the harness's own one; a test adds others or switches modules off).</summary>
+    public StaticAgencyDirectory Agencies { get; }
+
+    /// <summary>
+    /// The designation of the agency served by the platform's number (none by default: the only agency with the module
+    /// on); a test changes it at any time, as a restart with another <c>WhatsApp:AgencyId</c> would.
+    /// </summary>
+    public WhatsAppRoutingOptions Routing { get; } = new();
 
     public FakeSettingsReader Settings { get; } = new();
 
@@ -101,9 +116,13 @@ internal sealed class MessagingHarness : IAsyncDisposable
         return scope;
     }
 
-    /// <summary>An agent of the back office (whatsapp.inbox, customers.read, bookings.read).</summary>
+    /// <summary>An agent of the back office (whatsapp.inbox, customers.read, bookings.read), of no agency in particular.</summary>
     public static UserContextSnapshot Agent(Guid? id = null) =>
         UserContextSnapshot.ForUser(id ?? Guid.CreateVersion7(), "agent@demo.local", RolePresets.PermissionsOf(Roles.Agent));
+
+    /// <summary>A member of the staff of the agency of the harness with the presets of <paramref name="role"/>.</summary>
+    public UserContextSnapshot Staff(string role, Guid? id = null) =>
+        UserContextSnapshot.ForUser(id ?? Guid.CreateVersion7(), $"{role.ToLowerInvariant()}@demo.local", RolePresets.PermissionsOf(role)) with { AgencyId = AgencyId };
 
     /// <summary>A delivery holding customer messages and statuses, processed like the outbox would (then drained).</summary>
     public async Task DeliverAsync(IReadOnlyList<InboundWhatsAppMessage>? messages = null, IReadOnlyList<WhatsAppStatusReport>? statuses = null)
@@ -170,11 +189,14 @@ internal sealed class MessagingHarness : IAsyncDisposable
         return await operation(scope.ServiceProvider.GetRequiredService<TService>());
     }
 
-    /// <summary>A person with this phone (and the WhatsApp notifications consent when <paramref name="consent"/>).</summary>
-    public Guid AddPerson(string phone, bool consent = false, string firstName = "Hédi", string lastName = "Ben Salah")
+    /// <summary>
+    /// A person with this phone (and the WhatsApp notifications consent when <paramref name="consent"/>), a customer of
+    /// the agency of the harness unless <paramref name="agencyId"/> names another one.
+    /// </summary>
+    public Guid AddPerson(string phone, bool consent = false, string firstName = "Hédi", string lastName = "Ben Salah", Guid? agencyId = null)
     {
         var id = Customers.AddPerson(firstName, lastName);
-        Customers.Persons[id] = Customers.Persons[id] with { Phone = phone };
+        Customers.Persons[id] = Customers.Persons[id] with { Phone = phone, AgencyId = agencyId ?? AgencyId };
         if (consent)
         {
             Customers.Consents.Add((id, ConsentPurposeInfo.WhatsAppNotifications, ConsentChannelInfo.Web, true));
@@ -197,5 +219,5 @@ internal sealed class FakeAddressReferential(Guid agencyId, Guid officeId) : IRe
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([new LocationInfo(officeId, agencyId ?? Guid.Empty, "AGC", "Agence Tunis centre", LocationKindInfo.AgencyOffice, OfficeAddress)]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
 }

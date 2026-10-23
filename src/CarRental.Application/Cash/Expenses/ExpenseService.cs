@@ -74,19 +74,10 @@ public sealed class ExpenseService
 
     private bool CanManage => _user.HasPermission(Permissions.ExpensesManage);
 
+    /// <summary>The operation may read and write for <paramref name="agencyId"/>: across agencies, or for that agency (ADR-0067).</summary>
+    private bool WorksFor(Guid agencyId) => _user.IsAcrossAgencies || _user.AgencyId == agencyId;
+
     private DateOnly Today => TunisTime.Today(_clock);
-
-    /// <summary>The active agencies, by name.</summary>
-    public async Task<Result<IReadOnlyList<AgencyInfo>>> GetAgenciesAsync(CancellationToken cancellationToken = default)
-    {
-        if (!CanManage)
-        {
-            return ExpenseErrors.Forbidden;
-        }
-
-        var agencies = await _referential.GetAgenciesAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<AgencyInfo>>([.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)]);
-    }
 
     /// <summary>The expenses of an agency, the latest first, with the totals of the filtered list (deleted ones never count).</summary>
     public async Task<Result<ExpenseList>> ListAsync(ExpenseFilter filter, PageRequest page, CancellationToken cancellationToken = default)
@@ -99,7 +90,7 @@ public sealed class ExpenseService
         }
 
         var query = filter.IncludeDeleted
-            ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters()
+            ? _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters([QueryFilters.SoftDelete])
             : _db.Set<Expense>().AsNoTracking().Where(e => !e.IsDeleted);
         query = query.Where(e => e.AgencyId == filter.AgencyId);
         if (filter.From is { } from)
@@ -164,7 +155,7 @@ public sealed class ExpenseService
             return ExpenseErrors.Forbidden;
         }
 
-        var expense = await _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == expenseId, cancellationToken);
+        var expense = await _db.Set<Expense>().AsNoTracking().IgnoreQueryFilters([QueryFilters.SoftDelete]).FirstOrDefaultAsync(e => e.Id == expenseId, cancellationToken);
         if (expense is null)
         {
             return ExpenseErrors.NotFound;
@@ -180,6 +171,11 @@ public sealed class ExpenseService
         if (!CanManage)
         {
             return ExpenseErrors.Forbidden;
+        }
+
+        if (!WorksFor(agencyId))
+        {
+            return ExpenseErrors.AgencyNotFound;
         }
 
         var options = new List<ExpenseVehicleOption>();
@@ -198,6 +194,11 @@ public sealed class ExpenseService
         if (!CanManage)
         {
             return ExpenseErrors.Forbidden;
+        }
+
+        if (!WorksFor(agencyId))
+        {
+            return ExpenseErrors.VehicleNotFound;
         }
 
         var vehicle = await _fleet.GetVehicleAsync(vehicleId, cancellationToken);
@@ -297,7 +298,7 @@ public sealed class ExpenseService
 
         var current = await _db.Set<Expense>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Where(e => e.Id == expenseId)
             .Select(e => new { e.AgencyId, e.IsDeleted })
             .FirstOrDefaultAsync(cancellationToken);
@@ -370,7 +371,7 @@ public sealed class ExpenseService
                 var expense = await _db.Set<Expense>().FirstOrDefaultAsync(e => e.Id == expenseId, ct);
                 if (expense is null)
                 {
-                    return await _db.Set<Expense>().IgnoreQueryFilters().AnyAsync(e => e.Id == expenseId, ct) ? ExpenseErrors.Deleted : ExpenseErrors.NotFound;
+                    return await _db.Set<Expense>().IgnoreQueryFilters([QueryFilters.SoftDelete]).AnyAsync(e => e.Id == expenseId, ct) ? ExpenseErrors.Deleted : ExpenseErrors.NotFound;
                 }
 
                 if (expense.IsDeleted)
@@ -482,7 +483,7 @@ public sealed class ExpenseService
 
         var receipt = await _db.Set<Expense>()
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .Where(e => e.Id == expenseId)
             .Select(e => new { e.Number, e.ReceiptPath, e.ReceiptContentType, e.ReceiptHash, e.ReceiptFileName })
             .FirstOrDefaultAsync(cancellationToken);

@@ -9,9 +9,9 @@ namespace CarRental.Domain.Channels;
 /// pending item per <see cref="CoalesceKey"/>. The payload is built from fresh data at each attempt and kept (canonical
 /// JSON, no personal data); a failure is retried with growing delays (<see cref="ChannelSyncBackoff"/>) until
 /// <c>Channels:Sync:MaxAttempts</c>, then the item fails for good (health entry <c>channels</c> degraded) and waits
-/// for a replay from the screen.
+/// for a replay from the screen. It carries the agency of its channel.
 /// </summary>
-public sealed class ChannelSyncItem : AggregateRoot
+public sealed class ChannelSyncItem : AggregateRoot, IAgencyOwned
 {
     public const int CoalesceKeyMaxLength = 100;
     public const int ErrorMaxLength = 1000;
@@ -21,10 +21,11 @@ public sealed class ChannelSyncItem : AggregateRoot
     {
     }
 
-    private ChannelSyncItem(Guid channelId, ChannelSyncOperation operation, Guid? categoryId, string reason, DateTimeOffset dueAt, DateTimeOffset now)
+    private ChannelSyncItem(Guid channelId, Guid agencyId, ChannelSyncOperation operation, Guid? categoryId, string reason, DateTimeOffset dueAt, DateTimeOffset now)
         : base(NewId())
     {
         ChannelId = channelId;
+        AgencyId = agencyId;
         Operation = operation;
         CategoryId = categoryId;
         CoalesceKey = KeyOf(channelId, operation, categoryId);
@@ -35,6 +36,9 @@ public sealed class ChannelSyncItem : AggregateRoot
     }
 
     public Guid ChannelId { get; private set; }
+
+    /// <summary>The agency of the channel.</summary>
+    public Guid AgencyId { get; private set; }
 
     public ChannelSyncOperation Operation { get; private set; }
 
@@ -73,16 +77,16 @@ public sealed class ChannelSyncItem : AggregateRoot
     public static string KeyOf(Guid channelId, ChannelSyncOperation operation, Guid? categoryId) =>
         string.Create(CultureInfo.InvariantCulture, $"{channelId:N}:{(int)operation}:{(categoryId is { } id ? id.ToString("N") : "all")}");
 
-    /// <summary>A new pending item, due at <paramref name="dueAt"/> (now plus the debounce window).</summary>
-    public static ChannelSyncItem Enqueue(Guid channelId, ChannelSyncOperation operation, Guid? categoryId, string reason, DateTimeOffset dueAt, DateTimeOffset now)
+    /// <summary>A new pending item of the channel <paramref name="channelId"/> of <paramref name="agencyId"/>, due at <paramref name="dueAt"/> (now plus the debounce window).</summary>
+    public static ChannelSyncItem Enqueue(Guid channelId, Guid agencyId, ChannelSyncOperation operation, Guid? categoryId, string reason, DateTimeOffset dueAt, DateTimeOffset now)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        if (channelId == Guid.Empty || !Enum.IsDefined(operation) || (operation != ChannelSyncOperation.PushAvailability && categoryId is not null))
+        if (channelId == Guid.Empty || agencyId == Guid.Empty || !Enum.IsDefined(operation) || (operation != ChannelSyncOperation.PushAvailability && categoryId is not null))
         {
-            throw new ArgumentException("A synchronization item needs its channel; only an availability push targets one category.", nameof(channelId));
+            throw new ArgumentException("A synchronization item needs its channel and agency; only an availability push targets one category.", nameof(channelId));
         }
 
-        return new ChannelSyncItem(channelId, operation, categoryId, reason, dueAt, now);
+        return new ChannelSyncItem(channelId, agencyId, operation, categoryId, reason, dueAt, now);
     }
 
     /// <summary>Whether the item waits to be sent and is due at <paramref name="now"/>.</summary>

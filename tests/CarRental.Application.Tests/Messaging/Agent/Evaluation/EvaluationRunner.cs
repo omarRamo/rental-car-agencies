@@ -99,8 +99,8 @@ internal static class EvaluationRunner
             else
             {
                 var specific = mode == EvaluationMode.Scripted ? turn.ExpectScripted : turn.ExpectLive;
-                Check(turn.Expect, observed, failures);
-                Check(specific, observed, failures);
+                Check(turn.Expect, observed, harness.Site, failures);
+                Check(specific, observed, harness.Site, failures);
                 CheckInvariants(turn.Expect.AllowConfirmation || specific is { AllowConfirmation: true }, observed, knownAmounts, failures);
             }
 
@@ -130,7 +130,7 @@ internal static class EvaluationRunner
         foreach (var knowledge in world.Knowledge)
         {
             var content = KnowledgeContent.Create(knowledge.Title, knowledge.Keywords, knowledge.French, knowledge.English, knowledge.Arabic).Value;
-            var entry = KnowledgeEntry.CreateDraft(knowledge.Topic, content, harness.Clock.GetUtcNow()).Value;
+            var entry = KnowledgeEntry.CreateDraft(harness.World.Agency.Id, knowledge.Topic, content, harness.Clock.GetUtcNow()).Value;
             if (knowledge.Validated)
             {
                 entry.Validate(manager, harness.Clock.GetUtcNow()).IsSuccess.ShouldBeTrue(knowledge.Topic);
@@ -169,7 +169,7 @@ internal static class EvaluationRunner
         return conversation.SendAsync(turn.Customer ?? throw new InvalidDataException("A turn has a customer text, a tap or attachments."));
     }
 
-    private static void Check(TurnExpectation? expect, ObservedTurn turn, List<string> failures)
+    private static void Check(TurnExpectation? expect, ObservedTurn turn, string site, List<string> failures)
     {
         if (expect is null)
         {
@@ -251,7 +251,7 @@ internal static class EvaluationRunner
             }
         }
 
-        if (expect.ReplyIs is { } fixedReply && !IsFixedReply(fixedReply, turn.Reply))
+        if (expect.ReplyIs is { } fixedReply && !IsFixedReply(fixedReply, turn.Reply, site))
         {
             failures.Add($"the reply is not the {fixedReply} message of the platform");
         }
@@ -302,20 +302,21 @@ internal static class EvaluationRunner
         }
     }
 
-    private static bool IsFixedReply(string kind, string? reply)
+    private static bool IsFixedReply(string kind, string? reply, string site)
     {
         var languages = Enum.GetValues<AgentLanguage>();
         return reply is not null && kind switch
         {
             "handOver" => languages.Any(l => reply == AgentMessages.HandOver(l)),
             "refusal" => languages.Any(l => reply == AgentMessages.PoliteRefusal(l)),
-            "attachment" => languages.Any(l => reply == AgentMessages.AttachmentNotProcessed(l, FunnelPage(l))),
-            "documents" => languages.Any(l => reply == AgentMessages.DocumentsOnSecureLinkOnly(l, FunnelPage(l))),
+            "attachment" => languages.Any(l => reply == AgentMessages.AttachmentNotProcessed(l, FunnelPage(site, l))),
+            "documents" => languages.Any(l => reply == AgentMessages.DocumentsOnSecureLinkOnly(l, FunnelPage(site, l))),
             _ => throw new InvalidDataException($"Unknown fixed reply {kind}."),
         };
     }
 
-    private static string FunnelPage(AgentLanguage language) => BookingDeepLink.FunnelPage(AgentHarness.PublicSite, language).AbsoluteUri;
+    /// <summary>The funnel page of the site of the agency of the conversation (ADR-0067).</summary>
+    private static string FunnelPage(string site, AgentLanguage language) => BookingDeepLink.FunnelPage(new Uri(site), language).AbsoluteUri;
 
     private static bool HasFunnelLink(string? reply) =>
         reply is not null

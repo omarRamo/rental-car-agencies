@@ -1,4 +1,5 @@
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Common;
 
 namespace CarRental.Application.Bookings.Availability;
@@ -7,7 +8,11 @@ namespace CarRental.Application.Bookings.Availability;
 /// Cached read side of the availability engine (<see cref="IAvailabilityQueries"/>): answers from the snapshot of each
 /// category, and reads fresh data only for periods beyond the cached horizon.
 /// </summary>
-internal sealed class AvailabilityQueries(AvailabilityCache cache, TimeProvider timeProvider) : IAvailabilityQueries
+/// <remarks>
+/// The cache is loaded by the system for every agency (ADR-0067): an operation limited to an agency is answered for the
+/// categories of its agency only — another agency's category is unknown to it, as if it did not exist.
+/// </remarks>
+internal sealed class AvailabilityQueries(AvailabilityCache cache, IUserContext user, TimeProvider timeProvider) : IAvailabilityQueries
 {
     public async Task<IReadOnlyList<AvailableCategoryInfo>> GetAvailableCategoriesAsync(
         Guid agencyId,
@@ -16,6 +21,10 @@ internal sealed class AvailabilityQueries(AvailabilityCache cache, TimeProvider 
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(rental);
+        if (!Sees(agencyId))
+        {
+            return [];
+        }
 
         var categories = await cache.GetAgencyCategoriesAsync(agencyId, cancellationToken);
         var availabilities = await Task.WhenAll(
@@ -39,7 +48,7 @@ internal sealed class AvailabilityQueries(AvailabilityCache cache, TimeProvider 
     {
         ArgumentNullException.ThrowIfNull(rental);
 
-        var snapshot = await cache.GetSnapshotAsync(categoryId, cancellationToken);
+        var snapshot = await SnapshotAsync(categoryId, cancellationToken);
         if (snapshot is null)
         {
             return null;
@@ -74,7 +83,7 @@ internal sealed class AvailabilityQueries(AvailabilityCache cache, TimeProvider 
     {
         ArgumentNullException.ThrowIfNull(range);
 
-        var snapshot = await cache.GetSnapshotAsync(categoryId, cancellationToken);
+        var snapshot = await SnapshotAsync(categoryId, cancellationToken);
         if (snapshot is null)
         {
             return null;
@@ -96,4 +105,14 @@ internal sealed class AvailabilityQueries(AvailabilityCache cache, TimeProvider 
                 .Select(segment => new CapacitySegmentInfo(segment.Period, segment.Capacity, segment.Occupancy)),
         ];
     }
+
+    /// <summary>The cached snapshot of a category the operation sees, <see langword="null"/> for another agency's category.</summary>
+    private async Task<CategorySnapshot?> SnapshotAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        var snapshot = await cache.GetSnapshotAsync(categoryId, cancellationToken);
+        return snapshot is not null && Sees(snapshot.Context.Category.AgencyId) ? snapshot : null;
+    }
+
+    /// <summary>Whether the operation reads the data of <paramref name="agencyId"/>: its own agency, or every agency.</summary>
+    private bool Sees(Guid agencyId) => user.IsAcrossAgencies || user.AgencyId == agencyId;
 }

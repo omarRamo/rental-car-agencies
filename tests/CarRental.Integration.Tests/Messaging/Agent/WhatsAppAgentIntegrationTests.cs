@@ -3,7 +3,6 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using CarRental.Application.Bookings.Contracts;
-using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Agent.Knowledge;
@@ -17,12 +16,13 @@ using CarRental.Infrastructure.Messaging.Agent;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Bookings;
 using CarRental.Integration.Tests.Public;
+using CarRental.Testing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using static CarRental.Integration.Tests.Messaging.WhatsAppTestData;
 
-// Not "…Messaging.Agent": that namespace would hide WhatsAppTestData.Agent() from the other messaging tests.
+// Not "…Messaging.Agent": that namespace would hide WhatsAppTestData.Agent(host) from the other messaging tests.
 namespace CarRental.Integration.Tests.Messaging.AiAgent;
 
 /// <summary>
@@ -87,7 +87,7 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
 
         var text = (await SentAsync(waId, 2))[1].Content.ShouldBeOfType<TextContent>().Body;
         var link = new Uri(LinkPattern().Match(text).Value);
-        link.AbsolutePath.ShouldBe("/fr/reserver");
+        link.AbsolutePath.ShouldBe("/agence-demo-tunis/fr/reserver", "the site of the agency of the conversation (ADR-0067)");
         var query = QueryHelpers.ParseQuery(link.Query);
         query["lieu"].ToString().ShouldBe("TUN");
         query["depart"].ToString().ShouldBe(from);
@@ -182,7 +182,7 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
         await call.Task.WaitAsync(GateTimeout, Ct);
         var conversation = (await ConversationAsync(host, waId, Ct)).ShouldNotBeNull();
 
-        await using (var scope = host.CreateScope(Agent()))
+        await using (var scope = host.CreateScope(Agent(host)))
         {
             (await scope.ServiceProvider.GetRequiredService<WhatsAppInboxService>().TakeOverAsync(conversation.Id, Ct)).IsSuccess.ShouldBeTrue();
         }
@@ -198,7 +198,9 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
     public async Task Only_the_validated_answers_of_the_knowledge_base_reach_the_model()
     {
         var marker = NewName().ToLowerInvariant();
-        var manager = UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"gerant-{marker}@tests.local", RolePresets.PermissionsOf(Roles.Manager));
+
+        // The knowledge base of the agency served by the number (each agency has its own).
+        var manager = TestActors.Staff(host.DemoAgencyId, Roles.Manager, $"gerant-{marker}@tests.local");
         await using (var scope = host.CreateScope(manager))
         {
             var knowledge = scope.ServiceProvider.GetRequiredService<KnowledgeBaseService>();
@@ -222,8 +224,10 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
     public async Task The_status_of_a_file_is_given_to_the_number_of_its_driver_only()
     {
         var driverWaId = NewWaId();
-        var agency = await BookingWorld.CreateAsync(host, Ct);
-        var driver = await NewDriverAsync("+" + driverWaId);
+
+        // A file of the agency served by the number: the bot answers about the files of the agency of the conversation only.
+        var agency = await DemoAgencyAsync(host, Ct);
+        var driver = await NewDriverAsync("+" + driverWaId, agency.AgencyId);
         var booking = await BookingWorld.CreateAsync(host, BookingWorld.Quick(agency, driver, BookingWorld.InDays(85), BookingWorld.InDays(88)), Ct);
         var otherWaId = NewWaId();
         foreach (var waId in new[] { driverWaId, otherWaId })
@@ -243,6 +247,27 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
         var refused = ToolResult(otherWaId, 1);
         refused.ShouldContain("\"statut\":\"introuvable\"");
         refused.ShouldNotContain(booking.Number);
+    }
+
+    [Fact]
+    public async Task The_file_of_another_agency_is_unknown_to_the_bot_even_for_the_number_of_its_driver()
+    {
+        var driverWaId = NewWaId();
+        var other = await BookingWorld.CreateAsync(host, Ct);
+        var driver = await NewDriverAsync("+" + driverWaId, other.AgencyId);
+        var booking = await BookingWorld.CreateAsync(host, BookingWorld.Quick(other, driver, BookingWorld.InDays(85), BookingWorld.InDays(88)), Ct);
+        Model.Script(
+            driverWaId,
+            ScriptedResponse.Call("statut_reservation", $$"""{"reference":"{{booking.Number}}"}"""),
+            ScriptedResponse.Reply("Je ne trouve pas cette réservation."));
+
+        await WhatsApp.SimulateIncomingTextAsync(driverWaId, "Client test", $"Où en est ma réservation {booking.Number} ?", Ct);
+
+        await SentAsync(driverWaId, 1);
+        var refused = ToolResult(driverWaId, 1);
+        refused.ShouldContain("\"statut\":\"introuvable\"");
+        refused.ShouldNotContain(booking.Number);
+        (await ConversationAsync(host, driverWaId, Ct)).ShouldNotBeNull().AgencyId.ShouldBe(host.DemoAgencyId, "the number serves the demo agency");
     }
 
     [Fact]
@@ -298,8 +323,8 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
             .ToListAsync(Ct);
     }
 
-    /// <summary>An eligible Tunisian driver with this phone (CIN, licence held for ten years), created by an agent.</summary>
-    private async Task<Guid> NewDriverAsync(string phone)
+    /// <summary>An eligible Tunisian driver with this phone (CIN, licence held for ten years), created by an agent: a customer of the agency.</summary>
+    private async Task<Guid> NewDriverAsync(string phone, Guid agencyId)
     {
         await using var scope = host.CreateScope(BookingWorld.Agent);
         var registration = scope.ServiceProvider.GetRequiredService<ICustomerRegistration>();
@@ -315,7 +340,10 @@ public sealed partial class WhatsAppAgentIntegrationTests(IntegrationHost host)
                     IdentityDocumentTypeInfo.NationalId,
                     RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture),
                     "TN",
-                    today.AddYears(-5))),
+                    today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            },
             Ct);
         person.IsSuccess.ShouldBeTrue(person.IsFailure ? person.Error.ToString() : null);
         var license = await registration.AddOrReplaceDocumentAsync(

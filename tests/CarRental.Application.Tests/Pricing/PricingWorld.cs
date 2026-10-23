@@ -119,7 +119,7 @@ internal sealed class PricingWorld
     public IPricingQueries Queries() => new PricingQueries(Store, new RatePlanSelector(Store));
 
     public RatePlanAdministrationService Administration(string role) =>
-        new(Store, Calculator(), Referential, TestUsers.ContextFor(Guid.CreateVersion7(), $"{role}@demo.local", role), UnitOfWork, Clock);
+        new(Store, Calculator(), Referential, Fleet, TestUsers.ContextFor(Guid.CreateVersion7(), $"{role}@demo.local", role), UnitOfWork, Clock);
 
     private static void Succeed(Result result) => result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
 }

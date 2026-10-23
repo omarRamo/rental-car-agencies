@@ -65,7 +65,7 @@ internal sealed class FleetReportingQueries(IAppDbContext db) : IFleetReportingQ
             .ToDictionary(e => e.VehicleId);
         var codes = (await db.Set<VehicleCategory>()
                 .AsNoTracking()
-                .IgnoreQueryFilters()
+                .IgnoreQueryFilters([QueryFilters.SoftDelete])
                 .Where(c => c.AgencyId == agencyId)
                 .Select(c => new { c.Id, c.Code })
                 .ToListAsync(cancellationToken))

@@ -158,6 +158,7 @@ public sealed class ChannelTests
         channel.MappingOfCode(ChannelMappingKind.Location, "tun")!.InternalId.ShouldBe(tunis);
         channel.MappingOfCode(ChannelMappingKind.Location, "NBE").ShouldBeNull();
         channel.Mappings.Count.ShouldBe(4);
+        channel.Mappings.ShouldAllBe(m => m.AgencyId == channel.AgencyId, "a mapping carries the agency of its channel");
     }
 
     [Fact]

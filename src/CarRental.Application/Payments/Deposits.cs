@@ -1,4 +1,5 @@
 using CarRental.Application.Accounting.Contracts;
+using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -13,7 +14,8 @@ namespace CarRental.Application.Payments;
 
 /// <summary>
 /// Security deposits (<see cref="IDeposits"/>). A cash deposit is received into, and returned or retained from, the open
-/// cash session of the acting user through <see cref="ICashDrawer"/> (deposit cash), in the same unit of work.
+/// cash session of the acting user through <see cref="ICashDrawer"/> (deposit cash), in the same unit of work. A deposit
+/// is taken for a rental file of its agency only (<see cref="PaymentBookings"/>, ADR-0067).
 /// </summary>
 internal sealed class Deposits(
     IAppDbContext db,
@@ -21,6 +23,7 @@ internal sealed class Deposits(
     IUserContext userContext,
     ICashDrawer cashDrawer,
     IReferentialQueries referential,
+    IBookingsQueries bookings,
     TimeProvider timeProvider,
     IAccountingPeriods periods) : IDeposits
 {
@@ -45,6 +48,12 @@ internal sealed class Deposits(
         if (!await referential.IsActiveAgencyAsync(request.AgencyId, cancellationToken))
         {
             return PaymentsErrors.AgencyNotFound;
+        }
+
+        var booking = await bookings.EnsureBookingOfAsync(request.BookingId, request.AgencyId, cancellationToken);
+        if (booking.IsFailure)
+        {
+            return booking.Error;
         }
 
         var mode = request.Mode.ToDomain();

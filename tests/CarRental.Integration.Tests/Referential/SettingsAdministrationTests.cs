@@ -25,7 +25,7 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
     public async Task An_agency_value_replaces_the_platform_value_for_that_agency_until_it_is_removed()
     {
         var agencyId = await NewAgencyAsync();
-        var manager = await ManagerAsync();
+        var manager = await ManagerAsync(agencyId);
         var buffer = WellKnownSettings.PreparationBuffer;
 
         await using (var scope = host.CreateScope(manager))
@@ -68,7 +68,7 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
     [Fact]
     public async Task A_platform_value_is_edited_reset_and_kept_in_the_history()
     {
-        var manager = await ManagerAsync();
+        var manager = await SupportAsync();
 
         await using (var scope = host.CreateScope(manager))
         {
@@ -110,7 +110,7 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
 
         (await ReadAsync(retention, agencyId)).ShouldBe(TimeSpan.FromDays(30));
 
-        await using var check = host.CreateScope(await ManagerAsync());
+        await using var check = host.CreateScope(await ManagerAsync(agencyId));
         (await check.ServiceProvider.GetRequiredService<SettingsAdministrationService>().SetAgencyValueAsync(retention.Key, agencyId, "3.00:00:00", Ct))
             .Error.ShouldBe(SettingErrors.PlatformOnly);
     }
@@ -134,7 +134,7 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
     public async Task Only_settings_managers_read_and_change_settings()
     {
         var (accountantId, accountantEmail) = await TestStaff.CreateAsync(host, Roles.Accountant);
-        var accountant = UserContextSnapshot.ForUser(accountantId, accountantEmail, RolePresets.PermissionsOf(Roles.Accountant));
+        var accountant = await TestStaff.ActorAsync(host, accountantId, accountantEmail, Roles.Accountant);
         await using var scope = host.CreateScope(accountant);
         var settings = scope.ServiceProvider.GetRequiredService<SettingsAdministrationService>();
 
@@ -161,16 +161,43 @@ public sealed class SettingsAdministrationTests(IntegrationHost host)
         HttpSignIn.PathAndQuery(accountantPage.Headers.Location!).ShouldContain("/account/access-denied");
     }
 
+    [Fact]
+    public async Task A_manager_reads_the_platform_values_and_the_support_edits_them_on_the_platform_settings()
+    {
+        var (_, managerEmail) = await TestStaff.CreateAsync(host, Roles.Manager);
+        var (_, supportEmail) = await TestStaff.CreateAsync(host, Roles.Support);
+        using var managerClient = host.CreateClient();
+        using var supportClient = host.CreateClient();
+        await HttpSignIn.SignInWithTwoFactorAsync(managerClient, managerEmail, "/admin", Ct);
+        await HttpSignIn.SignInWithTwoFactorAsync(supportClient, supportEmail, "/admin/platform", Ct);
+
+        var agencySettings = await managerClient.GetStringAsync(new Uri("/admin/settings", UriKind.Relative), Ct);
+        var platformSettings = await supportClient.GetStringAsync(new Uri("/admin/platform/settings", UriKind.Relative), Ct);
+
+        agencySettings.ShouldContain("data-setting-scope=\"agency\"");
+        agencySettings.ShouldNotContain("Modifier la valeur de la plateforme", Case.Sensitive, "the platform values are the support's (ADR-0067)");
+        platformSettings.ShouldContain("Modifier la valeur de la plateforme");
+        platformSettings.ShouldNotContain("data-setting-scope=\"agency\"");
+    }
+
     private async Task<T> ReadAsync<T>(SettingDefinition<T> definition, Guid? agencyId)
     {
         await using var scope = host.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<ISettingsReader>().GetAsync(definition, agencyId, Ct);
     }
 
-    private async Task<UserContextSnapshot> ManagerAsync()
+    /// <summary>A manager of <paramref name="agencyId"/> (the main demo agency by default).</summary>
+    private async Task<UserContextSnapshot> ManagerAsync(Guid? agencyId = null)
     {
-        var (id, email) = await TestStaff.CreateAsync(host, Roles.Manager);
-        return UserContextSnapshot.ForUser(id, email, RolePresets.PermissionsOf(Roles.Manager), "198.51.100.30", $"corr-{Guid.NewGuid():N}");
+        var (id, email) = await TestStaff.CreateAsync(host, Roles.Manager, agencyId: agencyId);
+        return await TestStaff.ActorAsync(host, id, email, Roles.Manager, "198.51.100.30");
+    }
+
+    /// <summary>The support, across agencies: the only one who changes the platform values (ADR-0067).</summary>
+    private async Task<UserContextSnapshot> SupportAsync()
+    {
+        var (id, email) = await TestStaff.CreateAsync(host, Roles.Support);
+        return await TestStaff.ActorAsync(host, id, email, Roles.Support, "198.51.100.30");
     }
 
     /// <summary>An agency of its own: parallel tests read the settings of the demo agency.</summary>

@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using CarRental.Application.Common.Caching;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Domain.Referential;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ namespace CarRental.Application.Referential;
 /// </summary>
 internal sealed class SettingsCache(IServiceScopeFactory scopeFactory, TimeProvider timeProvider) : ICommittedChangesListener, IDisposable
 {
+    internal const string ActorName = "system:settings-cache";
+
     internal static readonly TimeSpan TimeToLive = TimeSpan.FromMinutes(5);
 
     private readonly SemaphoreSlim _loadGate = new(1, 1);
@@ -72,7 +75,9 @@ internal sealed class SettingsCache(IServiceScopeFactory scopeFactory, TimeProvi
 
     private async Task<FrozenDictionary<(string Key, Guid? AgencyId), string>> LoadAsync(CancellationToken cancellationToken)
     {
+        // Every agency's values, whoever triggers the load: the snapshot is shared by every reader (ADR-0067).
         await using var scope = scopeFactory.CreateAsyncScope();
+        scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System(ActorName));
         var rows = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Setting>()
             .AsNoTracking()
             .Select(s => new { s.Key, s.AgencyId, s.Value })

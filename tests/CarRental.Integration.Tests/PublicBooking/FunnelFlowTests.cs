@@ -28,7 +28,7 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         using var visitor = Create(host.Factory);
 
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={pickup}&retour={dropOff}&utm_source=newsletter&utm_campaign=hiver", "ECMR", Ct);
-        var options = $"/fr/reserver/{token}/options";
+        var options = $"/agence-demo-tunis/fr/reserver/{token}/options";
         var optionsPage = await visitor.TextAsync(options, Ct);
         optionsPage.ShouldContain("Étape 1 sur 3");
         optionsPage.ShouldContain("Siège enfant");
@@ -37,7 +37,7 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
 
         using var toDrivers = await visitor.SubmitAsync(options, [new("extra.CHILD_SEAT", "1"), new("action", "continue")], Ct);
         toDrivers.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
-        var drivers = $"/fr/reserver/{token}/conducteurs";
+        var drivers = $"/agence-demo-tunis/fr/reserver/{token}/conducteurs";
         Location(toDrivers).ShouldBe(drivers);
 
         // A form with missing fields comes back with every error listed and linked to its field.
@@ -45,30 +45,30 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         Location(incomplete).ShouldBe(drivers);
         var withErrors = await visitor.TextAsync(drivers, Ct);
         withErrors.ShouldContain("Corrigez les points suivants");
-        withErrors.ShouldContain("href=\"/fr/reserver/" + token + "/conducteurs#main-last-name\"");
+        withErrors.ShouldContain("href=\"/agence-demo-tunis/fr/reserver/" + token + "/conducteurs#main-last-name\"");
         withErrors.ShouldContain("Ce champ est obligatoire.");
         withErrors.ShouldContain("value=\"Amel\"");
         Total(withErrors).ShouldBeGreaterThan(initialTotal, "the child seat was added to the locked quote");
 
         // Photos go through the upload endpoint of the session: the answer is a text, never an image address.
-        var (status, answer) = await visitor.UploadAsync(drivers, $"/fr/reserver/{token}/pieces", "main.license.front", Jpeg, "image/jpeg", Ct);
+        var (status, answer) = await visitor.UploadAsync(drivers, $"/agence-demo-tunis/fr/reserver/{token}/pieces", "main.license.front", Jpeg, "image/jpeg", Ct);
         status.ShouldBe(HttpStatusCode.OK);
         answer.GetProperty("received").GetBoolean().ShouldBeTrue();
         answer.GetProperty("message").GetString().ShouldBe("Photo reçue.");
         answer.GetRawText().ShouldNotContain("http");
         answer.GetRawText().ShouldNotContain("persons/");
-        var (refusedStatus, refused) = await visitor.UploadAsync(drivers, $"/fr/reserver/{token}/pieces", "main.identity.front", "not an image"u8.ToArray(), "image/jpeg", Ct);
+        var (refusedStatus, refused) = await visitor.UploadAsync(drivers, $"/agence-demo-tunis/fr/reserver/{token}/pieces", "main.identity.front", "not an image"u8.ToArray(), "image/jpeg", Ct);
         refusedStatus.ShouldBe(HttpStatusCode.UnprocessableEntity);
         refused.GetProperty("error").GetString().ShouldBe("customers.document_image.unsupported_type");
-        (await visitor.UploadAsync(drivers, $"/fr/reserver/{token}/pieces", "main.identity.front", Png, "image/png", Ct)).Status.ShouldBe(HttpStatusCode.OK);
+        (await visitor.UploadAsync(drivers, $"/agence-demo-tunis/fr/reserver/{token}/pieces", "main.identity.front", Png, "image/png", Ct)).Status.ShouldBe(HttpStatusCode.OK);
 
         using var toPayment = await visitor.SubmitAsync(drivers, [.. Driver("main", suffix, email), new("consent.documents", "1"), new("consent.whatsapp", "1")], Ct);
-        var payment = $"/fr/reserver/{token}/paiement";
+        var payment = $"/agence-demo-tunis/fr/reserver/{token}/paiement";
         Location(toPayment).ShouldBe(payment);
         var paymentPage = await visitor.TextAsync(payment, Ct);
         paymentPage.ShouldContain("pré-autorisation");
         paymentPage.ShouldContain($"Conducteur principal : Amel Funnel{suffix}");
-        paymentPage.ShouldContain("href=\"/fr/conditions\"");
+        paymentPage.ShouldContain("href=\"/agence-demo-tunis/fr/conditions\"");
 
         using var withoutTerms = await visitor.SubmitAsync(payment, [new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
         Location(withoutTerms).ShouldBe($"{payment}?erreur=booking.funnel.terms_required");
@@ -76,7 +76,7 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         using var submitted = await visitor.SubmitAsync(payment, [new("terms", "1"), new("cf-turnstile-response", "XXXX.DUMMY.TOKEN.XXXX")], Ct);
         submitted.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
         var redirect = Location(submitted);
-        redirect.ShouldStartWith("/fr/reserver/redirection/");
+        redirect.ShouldStartWith("/agence-demo-tunis/fr/reserver/redirection/");
         submitted.Headers.GetValues("Set-Cookie").ShouldContain(c => c.StartsWith("carrental.request=", StringComparison.Ordinal) && c.Contains("httponly", StringComparison.OrdinalIgnoreCase));
 
         // The page of the site leads to the payment page of the bank (never a redirect of a form: CSP form-action 'self').
@@ -97,7 +97,7 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         confirmation.ShouldContain("data-state=\"Held\"");
 
         await using var scope = host.CreateScope();
-        var booking = await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync(number, Ct);
+        var booking = await scope.ServiceProvider.GetRequiredService<IBookingsQueries>().FindByNumberAsync((await DemoAgencyAsync(host, Ct)).Agency.Id, number, Ct);
         booking.ShouldNotBeNull();
         booking.Status.ShouldBe(BookingStatusInfo.PendingValidation);
         booking.Channel.ShouldBe(Domain.Common.SalesChannel.Web);
@@ -114,11 +114,11 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         person.Email.ShouldBe(email);
 
         var received = await TestEmails.WaitForAsync(host.Factory.EmailDirectory, e => e.To.Contains(email, StringComparison.Ordinal) && e.Subject.Contains(number, StringComparison.Ordinal), Ct);
-        received.Subject.ShouldBe($"CarRental — Demande {number} reçue");
+        received.Subject.ShouldBe($"{DemoAgencyName} — Demande {number} reçue", "the name of the agency of the booking");
         received.Text.ShouldContain("Bonjour Amel Funnel" + suffix);
         received.Text.ShouldContain("sous 2 heures ouvrées");
         received.Html.ShouldContain("<html lang=\"fr\">");
-        TestEmails.Links(received).ShouldContain("http://localhost/fr/ma-reservation");
+        TestEmails.Links(received).ShouldContain("http://localhost/agence-demo-tunis/fr/ma-reservation");
     }
 
     [Fact]
@@ -128,20 +128,20 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         using var visitor = Create(host.Factory);
 
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={pickup}&retour={dropOff}", "ECMR", Ct, culture: "en");
-        var options = await visitor.TextAsync($"/en/book/{token}/options", Ct);
+        var options = await visitor.TextAsync($"/agence-demo-tunis/en/book/{token}/options", Ct);
         options.ShouldContain("Step 1 of 3");
-        options.ShouldContain($"href=\"/fr/reserver/{token}/options\"");
+        options.ShouldContain($"href=\"/agence-demo-tunis/fr/reserver/{token}/options\"");
 
-        using var toDrivers = await visitor.SubmitAsync($"/en/book/{token}/options", [new("action", "continue")], Ct);
-        Location(toDrivers).ShouldBe($"/en/book/{token}/drivers");
-        var drivers = await visitor.TextAsync($"/en/book/{token}/drivers", Ct);
+        using var toDrivers = await visitor.SubmitAsync($"/agence-demo-tunis/en/book/{token}/options", [new("action", "continue")], Ct);
+        Location(toDrivers).ShouldBe($"/agence-demo-tunis/en/book/{token}/drivers");
+        var drivers = await visitor.TextAsync($"/agence-demo-tunis/en/book/{token}/drivers", Ct);
         drivers.ShouldContain("Who will drive?");
-        drivers.ShouldContain($"href=\"/fr/reserver/{token}/conducteurs\"");
+        drivers.ShouldContain($"href=\"/agence-demo-tunis/fr/reserver/{token}/conducteurs\"");
 
         // A slug of the other language leads to the canonical address of the page.
-        using var other = await visitor.Client.GetAsync(new Uri($"/en/reserver/{token}/conducteurs", UriKind.Relative), Ct);
+        using var other = await visitor.Client.GetAsync(new Uri($"/agence-demo-tunis/en/reserver/{token}/conducteurs", UriKind.Relative), Ct);
         other.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        Location(other).ShouldEndWith($"/en/book/{token}/drivers");
+        Location(other).ShouldEndWith($"/agence-demo-tunis/en/book/{token}/drivers");
     }
 
     [Fact]
@@ -149,10 +149,10 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
     {
         using var visitor = Create(host.Factory);
 
-        using var unknown = await visitor.Client.GetAsync(new Uri($"/fr/reserver/{new string('A', 43)}/options", UriKind.Relative), Ct);
+        using var unknown = await visitor.Client.GetAsync(new Uri($"/agence-demo-tunis/fr/reserver/{new string('A', 43)}/options", UriKind.Relative), Ct);
         unknown.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        Location(unknown).ShouldEndWith("/fr/reserver?info=lien");
-        var results = await visitor.TextAsync("/fr/reserver?info=lien", Ct);
+        Location(unknown).ShouldEndWith("/agence-demo-tunis/fr/reserver?info=lien");
+        var results = await visitor.TextAsync("/agence-demo-tunis/fr/reserver?info=lien", Ct);
         results.ShouldContain("Ce lien de réservation n'est plus valable");
     }
 
@@ -162,20 +162,20 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
         var suffix = Unique();
         using var visitor = Create(host.Factory);
         var token = await visitor.ChooseAsync($"lieu=TUN&depart={LocalDate(86)}&retour={LocalDate(89)}", "ECMR", Ct);
-        using var saved = await visitor.SubmitAsync($"/fr/reserver/{token}/conducteurs", [.. Driver("main", suffix), new("consent.documents", "1")], Ct);
-        Location(saved).ShouldBe($"/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync($"/fr/reserver/{token}/conducteurs", Ct)));
+        using var saved = await visitor.SubmitAsync($"/agence-demo-tunis/fr/reserver/{token}/conducteurs", [.. Driver("main", suffix), new("consent.documents", "1")], Ct);
+        Location(saved).ShouldBe($"/agence-demo-tunis/fr/reserver/{token}/paiement", customMessage: MainText(await visitor.PageAsync($"/agence-demo-tunis/fr/reserver/{token}/conducteurs", Ct)));
 
         using var robot = await visitor.SubmitAsync(
-            $"/fr/reserver/{token}/paiement",
+            $"/agence-demo-tunis/fr/reserver/{token}/paiement",
             [new("terms", "1"), new("cf-turnstile-response", FakeTurnstileVerifier.RejectedToken)],
             Ct);
 
-        Location(robot).ShouldBe($"/fr/reserver/{token}/paiement?erreur=booking.funnel.verification_failed");
+        Location(robot).ShouldBe($"/agence-demo-tunis/fr/reserver/{token}/paiement?erreur=booking.funnel.verification_failed");
         (await visitor.TextAsync(Location(robot), Ct)).ShouldContain("La vérification anti-robot a échoué");
         host.Factory.TurnstileVerifier.Calls.ShouldContain(
             c => c.Token == FakeTurnstileVerifier.RejectedToken && c.Action == "booking_submit" && c.Hostname == "localhost",
             "the challenge must have been solved on the host that receives the form");
-        (await visitor.PageAsync($"/fr/reserver/{token}/paiement", Ct)).ShouldContain("data-testid=\"funnel-submit\"");
+        (await visitor.PageAsync($"/agence-demo-tunis/fr/reserver/{token}/paiement", Ct)).ShouldContain("data-testid=\"funnel-submit\"");
     }
 
     private static decimal Total(string text)
@@ -191,6 +191,6 @@ public sealed partial class FunnelFlowTests(IntegrationHost host)
     [GeneratedRegex("<meta http-equiv=\"refresh\" content=\"0;url=(?<url>[^\"]+)\"")]
     private static partial Regex GatewayPage();
 
-    [GeneratedRegex("/fr/reserver/confirmation/(?<number>LOC-[0-9]{4}-[0-9]{6})$")]
+    [GeneratedRegex("/agence-demo-tunis/fr/reserver/confirmation/(?<number>LOC-[0-9]{4}-[0-9]{6})$")]
     private static partial Regex ConfirmationNumber();
 }

@@ -98,6 +98,7 @@ public sealed class CustomerLinkService(
     ICustomersQueries customers,
     IOutbox outbox,
     ISettingsReader settings,
+    IAgencyDirectory agencies,
     TimeProvider clock)
 {
     private static readonly BookingStatusInfo[] DocumentsExpected =
@@ -132,7 +133,7 @@ public sealed class CustomerLinkService(
         var profile = await db.Set<BookingCustomerProfile>().FirstOrDefaultAsync(p => p.BookingId == bookingId, cancellationToken);
         if (profile is null)
         {
-            profile = BookingCustomerProfile.Create(bookingId, culture, whatsAppNotifications: false, now, publicBaseUrl);
+            profile = BookingCustomerProfile.Create(booking.AgencyId, bookingId, culture, whatsAppNotifications: false, now, publicBaseUrl);
             db.Set<BookingCustomerProfile>().Add(profile);
         }
         else
@@ -140,7 +141,7 @@ public sealed class CustomerLinkService(
             profile.KnowBaseUrl(publicBaseUrl);
         }
 
-        var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, bookingId, culture, now, cancellationToken);
+        var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, booking.AgencyId, bookingId, culture, now, cancellationToken);
         outbox.Enqueue(new BookingCustomerNotification(
             Guid.CreateVersion7(),
             bookingId,
@@ -149,7 +150,7 @@ public sealed class CustomerLinkService(
             BookingNotificationKind.CompleteFileLink,
             culture,
             now,
-            ActionPath: PublicBookingPaths.AccessLink(culture, link.Token, documents: true),
+            ActionPath: PublicBookingPaths.AccessLink(await agencies.SlugAsync(booking.AgencyId, cancellationToken), culture, link.Token, documents: true),
             ActionExpiresAtUtc: link.Grant.ExpiresAtUtc,
             BaseUrl: profile.PublicBaseUrl));
         await db.SaveChangesAsync(cancellationToken);

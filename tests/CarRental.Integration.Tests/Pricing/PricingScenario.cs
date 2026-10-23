@@ -27,14 +27,15 @@ internal static class PricingScenario
 {
     public static readonly Guid ManagerId = Guid.CreateVersion7();
 
+    // Staff actors of the scenario tests, across agencies (see FleetData.Actor).
     public static UserContextSnapshot Manager { get; } =
-        UserContextSnapshot.ForUser(ManagerId, "gerant.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Manager), "203.0.113.20", "corr-pricing");
+        UserContextSnapshot.ForUser(ManagerId, "gerant.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Manager), "203.0.113.20", "corr-pricing") with { AllAgencies = true };
 
     public static UserContextSnapshot Accountant { get; } =
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "comptable.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Accountant));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "comptable.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Accountant)) with { AllAgencies = true };
 
     public static UserContextSnapshot Agent { get; } =
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Agent));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "agent.tarifs@demo.local", RolePresets.PermissionsOf(Roles.Agent)) with { AllAgencies = true };
 
     public static DateTimeOffset Tunis(int year, int month, int day, int hour = 10, int minute = 0) =>
         TunisTime.FromLocal(new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Unspecified));

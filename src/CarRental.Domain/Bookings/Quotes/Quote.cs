@@ -9,9 +9,10 @@ namespace CarRental.Domain.Bookings.Quotes;
 /// </summary>
 /// <remarks>
 /// The aggregate exposes no mutator at all; its content (lines, totals, deposit, plan version, promotion outcome and the
-/// JSON snapshots of the inputs) is checked once, at creation (<see cref="QuoteContent.Validate"/>).
+/// JSON snapshots of the inputs) is checked once, at creation (<see cref="QuoteContent.Validate"/>). A quote belongs to
+/// the agency it prices for, and so do its lines (ADR-0067).
 /// </remarks>
-public sealed class Quote : AggregateRoot
+public sealed class Quote : AggregateRoot, IAgencyOwned
 {
     public const int ReasonMaxLength = Booking.ReasonMaxLength;
 
@@ -55,7 +56,7 @@ public sealed class Quote : AggregateRoot
         CreatedBy = createdBy;
         for (var position = 0; position < content.Lines.Count; position++)
         {
-            _lines.Add(new QuoteLine(id, position + 1, content.Lines[position]));
+            _lines.Add(new QuoteLine(id, content.AgencyId, position + 1, content.Lines[position]));
         }
     }
 
@@ -258,16 +259,17 @@ public sealed class Quote : AggregateRoot
 }
 
 /// <summary>A line of a frozen quote (never changed).</summary>
-public sealed class QuoteLine : Entity
+public sealed class QuoteLine : Entity, IAgencyOwned
 {
     private QuoteLine()
     {
     }
 
-    internal QuoteLine(Guid quoteId, int position, QuoteLineData data)
+    internal QuoteLine(Guid quoteId, Guid agencyId, int position, QuoteLineData data)
         : base(NewId())
     {
         QuoteId = quoteId;
+        AgencyId = agencyId;
         Position = position;
         Kind = data.Kind;
         Code = data.Code;
@@ -282,6 +284,9 @@ public sealed class QuoteLine : Entity
     }
 
     public Guid QuoteId { get; private set; }
+
+    /// <summary>The agency of the quote (given by the quote).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Order of the line in the quote, from 1.</summary>
     public int Position { get; private set; }

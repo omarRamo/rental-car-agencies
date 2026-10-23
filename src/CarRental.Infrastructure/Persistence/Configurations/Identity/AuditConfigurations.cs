@@ -27,6 +27,7 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.Details).HasMaxLength(AuditLog.DetailsMaxLength);
 
         builder.HasIndex(a => a.OccurredAtUtc);
+        builder.HasIndex(a => new { a.AgencyId, a.OccurredAtUtc });
         builder.HasIndex(a => new { a.EntityType, a.EntityId });
         builder.HasIndex(a => a.UserId);
         builder.HasIndex(a => a.Action);
@@ -53,5 +54,6 @@ internal sealed class DocumentAccessLogConfiguration : IEntityTypeConfiguration<
 
         builder.HasIndex(a => a.DocumentId);
         builder.HasIndex(a => a.OccurredAtUtc);
+        builder.HasIndex(a => new { a.AgencyId, a.OccurredAtUtc });
     }
 }

@@ -5,9 +5,10 @@ namespace CarRental.Domain.Identity;
 /// <summary>
 /// An append-only audit record: an entity change (with before/after values) or an explicit security event
 /// (login, lockout, user administration). Rows are never updated nor deleted; this is enforced by the persistence
-/// layer and by a database trigger.
+/// layer and by a database trigger. Each agency reads its own records; the records of the platform itself
+/// (<see cref="AgencyId"/> null) are read by the support only (ADR-0067).
 /// </summary>
-public sealed class AuditLog
+public sealed class AuditLog : IAgencyOrPlatform
 {
     public const int ActionMaxLength = 64;
     public const int EntityTypeMaxLength = 256;
@@ -49,6 +50,9 @@ public sealed class AuditLog
     /// <summary>Human-readable context of an explicit event (never secrets).</summary>
     public string? Details { get; private set; }
 
+    /// <summary>The agency the change or event concerns; <see langword="null"/> for the platform itself.</summary>
+    public Guid? AgencyId { get; private set; }
+
     public static AuditLog Record(
         DateTimeOffset occurredAtUtc,
         AuditActor actor,
@@ -57,13 +61,15 @@ public sealed class AuditLog
         string? entityId = null,
         string? before = null,
         string? after = null,
-        string? details = null)
+        string? details = null,
+        Guid? agencyId = null)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
 
         return new AuditLog
         {
+            AgencyId = agencyId == Guid.Empty ? null : agencyId,
             OccurredAtUtc = occurredAtUtc.ToUniversalTime(),
             Action = Truncate(action, ActionMaxLength)!,
             UserId = actor.UserId,

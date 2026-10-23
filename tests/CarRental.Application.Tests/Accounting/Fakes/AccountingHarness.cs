@@ -19,8 +19,9 @@ using Microsoft.Extensions.Time.Testing;
 namespace CarRental.Application.Tests.Accounting.Fakes;
 
 /// <summary>
-/// The Accounting services (and the expenses) on one in-memory database seeded with the default chart, a fake clock
-/// (02/04/2027 10:00 in Tunis: March 2027 is over) and the facts of the other modules given by the tests through fakes.
+/// The Accounting services (and the expenses) on one in-memory database where the agency of the test users has its
+/// default chart, a fake clock (02/04/2027 10:00 in Tunis: March 2027 is over) and the facts of the other modules given by
+/// the tests through fakes.
 /// </summary>
 internal sealed class AccountingHarness
 {
@@ -33,10 +34,15 @@ internal sealed class AccountingHarness
         Clock = new FakeTimeProvider(Now);
         Referential.Agencies.Add(new AgencyInfo(AgencyId, "Agence Tests", "Tunis", null, null, IsActive: true));
         Periods = new AccountingPeriods(Db, UnitOfWork, Lock);
-        new AccountingChartSeeder(Db, Clock).SeedAsync(CancellationToken.None).GetAwaiter().GetResult();
+        Provision(AgencyId);
     }
 
-    public Guid AgencyId { get; } = Guid.CreateVersion7();
+    /// <summary>The agency of the tests: the agency of the staff members of <see cref="User"/>.</summary>
+    public Guid AgencyId { get; } = TestUsers.AgencyId;
+
+    /// <summary>Provisions the default chart of <paramref name="agencyId"/>, as when the agency is registered.</summary>
+    public void Provision(Guid agencyId) =>
+        new AccountingAgencyInitializer(Db, Clock).InitializeAsync(agencyId, CancellationToken.None).GetAwaiter().GetResult();
 
     public InMemoryFinanceDb Db { get; } = new();
 

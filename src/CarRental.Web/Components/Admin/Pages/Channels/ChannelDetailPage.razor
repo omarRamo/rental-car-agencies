@@ -1,5 +1,6 @@
 @page "/admin/channels/{ChannelId:guid}"
 @attribute [HasPermission(Permissions.ChannelsManage)]
+@attribute [RequiresModule(AgencyModules.Channels)]
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<ChannelsResources> L

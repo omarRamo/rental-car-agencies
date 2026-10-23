@@ -16,8 +16,9 @@ namespace CarRental.Application.Messaging.Inbox;
 
 /// <summary>
 /// Reads of the shared WhatsApp inbox (<c>/admin/whatsapp</c>, permission <c>whatsapp.inbox</c>): the conversation list
-/// with its filters, a conversation with its thread, links and bot state, and the templates an agent can send. Names of
-/// persons and numbers of files come from the Customers and Bookings contracts.
+/// of the agency of the operation with its filters, a conversation with its thread, links and bot state, and the
+/// templates an agent can send. Names of persons and numbers of files come from the Customers and Bookings contracts
+/// (files of the agency of the conversation only).
 /// </summary>
 public sealed class WhatsAppInboxQueries(
     IAppDbContext db,
@@ -26,6 +27,7 @@ public sealed class WhatsAppInboxQueries(
     IBookingsQueries bookings,
     ISettingsReader settings,
     IWhatsAppClient client,
+    IWhatsAppNumber whatsAppNumber,
     IIdentityQueries identity,
     TimeProvider clock)
 {
@@ -72,11 +74,11 @@ public sealed class WhatsAppInboxQueries(
         }
 
         var numbers = new Dictionary<Guid, string>();
-        foreach (var bookingId in conversations.Where(c => c.BookingId is not null).Select(c => c.BookingId!.Value).Distinct())
+        foreach (var conversation in conversations.Where(c => c.BookingId is not null).DistinctBy(c => c.BookingId))
         {
-            if (await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } booking)
+            if (await bookings.GetSummaryAsync(conversation.BookingId!.Value, cancellationToken) is { } booking && booking.AgencyId == conversation.AgencyId)
             {
-                numbers[bookingId] = booking.Number;
+                numbers[booking.Id] = booking.Number;
             }
         }
 
@@ -149,7 +151,7 @@ public sealed class WhatsAppInboxQueries(
                 suggested =
                 [
                     .. (await bookings.GetBookingsOfPersonAsync(personId, cancellationToken))
-                        .Where(b => b.Booking.Id != conversation.BookingId)
+                        .Where(b => b.Booking.Id != conversation.BookingId && b.Booking.AgencyId == conversation.AgencyId)
                         .Take(MaxSuggestedBookings)
                         .Select(b => ToLinked(b.Booking)),
                 ];
@@ -166,7 +168,7 @@ public sealed class WhatsAppInboxQueries(
 
         InboxLinkedBooking? booking = null;
         if (conversation.BookingId is { } bookingId && user.HasPermission(Permissions.BookingsRead)
-            && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } summary)
+            && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } summary && summary.AgencyId == conversation.AgencyId)
         {
             booking = ToLinked(summary);
         }
@@ -197,11 +199,20 @@ public sealed class WhatsAppInboxQueries(
             hasEarlier);
     }
 
-    /// <summary>Whether WhatsApp is configured (messages can be sent) and the templates an agent can send.</summary>
+    /// <summary>
+    /// Whether WhatsApp is configured (messages can be sent), whether the platform's number serves the agency of the
+    /// operation (it sends nothing otherwise, ADR-0067), and the templates an agent can send.
+    /// </summary>
     public async Task<Result<InboxOverview>> GetOverviewAsync(CancellationToken cancellationToken)
     {
         var templates = await GetTemplatesAsync(cancellationToken);
-        return templates.IsSuccess ? new InboxOverview(client.IsEnabled, templates.Value) : templates.Error;
+        if (templates.IsFailure)
+        {
+            return templates.Error;
+        }
+
+        var served = user.AgencyId is { } agencyId && await whatsAppNumber.ServesAsync(agencyId, cancellationToken);
+        return new InboxOverview(client.IsEnabled, served, templates.Value);
     }
 
     /// <summary>The templates an agent can send (those with a configured name), the follow-up first.</summary>

@@ -155,7 +155,7 @@ public sealed class Invoice : BillingDocument
         ChannelReference = request.Source.ChannelReference;
         for (var i = 0; i < draft.Lines.Count; i++)
         {
-            _lines.Add(new InvoiceLine(id, i + 1, draft.Lines[i]));
+            _lines.Add(new InvoiceLine(id, AgencyId, i + 1, draft.Lines[i]));
         }
 
         TotalExclVat = draft.TotalExclVat;
@@ -227,16 +227,17 @@ public sealed class Invoice : BillingDocument
 /// agent's detail) and its text as issued, quantity, unit price as entered (VAT included) and excluding VAT, HT, VAT,
 /// TTC, rate and how the amount was entered.
 /// </summary>
-public sealed class InvoiceLine : Entity
+public sealed class InvoiceLine : Entity, IAgencyOwned
 {
     private InvoiceLine()
     {
     }
 
-    internal InvoiceLine(Guid invoiceId, int position, DraftLine line)
+    internal InvoiceLine(Guid invoiceId, Guid agencyId, int position, DraftLine line)
         : base(NewId())
     {
         InvoiceId = invoiceId;
+        AgencyId = agencyId;
         Position = position;
         Nature = line.Input.Nature;
         Code = line.Input.Code;
@@ -255,6 +256,9 @@ public sealed class InvoiceLine : Entity
     }
 
     public Guid InvoiceId { get; private set; }
+
+    /// <summary>The agency of the invoice.</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Order of the line, from 1.</summary>
     public int Position { get; private set; }

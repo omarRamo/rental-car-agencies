@@ -1,4 +1,4 @@
-@page "/{culture:length(2)}/faq"
+@page "/{agency}/{culture:length(2)}/faq"
 @* Frequently asked questions, with the figures the agency applies (settings, fleet, locations). *@
 @inherits PublicPageBase
 @attribute [CacheablePublicPage]
@@ -10,7 +10,7 @@
 <h1>@L["Faq.Title"]</h1>
 <p class="results-intro">@L["Faq.Intro"]</p>
 <FaqList Items="_items" />
-<p><a href="@($"{PublicRoutes.PathFor(PublicPage.Agency, Lang)}")">@L["Faq.Contact"]</a></p>
+<p><a href="@($"{PublicRoutes.PathFor(Slug, PublicPage.Agency, Lang)}")">@L["Faq.Contact"]</a></p>
 
 @code {
     private IReadOnlyList<FaqItem> _items = [];
@@ -22,6 +22,6 @@
             return;
         }
 
-        _items = FaqContent.Build(L, await Directory.GetAsync(Aborted));
+        _items = FaqContent.Build(L, await Directory.GetAsync(SiteAgency, Aborted));
     }
 }

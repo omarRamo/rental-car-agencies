@@ -81,14 +81,14 @@ public sealed class CommonServicesTests
         var generator = new YearCapturingGenerator();
 
         // 31 December 23:30 UTC is already 1 January in Tunis.
-        var number = await generator.NextForDateAsync(DocumentType.Invoice, new DateTimeOffset(2027, 12, 31, 23, 30, 0, TimeSpan.Zero), Ct);
+        var number = await generator.NextForDateAsync(Guid.CreateVersion7(), DocumentType.Invoice, new DateTimeOffset(2027, 12, 31, 23, 30, 0, TimeSpan.Zero), Ct);
 
         number.Value.ShouldBe("FAC-2028-000001");
     }
 
     private sealed class YearCapturingGenerator : IDocumentNumberGenerator
     {
-        public Task<DocumentNumber> NextAsync(DocumentType type, int fiscalYear, CancellationToken cancellationToken = default) =>
+        public Task<DocumentNumber> NextAsync(Guid agencyId, DocumentType type, int fiscalYear, CancellationToken cancellationToken = default) =>
             Task.FromResult(DocumentNumber.Create(type, fiscalYear, 1).Value);
     }
 

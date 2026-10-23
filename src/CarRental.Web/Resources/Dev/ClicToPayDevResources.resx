@@ -70,7 +70,7 @@
     <value>Identifiant du dossier</value>
   </data>
   <data name="Start.Booking.Hint" xml:space="preserve">
-    <value>Facultatif : un nouvel identifiant est créé s'il est vide.</value>
+    <value>Un dossier de l'agence choisie (identifiant figurant dans l'adresse de sa fiche).</value>
   </data>
   <data name="Start.Amount" xml:space="preserve">
     <value>Montant (TND)</value>

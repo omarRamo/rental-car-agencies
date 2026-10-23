@@ -13,4 +13,14 @@
 <CarRental.Web.Components.Admin.Bookings.BookingsDashboardWidget />
 <CarRental.Web.Components.Admin.Handovers.HandoversDashboardWidget />
 <CarRental.Web.Components.Admin.Fleet.FleetDashboardWidget />
-<CarRental.Web.Components.Admin.Reports.ReportsDashboardWidget />
+@* The widget of an optional module only while the module is on for the agency of the session (ADR-0067). *@
+@if (CurrentAgency.Offers(Agency, AgencyModules.Reports))
+{
+    <CarRental.Web.Components.Admin.Reports.ReportsDashboardWidget />
+}
+
+@code {
+    /// <summary>The agency of the session (cascaded by the layout).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+}

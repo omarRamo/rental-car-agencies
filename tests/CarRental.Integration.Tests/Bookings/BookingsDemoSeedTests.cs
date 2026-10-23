@@ -1,13 +1,22 @@
 using CarRental.Application.Bookings;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Pricing.Administration;
+using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Bookings.Availability;
 using CarRental.Domain.Bookings.Quotes;
 using CarRental.Domain.Common;
+using CarRental.Domain.Customers;
+using CarRental.Domain.Pricing;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Fleet;
+using CarRental.Integration.Tests.Pricing;
+using CarRental.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +26,10 @@ namespace CarRental.Integration.Tests.Bookings;
 public sealed class BookingsDemoSeedTests(IntegrationHost host)
 {
     private const string DemoAgencyName = "Agence Démo Tunis";
+
+    private const string SecondDemoAgencyName = "Agence Démo Sousse";
+
+    private static readonly string[] SecondAgencyEmails = ["hichem.mabrouk@example.com", "ines.zouari@example.com", "marco.bianchi@example.net"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -81,6 +94,75 @@ public sealed class BookingsDemoSeedTests(IntegrationHost host)
         var seeder = services.GetServices<IDataSeeder>().Single(s => s.Stage == SeedStage.Demo && s.Order == 700);
         await seeder.SeedAsync(Ct);
         (await db.Set<Booking>().CountAsync(b => b.AgencyId == agency.Id && b.Attribution.Source == "demo", Ct)).ShouldBe(files.Count);
+    }
+
+    /// <summary>
+    /// The second demo agency (ADR-0067): its three demo customers are its own and, once its fleet and its plan exist
+    /// (demo data of the Fleet and Pricing modules, given here when missing), a closed rental, a rental in progress and a
+    /// confirmed booking of its own, driven by its customers, that the main agency never sees.
+    /// </summary>
+    [Fact]
+    public async Task The_second_demo_agency_gets_customers_and_files_of_its_own()
+    {
+        Guid main;
+        Guid second;
+        await using (var scope = host.CreateScope())
+        {
+            var agencies = await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct);
+            main = agencies.Single(a => a.Name == DemoAgencyName).Id;
+            second = agencies.Single(a => a.Name == SecondDemoAgencyName).Id;
+        }
+
+        await EquipWhenMissingAsync(second);
+        await using (var scope = host.CreateScope())
+        {
+            await scope.ServiceProvider.GetServices<IDataSeeder>().Single(s => s.Stage == SeedStage.Demo && s.Order == 700).SeedAsync(Ct);
+        }
+
+        await using var check = host.CreateScope();
+        var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+        var customers = await db.Set<Person>().AsNoTracking().Where(p => p.AgencyId == second && SecondAgencyEmails.Contains(p.Email!)).Select(p => p.Id).ToListAsync(Ct);
+        customers.Count.ShouldBe(3);
+        var files = await db.Set<Booking>().AsNoTracking().Where(b => b.AgencyId == second && b.Attribution.Source == "demo").ToListAsync(Ct);
+        files.Select(f => f.Status).ShouldBe([BookingStatus.Closed, BookingStatus.InProgress, BookingStatus.Confirmed], ignoreOrder: true);
+        files.ShouldAllBe(f => f.MainDriverId != null && customers.Contains(f.MainDriverId.Value));
+        files.Where(f => f.Status != BookingStatus.Confirmed).ShouldAllBe(f => f.AssignedVehicleId != null);
+
+        await using var staff = host.CreateScope(TestActors.Staff(main, Roles.Manager));
+        (await staff.ServiceProvider.GetRequiredService<ICustomersQueries>().SearchPersonsAsync(SecondAgencyEmails[0], cancellationToken: Ct)).ShouldBeEmpty();
+        foreach (var file in files)
+        {
+            (await staff.ServiceProvider.GetRequiredService<IBookingsQueries>().GetSummaryAsync(file.Id, Ct)).ShouldBeNull();
+        }
+    }
+
+    /// <summary>An ECMR and a CDMR category with two vehicles each and a published plan, unless the agency has a plan.</summary>
+    private async Task EquipWhenMissingAsync(Guid agencyId)
+    {
+        await using (var scope = host.CreateScope())
+        {
+            if (await scope.ServiceProvider.GetRequiredService<IPricingQueries>().GetPublishedPlanAsync(agencyId, channel: null, Ct) is not null)
+            {
+                return;
+            }
+        }
+
+        var ecmr = await FleetData.NewCategoryAsync(host, agencyId, "ECMR", Ct, displayOrder: 1);
+        var cdmr = await FleetData.NewCategoryAsync(host, agencyId, "CDMR", Ct, displayOrder: 2);
+        for (var i = 0; i < 2; i++)
+        {
+            await FleetData.NewVehicleAsync(host, ecmr, Ct);
+            await FleetData.NewVehicleAsync(host, cdmr, Ct);
+        }
+
+        var draftId = await PricingScenario.AdministerAsync(host, s => s.CreateDraftAsync(new CreateDraftRequest(agencyId, null, "Grille Sousse"), Ct));
+        var detail = await PricingScenario.AdministerAsync(host, s => s.UpdatePricesAsync(
+            draftId,
+            0,
+            [new CategoryPriceDefinition(ecmr, RatePeriodKey.Base, Money.Tnd(95m)), new CategoryPriceDefinition(cdmr, RatePeriodKey.Base, Money.Tnd(140m))],
+            Ct));
+        detail = await PricingScenario.AdministerAsync(host, s => s.UpdateTiersAsync(draftId, detail.Plan.Revision, [new(1, 0m)], [], Ct));
+        await PricingScenario.AdministerAsync(host, s => s.PublishAsync(draftId, detail.Plan.Revision, Ct));
     }
 
     /// <summary>The largest number of periods covering one instant.</summary>

@@ -1,6 +1,7 @@
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Seeding;
 using CarRental.Application.Customers.Documents;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Customers;
 using Microsoft.EntityFrameworkCore;
@@ -9,20 +10,34 @@ using Microsoft.Extensions.Logging;
 namespace CarRental.Application.Customers.Seeding;
 
 /// <summary>
-/// Demo customers (development and recette only): fifteen fictitious persons — Tunisians with a CIN, foreigners and
-/// diaspora profiles (France, Germany, Italy, Algeria, Libya) with a passport, a non-latin licence with its
-/// international permit, an expired licence, a licence too recent, a blacklisted person — and two company payers.
+/// Demo customers (development and recette only). The main demo agency gets fifteen fictitious persons — Tunisians
+/// with a CIN, foreigners and diaspora profiles (France, Germany, Italy, Algeria, Libya) with a passport, a non-latin
+/// licence with its international permit, an expired licence, a licence too recent, a blacklisted person — and two
+/// company payers; the second demo agency (Sousse) three customers of its own, never seen by the first (ADR-0067).
 /// Names, numbers and addresses are invented; phones use fiction ranges; e-mails use reserved example domains.
-/// Document images are generated placeholders. Idempotent: a person is matched by its e-mail, a company by its tax id.
+/// Document images are generated placeholders. Idempotent: a person is matched by its e-mail, a company by its tax id,
+/// within its agency.
 /// </summary>
 internal sealed partial class CustomersDemoSeeder(
     IAppDbContext db,
+    IReferentialQueries referential,
     DocumentImageStore imageStore,
     TimeProvider timeProvider,
     ILogger<CustomersDemoSeeder> logger) : IDataSeeder
 {
+    /// <summary>Name of the main demo agency created by the Referential demo seeder.</summary>
+    public const string DemoAgencyName = "Agence Démo Tunis";
+
+    /// <summary>Name of the second demo agency created by the Referential demo seeder.</summary>
+    public const string SecondDemoAgencyName = "Agence Démo Sousse";
+
     public const string BlacklistedPersonEmail = "walid.ferchichi@example.com";
     public const string ReferencePersonEmail = "sami.trabelsi@example.com";
+
+    /// <summary>The customers of the second demo agency (its demo rental files are made for them).</summary>
+    public const string SousseCustomerEmail = "hichem.mabrouk@example.com";
+    public const string SousseSecondCustomerEmail = "ines.zouari@example.com";
+    public const string SousseThirdCustomerEmail = "marco.bianchi@example.net";
 
     private static readonly AuditActor Seeder = AuditActor.System("system:seed");
 
@@ -32,13 +47,34 @@ internal sealed partial class CustomersDemoSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow();
         var today = TunisTime.Today(timeProvider);
-        var existingEmails = await db.Set<Person>().Where(p => p.Email != null).Select(p => p.Email!).ToListAsync(cancellationToken);
-
-        foreach (var demo in Persons(today).Where(d => !existingEmails.Contains(d.Details.Email!, StringComparer.Ordinal)))
+        var agencies = await referential.GetAgenciesAsync(cancellationToken);
+        foreach (var (name, persons, companies) in new[]
+                 {
+                     (DemoAgencyName, Persons(today), Companies()),
+                     (SecondDemoAgencyName, SoussePersons(today), Enumerable.Empty<CompanyDetails>()),
+                 })
         {
-            var person = Person.Register(demo.Details, now).Value;
+            if (agencies.FirstOrDefault(a => a.Name == name) is not { } agency)
+            {
+                LogNoAgency(name);
+                continue;
+            }
+
+            await SeedAgencyAsync(agency.Id, persons, companies, cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>The persons and companies of one agency that are not there yet (by e-mail, by tax identifier, in that agency).</summary>
+    private async Task SeedAgencyAsync(Guid agencyId, IEnumerable<DemoPerson> persons, IEnumerable<CompanyDetails> companies, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        var existingEmails = await db.Set<Person>().Where(p => p.AgencyId == agencyId && p.Email != null).Select(p => p.Email!).ToListAsync(cancellationToken);
+        foreach (var demo in persons.Where(d => !existingEmails.Contains(d.Details.Email!, StringComparer.Ordinal)))
+        {
+            var person = Person.Register(agencyId, demo.Details, now).Value;
             foreach (var document in demo.Documents)
             {
                 var added = person.AddDocument(document.Details, now).Value;
@@ -66,20 +102,49 @@ internal sealed partial class CustomersDemoSeeder(
             db.Set<Person>().Add(person);
             if (demo.IsPayer)
             {
-                db.Set<Customer>().Add(Customer.ForPerson(person.Id, now).Value);
+                db.Set<Customer>().Add(Customer.ForPerson(agencyId, person.Id, now).Value);
             }
         }
 
         var existingTaxKeys = await db.Set<Customer>()
-            .Where(c => c.Kind == CustomerKind.Company)
+            .Where(c => c.AgencyId == agencyId && c.Kind == CustomerKind.Company)
             .Select(c => c.TaxIdentifierKey)
             .ToListAsync(cancellationToken);
-        foreach (var company in Companies().Where(c => !existingTaxKeys.Contains(TaxIdentifiers.KeyOf(c.TaxIdentifier), StringComparer.Ordinal)))
+        foreach (var company in companies.Where(c => !existingTaxKeys.Contains(TaxIdentifiers.KeyOf(c.TaxIdentifier), StringComparer.Ordinal)))
         {
-            db.Set<Customer>().Add(Customer.ForCompany(company, now).Value);
+            db.Set<Customer>().Add(Customer.ForCompany(agencyId, company, now).Value);
         }
+    }
 
-        await db.SaveChangesAsync(cancellationToken);
+    /// <summary>
+    /// The three customers of the second demo agency: a Tunisian of Sousse, a Tunisian of Monastir and an Italian
+    /// tourist (passport and latin licence), every one an eligible driver and the payer of their own rentals.
+    /// </summary>
+    private static IEnumerable<DemoPerson> SoussePersons(DateOnly today)
+    {
+        yield return new DemoPerson(
+            new PersonDetails("Hichem", "Mabrouk", "TN", new DateOnly(1984, 2, 18), "+216 25 333 101", SousseCustomerEmail, PostalAddress.Create("22 rue de Palestine", null, "4000", "Sousse", "TN").Value),
+            [
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.NationalId, "04112233", "TN", today.AddYears(-7)), WithImages: true, Verified: true),
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.DrivingLicense, "03/112233", "TN", today.AddYears(-20)), WithImages: false, Verified: false),
+            ],
+            [(ConsentPurpose.WhatsAppNotifications, ConsentChannel.Counter)],
+            IsPayer: true);
+        yield return new DemoPerson(
+            new PersonDetails("Ines", "Zouari", "TN", new DateOnly(1993, 9, 7), "+216 26 444 102", SousseSecondCustomerEmail, PostalAddress.Create("5 avenue de l'Environnement", null, "5000", "Monastir", "TN").Value),
+            [
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.NationalId, "11223344", "TN", today.AddYears(-4)), WithImages: false, Verified: false),
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.DrivingLicense, "14/223344", "TN", today.AddYears(-9)), WithImages: false, Verified: false),
+            ],
+            IsPayer: true);
+        yield return new DemoPerson(
+            new PersonDetails("Marco", "Bianchi", "IT", new DateOnly(1979, 5, 23), "+39 333 000 0201", SousseThirdCustomerEmail, PostalAddress.Create("Via Garibaldi 14", null, "10122", "Torino", "IT").Value),
+            [
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.Passport, "YB7654321", "IT", today.AddYears(-2), today.AddYears(8)), WithImages: false, Verified: false),
+                new DemoDocument(new IdentityDocumentDetails(IdentityDocumentType.DrivingLicense, "TO7654321Z", "IT", today.AddYears(-25)), WithImages: false, Verified: false),
+            ],
+            [(ConsentPurpose.MarketingEmail, ConsentChannel.Web)],
+            IsPayer: true);
     }
 
     private static IEnumerable<DemoPerson> Persons(DateOnly today)
@@ -196,6 +261,9 @@ internal sealed partial class CustomersDemoSeeder(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo document images could not be stored; demo persons are created without images.")]
     private partial void LogImagesSkipped(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Demo agency {Agency} not found: no demo customers for it.")]
+    private partial void LogNoAgency(string agency);
 
     private sealed record DemoDocument(IdentityDocumentDetails Details, bool WithImages, bool Verified);
 

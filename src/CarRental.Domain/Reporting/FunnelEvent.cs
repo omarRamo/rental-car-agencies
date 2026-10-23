@@ -3,15 +3,15 @@ using CarRental.Domain.Common;
 namespace CarRental.Domain.Reporting;
 
 /// <summary>
-/// One step reached by a visitor of the public booking funnel, for the conversion indicators of phase 3 (searches →
-/// requests → confirmed bookings, per channel and source). Append-only measurement data without any personal data: the
-/// visit is an anonymous random identifier carried by a first-party cookie, never linked to a person.
+/// One step reached by a visitor of the public booking funnel of an agency, for the conversion indicators of phase 3
+/// (searches → requests → confirmed bookings, per channel and source). Append-only measurement data without any personal
+/// data: the visit is an anonymous random identifier carried by a first-party cookie, never linked to a person.
 /// </summary>
 /// <remarks>
 /// Rows are written by the funnel recorder and only ever deleted by the retention purge
 /// (<c>reporting.funnel_event_retention_days</c>).
 /// </remarks>
-public sealed class FunnelEvent : Entity
+public sealed class FunnelEvent : Entity, IAgencyOwned
 {
     public const int CultureMaxLength = 8;
     public const int SourceMaxLength = 32;
@@ -21,9 +21,10 @@ public sealed class FunnelEvent : Entity
     {
     }
 
-    private FunnelEvent(Guid id, FunnelEventDetails details, DateTimeOffset occurredAtUtc)
+    private FunnelEvent(Guid id, Guid agencyId, FunnelEventDetails details, DateTimeOffset occurredAtUtc)
         : base(id)
     {
+        AgencyId = agencyId;
         VisitId = details.VisitId;
         Step = details.Step;
         OccurredAtUtc = occurredAtUtc;
@@ -38,6 +39,9 @@ public sealed class FunnelEvent : Entity
         CategoryCode = details.CategoryCode;
         BookingId = details.BookingId;
     }
+
+    /// <summary>The agency whose public site the visitor browses (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Anonymous visit (first-party cookie), <see langword="null"/> when the visitor opted out (GPC, DNT).</summary>
     public Guid? VisitId { get; private set; }
@@ -71,15 +75,20 @@ public sealed class FunnelEvent : Entity
     /// <summary>Booking of the funnel once it exists (draft created at the choice of a category).</summary>
     public Guid? BookingId { get; private set; }
 
-    /// <summary>Validates and normalizes a funnel step reached at <paramref name="occurredAt"/>.</summary>
-    public static Result<FunnelEvent> Record(FunnelEventDetails details, DateTimeOffset occurredAt)
+    /// <summary>Validates and normalizes a funnel step reached at <paramref name="occurredAt"/> on the public site of <paramref name="agencyId"/>.</summary>
+    public static Result<FunnelEvent> Record(Guid agencyId, FunnelEventDetails details, DateTimeOffset occurredAt)
     {
         ArgumentNullException.ThrowIfNull(details);
+        if (agencyId == Guid.Empty)
+        {
+            return ReportingErrors.FunnelAgencyRequired;
+        }
+
         var normalized = details.Normalize();
         var validation = Validate(normalized);
         return validation.IsFailure
             ? validation.Error
-            : new FunnelEvent(NewId(), normalized, occurredAt.ToUniversalTime());
+            : new FunnelEvent(NewId(), agencyId, normalized, occurredAt.ToUniversalTime());
     }
 
     private static Result Validate(FunnelEventDetails details)

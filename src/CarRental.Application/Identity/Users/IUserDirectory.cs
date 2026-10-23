@@ -4,12 +4,13 @@ using CarRental.Domain.Common;
 namespace CarRental.Application.Identity.Users;
 
 /// <summary>
-/// Port to the user store (ASP.NET Core Identity in Infrastructure). Primitive operations only:
-/// rules (permissions, last manager, self-lock) are enforced by <see cref="UserAdministrationService"/>.
+/// Port to the user store (ASP.NET Core Identity in Infrastructure). Primitive operations only: rules (permissions,
+/// agency of the users, last manager, self-lock) are enforced by <see cref="UserAdministrationService"/>.
 /// </summary>
 public interface IUserDirectory
 {
-    Task<PagedResult<UserSummary>> ListAsync(string? search, PageRequest page, CancellationToken cancellationToken);
+    /// <summary>The users of <paramref name="agencyId"/>, or the support accounts when <see langword="null"/> (ADR-0067).</summary>
+    Task<PagedResult<UserSummary>> ListAsync(Guid? agencyId, string? search, PageRequest page, CancellationToken cancellationToken);
 
     Task<UserSummary?> FindAsync(Guid userId, CancellationToken cancellationToken);
 
@@ -21,8 +22,8 @@ public interface IUserDirectory
     /// <summary>Locks (indefinitely, sessions revoked) or unlocks an account.</summary>
     Task<Result> SetLockedAsync(Guid userId, bool locked, CancellationToken cancellationToken);
 
-    /// <summary>Users of <paramref name="role"/> that are not locked out.</summary>
-    Task<int> CountActiveUsersInRoleAsync(string role, CancellationToken cancellationToken);
+    /// <summary>Users of <paramref name="role"/> in <paramref name="agencyId"/> (support accounts when <see langword="null"/>) that are not locked out.</summary>
+    Task<int> CountActiveUsersInRoleAsync(string role, Guid? agencyId, CancellationToken cancellationToken);
 
     Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken);
 
@@ -31,6 +32,12 @@ public interface IUserDirectory
 
     /// <summary>Revokes an extra permission of the user.</summary>
     Task<Result> RemoveExtraPermissionAsync(Guid userId, string permission, CancellationToken cancellationToken);
+
+    /// <summary>The agency a support account entered (<see langword="null"/>: none, or not a support account).</summary>
+    Task<Guid?> FindSelectedAgencyAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>Records the agency a support account enters (<see langword="null"/>: leaves it); refused for a member of an agency.</summary>
+    Task<Result> SetSelectedAgencyAsync(Guid userId, Guid? agencyId, CancellationToken cancellationToken);
 }
 
 /// <summary>Sends the invitation e-mail of a new user (link to choose a password), through the e-mail outbox.</summary>
@@ -48,11 +55,12 @@ public interface IUserSessions
     void RefreshClaims(Guid userId);
 }
 
-public sealed record NewUser(string Email, string DisplayName, string Role);
+/// <summary>A user to create: a member of <paramref name="AgencyId"/>, or a support account when <see langword="null"/>.</summary>
+public sealed record NewUser(string Email, string DisplayName, string Role, Guid? AgencyId);
 
 /// <summary>
 /// A user as listed in the back office; <c>ExtraPermissions</c> are the permissions granted to the user on top of the
-/// presets of their roles, ordered.
+/// presets of their roles, ordered; <c>AgencyId</c> is their agency (<see langword="null"/> for a support account).
 /// </summary>
 public sealed record UserSummary(
     Guid Id,
@@ -65,7 +73,8 @@ public sealed record UserSummary(
     bool HasPassword,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? LastSignInAtUtc,
-    IReadOnlyList<string> ExtraPermissions);
+    IReadOnlyList<string> ExtraPermissions,
+    Guid? AgencyId = null);
 
 /// <summary>Request of the "create user" form.</summary>
 public sealed record CreateUserRequest(string Email, string DisplayName, string Role);

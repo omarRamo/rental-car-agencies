@@ -19,7 +19,8 @@ namespace CarRental.Application.Messaging.Agent;
 /// <see cref="IAgentModel"/> and its five tools, then checks the reply with guardrails enforced by the code.
 /// <list type="number">
 /// <item>Silent (like the default responder) when the bot is off, no model is configured, the number is outside the
-/// audience or no agency is set up.</item>
+/// audience or the agency of the conversation is not active. The agent presents the agency of the conversation only,
+/// and its tools only answer about that agency (ADR-0067).</item>
 /// <item>A conversation over its caps (turns, tokens, cost, turns without progress) is handed over without a model call;
 /// a turn made of attachments only gets the fixed reply pointing to the secure link (no model call, nothing opened).</item>
 /// <item>Otherwise the request is the cached prefix (tool definitions and the system prompt of annexe B, without the date)
@@ -70,7 +71,7 @@ internal sealed partial class AgentConversationResponder(
             return ConversationReply.None;
         }
 
-        var agency = await agencies.LoadAsync(cancellationToken);
+        var agency = await agencies.LoadAsync(turn.AgencyId, cancellationToken);
         if (agency is null)
         {
             LogNoAgency();
@@ -80,11 +81,11 @@ internal sealed partial class AgentConversationResponder(
         var now = clock.GetUtcNow();
         var turnSettings = await AgentTurnSettings.ReadAsync(settings, cancellationToken);
 
-        // The memory of the agent lives in a scope of its own: a failed unit of work of another module (locked quote) clears
-        // the change tracker of the responder's scope, never this one.
-        await using var memoryScope = scopes.CreateScope(correlationId: null);
+        // The memory of the agent lives in a scope of its own (for the agency of the conversation): a failed unit of work
+        // of another module (locked quote) clears the change tracker of the responder's scope, never this one.
+        await using var memoryScope = scopes.CreateScope(correlationId: null, turn.AgencyId);
         var memory = memoryScope.ServiceProvider.GetRequiredService<AgentMemory>();
-        var state = await memory.LoadAsync(turn.ConversationId, now, cancellationToken);
+        var state = await memory.LoadAsync(turn.ConversationId, turn.AgencyId, now, cancellationToken);
         var context = new AgentTurnContext(turn, LanguageOf(turn), agency, state, turnSettings, now);
         var run = new AgentRun();
         AgentTurnResult result;
@@ -125,7 +126,7 @@ internal sealed partial class AgentConversationResponder(
 
         if (turn.NewMessages.Count > 0 && turn.NewMessages.All(AgentTranscript.IsAttachment))
         {
-            return Fixed(context, run, AgentMessages.AttachmentNotProcessed(context.Language, SecureLink(context.Language)), AgentTurnOutcome.AttachmentReply);
+            return Fixed(context, run, AgentMessages.AttachmentNotProcessed(context.Language, SecureLink(context)), AgentTurnOutcome.AttachmentReply);
         }
 
         var prompt = prompts.Render(context.Agency);
@@ -215,7 +216,7 @@ internal sealed partial class AgentConversationResponder(
         if (DocumentRequests.Contains(text))
         {
             LogGuardrail("document-request");
-            return Fixed(context, run, AgentMessages.DocumentsOnSecureLinkOnly(context.Language, SecureLink(context.Language)), AgentTurnOutcome.ReplacedByGuardrail);
+            return Fixed(context, run, AgentMessages.DocumentsOnSecureLinkOnly(context.Language, SecureLink(context)), AgentTurnOutcome.ReplacedByGuardrail);
         }
 
         if (AmountGuard.Unknown(text, context.KnownAmounts).Count > 0)
@@ -306,6 +307,7 @@ internal sealed partial class AgentConversationResponder(
     private AgentTurnRecord Record(AgentTurnContext context, AgentRun run, AgentTurnOutcome outcome, decimal metaCostUsd) =>
         AgentTurnRecord.Create(
             context.Turn.ConversationId,
+            context.Turn.AgencyId,
             context.Now,
             run.ModelCalls > 0 ? model.ModelId : null,
             outcome,
@@ -348,7 +350,7 @@ internal sealed partial class AgentConversationResponder(
             lines.Add($"Dernier lien de devis envoyé : {link}");
         }
 
-        if (turn.BookingId is { } bookingId && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } booking)
+        if (turn.BookingId is { } bookingId && await bookings.GetSummaryAsync(bookingId, cancellationToken) is { } booking && booking.AgencyId == turn.AgencyId)
         {
             lines.Add($"Dossier rattaché à la conversation par l'agence : {booking.Number}.");
         }
@@ -414,10 +416,13 @@ internal sealed partial class AgentConversationResponder(
         return parts.Count == 0 ? null : string.Join(" ; ", parts);
     }
 
-    private Uri SecureLinkUri(AgentLanguage language) =>
-        site.Value.PublicBaseUrl is { IsAbsoluteUri: true } baseUrl ? BookingDeepLink.FunnelPage(baseUrl, language) : new Uri("https://localhost/" + BookingDeepLink.PathFor(language));
+    /// <summary>The funnel page of the site of the agency of the conversation (ADR-0067).</summary>
+    private Uri SecureLinkUri(AgentTurnContext context) =>
+        BookingDeepLink.FunnelPage(
+            BookingDeepLink.SiteOf(site.Value.PublicBaseUrl is { IsAbsoluteUri: true } baseUrl ? baseUrl : new Uri("https://localhost/"), context.Agency.SiteSlug),
+            context.Language);
 
-    private string SecureLink(AgentLanguage language) => SecureLinkUri(language).AbsoluteUri;
+    private string SecureLink(AgentTurnContext context) => SecureLinkUri(context).AbsoluteUri;
 
     /// <summary>The language of the turn's messages; when they tell nothing (« ok », a button), that of the earlier customer messages.</summary>
     private static AgentLanguage LanguageOf(ConversationTurn turn) =>
@@ -458,7 +463,7 @@ internal sealed partial class AgentConversationResponder(
     [LoggerMessage(Level = LogLevel.Critical, Message = "WhatsApp agent: the model service refused the request for good ({ExceptionType}); check the Ai settings.")]
     private partial void LogRejected(string exceptionType);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp agent: no active agency is set up; the bot stays silent.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp agent: the agency of the conversation is not active; the bot stays silent.")]
     private partial void LogNoAgency();
 }
 

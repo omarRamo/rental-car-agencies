@@ -23,6 +23,11 @@ internal sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Ap
         builder.Property(u => u.NormalizedUserName).IsAuditIgnored();
         builder.Property(u => u.AccessFailedCount).IsAuditIgnored();
         builder.Property(u => u.LastSignInAtUtc).IsAuditIgnored();
+        builder.Ignore(u => u.CurrentAgencyId);
+
+        // A staff member belongs to one agency (ADR-0067); the support to none, and remembers the agency they entered.
+        builder.HasOne<CarRental.Domain.Referential.Agency>().WithMany().HasForeignKey(u => u.AgencyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CarRental.Domain.Referential.Agency>().WithMany().HasForeignKey(u => u.SelectedAgencyId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

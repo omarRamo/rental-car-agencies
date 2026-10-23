@@ -1,14 +1,20 @@
 using System.Net;
 using CarRental.Application.Common.BackgroundJobs;
+using CarRental.Application.Common.Paging;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Payments.Administration;
 using CarRental.Application.Payments.Contracts;
 using CarRental.Application.Payments.Online;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Integration.Tests.Support;
+using CarRental.Testing;
+using CarRental.Web.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,8 +34,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     [Fact]
     public async Task A_pre_authorization_paid_on_the_simulated_page_is_confirmed_by_the_return_address()
     {
-        var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
-        var started = await StartAsync(agencyId, 681.4m, "/fr/paiement/{paymentId}");
+        // The result page belongs to the site of the agency of the payment (ADR-0067): it shows the payments of that agency.
+        var site = await TestAgencies.RegisterAsync(host, "paiement", Ct);
+        var agencyId = site.Id;
+        var started = await StartAsync(agencyId, 681.4m, $"/{site.Slug}/fr/paiement/{{paymentId}}");
         using var client = host.CreateClient();
 
         var page = await client.GetAsync(new Uri(started.RedirectUrl, UriKind.Relative), Ct);
@@ -50,11 +58,13 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var returned = await client.GetAsync(new Uri(returnAddress, UriKind.Relative), Ct);
 
         returned.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        HttpSignIn.PathAndQuery(returned.Headers.Location!).ShouldBe($"/fr/paiement/{started.PaymentId:D}");
+        HttpSignIn.PathAndQuery(returned.Headers.Location!).ShouldBe($"/{site.Slug}/fr/paiement/{started.PaymentId:D}");
         returned.Headers.CacheControl!.NoStore.ShouldBeTrue();
-        var result = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
+        var result = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{site.Slug}/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
         result.ShouldContain("Paiement autorisé");
         result.ShouldContain("681,400 TND");
+        var elsewhere = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri($"/{Public.PublicTestData.DemoSlug}/fr/paiement/{started.PaymentId:D}", UriKind.Relative), Ct));
+        elsewhere.ShouldNotContain("681,400 TND", customMessage: "the site of another agency never shows the payment");
 
         await using var scope = host.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
@@ -66,9 +76,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var history = await db.Set<Payment>().TemporalAll().Where(p => p.Id == started.PaymentId).Select(p => p.Status).ToListAsync(Ct);
         history.ShouldContain(PaymentStatus.Pending);
         history.ShouldContain(PaymentStatus.PreAuthorized);
-        var calls = await db.Set<GatewayCallLog>().AsNoTracking().Where(c => c.PaymentId == started.PaymentId).Select(c => c.Operation).ToListAsync(Ct);
-        calls.ShouldContain(GatewayOperation.RegisterPreAuth);
-        calls.ShouldContain(GatewayOperation.GetOrderStatusExtended);
+        var calls = await db.Set<GatewayCallLog>().AsNoTracking().Where(c => c.PaymentId == started.PaymentId).Select(c => new { c.Operation, c.AgencyId }).ToListAsync(Ct);
+        calls.Select(c => c.Operation).ShouldContain(GatewayOperation.RegisterPreAuth);
+        calls.Select(c => c.Operation).ShouldContain(GatewayOperation.GetOrderStatusExtended);
+        calls.ShouldAllBe(c => c.AgencyId == agencyId, "the calls are records of the agency of the payment");
         (await OutboxCountAsync(db, typeof(PaymentStatusChanged), started.PaymentId)).ShouldBe(1);
         (await OutboxCountAsync(db, typeof(OnlinePaymentStatusChanged), started.PaymentId)).ShouldBe(1, "told to the other modules with the change");
     }
@@ -105,7 +116,8 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
 
         var returns = Enumerable.Range(0, 6).Select(async _ =>
         {
-            await using var scope = host.CreateScope(UserContextSnapshot.Anonymous("198.51.100.7"));
+            // As the return address handles them: by the platform, whatever agency the order belongs to.
+            await using var scope = host.CreateScope(UserContextSnapshot.System(ClicToPayEndpoints.ReturnActor));
             return await scope.ServiceProvider.GetRequiredService<IOnlinePayments>()
                 .HandleReturnAsync(new OnlinePaymentReturnRequest(payment.OrderNumber, payment.GatewayOrderId, false), Ct);
         }).ToList();
@@ -161,21 +173,66 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_catch_up_job_works_for_every_agency_and_each_agency_reads_its_own_online_payments_only()
+    {
+        var (a, b) = (await FinanceData.NewAgencyAsync(host, Ct), await FinanceData.NewAgencyAsync(host, Ct));
+        var linkA = await BackdatedAsync(a, OnlinePaymentFlow.OneStep, 300m, recordedAgo: TimeSpan.FromHours(25), validity: TimeSpan.FromHours(24), isLink: true);
+        var linkB = await BackdatedAsync(b, OnlinePaymentFlow.OneStep, 310m, recordedAgo: TimeSpan.FromHours(25), validity: TimeSpan.FromHours(24), isLink: true);
+
+        // One merchant account for the platform: the job reads the orders of every agency.
+        await using (var scope = host.CreateScope(UserContextSnapshot.System($"system:job:{CatchUpJobId}")))
+        {
+            await CatchUpJob(scope).ExecuteAsync(Ct);
+        }
+
+        await using (var check = host.CreateScope())
+        {
+            var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
+            foreach (var (paymentId, agencyId) in new[] { (linkA.PaymentId, a), (linkB.PaymentId, b) })
+            {
+                (await db.Set<Payment>().AsNoTracking().SingleAsync(p => p.Id == paymentId, Ct)).Status.ShouldBe(PaymentStatus.Cancelled);
+                var reads = await db.Set<GatewayCallLog>().AsNoTracking()
+                    .Where(c => c.PaymentId == paymentId && c.Operation == GatewayOperation.GetOrderStatusExtended)
+                    .Select(c => c.AgencyId)
+                    .ToListAsync(Ct);
+                reads.ShouldNotBeEmpty();
+                reads.ShouldAllBe(id => id == agencyId, "a call is a record of the agency of the payment of its order");
+            }
+        }
+
+        await using var scopeA = host.CreateScope(FinanceData.StaffOf(a, Roles.Manager));
+        var admin = scopeA.ServiceProvider.GetRequiredService<OnlinePaymentAdministration>();
+        (await admin.GetAsync(linkB.PaymentId, Ct)).Error.ShouldBe(PaymentsErrors.OnlinePaymentNotFound);
+        (await admin.GetAsync(linkA.PaymentId, Ct)).Value.Calls.ShouldNotBeEmpty();
+        (await admin.ListAsync(new OnlinePaymentListFilter(), new PageRequest(1, 100), Ct)).Value.Page.Items.Select(p => p.PaymentId).ShouldBe([linkA.PaymentId]);
+        (await admin.RefreshAsync(linkB.PaymentId, Ct)).Error.ShouldBe(PaymentsErrors.OnlinePaymentNotFound);
+    }
+
+    [Fact]
     public async Task The_development_page_starts_a_payment_like_the_funnel_will()
     {
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
         using var client = host.CreateClient();
         var page = await client.GetStringAsync(new Uri("/dev/clictopay/start", UriKind.Relative), Ct);
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        FormUrlEncodedContent Form(Guid? booking) => new(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = HttpSignIn.AntiforgeryToken(page),
             ["AgencyId"] = agencyId.ToString(),
-            ["BookingId"] = string.Empty,
+            ["BookingId"] = booking?.ToString() ?? string.Empty,
             ["Amount"] = "75,500",
             ["Flow"] = "oneStep",
             ["Culture"] = "en",
         });
 
+        // A payment always points to a rental file of its agency (ADR-0067): the page asks for one.
+        using (var withoutBooking = Form(null))
+        {
+            var refused = await client.PostAsync(new Uri("/dev/clictopay/start", UriKind.Relative), withoutBooking, Ct);
+            refused.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var form = Form(bookingId);
         var started = await client.PostAsync(new Uri("/dev/clictopay/start", UriKind.Relative), form, Ct);
 
         started.StatusCode.ShouldBe(HttpStatusCode.Redirect);
@@ -189,7 +246,10 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         var payment = await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Payment>().AsNoTracking()
             .SingleAsync(p => p.Id == Guid.ParseExact(order.OrderNumber, "N"), Ct);
         payment.AgencyId.ShouldBe(agencyId);
-        payment.GatewayReturnPath.ShouldBe("/en/payment/{paymentId}");
+        payment.BookingId.ShouldBe(bookingId);
+        (await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Payment>().CountAsync(p => p.AgencyId == agencyId, Ct)).ShouldBe(1, "nothing without a rental file");
+        var site = (await host.Factory.Services.GetRequiredService<IAgencyDirectory>().FindAsync(agencyId, Ct)).ShouldNotBeNull().Slug;
+        payment.GatewayReturnPath.ShouldBe($"/{site}/en/payment/{{paymentId}}", "the result page of the site of the agency of the payment");
     }
 
     [Fact]
@@ -219,11 +279,13 @@ public sealed class OnlinePaymentsSqlTests(IntegrationHost host)
         return db.Set<OutboxMessage>().AsNoTracking().CountAsync(m => m.Type == type && m.Payload.Contains(id), Ct);
     }
 
+    /// <summary>A pre-authorization started like the funnel of the agency's public site starts it: as a visitor of that site.</summary>
     private async Task<OnlinePaymentRedirect> StartAsync(Guid agencyId, decimal amount, string returnPath, string? failPath = null)
     {
-        await using var scope = host.CreateScope(UserContextSnapshot.Anonymous("198.51.100.20"));
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
+        await using var scope = host.CreateScope(TestActors.Visitor(agencyId, "198.51.100.20"));
         var started = await scope.ServiceProvider.GetRequiredService<IOnlinePayments>()
-            .StartPreAuthorizationAsync(new OnlinePaymentRequest(Guid.CreateVersion7(), agencyId, amount, "fr", returnPath, failPath ?? returnPath), Ct);
+            .StartPreAuthorizationAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", returnPath, failPath ?? returnPath), Ct);
         started.IsSuccess.ShouldBeTrue(started.IsFailure ? started.Error.ToString() : null);
         return started.Value;
     }

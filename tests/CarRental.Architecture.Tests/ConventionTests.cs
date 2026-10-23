@@ -1,8 +1,10 @@
 using System.Reflection;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Common;
+using CarRental.Domain.Referential;
 using CarRental.Web.Components.Admin.Navigation;
 using CarRental.Web.Components.Admin.Shared;
+using CarRental.Web.Components.Public;
 using CarRental.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -56,16 +58,34 @@ public sealed class ConventionTests
     }
 
     [Fact]
-    public void Public_pages_are_static_and_culture_prefixed()
+    public void Public_pages_are_static_and_on_the_site_of_an_agency_in_a_culture()
     {
         var publicPages = RoutableComponents.Where(t => t.Namespace!.StartsWith("CarRental.Web.Components.Public", StringComparison.Ordinal)).ToList();
 
         publicPages.ShouldNotBeEmpty();
+        PublicRoutes.RoutePrefix.ShouldBe("/{agency}/{culture:length(2)}");
         foreach (var page in publicPages)
         {
             page.GetCustomAttribute<ExcludeFromInteractiveRoutingAttribute>().ShouldNotBeNull(page.Name);
-            page.GetCustomAttributes<RouteAttribute>().ShouldAllBe(r => r.Template.StartsWith("/{culture:length(2)}", StringComparison.Ordinal));
+            page.GetCustomAttributes<RouteAttribute>().ShouldAllBe(r => r.Template.StartsWith(PublicRoutes.RoutePrefix + "/", StringComparison.Ordinal) || r.Template == PublicRoutes.RoutePrefix);
+
+            // The base resolves the agency of the address and redirects a non-canonical one (ADR-0067).
+            page.IsSubclassOf(typeof(PublicPageBase)).ShouldBeTrue(page.Name);
         }
+    }
+
+    [Fact]
+    public void Pages_outside_the_sites_start_with_a_word_no_agency_can_take()
+    {
+        var otherPages = RoutableComponents
+            .Where(t => !t.Namespace!.StartsWith("CarRental.Web.Components.Public", StringComparison.Ordinal))
+            .SelectMany(t => t.GetCustomAttributes<RouteAttribute>().Select(r => (Page: t.Name, r.Template)))
+            .ToList();
+
+        otherPages.ShouldNotBeEmpty();
+        otherPages.Where(p => p.Template != "/" && !AgencySlug.Reserved.Contains(p.Template.Split('/', StringSplitOptions.RemoveEmptyEntries)[0]))
+            .Select(p => $"{p.Page}: {p.Template}")
+            .ShouldBeEmpty("the first segment of an address is the site of an agency unless it is a reserved word (AgencySlug.Reserved)");
     }
 
     [Fact]

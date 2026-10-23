@@ -2,6 +2,7 @@ using System.Net;
 using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Identity.Users;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Identity;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
@@ -92,10 +93,10 @@ public sealed class ExtraPermissionsTests(IntegrationHost host)
         circuit.HasClaim(Permissions.ClaimType, Permissions.PricingRead).ShouldBeTrue("implied by pricing.manage");
 
         await SetExtraPermissionsAsync(manager, agentId, [Permissions.PricingManage, Permissions.ReportsRead]);
-        (await SessionClaims.IsStillValidAsync(userManager, factory, circuit, options)).ShouldBeTrue();
+        (await SessionClaims.IsStillValidAsync(userManager, factory, circuit, options, scope.ServiceProvider.GetRequiredService<IAgencyDirectory>())).ShouldBeTrue();
 
         await SetExtraPermissionsAsync(manager, agentId, [Permissions.ReportsRead]);
-        (await SessionClaims.IsStillValidAsync(userManager, factory, circuit, options)).ShouldBeFalse();
+        (await SessionClaims.IsStillValidAsync(userManager, factory, circuit, options, scope.ServiceProvider.GetRequiredService<IAgencyDirectory>())).ShouldBeFalse();
     }
 
     private static async Task ShouldBeDeniedAsync(HttpResponseMessage response)
@@ -114,6 +115,6 @@ public sealed class ExtraPermissionsTests(IntegrationHost host)
     private async Task<UserContextSnapshot> ManagerAsync()
     {
         var (id, email) = await TestStaff.CreateAsync(host, Roles.Manager);
-        return UserContextSnapshot.ForUser(id, email, RolePresets.PermissionsOf(Roles.Manager), "198.51.100.40", $"corr-{Guid.NewGuid():N}");
+        return await TestStaff.ActorAsync(host, id, email, Roles.Manager);
     }
 }

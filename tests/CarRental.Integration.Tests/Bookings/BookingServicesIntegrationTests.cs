@@ -30,7 +30,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     public async Task A_phone_booking_is_priced_checked_numbered_and_stored_with_its_quote_timeline_and_outbox_message()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 2);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var pickup = InDays(30);
         var request = Quick(agency, driver, pickup, pickup.AddDays(3)) with { Extras = [new SelectedExtra("CHILD_SEAT", 1)] };
 
@@ -63,7 +63,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     public async Task The_occupancy_reader_returns_what_the_domain_computes_from_the_stored_files()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 3);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var inside = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(20), InDays(23)), Ct);
         var touching = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(10), InDays(15, hour: 9)), Ct);
         var after = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(40), InDays(42)), Ct);
@@ -86,7 +86,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     public async Task An_amendment_and_an_extension_create_new_versions_and_keep_the_previous_ones_unchanged()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 1);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var pickup = DateTimeOffset.UtcNow.AddMinutes(-5);
         var created = await BookingWorld.CreateAsync(host, Quick(agency, driver, pickup, pickup.AddDays(2)), Ct);
         AmendBookingRequest Current(BookingFileState state) => new(
@@ -123,8 +123,8 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 1);
         await SetAsync(host, agency.AgencyId, "bookings.hold_duration", "00:00:05", Ct);
-        var webDriver = await NewDriverAsync(host, Ct);
-        var phoneDriver = await NewDriverAsync(host, Ct);
+        var webDriver = await NewDriverAsync(host, agency.AgencyId, Ct);
+        var phoneDriver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var pickup = InDays(35);
         var submitted = await RunAsync<IBookingRequests, Result<BookingRequestResult>>(
             host,
@@ -149,7 +149,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     public async Task A_vehicle_already_carrying_a_file_within_the_preparation_buffer_is_refused()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 2);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var first = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(25), InDays(27)), Ct);
         var second = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(27, hour: 11), InDays(29)), Ct);
         (await RunAsync<VehicleAssignmentService, Result>(host, Agent, s => s.AssignAsync(first.BookingId, agency.EcmrVehicles[0], cancellationToken: Ct))).IsSuccess.ShouldBeTrue();
@@ -165,7 +165,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     {
         var expiresOn = TunisTime.Today(TimeProvider.System).AddDays(32);
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 2, ecmrDocumentsExpireOn: expiresOn);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var booking = await BookingWorld.CreateAsync(host, Quick(agency, driver, InDays(31), InDays(34)), Ct);
         var expiring = agency.EcmrVehicles[0];
 
@@ -188,7 +188,7 @@ public sealed class BookingServicesIntegrationTests(IntegrationHost host)
     public async Task The_closing_restarts_the_retention_of_the_document_images_of_the_drivers()
     {
         var agency = await CreateAsync(host, Ct, ecmrVehicles: 1);
-        var driver = await NewDriverAsync(host, Ct);
+        var driver = await NewDriverAsync(host, agency.AgencyId, Ct);
         var pickup = DateTimeOffset.UtcNow.AddMinutes(-10);
         var created = await BookingWorld.CreateAsync(host, Quick(agency, driver, pickup, pickup.AddDays(1)), Ct);
         (await RunAsync<VehicleAssignmentService, Result>(host, Agent, s => s.AssignAsync(created.BookingId, agency.EcmrVehicles[0], cancellationToken: Ct))).IsSuccess.ShouldBeTrue();

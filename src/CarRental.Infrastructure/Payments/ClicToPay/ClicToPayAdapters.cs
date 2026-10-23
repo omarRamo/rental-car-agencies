@@ -1,7 +1,9 @@
+using CarRental.Application.Common.Security;
 using CarRental.Application.Payments.Online;
 using CarRental.Domain.Common;
 using CarRental.Domain.Payments;
 using CarRental.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -9,8 +11,10 @@ namespace CarRental.Infrastructure.Payments.ClicToPay;
 
 /// <summary>
 /// Writes the call log of the gateway in its own DI scope and save, outside the transaction of the caller: a call is
-/// logged even when the business change that follows fails or is rolled back. A failure to log is itself logged (without
-/// the entry's sensitive parts — it has none) and never fails the payment flow.
+/// logged even when the business change that follows fails or is rolled back. The platform's code of the single merchant
+/// account, across agencies: the call is recorded for the agency of the stored payment of its order, else for the
+/// platform (ADR-0067). A failure to log is itself logged (without the entry's sensitive parts — it has none) and never
+/// fails the payment flow.
 /// </summary>
 internal sealed partial class EfGatewayCallLog(IServiceScopeFactory scopes, ILogger<EfGatewayCallLog> logger) : IGatewayCallLog
 {
@@ -20,8 +24,12 @@ internal sealed partial class EfGatewayCallLog(IServiceScopeFactory scopes, ILog
         try
         {
             await using var scope = scopes.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:gateway-log"));
             var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry));
+            var agencyId = GatewayCallLog.PaymentIdOf(entry.OrderNumber) is { } paymentId
+                ? await db.Set<Payment>().AsNoTracking().Where(p => p.Id == paymentId).Select(p => (Guid?)p.AgencyId).FirstOrDefaultAsync(CancellationToken.None)
+                : null;
+            db.Set<GatewayCallLog>().Add(GatewayCallLog.Record(entry, agencyId));
 
             // Not the caller's token: the call happened, its trace must be kept even if the request is being cancelled.
             await db.SaveChangesAsync(CancellationToken.None);

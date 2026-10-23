@@ -79,14 +79,17 @@ internal sealed partial class Visitor : IDisposable
     public Task<HttpResponseMessage> SubmitAsync(string page, IEnumerable<KeyValuePair<string, string>> fields, CancellationToken cancellationToken) =>
         SubmitAsync(page, page, fields, cancellationToken);
 
-    /// <summary>The "Choose" button of a category on the results of <paramref name="search"/>: the token of the funnel session.</summary>
-    public async Task<string> ChooseAsync(string search, string category, CancellationToken cancellationToken, string culture = "fr")
+    /// <summary>
+    /// The "Choose" button of a category on the results of <paramref name="search"/> on the site <paramref name="site"/>
+    /// (the demo agency's by default): the token of the funnel session.
+    /// </summary>
+    public async Task<string> ChooseAsync(string search, string category, CancellationToken cancellationToken, string culture = "fr", string site = Public.PublicTestData.DemoSlug)
     {
-        var results = $"/{culture}/{(culture == "en" ? "book" : "reserver")}?{search}";
+        var results = $"/{site}/{culture}/{(culture == "en" ? "book" : "reserver")}?{search}";
         var fields = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(search)
             .Select(p => new KeyValuePair<string, string>(p.Key, p.Value.ToString()))
             .Append(new("cat", category));
-        using var chosen = await SubmitAsync(results, $"/{culture}/reserver/selection", fields, cancellationToken);
+        using var chosen = await SubmitAsync(results, $"/{site}/{culture}/reserver/selection", fields, cancellationToken);
         chosen.StatusCode.ShouldBe(HttpStatusCode.SeeOther);
         var location = Location(chosen);
         var match = StepPath().Match(location);
@@ -154,6 +157,6 @@ internal sealed partial class Visitor : IDisposable
     [GeneratedRegex("<[^>]+>|\\s{2,}")]
     private static partial Regex Tags();
 
-    [GeneratedRegex("^/(fr|en)/(reserver|book)/(?<token>[A-Za-z0-9_-]{43})/options$")]
+    [GeneratedRegex("^/[a-z0-9-]+/(fr|en)/(reserver|book)/(?<token>[A-Za-z0-9_-]{43})/options$")]
     private static partial Regex StepPath();
 }

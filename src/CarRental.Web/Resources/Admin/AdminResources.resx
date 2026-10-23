@@ -261,4 +261,424 @@
   <data name="Nav.Agency" xml:space="preserve">
     <value>Identité de l'agence</value>
   </data>
+  <data name="Nav.Locations" xml:space="preserve">
+    <value>Lieux de prise en charge</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement…</value>
+  </data>
+  <data name="AgencyProfile.Site.Title" xml:space="preserve">
+    <value>Votre vitrine</value>
+  </data>
+  <data name="AgencyProfile.Site" xml:space="preserve">
+    <value>Votre vitrine :</value>
+  </data>
+  <data name="AgencyProfile.Site.Link" xml:space="preserve">
+    <value>Ouvrir votre vitrine {0} (nouvel onglet)</value>
+  </data>
+  <data name="AgencyProfile.Modules" xml:space="preserve">
+    <value>Modules activés</value>
+  </data>
+  <data name="AgencyProfile.Modules.Core" xml:space="preserve">
+    <value>Le cœur du back office est toujours inclus : flotte, tarifs, demandes et dossiers, planning, départs et retours, clients, paiements, factures, utilisateurs et paramètres.</value>
+  </data>
+  <data name="AgencyProfile.ContactSupport" xml:space="preserve">
+    <value>Pour changer l'adresse de votre vitrine ou vos modules, contactez le support.</value>
+  </data>
+  <data name="AgencyProfile.ManageOnPlatform" xml:space="preserve">
+    <value>Gérer depuis la plateforme</value>
+  </data>
+  <data name="Locations.Title" xml:space="preserve">
+    <value>Lieux de prise en charge</value>
+  </data>
+  <data name="Locations.Intro" xml:space="preserve">
+    <value>Les lieux où vos clients prennent et rendent les véhicules : l'agence, les aéroports et les points de livraison. Le code d'un lieu ne change plus après sa création : les canaux de vente s'y réfèrent. Un lieu désactivé n'est plus proposé pour les nouvelles réservations.</value>
+  </data>
+  <data name="Locations.Create" xml:space="preserve">
+    <value>Nouveau lieu</value>
+  </data>
+  <data name="Locations.Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Locations.EditOne" xml:space="preserve">
+    <value>Modifier le lieu {0}</value>
+  </data>
+  <data name="Locations.Column.Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Locations.Column.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Locations.Column.Kind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Locations.Column.Address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="Locations.Column.Status" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Locations.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Locations.Field.Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Locations.Field.Code.Help" xml:space="preserve">
+    <value>2 à 16 caractères : lettres, chiffres ou tiret (par exemple TUN). Il ne change plus ensuite.</value>
+  </data>
+  <data name="Locations.Field.Code.Fixed" xml:space="preserve">
+    <value>Le code ne change pas : les canaux de vente s'y réfèrent.</value>
+  </data>
+  <data name="Locations.Field.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Locations.Field.Kind" xml:space="preserve">
+    <value>Type de lieu</value>
+  </data>
+  <data name="Locations.Field.Address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="Locations.Submit.Create" xml:space="preserve">
+    <value>Créer le lieu</value>
+  </data>
+  <data name="Locations.Submit.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Locations.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Locations.Inactive" xml:space="preserve">
+    <value>Inactif</value>
+  </data>
+  <data name="Locations.Deactivate" xml:space="preserve">
+    <value>Désactiver</value>
+  </data>
+  <data name="Locations.DeactivateOne" xml:space="preserve">
+    <value>Désactiver le lieu {0}</value>
+  </data>
+  <data name="Locations.Reactivate" xml:space="preserve">
+    <value>Réactiver</value>
+  </data>
+  <data name="Locations.ReactivateOne" xml:space="preserve">
+    <value>Réactiver le lieu {0}</value>
+  </data>
+  <data name="Locations.Deactivate.Confirm.Title" xml:space="preserve">
+    <value>Désactiver le lieu</value>
+  </data>
+  <data name="Locations.Deactivate.Confirm.Message" xml:space="preserve">
+    <value>{0} ne sera plus proposé pour les nouvelles réservations ; les dossiers existants le gardent. Continuer ?</value>
+  </data>
+  <data name="Locations.Created" xml:space="preserve">
+    <value>Lieu créé.</value>
+  </data>
+  <data name="Locations.Saved" xml:space="preserve">
+    <value>Lieu enregistré.</value>
+  </data>
+  <data name="Locations.Deactivated" xml:space="preserve">
+    <value>Lieu désactivé.</value>
+  </data>
+  <data name="Locations.Reactivated" xml:space="preserve">
+    <value>Lieu réactivé.</value>
+  </data>
+  <data name="Locations.Empty" xml:space="preserve">
+    <value>Aucun lieu pour l'instant.</value>
+  </data>
+  <data name="LocationKind.AgencyOffice" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="LocationKind.Airport" xml:space="preserve">
+    <value>Aéroport</value>
+  </data>
+  <data name="LocationKind.DeliveryPoint" xml:space="preserve">
+    <value>Point de livraison</value>
+  </data>
+  <data name="Nav.Group.Platform" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Nav.Agencies" xml:space="preserve">
+    <value>Agences</value>
+  </data>
+  <data name="Nav.SupportAccounts" xml:space="preserve">
+    <value>Comptes support</value>
+  </data>
+  <data name="Nav.PlatformSettings" xml:space="preserve">
+    <value>Paramètres de la plateforme</value>
+  </data>
+  <data name="Nav.PlatformAudit" xml:space="preserve">
+    <value>Journal de la plateforme</value>
+  </data>
+  <data name="Platform.Title" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Platform.SupportIn" xml:space="preserve">
+    <value>Vous intervenez dans l'agence {0} en tant que support.</value>
+  </data>
+  <data name="Platform.Leave" xml:space="preserve">
+    <value>Quitter l'agence</value>
+  </data>
+  <data name="Platform.Agencies.Title" xml:space="preserve">
+    <value>Agences de la plateforme</value>
+  </data>
+  <data name="Platform.Agencies.Intro" xml:space="preserve">
+    <value>Chaque agence a sa vitrine, ses modules et ses utilisateurs, et ne voit jamais les données des autres. Ouvrez une agence pour travailler dans son back office comme son gérant.</value>
+  </data>
+  <data name="Platform.Agencies.Register" xml:space="preserve">
+    <value>Nouvelle agence</value>
+  </data>
+  <data name="Platform.Agencies.Registered" xml:space="preserve">
+    <value>{0} est créée : son gérant reçoit son invitation par e-mail.</value>
+  </data>
+  <data name="Platform.Agencies.Empty" xml:space="preserve">
+    <value>Aucune agence pour l'instant.</value>
+  </data>
+  <data name="Platform.Agencies.Name" xml:space="preserve">
+    <value>Agence</value>
+  </data>
+  <data name="Platform.Agencies.City" xml:space="preserve">
+    <value>Ville</value>
+  </data>
+  <data name="Platform.Agencies.Site" xml:space="preserve">
+    <value>Adresse de la vitrine</value>
+  </data>
+  <data name="Platform.Agencies.Modules" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="Platform.Agencies.Status" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="Platform.Agencies.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Platform.Agencies.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Platform.Agencies.Suspended" xml:space="preserve">
+    <value>Suspendue</value>
+  </data>
+  <data name="Platform.Agencies.Enter" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Platform.Agencies.EnterOne" xml:space="preserve">
+    <value>Ouvrir le back office de {0}</value>
+  </data>
+  <data name="Platform.Agencies.Details" xml:space="preserve">
+    <value>Détails</value>
+  </data>
+  <data name="Platform.Agencies.DetailsOne" xml:space="preserve">
+    <value>Détails de {0}</value>
+  </data>
+  <data name="Platform.Agencies.SiteLink" xml:space="preserve">
+    <value>Vitrine de {0} : {1} (nouvel onglet)</value>
+  </data>
+  <data name="Platform.Modules.None" xml:space="preserve">
+    <value>Aucun module optionnel</value>
+  </data>
+  <data name="Platform.Register.Name" xml:space="preserve">
+    <value>Nom de l'agence</value>
+  </data>
+  <data name="Platform.Register.Address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="Platform.Register.Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="Platform.Register.Email" xml:space="preserve">
+    <value>E-mail de l'agence</value>
+  </data>
+  <data name="Platform.Register.Slug" xml:space="preserve">
+    <value>Adresse de la vitrine</value>
+  </data>
+  <data name="Platform.Register.Slug.Help" xml:space="preserve">
+    <value>Lettres minuscules, chiffres et tirets : la vitrine sera {0}.</value>
+  </data>
+  <data name="Platform.Register.Slug.Empty" xml:space="preserve">
+    <value>Proposée à partir du nom de l'agence ; vous pouvez la modifier.</value>
+  </data>
+  <data name="Platform.Register.Modules" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="Platform.Register.PartnerHint" xml:space="preserve">
+    <value>Nécessite les comptes partenaires de l'agence.</value>
+  </data>
+  <data name="Platform.Register.Manager" xml:space="preserve">
+    <value>Premier gérant</value>
+  </data>
+  <data name="Platform.Register.ManagerEmail" xml:space="preserve">
+    <value>E-mail du gérant</value>
+  </data>
+  <data name="Platform.Register.ManagerName" xml:space="preserve">
+    <value>Nom du gérant</value>
+  </data>
+  <data name="Platform.Register.ManagerHint" xml:space="preserve">
+    <value>Le gérant reçoit un lien pour choisir son mot de passe, active la double authentification à sa première connexion, puis gère le parc, les tarifs et les utilisateurs de son agence.</value>
+  </data>
+  <data name="Platform.Register.Submit" xml:space="preserve">
+    <value>Créer l'agence</value>
+  </data>
+  <data name="Platform.Agency.Back" xml:space="preserve">
+    <value>Toutes les agences</value>
+  </data>
+  <data name="Platform.Agency.Enter" xml:space="preserve">
+    <value>Ouvrir l'agence</value>
+  </data>
+  <data name="Platform.Agency.Identity" xml:space="preserve">
+    <value>Identité</value>
+  </data>
+  <data name="Platform.Agency.Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Platform.Agency.Saved" xml:space="preserve">
+    <value>Agence enregistrée.</value>
+  </data>
+  <data name="Platform.Agency.Site.Current" xml:space="preserve">
+    <value>Vitrine actuelle :</value>
+  </data>
+  <data name="Platform.Agency.Site.New" xml:space="preserve">
+    <value>Nouvelle adresse de la vitrine</value>
+  </data>
+  <data name="Platform.Agency.Site.Warning" xml:space="preserve">
+    <value>Changer l'adresse coupe les liens existants : les liens avec l'adresse actuelle (e-mails envoyés aux clients, favoris, moteurs de recherche) ne fonctionneront plus.</value>
+  </data>
+  <data name="Platform.Agency.Site.Change" xml:space="preserve">
+    <value>Changer l'adresse</value>
+  </data>
+  <data name="Platform.Agency.Site.Confirm.Title" xml:space="preserve">
+    <value>Changer l'adresse de la vitrine</value>
+  </data>
+  <data name="Platform.Agency.Site.Confirm.Message" xml:space="preserve">
+    <value>La vitrine passe de {0} à {1} : les anciens liens ne fonctionneront plus. Continuer ?</value>
+  </data>
+  <data name="Platform.Agency.Site.Changed" xml:space="preserve">
+    <value>Adresse de la vitrine changée.</value>
+  </data>
+  <data name="Platform.Agency.Modules.Intro" xml:space="preserve">
+    <value>Le cœur du back office (flotte, tarifs, demandes et dossiers, planning, départs et retours, clients, paiements, factures, utilisateurs et paramètres) est toujours inclus. Un module désactivé disparaît du back office et de la vitrine de l'agence ; ses données sont conservées et réapparaissent quand il est réactivé.</value>
+  </data>
+  <data name="Platform.Agency.Modules.Save" xml:space="preserve">
+    <value>Enregistrer les modules</value>
+  </data>
+  <data name="Platform.Agency.Modules.Saved" xml:space="preserve">
+    <value>Modules enregistrés.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesThis" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert cette agence : ses notifications, les réponses de sa boîte partagée et son assistant partent de ce numéro, et les messages de ses clients y arrivent.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesOther" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme sert l'agence « {0} » (un seul numéro pour toute la plateforme).</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.ServesNone" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme ne sert aucune agence pour l'instant.</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Elsewhere" xml:space="preserve">
+    <value>Le numéro WhatsApp de la plateforme est réservé à une autre agence : avec le module ouvert, cette agence garde l'historique de ses conversations mais n'envoie ni ne reçoit aucun message WhatsApp. Pour lui donner le numéro (l'autre agence le perd), régler ceci puis redémarrer l'application :</value>
+  </data>
+  <data name="Platform.Agency.WhatsAppNumber.Ambiguous" xml:space="preserve">
+    <value>Une autre agence a déjà le module WhatsApp et rien ne désigne l'agence servie par le numéro de la plateforme : avec deux agences, il n'en servirait plus aucune, donc l'ouverture du module est refusée. Désigner d'abord l'agence à servir (redémarrage de l'application), par exemple celle-ci :</value>
+  </data>
+  <data name="Platform.Agency.Status" xml:space="preserve">
+    <value>État de l'agence</value>
+  </data>
+  <data name="Platform.Agency.Active.Text" xml:space="preserve">
+    <value>L'agence est active : sa vitrine est en ligne et son personnel peut se connecter.</value>
+  </data>
+  <data name="Platform.Agency.Suspended.Text" xml:space="preserve">
+    <value>L'agence est suspendue : sa vitrine est hors ligne et son personnel ne peut plus se connecter. Ses données et ses tâches de fond sont conservées.</value>
+  </data>
+  <data name="Platform.Agency.Suspend" xml:space="preserve">
+    <value>Suspendre l'agence</value>
+  </data>
+  <data name="Platform.Agency.Suspend.Confirm.Title" xml:space="preserve">
+    <value>Suspendre l'agence</value>
+  </data>
+  <data name="Platform.Agency.Suspend.Confirm.Message" xml:space="preserve">
+    <value>La vitrine de {0} passe hors ligne et son personnel ne peut plus se connecter (ses sessions se ferment). Ses données sont conservées. Continuer ?</value>
+  </data>
+  <data name="Platform.Agency.Suspended" xml:space="preserve">
+    <value>Agence suspendue.</value>
+  </data>
+  <data name="Platform.Agency.Reactivate" xml:space="preserve">
+    <value>Réactiver l'agence</value>
+  </data>
+  <data name="Platform.Agency.Reactivate.Confirm.Title" xml:space="preserve">
+    <value>Réactiver l'agence</value>
+  </data>
+  <data name="Platform.Agency.Reactivate.Confirm.Message" xml:space="preserve">
+    <value>La vitrine de {0} revient en ligne et son personnel peut se connecter à nouveau. Continuer ?</value>
+  </data>
+  <data name="Platform.Agency.Reactivated" xml:space="preserve">
+    <value>Agence réactivée.</value>
+  </data>
+  <data name="Platform.Agency.Users" xml:space="preserve">
+    <value>Utilisateurs de l'agence</value>
+  </data>
+  <data name="Platform.Agency.InviteManager" xml:space="preserve">
+    <value>Inviter un gérant</value>
+  </data>
+  <data name="Platform.Agency.ManagerInvited" xml:space="preserve">
+    <value>Gérant invité : l'invitation est envoyée par e-mail.</value>
+  </data>
+  <data name="Platform.Support.Title" xml:space="preserve">
+    <value>Comptes support</value>
+  </data>
+  <data name="Platform.Support.Intro" xml:space="preserve">
+    <value>Les comptes de l'exploitant de la plateforme : ils n'appartiennent à aucune agence, les voient toutes et créent les agences. Le dernier compte actif ne peut pas être verrouillé.</value>
+  </data>
+  <data name="Platform.Support.Invite" xml:space="preserve">
+    <value>Inviter un compte support</value>
+  </data>
+  <data name="Platform.Support.Invited" xml:space="preserve">
+    <value>Compte support créé : l'invitation est envoyée par e-mail.</value>
+  </data>
+  <data name="Platform.Support.You" xml:space="preserve">
+    <value>Votre compte</value>
+  </data>
+  <data name="Platform.Support.LockOne" xml:space="preserve">
+    <value>Verrouiller {0}</value>
+  </data>
+  <data name="Platform.Support.UnlockOne" xml:space="preserve">
+    <value>Déverrouiller {0}</value>
+  </data>
+  <data name="Module.PublicSite" xml:space="preserve">
+    <value>Vitrine</value>
+  </data>
+  <data name="Module.PublicSite.Description" xml:space="preserve">
+    <value>Le site public de l'agence : recherche, réservation en ligne et « Ma réservation ».</value>
+  </data>
+  <data name="Module.WhatsApp.Description" xml:space="preserve">
+    <value>La boîte WhatsApp partagée, l'assistant et les notifications WhatsApp ; nécessite le compte WhatsApp Business de l'agence.</value>
+  </data>
+  <data name="Module.Channels.Description" xml:space="preserve">
+    <value>Booking.com et les autres canaux de vente : réservations entrantes et synchronisation des disponibilités ; nécessite les comptes partenaires de l'agence.</value>
+  </data>
+  <data name="Module.Cash.Description" xml:space="preserve">
+    <value>Les sessions de caisse et les dépenses.</value>
+  </data>
+  <data name="Module.ClaimsAndFines.Description" xml:space="preserve">
+    <value>Les sinistres et les amendes.</value>
+  </data>
+  <data name="Module.Accounting.Description" xml:space="preserve">
+    <value>Les journaux comptables, les exports, la clôture mensuelle et les rapprochements.</value>
+  </data>
+  <data name="Module.Reports.Description" xml:space="preserve">
+    <value>Les indicateurs du tableau du jour et les rapports Excel.</value>
+  </data>
+  <data name="Module.WhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="Module.Channels" xml:space="preserve">
+    <value>Booking.com et canaux</value>
+  </data>
+  <data name="Module.Cash" xml:space="preserve">
+    <value>Caisse et dépenses</value>
+  </data>
+  <data name="Module.ClaimsAndFines" xml:space="preserve">
+    <value>Sinistres et amendes</value>
+  </data>
+  <data name="Module.Accounting" xml:space="preserve">
+    <value>Pré-comptabilité</value>
+  </data>
+  <data name="Module.Reports" xml:space="preserve">
+    <value>Rapports</value>
+  </data>
 </root>

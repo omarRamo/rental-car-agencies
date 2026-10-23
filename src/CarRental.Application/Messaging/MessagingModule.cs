@@ -18,10 +18,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace CarRental.Application.Messaging;
 
 /// <summary>
-/// Messaging module: WhatsApp conversations and messages (webhook events processed through the outbox, 24-hour window,
-/// bot or human mode), the auto-responder extension point, sending through <see cref="IWhatsAppClient"/>, booking
-/// notifications by approved templates with consent, the shared inbox and the retention purge (ADR-0047, ADR-0048).
-/// The WhatsApp client, the webhook parser and the fake are adapters of the infrastructure.
+/// Messaging module: WhatsApp conversations and messages of each agency (webhook events processed through the outbox for
+/// the agency served by the platform's number, 24-hour window, bot or human mode), the auto-responder extension point,
+/// sending through <see cref="IWhatsAppClient"/>, booking notifications by approved templates with consent, the shared
+/// inbox and the retention purge (ADR-0047, ADR-0048, ADR-0067: optional module <c>WhatsApp</c> of the agencies). The
+/// WhatsApp client, the webhook parser and the fake are adapters of the infrastructure.
 /// </summary>
 public static class MessagingModule
 {
@@ -35,8 +36,14 @@ public static class MessagingModule
         services.TryAddScoped<IConversationResponder, NoReplyResponder>();
         services.AddWhatsAppAgent();
 
-        // Pipeline: webhook deliveries → events → bot turns → sending, each step in a scope of its own.
+        // Pipeline: webhook deliveries → events (for the agency served by the number) → bot turns → sending, each step in
+        // a scope of its own.
         services.AddSingleton<MessagingScopes>();
+        // The agency served by the platform's number: the inbound messages reach it, and WhatsApp is open for it only.
+        services.AddOptions<WhatsAppRoutingOptions>();
+        services.AddSingleton<WhatsAppAgencyRouting>();
+        services.AddSingleton<WhatsAppNumber>();
+        services.AddSingleton<IWhatsAppNumber>(provider => provider.GetRequiredService<WhatsAppNumber>());
         services.AddScoped<WhatsAppWebhookInbox>();
         services.AddScoped<WhatsAppEventRecorder>();
         services.AddScoped<ConversationTurns>();

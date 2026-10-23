@@ -6,7 +6,7 @@ namespace CarRental.Domain.Pricing;
 /// An extra of the rate plan catalogue (option): chosen by the customer (additional driver, child seat, franchise
 /// waiver…) or added automatically (young driver, delivery to a location, after-hours, one-way). Prices are VAT included.
 /// </summary>
-public sealed class Extra : Entity
+public sealed class Extra : Entity, IAgencyOwned
 {
     public const int CodeMinLength = 2;
     public const int CodeMaxLength = 32;
@@ -16,14 +16,18 @@ public sealed class Extra : Entity
     {
     }
 
-    private Extra(Guid id, Guid ratePlanId, ExtraDefinition definition, int position)
+    private Extra(Guid id, RatePlan plan, ExtraDefinition definition, int position)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         Apply(definition, position);
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Stable upper-case code (e.g. <c>CHILD_SEAT</c>), unique in the plan; the booking funnel selects extras by code.</summary>
     public string Code { get; private set; } = null!;
@@ -90,9 +94,9 @@ public sealed class Extra : Entity
         return !flatOnly || definition.Mode == ExtraPricingMode.PerRental;
     }
 
-    internal static Extra Create(Guid ratePlanId, ExtraDefinition definition, int position) => new(NewId(), ratePlanId, definition, position);
+    internal static Extra Create(RatePlan plan, ExtraDefinition definition, int position) => new(NewId(), plan, definition, position);
 
-    internal Extra CopyForNewPlan(Guid ratePlanId) => new(NewId(), ratePlanId, ToDefinition() with { Id = null }, Position);
+    internal Extra CopyForNewPlan(RatePlan plan) => new(NewId(), plan, ToDefinition() with { Id = null }, Position);
 
     /// <summary>The content of this entity, as edited.</summary>
     public ExtraDefinition ToDefinition() => new(Code, Name, Kind, Mode, Price, CapPerUnit, LocationId, IsActive, NameEn, Id);

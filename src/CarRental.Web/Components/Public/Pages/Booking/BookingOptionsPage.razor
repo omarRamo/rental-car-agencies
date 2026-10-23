@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/reserver/{Token}/options"
-@page "/{culture:length(2)}/book/{Token}/options"
+@page "/{agency}/{culture:length(2)}/reserver/{Token}/options"
+@page "/{agency}/{culture:length(2)}/book/{Token}/options"
 @* Step 1 of the booking funnel (ADR-0049): the selectable extras of the rate plan (franchise waiver, child seat, GPS…)
    and the recapitulation, recalculated by the server from the locked quote. A change re-prices the rental and locks the
    new quote for 24 hours (POST, then this page again: post/redirect/get); "Continue" saves the extras and goes to the
@@ -16,7 +16,7 @@
 
 <PrivateHead Title="@L["Options.Title"]" Description="@L["Options.Description"]" />
 
-<FunnelProgress Current="FunnelStep.Options" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
+<FunnelProgress Current="FunnelStep.Options" Slug="@Slug" Culture="@Lang" Token="@Token" DriversSaved="@_view!.HasDrivers" />
 
 <h1>@L["Options.Heading"]</h1>
 
@@ -24,7 +24,7 @@
 
 <div class="funnel-layout">
     <div class="funnel-layout__main">
-        <form method="post" action="@BookingRoutes.Step(Lang, Token, FunnelStep.Options)" class="funnel-form" novalidate>
+        <form method="post" action="@BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Options)" class="funnel-form" novalidate>
             <AntiforgeryToken />
             <fieldset class="options">
                 <legend class="options__legend">@L["Options.Legend"]</legend>
@@ -93,25 +93,26 @@
     [Parameter]
     public string Token { get; set; } = string.Empty;
 
-    private string SearchLink => PublicRoutes.PathFor(PublicPage.Results, Lang) + _view!.SearchQuery;
+    private string SearchLink => PublicRoutes.PathFor(Slug, PublicPage.Results, Lang) + _view!.SearchQuery;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.Step(Lang, Token, FunnelStep.Options)))
+        if (!EnsureCanonicalPath(BookingRoutes.Step(Slug, Lang, Token, FunnelStep.Options)))
         {
             return;
         }
 
-        _agency = await Directory.GetAsync(Aborted);
+        _agency = await Directory.GetAsync(SiteAgency, Aborted);
         FunnelLookup lookup;
         await using (var scope = PublicActors.CreateScope(HttpContext, PublicActors.Funnel))
         {
             lookup = await scope.ServiceProvider.GetRequiredService<FunnelService>().OpenAsync(Token, FunnelSteps.Options, Aborted);
         }
 
-        if (lookup.View is not { } view || _agency is null)
+        // A session of another agency is unknown at this address.
+        if (lookup.View is not { } view || _agency is null || view.AgencyId != SiteAgency.Id)
         {
-            Leave(BookingSelectionEndpoint.Fallback(Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
+            Leave(BookingSelectionEndpoint.Fallback(Slug, Lang, lookup.View is null ? lookup : FunnelLookup.NotFound));
             return;
         }
 

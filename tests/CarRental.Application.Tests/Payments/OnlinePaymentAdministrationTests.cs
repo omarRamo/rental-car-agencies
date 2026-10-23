@@ -98,6 +98,29 @@ public sealed class OnlinePaymentAdministrationTests
     }
 
     [Fact]
+    public async Task A_payment_page_or_link_is_only_for_a_booking_of_the_agency_of_the_payment()
+    {
+        // ADR-0067: a booking of another agency (seen by the support) or one the operation does not see is refused alike,
+        // before anything is recorded or sent to the gateway.
+        var elsewhere = Guid.CreateVersion7();
+        _harness.Bookings.PlaceIn(elsewhere, Guid.CreateVersion7());
+        var unseen = Guid.CreateVersion7();
+        _harness.Bookings.Hide(unseen);
+        var admin = _harness.Admin(OnlinePaymentsHarness.User(Roles.Agent));
+
+        foreach (var bookingId in new[] { elsewhere, unseen })
+        {
+            (await admin.CreatePaymentLinkAsync(_harness.Request(240m, bookingId), Ct)).Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await _harness.Online().StartPaymentAsync(_harness.Request(240m, bookingId), Ct)).Error.ShouldBe(PaymentsErrors.BookingNotFound);
+            (await _harness.Online(OnlinePaymentsHarness.System()).StartPreAuthorizationAsync(_harness.Request(240m, bookingId), Ct))
+                .Error.ShouldBe(PaymentsErrors.BookingNotFound);
+        }
+
+        _harness.Db.Rows<Payment>().ShouldBeEmpty();
+        _harness.CallLog.Entries.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task The_daily_reconciliation_flags_a_difference_with_the_gateway()
     {
         var paid = await _harness.PaidAsync(100m, Ct);

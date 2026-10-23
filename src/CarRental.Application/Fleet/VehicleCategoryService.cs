@@ -164,15 +164,23 @@ public sealed class VehicleCategoryService(
     private Task<bool> CodeTakenAsync(Guid agencyId, AcrissCode code, Guid? exceptId, CancellationToken cancellationToken) =>
         db.Set<VehicleCategory>().AnyAsync(c => c.AgencyId == agencyId && c.Code == code && c.Id != exceptId, cancellationToken);
 
-    /// <summary>The given agency, or the only active agency of the platform when none is given.</summary>
-    private async Task<Result<Guid>> ResolveAgencyAsync(Guid? agencyId, CancellationToken cancellationToken)
+    /// <summary>
+    /// The agency of a new category (ADR-0067): the one of the form, else the agency the operation works for; an operation
+    /// of one agency only creates the categories of that agency. The agency must exist and be active.
+    /// </summary>
+    private async Task<Result<Guid>> ResolveAgencyAsync(Guid? requested, CancellationToken cancellationToken)
     {
-        var agencies = (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive).ToList();
-        if (agencyId is { } id)
+        if ((requested ?? userContext.AgencyId) is not { } agencyId)
         {
-            return agencies.Any(a => a.Id == id) ? id : FleetErrors.AgencyRequired;
+            return FleetErrors.AgencyRequired;
         }
 
-        return agencies.Count == 1 ? agencies[0].Id : FleetErrors.AgencyRequired;
+        if (!userContext.IsAcrossAgencies && agencyId != userContext.AgencyId)
+        {
+            return FleetErrors.Forbidden;
+        }
+
+        var agencies = await referential.GetAgenciesAsync(cancellationToken);
+        return agencies.Any(a => a.Id == agencyId && a.IsActive) ? agencyId : FleetErrors.AgencyRequired;
     }
 }

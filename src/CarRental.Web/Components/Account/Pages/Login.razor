@@ -108,6 +108,12 @@
             await Recorder.LockedOutAsync(user);
             RedirectManager.RedirectTo("account/lockout");
         }
+        else if (result.IsNotAllowed && await UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            // The agency of the account is suspended by the support (ADR-0067): said only to who knows the password.
+            await Recorder.FailedAsync(user, "agency suspended");
+            _message = L["Login.AgencySuspended"];
+        }
         else
         {
             await Recorder.FailedAsync(user, "invalid password");

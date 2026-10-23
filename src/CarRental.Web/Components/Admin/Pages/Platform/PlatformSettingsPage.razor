@@ -1,0 +1,13 @@
+@page "/admin/platform/settings"
+@attribute [HasPermission(Permissions.PlatformAgencies)]
+@using CarRental.Web.Components.Admin.Settings
+@using CarRental.Web.Resources.Admin.Settings
+@inject IStringLocalizer<SettingsAdminResources> L
+
+@* The platform values of the settings (support only, ADR-0067), read by every agency that has no value of its own. *@
+<PageTitle>@L["Settings.Platform.Title"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">@L["Settings.Platform.Title"]</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Settings.Platform.Intro"]</MudText>
+
+<SettingsBoard CanEditPlatform="true" />

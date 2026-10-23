@@ -79,13 +79,21 @@ internal sealed class RecordingEmailQueue : IEmailQueue
 
 internal sealed class FakeIdentityQueries : IIdentityQueries
 {
+    /// <summary>Users found whatever the agency asked for.</summary>
     public List<(UserContactInfo User, string Role)> Users { get; } = [];
+
+    /// <summary>Users of one agency only (ADR-0067).</summary>
+    public List<(Guid AgencyId, UserContactInfo User, string Role)> AgencyUsers { get; } = [];
 
     public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyDictionary<Guid, string>>(Users.Where(u => userIds.Contains(u.User.UserId)).ToDictionary(u => u.User.UserId, u => u.User.DisplayName));
 
-    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(string role, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<UserContactInfo>>([.. Users.Where(u => u.Role == role).Select(u => u.User)]);
+    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(Guid agencyId, string role, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<UserContactInfo>>(
+        [
+            .. Users.Where(u => u.Role == role).Select(u => u.User),
+            .. AgencyUsers.Where(u => u.AgencyId == agencyId && u.Role == role).Select(u => u.User),
+        ]);
 }
 
 /// <summary>Always the default value of the setting.</summary>
@@ -105,12 +113,12 @@ internal sealed class FakeReferentialQueries : IReferentialQueries
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult<LocationInfo?>(null);
 }
 
 internal sealed class PlainDeadlineAlertEmails : IDeadlineAlertEmailFactory
 {
     public EmailMessage Create(DeadlineAlertNotice notice, UserContactInfo recipient) =>
-        new(recipient.Email, $"{notice.PlateNumber} {notice.DocumentType} {notice.Level}", $"<p>{notice.ExpiresOn:O}</p>") { ToName = recipient.DisplayName };
+        new(recipient.Email, $"{notice.AgencyName}: {notice.PlateNumber} {notice.DocumentType} {notice.Level}", $"<p>{notice.ExpiresOn:O}</p>") { ToName = recipient.DisplayName };
 }

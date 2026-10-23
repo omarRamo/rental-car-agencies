@@ -10,7 +10,8 @@ namespace CarRental.Domain.Messaging.Agent;
 /// Parameter names are the same in every language; the page slug is the canonical one of the language (<c>/en/book</c>;
 /// Arabic and darija use the French site until Arabic is enabled). Dates are Tunis wall-clock times; the return place
 /// (<c>retour_lieu</c>) is given only when it differs. The server prices and checks everything again: the link only
-/// carries the search and the code of the locked quote.
+/// carries the search and the code of the locked quote. The base address is the address of the site of the agency
+/// (<c>https://rental.app/agence-1/</c>, ADR-0067): its path is kept.
 /// </summary>
 public static class BookingDeepLink
 {
@@ -21,6 +22,23 @@ public static class BookingDeepLink
 
     /// <summary>The culture segment and slug of the results page of the funnel for <paramref name="language"/>.</summary>
     public static string PathFor(AgentLanguage language) => language == AgentLanguage.English ? "en/book" : "fr/reserver";
+
+    /// <summary>
+    /// The address of the site of an agency under the base address of the platform (ADR-0067):
+    /// <c>{base}/{agencySlug}/</c>, the base of the links of that agency's conversations.
+    /// </summary>
+    public static Uri SiteOf(Uri baseUrl, string agencySlug)
+    {
+        ArgumentNullException.ThrowIfNull(baseUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(agencySlug);
+        var slug = agencySlug.Trim().ToLowerInvariant();
+        if (slug.Any(c => !(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-')))
+        {
+            throw new ArgumentException("The address of an agency's site is lower-case letters, digits and hyphens.", nameof(agencySlug));
+        }
+
+        return new Uri(Root(baseUrl) + slug + "/");
+    }
 
     /// <summary>The funnel page itself (no search): the secure place where documents are uploaded.</summary>
     public static Uri FunnelPage(Uri baseUrl, AgentLanguage language)

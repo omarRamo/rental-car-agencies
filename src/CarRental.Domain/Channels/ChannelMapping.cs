@@ -6,18 +6,19 @@ namespace CarRental.Domain.Channels;
 /// A correspondence between the platform and a channel (docs/conception/phase-5-canaux.md §1): a category (its ACRISS
 /// code, possibly sold under another one) and the code of the channel; a location and the code of the channel (TUN,
 /// NBE, MIR, DJE…); an extra, an insurance or a fee and the OpenTravel Alliance code entered by the agency. Part of the
-/// <see cref="Channel"/> aggregate, which keeps both sides unique.
+/// <see cref="Channel"/> aggregate, which keeps both sides unique and gives it its agency.
 /// </summary>
-public sealed class ChannelMapping : Entity
+public sealed class ChannelMapping : Entity, IAgencyOwned
 {
     private ChannelMapping()
     {
     }
 
-    private ChannelMapping(Guid channelId, ChannelMappingKind kind, Guid? internalId, string? internalCode, string channelCode, string? acrissCode, DateTimeOffset at)
+    private ChannelMapping(Guid channelId, Guid agencyId, ChannelMappingKind kind, Guid? internalId, string? internalCode, string channelCode, string? acrissCode, DateTimeOffset at)
         : base(NewId())
     {
         ChannelId = channelId;
+        AgencyId = agencyId;
         Kind = kind;
         InternalId = internalId;
         InternalCode = internalCode;
@@ -28,6 +29,9 @@ public sealed class ChannelMapping : Entity
     }
 
     public Guid ChannelId { get; private set; }
+
+    /// <summary>The agency of the channel.</summary>
+    public Guid AgencyId { get; private set; }
 
     public ChannelMappingKind Kind { get; private set; }
 
@@ -50,11 +54,11 @@ public sealed class ChannelMapping : Entity
     /// <summary>Whether the mapping is of a category or a location (by id) rather than of an extra code.</summary>
     public bool IsById => Kind is ChannelMappingKind.Category or ChannelMappingKind.Location;
 
-    internal static ChannelMapping ById(Guid channelId, ChannelMappingKind kind, Guid internalId, string channelCode, string? acrissCode, DateTimeOffset at) =>
-        new(channelId, kind, internalId, null, channelCode, acrissCode, at);
+    internal static ChannelMapping ById(Guid channelId, Guid agencyId, ChannelMappingKind kind, Guid internalId, string channelCode, string? acrissCode, DateTimeOffset at) =>
+        new(channelId, agencyId, kind, internalId, null, channelCode, acrissCode, at);
 
-    internal static ChannelMapping ByCode(Guid channelId, ChannelMappingKind kind, string internalCode, string channelCode, DateTimeOffset at) =>
-        new(channelId, kind, null, internalCode, channelCode, null, at);
+    internal static ChannelMapping ByCode(Guid channelId, Guid agencyId, ChannelMappingKind kind, string internalCode, string channelCode, DateTimeOffset at) =>
+        new(channelId, agencyId, kind, null, internalCode, channelCode, null, at);
 
     internal bool SameInternal(ChannelMappingKind kind, Guid? internalId, string? internalCode) =>
         Kind == kind && InternalId == internalId && string.Equals(InternalCode, internalCode, StringComparison.Ordinal);

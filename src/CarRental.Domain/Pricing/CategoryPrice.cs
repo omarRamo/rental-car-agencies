@@ -6,16 +6,17 @@ namespace CarRental.Domain.Pricing;
 /// A cell of the price grid: the daily price, VAT included, of a vehicle category for a period (base price, season level
 /// or priority event). A missing season or event cell inherits the next level (event, then season, then base price).
 /// </summary>
-public sealed class CategoryPrice : Entity
+public sealed class CategoryPrice : Entity, IAgencyOwned
 {
     private CategoryPrice()
     {
     }
 
-    private CategoryPrice(Guid id, Guid ratePlanId, CategoryPriceDefinition definition)
+    private CategoryPrice(Guid id, RatePlan plan, CategoryPriceDefinition definition)
         : base(id)
     {
-        RatePlanId = ratePlanId;
+        RatePlanId = plan.Id;
+        AgencyId = plan.AgencyId;
         CategoryId = definition.CategoryId;
         PeriodKind = definition.Period.Kind;
         EventId = definition.Period.EventId;
@@ -23,6 +24,9 @@ public sealed class CategoryPrice : Entity
     }
 
     public Guid RatePlanId { get; private set; }
+
+    /// <summary>The agency of the plan (ADR-0067).</summary>
+    public Guid AgencyId { get; private set; }
 
     /// <summary>Vehicle category (Fleet module), referenced by id.</summary>
     public Guid CategoryId { get; private set; }
@@ -38,7 +42,7 @@ public sealed class CategoryPrice : Entity
     public RatePeriodKey Period =>
         RatePeriodKey.From(PeriodKind, EventId) ?? throw new InvalidOperationException($"Inconsistent price period {PeriodKind}/{EventId}.");
 
-    internal static CategoryPrice Create(Guid ratePlanId, CategoryPriceDefinition definition) => new(NewId(), ratePlanId, definition);
+    internal static CategoryPrice Create(RatePlan plan, CategoryPriceDefinition definition) => new(NewId(), plan, definition);
 
     /// <summary>The content of this entity, as edited.</summary>
     public CategoryPriceDefinition ToDefinition() => new(CategoryId, Period, DailyPrice);

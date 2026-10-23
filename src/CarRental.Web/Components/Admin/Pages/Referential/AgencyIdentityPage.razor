@@ -1,79 +1,109 @@
 @page "/admin/agency"
 @attribute [HasPermission(Permissions.SettingsManage)]
 @using CarRental.Application.Referential.Administration
-@using CarRental.Application.Referential.Contracts
 @using CarRental.Domain.Referential
 @using CarRental.Web.Components.Admin.Customers
 @using CarRental.Web.Resources.Admin.Billing
 @inject IOperationRunner Runner
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<BillingResources> L
+@inject IStringLocalizer<AdminResources> Admin
 @inject IStringLocalizer<SharedResources> Shared
 
+@* The identity of the agency of the session (ADR-0067): its seller identity, printed on its invoices, and, read-only, the
+   address of its public site and its modules, which the support sets. *@
 <PageTitle>@L["Agency.Title"]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _agencies is not null ? "true" : "false")">@L["Agency.Title"]</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Agency.Title"]</MudText>
 <MudText Typo="Typo.body1" Class="mb-4">@L["Agency.Intro"]</MudText>
 
-@if (_agencies is null)
+@if (!_loaded)
 {
     <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
 }
-else if (_agencies.Count == 0)
+else if (_identity is not { } identity)
 {
-    <Notice Kind="NoticeKind.Info">@L["Agency.None"]</Notice>
+    <Notice Kind="NoticeKind.Info">@(_error ?? L["Agency.None"])</Notice>
 }
-else if (_selected is { } agency)
+else
 {
-    @if (_agencies.Count > 1)
-    {
-        <MudSelect T="Guid" Value="agency.AgencyId" ValueChanged="Select" Label="@L["Field.Agency"]" Class="mb-4" Style="max-inline-size:24rem">
-            @foreach (var item in _agencies)
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="8">
+            @if (!identity.IsComplete)
             {
-                <MudSelectItem T="Guid" Value="item.AgencyId">@item.AgencyName</MudSelectItem>
+                <Notice Kind="NoticeKind.Warning" Class="mb-4" Role="status">@L["Agency.Incomplete"]</Notice>
             }
-        </MudSelect>
-    }
 
-    @if (!agency.IsComplete)
-    {
-        <Notice Kind="NoticeKind.Warning" Class="mb-4" Role="status">@L["Agency.Incomplete"]</Notice>
-    }
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Agency.Seller", identity.AgencyName]</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_legalName" Label="@L["Field.LegalName"]" HelperText="@L["Agency.LegalName.Help"]" MaxLength="Agency.LegalNameMaxLength"
+                                      Immediate="true" data-testid="agency-legal-name" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_taxIdentifier" Label="@L["Field.TaxIdentifier"]" HelperText="@L["Agency.TaxIdentifier.Help"]"
+                                      MaxLength="Agency.TaxIdentifierMaxLength" Immediate="true" autocomplete="off" data-testid="agency-tax-identifier" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_tradeRegister" Label="@L["Field.TradeRegister"]" HelperText="@L["Agency.TradeRegister.Help"]"
+                                      MaxLength="Agency.TradeRegisterNumberMaxLength" autocomplete="off" data-testid="agency-trade-register" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_legalAddress" Label="@L["Field.LegalAddress"]" Lines="2" MaxLength="Agency.LegalAddressMaxLength" Immediate="true"
+                                      HelperText="@(string.IsNullOrWhiteSpace(identity.OfficeAddress) ? L["Agency.LegalAddress.Help"].Value : L["Agency.LegalAddress.Office", identity.OfficeAddress].Value)"
+                                      data-testid="agency-legal-address" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_footer" Label="@L["Field.InvoiceFooter"]" HelperText="@L["Agency.Footer.Help"]" Lines="3"
+                                      MaxLength="Agency.InvoiceFooterMaxLength" Counter="Agency.InvoiceFooterMaxLength" />
+                    </MudItem>
+                </MudGrid>
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="_busy" data-testid="agency-save">@L["Agency.Save"]</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
 
-    <MudPaper Elevation="1" Class="pa-4" Style="max-inline-size:48rem">
-        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@L["Agency.Seller", agency.AgencyName]</MudText>
-        <MudGrid Spacing="2">
-            <MudItem xs="12">
-                <MudTextField T="string" @bind-Value="_legalName" Label="@L["Field.LegalName"]" HelperText="@L["Agency.LegalName.Help"]" MaxLength="Agency.LegalNameMaxLength"
-                              Immediate="true" data-testid="agency-legal-name" />
+        @if (SessionAgency is { } agency)
+        {
+            <MudItem xs="12" lg="4">
+                <section aria-labelledby="agency-site-title" class="mb-4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-site-title" GutterBottom="true">@Admin["AgencyProfile.Site.Title"]</MudText>
+                        <MudText Typo="Typo.body1" data-testid="agency-site">
+                            @Admin["AgencyProfile.Site"]
+                            <MudLink Href="@PlatformPaths.PublicSite(agency.Slug)" Target="_blank" rel="noopener" Underline="Underline.Always"
+                                     aria-label="@Admin["AgencyProfile.Site.Link", $"/{agency.Slug}"]"><code>/@agency.Slug</code></MudLink>
+                        </MudText>
+                        @if (!agency.IsActive)
+                        {
+                            <div class="mt-2"><AgencyStatusChip IsActive="false" /></div>
+                        }
+                    </MudPaper>
+                </section>
+                <section aria-labelledby="agency-modules-title">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-modules-title" GutterBottom="true">@Admin["AgencyProfile.Modules"]</MudText>
+                        <AgencyModuleChips Modules="agency.Modules" />
+                        <MudText Typo="Typo.body2" Class="mt-3">@Admin["AgencyProfile.Modules.Core"]</MudText>
+                        <MudText Typo="Typo.body2" Class="mt-2">@Admin["AgencyProfile.ContactSupport"]</MudText>
+                        @if (_support)
+                        {
+                            <MudLink Href="@PlatformPaths.Agency(agency.Id)" Underline="Underline.Always" Class="d-inline-block mt-2">@Admin["AgencyProfile.ManageOnPlatform"]</MudLink>
+                        }
+                    </MudPaper>
+                </section>
             </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField T="string" @bind-Value="_taxIdentifier" Label="@L["Field.TaxIdentifier"]" HelperText="@L["Agency.TaxIdentifier.Help"]"
-                              MaxLength="Agency.TaxIdentifierMaxLength" Immediate="true" autocomplete="off" data-testid="agency-tax-identifier" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField T="string" @bind-Value="_tradeRegister" Label="@L["Field.TradeRegister"]" HelperText="@L["Agency.TradeRegister.Help"]"
-                              MaxLength="Agency.TradeRegisterNumberMaxLength" autocomplete="off" data-testid="agency-trade-register" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField T="string" @bind-Value="_legalAddress" Label="@L["Field.LegalAddress"]" Lines="2" MaxLength="Agency.LegalAddressMaxLength" Immediate="true"
-                              HelperText="@(string.IsNullOrWhiteSpace(agency.OfficeAddress) ? L["Agency.LegalAddress.Help"].Value : L["Agency.LegalAddress.Office", agency.OfficeAddress].Value)"
-                              data-testid="agency-legal-address" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField T="string" @bind-Value="_footer" Label="@L["Field.InvoiceFooter"]" HelperText="@L["Agency.Footer.Help"]" Lines="3"
-                              MaxLength="Agency.InvoiceFooterMaxLength" Counter="Agency.InvoiceFooterMaxLength" />
-            </MudItem>
-        </MudGrid>
-        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="_busy" data-testid="agency-save">@L["Agency.Save"]</MudButton>
-        </MudStack>
-    </MudPaper>
+        }
+    </MudGrid>
 }
 
 @code {
-    private IReadOnlyList<AgencyIdentityForm>? _agencies;
-    private AgencyIdentityForm? _selected;
+    private AgencyIdentityForm? _identity;
+    private bool _loaded;
+    private string? _error;
+    private bool _support;
     private string? _legalName;
     private string? _taxIdentifier;
     private string? _tradeRegister;
@@ -81,39 +111,42 @@ else if (_selected is { } agency)
     private string? _footer;
     private bool _busy;
 
-    /// <summary>The agency to show first (its id, e.g. from the invoices screen), otherwise the first one by name.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
+    /// <summary>The agency of the session (cascaded by the layout): its public site address and modules.</summary>
+    [CascadingParameter]
+    public AgencySummary? SessionAgency { get; set; }
 
-    protected override Task OnInitializedAsync() => LoadAsync(AgencyQuery);
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
 
-    private async Task LoadAsync(Guid? keep)
+    protected override async Task OnInitializedAsync()
     {
-        var result = await Runner.RunAsync<AgencyIdentityAdministrationService, Result<IReadOnlyList<AgencyIdentityForm>>>((service, ct) => service.ListAsync(ct));
+        _support = AuthenticationState is not null && (await AuthenticationState).User.IsSupport();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await Runner.RunAsync<AgencyIdentityAdministrationService, Result<AgencyIdentityForm>>((service, ct) => service.GetAsync(ct));
+        _loaded = true;
         if (result.IsFailure)
         {
-            _agencies = [];
-            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            _identity = null;
+            _error = ErrorMessages.For(Shared, result.Error);
             return;
         }
 
-        _agencies = result.Value;
-        Select(_agencies.FirstOrDefault(a => a.AgencyId == keep)?.AgencyId ?? _agencies.FirstOrDefault()?.AgencyId ?? Guid.Empty);
-    }
-
-    private void Select(Guid agencyId)
-    {
-        _selected = _agencies?.FirstOrDefault(a => a.AgencyId == agencyId);
-        _legalName = _selected?.LegalName;
-        _taxIdentifier = _selected?.TaxIdentifier;
-        _tradeRegister = _selected?.TradeRegisterNumber;
-        _legalAddress = _selected?.LegalAddress;
-        _footer = _selected?.InvoiceFooter;
+        _identity = result.Value;
+        _error = null;
+        _legalName = _identity.LegalName;
+        _taxIdentifier = _identity.TaxIdentifier;
+        _tradeRegister = _identity.TradeRegisterNumber;
+        _legalAddress = _identity.LegalAddress;
+        _footer = _identity.InvoiceFooter;
     }
 
     private async Task SaveAsync()
     {
-        if (_selected is not { } agency)
+        if (_identity is not { } identity)
         {
             return;
         }
@@ -121,9 +154,9 @@ else if (_selected is { } agency)
         _busy = true;
         try
         {
-            var agencyId = agency.AgencyId;
-            var identity = new AgencyLegalIdentityInfo(_legalName, _taxIdentifier, _tradeRegister, _legalAddress, _footer);
-            var saved = await Runner.RunAsync<AgencyIdentityAdministrationService, Result>((service, ct) => service.UpdateAsync(agencyId, identity, ct));
+            var agencyId = identity.AgencyId;
+            var legal = new AgencyLegalIdentityInfo(_legalName, _taxIdentifier, _tradeRegister, _legalAddress, _footer);
+            var saved = await Runner.RunAsync<AgencyIdentityAdministrationService, Result>((service, ct) => service.UpdateAsync(agencyId, legal, ct));
             if (saved.IsFailure)
             {
                 Snackbar.Add(ErrorMessages.For(Shared, saved.Error), Severity.Error);
@@ -131,7 +164,7 @@ else if (_selected is { } agency)
             }
 
             Snackbar.Add(L["Agency.Saved"], Severity.Success);
-            await LoadAsync(agencyId);
+            await LoadAsync();
         }
         finally
         {

@@ -1,0 +1,148 @@
+@page "/admin/locations"
+@attribute [HasPermission(Permissions.SettingsManage)]
+@using CarRental.Application.Referential.Administration
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+@* The pick-up and return locations of the agency of the session (ADR-0067): add, edit (the code never changes: the
+   sales channels reference it), deactivate and reactivate. *@
+<PageTitle>@L["Locations.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && _locations is not null ? "true" : "false")">@L["Locations.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLocationAlt" OnClick="() => EditAsync(null)"
+               Disabled="@(_locations is null)">@L["Locations.Create"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Locations.Intro"]</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_locations is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else
+{
+    <MudTable T="LocationAdminItem" Items="_locations" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Locations.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Locations.Column.Code"]</MudTh>
+            <MudTh>@L["Locations.Column.Name"]</MudTh>
+            <MudTh>@L["Locations.Column.Kind"]</MudTh>
+            <MudTh>@L["Locations.Column.Address"]</MudTh>
+            <MudTh>@L["Locations.Column.Status"]</MudTh>
+            <MudTh>@L["Locations.Column.Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Locations.Column.Code"]" data-location-code="@context.Code"><strong>@context.Code</strong></MudTd>
+            <MudTd DataLabel="@L["Locations.Column.Name"]">@context.Name</MudTd>
+            <MudTd DataLabel="@L["Locations.Column.Kind"]">@L[$"LocationKind.{context.Kind}"]</MudTd>
+            <MudTd DataLabel="@L["Locations.Column.Address"]">@(context.Address ?? "—")</MudTd>
+            <MudTd DataLabel="@L["Locations.Column.Status"]">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["Locations.Active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["Locations.Inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Locations.Column.Actions"]">
+                <div class="d-flex flex-wrap gap-1">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => EditAsync(context)"
+                               aria-label="@L["Locations.EditOne", context.Code]">@L["Locations.Edit"]</MudButton>
+                    @if (context.IsActive)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="() => DeactivateAsync(context)"
+                                   aria-label="@L["Locations.DeactivateOne", context.Code]">@L["Locations.Deactivate"]</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => ReactivateAsync(context)"
+                                   aria-label="@L["Locations.ReactivateOne", context.Code]">@L["Locations.Reactivate"]</MudButton>
+                    }
+                </div>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@L["Locations.Empty"]</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<LocationAdminItem>? _locations;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await Runner.RunAsync<LocationAdministrationService, Result<IReadOnlyList<LocationAdminItem>>>((service, ct) => service.ListAsync(ct));
+        if (result.IsFailure)
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+            return;
+        }
+
+        _locations = result.Value;
+        _error = null;
+    }
+
+    private async Task EditAsync(LocationAdminItem? location)
+    {
+        var parameters = new DialogParameters<LocationDialog> { { d => d.Existing, location } };
+        var dialog = await Dialogs.ShowAsync<LocationDialog>(
+            location is null ? L["Locations.Create"] : L["Locations.EditOne", location.Code],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(location is null ? L["Locations.Created"] : L["Locations.Saved"], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeactivateAsync(LocationAdminItem location)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Locations.Deactivate.Confirm.Title"],
+            L["Locations.Deactivate.Confirm.Message", $"{location.Code} — {location.Name}"],
+            yesText: L["Locations.Deactivate"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed == true)
+        {
+            await SetActiveAsync(location, active: false, L["Locations.Deactivated"]);
+        }
+    }
+
+    private Task ReactivateAsync(LocationAdminItem location) => SetActiveAsync(location, active: true, L["Locations.Reactivated"]);
+
+    private async Task SetActiveAsync(LocationAdminItem location, bool active, string success)
+    {
+        var locationId = location.Id;
+        var result = await Runner.RunAsync<LocationAdministrationService, Result>((service, ct) => service.SetActiveAsync(locationId, active, ct));
+        if (result.IsFailure)
+        {
+            Snackbar.Add(ErrorMessages.For(Shared, result.Error), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(success, Severity.Success);
+        await LoadAsync();
+    }
+}

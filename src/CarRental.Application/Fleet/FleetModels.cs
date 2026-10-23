@@ -72,7 +72,10 @@ public sealed record CategoryAdminItem(
     bool IsActive,
     int VehicleCount);
 
-/// <summary>Category form. <paramref name="AgencyId"/> may be omitted when the platform has a single agency.</summary>
+/// <summary>
+/// Category form. Without <paramref name="AgencyId"/>, the category is created in the agency the operation works for
+/// (ADR-0067); an operation of one agency can only name its own.
+/// </summary>
 public sealed record CategoryForm(
     string Code,
     string Name,

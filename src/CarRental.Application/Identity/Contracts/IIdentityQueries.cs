@@ -9,10 +9,11 @@ public interface IIdentityQueries
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Users of <paramref name="role"/> (see <see cref="Roles"/>) who can sign in (not locked out) and have an e-mail
-    /// address, ordered by display name: e.g. the managers who receive the fleet deadline alerts.
+    /// Users of <paramref name="agencyId"/> in <paramref name="role"/> (see <see cref="Roles"/>) who can sign in (not
+    /// locked out) and have an e-mail address, ordered by display name: e.g. the managers of the agency who receive its
+    /// fleet deadline alerts. Never the users of another agency nor the support (ADR-0067).
     /// </summary>
-    Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(string role, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(Guid agencyId, string role, CancellationToken cancellationToken = default);
 }
 
 /// <summary>A user to notify.</summary>

@@ -246,7 +246,7 @@ public sealed class InvoicingService
                     return open.Error;
                 }
 
-                var number = await _store.Numbers.NextForDateAsync(DocumentType.CreditNote, now, ct);
+                var number = await _store.Numbers.NextForDateAsync(invoice.AgencyId, DocumentType.CreditNote, now, ct);
                 var note = CreditNote.Issue(draft.Value, number, now, _store.Actor(), mode);
                 if (note.IsFailure)
                 {
@@ -267,6 +267,12 @@ public sealed class InvoicingService
         Guid? fineId,
         CancellationToken cancellationToken)
     {
+        // A file of another agency than the one the operation works for is unknown to it (ADR-0067).
+        if (!_store.WorksFor(facts.AgencyId))
+        {
+            return BillingErrors.BookingNotFound;
+        }
+
         var seller = await _store.SellerAsync(facts.AgencyId, cancellationToken);
         if (seller.IsFailure)
         {
@@ -324,7 +330,7 @@ public sealed class InvoicingService
             return open.Error;
         }
 
-        var number = await _store.Numbers.NextForDateAsync(DocumentType.Invoice, now, cancellationToken);
+        var number = await _store.Numbers.NextForDateAsync(facts.AgencyId, DocumentType.Invoice, now, cancellationToken);
         var invoice = Invoice.Issue(draft.Value, number, now, _store.Actor(), mode);
         if (invoice.IsFailure)
         {

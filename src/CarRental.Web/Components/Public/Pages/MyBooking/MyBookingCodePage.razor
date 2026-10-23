@@ -1,5 +1,5 @@
-@page "/{culture:length(2)}/ma-reservation/code"
-@page "/{culture:length(2)}/my-booking/code"
+@page "/{agency}/{culture:length(2)}/ma-reservation/code"
+@page "/{agency}/{culture:length(2)}/my-booking/code"
 @* After an access request (ADR-0051): "if a booking matches, an e-mail was sent" — the same text whether it exists or
    not — and the six-digit code of the e-mail, as an alternative to its link. A wrong code counts: after a few the
    request can no longer be used and a new one must be made. *@
@@ -29,7 +29,7 @@
 
     @if (!_locked)
     {
-        <form method="post" action="@BookingRoutes.MyBookingCode(Lang)" class="card" novalidate>
+        <form method="post" action="@BookingRoutes.MyBookingCode(Slug, Lang)" class="card" novalidate>
             <AntiforgeryToken />
             <input type="hidden" name="@MyBookingEndpoints.RequestParameter" value="@_requestId" />
             <FunnelTextField Id="access-code" Name="@MyBookingEndpoints.CodeField" Label="@L["Code.Label"]" Autocomplete="one-time-code"
@@ -37,7 +37,7 @@
             <button type="submit" class="button button--block">@L["Code.Submit"]</button>
         </form>
     }
-    <p><a href="@BookingRoutes.MyBooking(Lang)">@L["Code.Again"]</a></p>
+    <p><a href="@BookingRoutes.MyBooking(Slug, Lang)">@L["Code.Again"]</a></p>
 </section>
 
 @code {
@@ -48,14 +48,14 @@
 
     protected override void OnInitialized()
     {
-        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCode(Lang)))
+        if (!EnsureCanonicalPath(BookingRoutes.MyBookingCode(Slug, Lang)))
         {
             return;
         }
 
         if (!Guid.TryParse(Query(MyBookingEndpoints.RequestParameter), out _requestId))
         {
-            Leave(BookingRoutes.MyBooking(Lang));
+            Leave(BookingRoutes.MyBooking(Slug, Lang));
             return;
         }
 

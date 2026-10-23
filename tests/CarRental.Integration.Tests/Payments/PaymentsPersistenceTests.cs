@@ -7,6 +7,7 @@ using CarRental.Domain.Identity;
 using CarRental.Domain.Payments;
 using CarRental.Infrastructure.Outbox;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,7 +29,7 @@ public sealed class PaymentsPersistenceTests(IntegrationHost host)
         var agencyId = await FinanceData.NewAgencyAsync(host, Ct);
         var agent = FinanceData.Actor(Roles.Agent);
         var sessionId = await FinanceData.OpenSessionAsync(host, agent, agencyId, 100m, Ct);
-        var bookingId = Guid.CreateVersion7();
+        var bookingId = await TestBookings.NewAsync(host, agencyId, Ct);
 
         Guid paymentId;
         await using (var scope = host.CreateScope(agent))
@@ -79,7 +80,7 @@ public sealed class PaymentsPersistenceTests(IntegrationHost host)
         await using (var scope = host.CreateScope(agent))
         {
             var payments = scope.ServiceProvider.GetRequiredService<ICounterPayments>();
-            paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.CardTerminal, 500m), Ct)).Value;
+            paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(await TestBookings.NewAsync(host, agencyId, Ct), agencyId, PaymentMethodInfo.CardTerminal, 500m), Ct)).Value;
             (await payments.RecordRefundAsync(new CounterRefundRequest(paymentId, PaymentMethodInfo.Cash, 50m, "Trop-perçu"), Ct))
                 .Error.ShouldBe(CashErrors.InsufficientCash);
         }
@@ -103,23 +104,31 @@ public sealed class PaymentsPersistenceTests(IntegrationHost host)
         {
             var payments = scope.ServiceProvider.GetRequiredService<ICounterPayments>();
             var deposits = scope.ServiceProvider.GetRequiredService<IDeposits>();
-            paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.BankTransfer, 600m, "VIR-1", AwaitingConfirmation: true), Ct)).Value;
+            paymentId = (await payments.RecordPaymentAsync(new CounterPaymentRequest(await TestBookings.NewAsync(host, agencyId, Ct), agencyId, PaymentMethodInfo.BankTransfer, 600m, "VIR-1", AwaitingConfirmation: true), Ct)).Value;
             (await payments.ConfirmPendingAsync(paymentId, cancellationToken: Ct)).IsSuccess.ShouldBeTrue();
-            depositId = (await deposits.TakeAsync(new DepositRequest(Guid.CreateVersion7(), agencyId, DepositModeInfo.CardImprint, 800m, "AUT-1"), Ct)).Value;
+            depositId = (await deposits.TakeAsync(new DepositRequest(await TestBookings.NewAsync(host, agencyId, Ct), agencyId, DepositModeInfo.CardImprint, 800m, "AUT-1"), Ct)).Value;
             (await deposits.RetainAsync(depositId, new DepositRetentionRequest(150.5m, "Rayure pare-chocs", "devis-42.pdf"), Ct)).IsSuccess.ShouldBeTrue();
         }
 
         await using var check = host.CreateScope();
         var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-        var statuses = await db.Set<Payment>().TemporalAll().Where(p => p.Id == paymentId).Select(p => p.Status).ToListAsync(Ct);
-        statuses.ShouldBe([PaymentStatus.Pending, PaymentStatus.Captured], ignoreOrder: true);
+        // Read the history table itself: FOR SYSTEM_TIME ALL hides a version whose period has zero duration, which happens
+        // when the recording and the confirmation begin within the same tick of SQL Server's clock.
+        var current = await db.Set<Payment>().AsNoTracking().Where(p => p.Id == paymentId).Select(p => p.Status).SingleAsync(Ct);
+        var history = await db.Database
+            .SqlQuery<int>($"SELECT [Status] AS [Value] FROM [payments].[PaymentsHistory] WHERE [Id] = {paymentId}")
+            .ToListAsync(Ct);
+        current.ShouldBe(PaymentStatus.Captured);
+        history.Select(status => (PaymentStatus)status).ShouldBe([PaymentStatus.Pending]);
         var deposit = await db.Set<DepositHold>().AsNoTracking().SingleAsync(d => d.Id == depositId, Ct);
         deposit.Status.ShouldBe(DepositStatus.PartiallyRetained);
         deposit.RetainedAmount.ShouldBe(Money.Tnd(150.5m));
         deposit.RetentionJustification.ShouldBe("Rayure pare-chocs");
         deposit.AttachmentReference.ShouldBe("devis-42.pdf");
         deposit.SettledByUserId.ShouldBe(accountant.UserId);
-        (await db.Set<DepositHold>().TemporalAll().CountAsync(d => d.Id == depositId, Ct)).ShouldBe(2);
+        (await db.Database
+            .SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM [payments].[DepositHoldsHistory] WHERE [Id] = {depositId}")
+            .SingleAsync(Ct)).ShouldBe(1);
     }
 
     [Fact]
@@ -178,7 +187,7 @@ public sealed class PaymentsPersistenceTests(IntegrationHost host)
         await using (var scope = host.CreateScope(manager))
         {
             paymentId = (await scope.ServiceProvider.GetRequiredService<ICounterPayments>()
-                .RecordPaymentAsync(new CounterPaymentRequest(Guid.CreateVersion7(), agencyId, PaymentMethodInfo.CardTerminal, 100m), Ct)).Value;
+                .RecordPaymentAsync(new CounterPaymentRequest(await TestBookings.NewAsync(host, agencyId, Ct), agencyId, PaymentMethodInfo.CardTerminal, 100m), Ct)).Value;
         }
 
         var results = await Task.WhenAll(Enumerable.Range(0, 4).Select(async _ =>

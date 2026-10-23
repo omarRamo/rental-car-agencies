@@ -81,9 +81,19 @@ public static class Permissions
     public const string UsersManage = "users.manage";
     public const string SettingsManage = "settings.manage";
     public const string AuditRead = "audit.read";
+
+    // Platform (support only, ADR-0067): they span every agency.
+
+    /// <summary>
+    /// The agencies of the platform: register them, give them their public site address and modules, suspend them, enter
+    /// any of them, edit the platform values of the settings. Held by the support only (role <see cref="Roles.Support"/>).
+    /// </summary>
+    public const string PlatformAgencies = "platform.agencies";
+
+    /// <summary>Background jobs dashboard (Hangfire): the jobs of every agency.</summary>
     public const string JobsDashboard = "jobs.dashboard";
 
-    /// <summary>Background messages (outbox): failed and pending messages, retry (audited).</summary>
+    /// <summary>Background messages (outbox) of every agency: failed and pending messages, retry (audited).</summary>
     public const string OutboxManage = "outbox.manage";
 
     /// <summary>
@@ -155,11 +165,15 @@ public static class Permissions
             new(UsersManage, PermissionArea.Administration),
             new(SettingsManage, PermissionArea.Administration),
             new(AuditRead, PermissionArea.Administration),
-            new(JobsDashboard, PermissionArea.Administration),
-            new(OutboxManage, PermissionArea.Administration),
+            new(PlatformAgencies, PermissionArea.Platform),
+            new(JobsDashboard, PermissionArea.Platform),
+            new(OutboxManage, PermissionArea.Platform),
         ];
         All = Catalog.Select(p => p.Name).ToArray();
         Known = All.ToFrozenSet(StringComparer.Ordinal);
+        AgencyCatalog = Catalog.Where(p => p.Area != PermissionArea.Platform).ToArray();
+        Agency = AgencyCatalog.Select(p => p.Name).ToArray();
+        PlatformOnly = All.Except(Agency, StringComparer.Ordinal).ToFrozenSet(StringComparer.Ordinal);
     }
 
     /// <summary>Every permission with its functional area, in display order.</summary>
@@ -168,7 +182,19 @@ public static class Permissions
     /// <summary>Every permission name.</summary>
     public static IReadOnlyList<string> All { get; }
 
+    /// <summary>The permissions that a member of an agency may hold (every area but <see cref="PermissionArea.Platform"/>), in display order.</summary>
+    public static IReadOnlyList<PermissionDefinition> AgencyCatalog { get; }
+
+    /// <summary>The names of <see cref="AgencyCatalog"/>: what the manager of an agency holds.</summary>
+    public static IReadOnlyList<string> Agency { get; }
+
+    /// <summary>The permissions of the support only (they span every agency): never granted to a member of an agency.</summary>
+    public static IReadOnlySet<string> PlatformOnly { get; }
+
     public static bool IsKnown(string? permission) => permission is not null && Known.Contains(permission);
+
+    /// <summary>True for a permission that a member of an agency may hold.</summary>
+    public static bool IsAgencyPermission(string? permission) => IsKnown(permission) && !PlatformOnly.Contains(permission!);
 
     /// <summary>The permissions that <paramref name="permission"/> includes directly (e.g. <c>pricing.manage</c> includes <c>pricing.read</c>).</summary>
     public static IReadOnlyList<string> ImpliedBy(string permission)
@@ -208,6 +234,9 @@ public enum PermissionArea
     Commercial = 2,
     Finance = 3,
     Administration = 4,
+
+    /// <summary>The platform itself, across agencies: support only (ADR-0067).</summary>
+    Platform = 5,
 }
 
 public sealed record PermissionDefinition(string Name, PermissionArea Area);

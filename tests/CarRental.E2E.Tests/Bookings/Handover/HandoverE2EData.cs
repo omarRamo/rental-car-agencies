@@ -34,8 +34,9 @@ internal static class HandoverE2EData
 {
     private static int _plateSequence = Random.Shared.Next(1_000);
 
+    /// <summary>An actor of the arrangements, across agencies like the scenario actors (each arrangement works on its own agency, ADR-0067).</summary>
     public static UserContextSnapshot Actor(string role) =>
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"{role.ToLowerInvariant()}-arrange-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(role));
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), $"{role.ToLowerInvariant()}-arrange-{Guid.NewGuid():N}@tests.local", RolePresets.PermissionsOf(role)) with { AllAgencies = true };
 
     /// <summary>
     /// A confirmed file picked up now for one day: agency, ECMR category, a vehicle at 15 000 km, a plan at 100 a day. The
@@ -99,7 +100,10 @@ internal static class HandoverE2EData
                 new DateOnly(1988, 3, 9),
                 RandomNumberGenerator.GetInt32(20_000_000, 100_000_000).ToString(CultureInfo.InvariantCulture),
                 $"conducteur-{Guid.NewGuid():N}@tests.local",
-                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture), "TN", today.AddYears(-5))))).PersonId;
+                Document: new IdentityDocumentInput(IdentityDocumentTypeInfo.NationalId, RandomNumberGenerator.GetInt32(0, 100_000_000).ToString("D8", CultureInfo.InvariantCulture), "TN", today.AddYears(-5)))
+            {
+                AgencyId = agencyId,
+            })).PersonId;
             Ok(await registration.AddOrReplaceDocumentAsync(
                 driverId,
                 new IdentityDocumentInput(IdentityDocumentTypeInfo.DrivingLicense, $"{RandomNumberGenerator.GetInt32(10, 99)}/{RandomNumberGenerator.GetInt32(100_000, 999_999)}", "TN", today.AddYears(-10))));

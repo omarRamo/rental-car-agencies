@@ -1,3 +1,4 @@
+using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
 
 namespace CarRental.Domain.Tests.Referential;
@@ -22,7 +23,9 @@ public sealed class AgencyTests
         agency.Name.ShouldBe("Démo Location");
         agency.IsActive.ShouldBeTrue();
         agency.IsDeleted.ShouldBeFalse();
-        agency.DomainEvents.ShouldHaveSingleItem().ShouldBe(new AgencyRegistered(agency.Id, "Démo Location"));
+        agency.Slug.ShouldBe("demo-location");
+        agency.Modules.ShouldBe(AgencyModuleCatalog.Defaults);
+        agency.DomainEvents.ShouldHaveSingleItem().ShouldBe(new AgencyRegistered(agency.Id, "Démo Location", "demo-location"));
     }
 
     [Fact]

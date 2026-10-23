@@ -1,7 +1,6 @@
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Outbox;
-using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Messaging;
 using Microsoft.Extensions.Logging;
@@ -11,7 +10,8 @@ namespace CarRental.Application.Messaging.Notifications;
 /// <summary>
 /// Notifications triggered by a status change of a rental file (contract message of the Bookings module): the
 /// confirmation when a file becomes <c>Confirmed</c> (validated request, confirmed option, paid file, booking confirmed
-/// at creation) and the payment notice when a validated request waits for its payment (<c>AwaitingPayment</c>).
+/// at creation) and the payment notice when a validated request waits for its payment (<c>AwaitingPayment</c>) — for the
+/// agency served by the platform's WhatsApp number only, in a scope working for the agency of the file.
 /// </summary>
 /// <remarks>
 /// TODO(spec): the payment link itself (Clic to Pay <c>formUrl</c>, package 2B) is not exposed by a contract yet; the
@@ -30,23 +30,25 @@ internal sealed class BookingStatusNotificationHandler(MessagingScopes scopes) :
             BookingStatusInfo.AwaitingPayment when message.PreviousStatus != BookingStatusInfo.AwaitingPayment => NotificationKind.PaymentLink,
             _ => null,
         };
-        if (kind is { } notification)
+        if (kind is { } notification && message.AgencyId != Guid.Empty && await scopes.IsOpenAsync(message.AgencyId, cancellationToken))
         {
             await scopes.RunAsync<BookingNotifier, NotificationOutcome>(
                 (notifier, ct) => notifier.NotifyAsync(message.BookingId, notification, ct),
                 context.CorrelationId,
-                cancellationToken);
+                cancellationToken,
+                message.AgencyId);
         }
     }
 }
 
 /// <summary>
 /// The rental files due for a dated notification: departures of tomorrow (confirmed), returns of tomorrow (rentals in
-/// progress) and returns of yesterday (returned or closed), per active agency, in Tunis days. Each file is notified in a
-/// scope of its own: one failure does not stop the others, and the next hourly run tries again.
+/// progress) and returns of yesterday (returned or closed), for the agency served by the platform's WhatsApp number (the
+/// only one WhatsApp is open for, ADR-0067), in Tunis days.
+/// Each file is notified in a scope of its own, working for its agency: one failure does not stop the others, and the
+/// next hourly run tries again.
 /// </summary>
 internal sealed partial class BookingReminderSweep(
-    IReferentialQueries referential,
     IBookingsQueries bookings,
     MessagingScopes scopes,
     TimeProvider clock,
@@ -56,16 +58,17 @@ internal sealed partial class BookingReminderSweep(
     {
         var today = TunisTime.Today(clock);
         var queued = 0;
-        foreach (var agency in (await referential.GetAgenciesAsync(cancellationToken)).Where(a => a.IsActive))
+        foreach (var agencyId in await scopes.OpenAgenciesAsync(cancellationToken))
         {
-            foreach (var bookingId in await DueAsync(kind, agency.Id, today, cancellationToken))
+            foreach (var bookingId in await DueAsync(kind, agencyId, today, cancellationToken))
             {
                 try
                 {
                     var outcome = await scopes.RunAsync<BookingNotifier, NotificationOutcome>(
                         (notifier, ct) => notifier.NotifyAsync(bookingId, kind, ct),
                         correlationId: null,
-                        cancellationToken);
+                        cancellationToken,
+                        agencyId);
                     queued += outcome == NotificationOutcome.Queued ? 1 : 0;
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException)

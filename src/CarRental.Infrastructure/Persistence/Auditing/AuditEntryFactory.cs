@@ -5,6 +5,8 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using CarRental.Domain.Common;
 using CarRental.Domain.Identity;
+using CarRental.Domain.Referential;
+using CarRental.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -20,7 +22,18 @@ internal static class AuditEntryFactory
         Indented = false,
     };
 
-    public static AuditLog? Create(EntityEntry entry, AuditActor actor, DateTimeOffset now)
+    /// <summary>
+    /// The audit row of a change, for the agency of the changed row (ADR-0067): its own agency, the agency itself; for an
+    /// account and the Identity rows of a user (claims, logins, tokens, roles: <paramref name="agencyOfUser"/>), the agency
+    /// of that user — the platform for the support, whatever agency the operation works for; else
+    /// <paramref name="operationAgencyId"/> (the agency of the operation, none for the platform).
+    /// </summary>
+    public static AuditLog? Create(
+        EntityEntry entry,
+        AuditActor actor,
+        DateTimeOffset now,
+        Guid? operationAgencyId = null,
+        Func<Guid, Guid?>? agencyOfUser = null)
     {
         var entityType = entry.Metadata;
         string action;
@@ -55,7 +68,35 @@ internal static class AuditEntryFactory
                 return null;
         }
 
-        return AuditLog.Record(now, actor, action, entityType.GetAuditName(), KeyOf(entry), before, after);
+        return AuditLog.Record(now, actor, action, entityType.GetAuditName(), KeyOf(entry), before, after, agencyId: AgencyOf(entry, operationAgencyId, agencyOfUser));
+    }
+
+    private static Guid? AgencyOf(EntityEntry entry, Guid? operationAgencyId, Func<Guid, Guid?>? agencyOfUser) => entry.Entity switch
+    {
+        IAgencyOwned owned => owned.AgencyId,
+        IAgencyShared shared => shared.AgencyId,
+        IAgencyOrPlatform record => record.AgencyId,
+        Agency agency => agency.Id,
+
+        // An account is the agency's of its user, the platform's for the support (no agency), even while the support works
+        // inside an agency: never the agency of the operation.
+        ApplicationUser user => user.AgencyId,
+        _ when UserIdOf(entry) is { } userId => agencyOfUser?.Invoke(userId),
+        _ => operationAgencyId,
+    };
+
+    /// <summary>The user an Identity row belongs to (its foreign key to the account), or <see langword="null"/>.</summary>
+    private static Guid? UserIdOf(EntityEntry entry)
+    {
+        var foreignKey = entry.Metadata.GetForeignKeys()
+            .FirstOrDefault(fk => fk.PrincipalEntityType.ClrType == typeof(ApplicationUser) && fk.Properties.Count == 1);
+        if (foreignKey is null)
+        {
+            return null;
+        }
+
+        var property = entry.Property(foreignKey.Properties[0].Name);
+        return (entry.State == EntityState.Deleted ? property.OriginalValue : property.CurrentValue) as Guid?;
     }
 
     private static bool IsSoftDeletion(EntityEntry entry) =>

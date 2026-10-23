@@ -10,7 +10,8 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Web.Endpoints.PublicSite;
 
 /// <summary>
-/// <c>GET /api/public/availability</c> (SPEC §13): the categories still available for a location and dates, with their
+/// <c>GET /{agency}/api/public/availability</c> (SPEC §13): the categories of the agency of the address still available
+/// for a location and dates, with their
 /// remaining count and total price TTC, for the site and the WhatsApp bot. Same parameters and rules as the results
 /// page (<c>lieu</c>, <c>retour_lieu</c>, <c>depart</c>, <c>retour</c> in Tunis time, <c>src</c>, <c>boite</c>,
 /// <c>places</c>); anonymous, rate-limited (<see cref="PublicRateLimits.Search"/>), served from the cached availability
@@ -18,7 +19,8 @@ namespace CarRental.Web.Endpoints.PublicSite;
 /// </summary>
 public static class PublicAvailabilityApi
 {
-    public const string Route = "/api/public/availability";
+    /// <summary>The route, on the site of an agency like every public address (see <see cref="PublicQuoteApi.Route"/>).</summary>
+    public const string Route = PublicQuoteApi.ApiPrefix + "/availability";
 
     public static IEndpointRouteBuilder MapPublicAvailabilityApi(this IEndpointRouteBuilder endpoints)
     {
@@ -41,7 +43,7 @@ public static class PublicAvailabilityApi
         CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
-        var agency = await directory.GetAsync(cancellationToken);
+        var agency = await directory.GetAsync(PublicSiteAgency.Require(context), cancellationToken);
         if (agency is null)
         {
             return TypedResults.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "No agency is open for online search yet.");
@@ -61,7 +63,7 @@ public static class PublicAvailabilityApi
     }
 }
 
-/// <summary>Answer of <c>GET /api/public/availability</c>; amounts in TND (VAT and daily contribution included).</summary>
+/// <summary>Answer of <c>GET /{agency}/api/public/availability</c>; amounts in TND (VAT and daily contribution included).</summary>
 /// <param name="PickupLocation">Pick-up location of the search.</param>
 /// <param name="ReturnLocation">Return location (the pick-up location when not given).</param>
 /// <param name="PickupAt">Pick-up, with the Tunis offset.</param>

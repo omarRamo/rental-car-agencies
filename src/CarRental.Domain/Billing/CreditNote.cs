@@ -248,7 +248,7 @@ public sealed class CreditNote : BillingDocument
         BookingNumber = draft.Invoice.BookingNumber;
         for (var i = 0; i < draft.Lines.Count; i++)
         {
-            _lines.Add(new CreditNoteLine(id, i + 1, draft.Lines[i]));
+            _lines.Add(new CreditNoteLine(id, AgencyId, i + 1, draft.Lines[i]));
         }
 
         TotalExclVat = draft.TotalExclVat;
@@ -300,16 +300,17 @@ public sealed class CreditNote : BillingDocument
 }
 
 /// <summary>A line of a credit note: the invoice line it credits (copied label, nature, rate) and its negative amounts.</summary>
-public sealed class CreditNoteLine : Entity
+public sealed class CreditNoteLine : Entity, IAgencyOwned
 {
     private CreditNoteLine()
     {
     }
 
-    internal CreditNoteLine(Guid creditNoteId, int position, CreditDraftLine line)
+    internal CreditNoteLine(Guid creditNoteId, Guid agencyId, int position, CreditDraftLine line)
         : base(NewId())
     {
         CreditNoteId = creditNoteId;
+        AgencyId = agencyId;
         Position = position;
         InvoiceLineId = line.InvoiceLine.Id;
         Nature = line.InvoiceLine.Nature;
@@ -325,6 +326,9 @@ public sealed class CreditNoteLine : Entity
     }
 
     public Guid CreditNoteId { get; private set; }
+
+    /// <summary>The agency of the credit note.</summary>
+    public Guid AgencyId { get; private set; }
 
     public int Position { get; private set; }
 

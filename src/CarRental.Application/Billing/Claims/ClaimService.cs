@@ -45,7 +45,8 @@ public sealed class ClaimService
             return BillingErrors.Forbidden;
         }
 
-        var vehicle = await _fleet.GetVehicleAsync(form.VehicleId, cancellationToken);
+        // A claim of an agency the operation does not work for is refused like a vehicle of another agency (ADR-0067).
+        var vehicle = await _store.AgencyAsync(form.AgencyId, cancellationToken) is null ? null : await _fleet.GetVehicleAsync(form.VehicleId, cancellationToken);
         if (vehicle is null || vehicle.AgencyId != form.AgencyId)
         {
             return BillingErrors.ClaimVehicleRequired;
@@ -54,7 +55,7 @@ public sealed class ClaimService
         BookingSummaryInfo? booking = null;
         if (!string.IsNullOrWhiteSpace(form.BookingNumber))
         {
-            booking = await _bookings.FindByNumberAsync(form.BookingNumber, cancellationToken);
+            booking = await _bookings.FindByNumberAsync(form.AgencyId, form.BookingNumber, cancellationToken);
             if (booking is null || booking.AgencyId != form.AgencyId)
             {
                 return BillingErrors.BookingNotFound;

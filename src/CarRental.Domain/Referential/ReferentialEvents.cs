@@ -2,7 +2,16 @@ using CarRental.Domain.Common;
 
 namespace CarRental.Domain.Referential;
 
-public sealed record AgencyRegistered(Guid AgencyId, string Name) : IDomainEvent;
+public sealed record AgencyRegistered(Guid AgencyId, string Name, string Slug) : IDomainEvent;
+
+/// <summary>The address of the agency's public site changed: links with the previous slug stop working.</summary>
+public sealed record AgencySlugChanged(Guid AgencyId, string PreviousSlug, string Slug) : IDomainEvent;
+
+/// <summary>The support switched modules of the agency on or off.</summary>
+public sealed record AgencyModulesChanged(Guid AgencyId, AgencyModules Previous, AgencyModules Current) : IDomainEvent;
+
+/// <summary>The support suspended the agency (<see cref="IsActive"/> false) or lifted the suspension.</summary>
+public sealed record AgencyActivationChanged(Guid AgencyId, bool IsActive) : IDomainEvent;
 
 public sealed record AgencyDetailsUpdated(Guid AgencyId) : IDomainEvent;
 

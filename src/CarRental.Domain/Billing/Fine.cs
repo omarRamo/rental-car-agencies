@@ -82,7 +82,7 @@ public static class PlateKeys
 /// the rental file and the driver who had the vehicle at that instant (found by <see cref="FineMatching"/> or chosen by an
 /// agent), the designation of the driver to the authority, the optional re-invoicing to the payer and its payment.
 /// </summary>
-public sealed class Fine : AggregateRoot
+public sealed class Fine : AggregateRoot, IAgencyOwned
 {
     public const int TicketMaxLength = 40;
     public const int AuthorityMaxLength = 120;

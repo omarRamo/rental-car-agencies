@@ -2,6 +2,7 @@ using CarRental.Application.Bookings.Availability;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Quotes;
 using CarRental.Application.Bookings.Writing;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Seeding;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Fleet.Contracts;
@@ -12,25 +13,84 @@ using CarRental.Domain.Bookings.Availability;
 using CarRental.Domain.Bookings.Quotes;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Bookings.Seeding;
 
+/// <summary>Which demo agency a set of demo rental files is made for.</summary>
+internal enum DemoAgencyKind
+{
+    /// <summary>The main demo agency (Tunis): files in every status.</summary>
+    Main,
+
+    /// <summary>The second demo agency (Sousse): a few files of its own, never seen by the main one (ADR-0067).</summary>
+    Second,
+}
+
 /// <summary>
-/// Demo rental files of the demo agency (development and recette only), after the demo fleet, rate plan and customers:
-/// about forty files over the past 30 and the next 60 days, in every status — closed and returned rentals, rentals in
-/// progress (one late), requests pending (one escalated and about to expire), waiting for information or for their
-/// payment, refused (internal customer check), expired, options, confirmed bookings with and without vehicle (two
-/// leaving within 48 hours), a guaranteed model, a vehicle assigned with a compliance waiver, an amended booking, a
-/// manual discount, cancellations with and without fee, a no-show and an abandoned draft — priced by the published
-/// plan. Files to come go through the back office services; the history is replayed on the aggregate with its own past
-/// instants through the same write pipeline and the availability guard (which protects the occupancy from now on; the
-/// past schedule is laid out vehicle by vehicle without overlap). Idempotent: nothing is done once the agency has a
-/// file whose source is <see cref="DemoSource"/>.
+/// Demo rental files (development and recette only), after the demo fleets, rate plans and customers: the files of each
+/// demo agency are written in a scope of their own, by the system working for that agency only (ADR-0067). An agency
+/// whose fleet, published plan or customers are missing gets no files (logged).
 /// </summary>
 internal sealed partial class BookingsDemoSeeder(
     IReferentialQueries referential,
+    IServiceScopeFactory scopeFactory,
+    ILogger<BookingsDemoSeeder> logger) : IDataSeeder
+{
+    /// <summary>Name of the main demo agency created by the Referential demo seeder.</summary>
+    public const string DemoAgencyName = "Agence Démo Tunis";
+
+    /// <summary>Name of the second demo agency created by the Referential demo seeder.</summary>
+    public const string SecondDemoAgencyName = "Agence Démo Sousse";
+
+    /// <summary>Source of the demo files (their attribution): the marker of the seed.</summary>
+    public const string DemoSource = "demo";
+
+    private const string SeedActor = "system:seed";
+
+    public SeedStage Stage => SeedStage.Demo;
+
+    public int Order => 700;
+
+    public async Task SeedAsync(CancellationToken cancellationToken)
+    {
+        var agencies = await referential.GetAgenciesAsync(cancellationToken);
+        foreach (var (name, kind) in new[] { (DemoAgencyName, DemoAgencyKind.Main), (SecondDemoAgencyName, DemoAgencyKind.Second) })
+        {
+            if (agencies.FirstOrDefault(a => a.Name == name) is not { } agency)
+            {
+                LogNoAgency(name);
+                continue;
+            }
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(SeedActor, agencyId: agency.Id));
+            await scope.ServiceProvider.GetRequiredService<BookingsDemoAgencySeeder>().SeedAsync(agency, kind, cancellationToken);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Demo agency {Agency} not found: no demo rental files for it.")]
+    private partial void LogNoAgency(string agency);
+}
+
+/// <summary>
+/// The demo rental files of one demo agency, run by the system working for that agency only. The main agency gets about
+/// forty files over the past 30 and the next 60 days, in every status — closed and returned rentals, rentals in
+/// progress (one late), requests pending (one escalated and about to expire), waiting for information or for their
+/// payment, refused (internal customer check), expired, options, confirmed bookings with and without vehicle (two
+/// leaving within 48 hours), a guaranteed model, a vehicle assigned with a compliance waiver, an amended booking, a
+/// manual discount, cancellations with and without fee, a no-show and an abandoned draft; the second agency a closed
+/// rental, a rental in progress and a confirmed booking to come. Every file is priced by the published plan of its
+/// agency. Files to come go through the back office services; the history is replayed on the aggregate with its own past
+/// instants through the same write pipeline and the availability guard (which protects the occupancy from now on; the
+/// past schedule is laid out vehicle by vehicle without overlap). Idempotent: nothing is done once the agency has a
+/// file whose source is <see cref="BookingsDemoSeeder.DemoSource"/>.
+/// </summary>
+internal sealed partial class BookingsDemoAgencySeeder(
+    IReferentialQueries referential,
     IFleetQueries fleet,
+    IPricingQueries pricingQueries,
     ICustomersQueries customers,
     ICustomerRegistration registration,
     ISettingsReader settings,
@@ -42,13 +102,9 @@ internal sealed partial class BookingsDemoSeeder(
     BookingWorkflowService workflow,
     VehicleAssignmentService assignments,
     BookingAmendmentService amendments,
-    ILogger<BookingsDemoSeeder> logger) : IDataSeeder
+    ILogger<BookingsDemoAgencySeeder> logger)
 {
-    /// <summary>Name of the demo agency created by the Referential demo seeder.</summary>
-    public const string DemoAgencyName = "Agence Démo Tunis";
-
-    /// <summary>Source of the demo files (their attribution): the marker of the seed.</summary>
-    public const string DemoSource = "demo";
+    private const string DemoSource = BookingsDemoSeeder.DemoSource;
 
     private const string Sami = "sami.trabelsi@example.com";
     private const string Amel = "amel.bensalah@example.com";
@@ -67,7 +123,14 @@ internal sealed partial class BookingsDemoSeeder(
     private const string Walid = "walid.ferchichi@example.com";
     private const string CompanyPayer = "Atlas Conseil";
 
+    // The customers of the second demo agency (see the Customers demo seeder).
+    private const string Hichem = "hichem.mabrouk@example.com";
+    private const string Ines = "ines.zouari@example.com";
+    private const string Marco = "marco.bianchi@example.net";
+
     private static readonly string[] Emails = [Sami, Amel, Mohamed, Nour, Karim, Leila, Julien, Claire, Hans, Giulia, Yacine, Ahmed, Sofiane, Rania, Walid];
+
+    private static readonly string[] SecondEmails = [Hichem, Ines, Marco];
 
     /// <summary>Delay between the planned and the actual pick-up of the replayed rentals.</summary>
     private static readonly TimeSpan PickupDelay = TimeSpan.FromMinutes(12);
@@ -75,35 +138,27 @@ internal sealed partial class BookingsDemoSeeder(
     /// <summary>The replayed rentals come back a little before their planned return.</summary>
     private static readonly TimeSpan ReturnAdvance = TimeSpan.FromMinutes(25);
 
-    public SeedStage Stage => SeedStage.Demo;
-
-    public int Order => 700;
-
-    public async Task SeedAsync(CancellationToken cancellationToken)
+    /// <summary>The demo files of <paramref name="agency"/>, unless it already has some or its fleet, plan or customers are missing.</summary>
+    public async Task SeedAsync(AgencyInfo agency, DemoAgencyKind kind, CancellationToken cancellationToken)
     {
-        var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Name == DemoAgencyName);
-        if (agency is null)
-        {
-            LogNoAgency(DemoAgencyName);
-            return;
-        }
-
+        ArgumentNullException.ThrowIfNull(agency);
         if (await writer.Db.Set<Booking>().AnyAsync(b => b.AgencyId == agency.Id && b.Attribution.Source == DemoSource, cancellationToken))
         {
             return;
         }
 
-        var context = await LoadAsync(agency, cancellationToken);
+        var main = kind == DemoAgencyKind.Main;
+        var context = await LoadAsync(agency, main ? DemoContext.MainOffice : DemoContext.SecondOffice, main ? Emails : SecondEmails, cancellationToken);
         if (context is null)
         {
-            LogIncomplete(DemoAgencyName);
+            LogIncomplete(agency.Name);
             return;
         }
 
         var created = 0;
 
         // The history first, oldest first (readable numbers in chronological order), then the files created now.
-        foreach (var file in Plan(context).OrderBy(f => f.IsReplayed ? f.CreatedAt : DateTimeOffset.MaxValue))
+        foreach (var file in (main ? Plan(context) : SecondPlan(context)).OrderBy(f => f.IsReplayed ? f.CreatedAt : DateTimeOffset.MaxValue))
         {
             var seeded = file.IsReplayed
                 ? await ReplayAsync(context, file, cancellationToken)
@@ -118,7 +173,26 @@ internal sealed partial class BookingsDemoSeeder(
             }
         }
 
-        LogSeeded(created);
+        LogSeeded(created, agency.Name);
+    }
+
+    /// <summary>
+    /// The files of the second demo agency (its fleet has an ECMR and a CDMR category): a rental closed last week, a rental
+    /// in progress, a confirmed booking to come.
+    /// </summary>
+    private static IEnumerable<DemoFile> SecondPlan(DemoContext c)
+    {
+        yield return new("sousse-closed-counter", DemoFlow.Closed, SalesChannel.Counter, "ECMR", Hichem, c.At(-12, 9), c.At(-8, 18)) { CreatedAt = c.At(-14, 11, 30) };
+        yield return new("sousse-in-progress-phone", DemoFlow.InProgress, SalesChannel.Phone, "CDMR", Ines, c.At(-2, 10), c.At(3, 10))
+        {
+            CreatedAt = c.At(-5, 15),
+            ReturnPlace = "MIR",
+        };
+        yield return new("sousse-confirmed-phone", DemoFlow.Confirmed, SalesChannel.Phone, "ECMR", Marco, c.At(6, 10), c.At(10, 10))
+        {
+            PickupPlace = "MIR",
+            Notes = "Arrivée par le vol de Rome, 9 h 15.",
+        };
     }
 
     /// <summary>The demo files, relative to the current Tunis day (D) and instant.</summary>
@@ -237,8 +311,14 @@ internal sealed partial class BookingsDemoSeeder(
         };
     }
 
-    private async Task<DemoContext?> LoadAsync(AgencyInfo agency, CancellationToken cancellationToken)
+    private async Task<DemoContext?> LoadAsync(AgencyInfo agency, string office, IReadOnlyList<string> emails, CancellationToken cancellationToken)
     {
+        // A plan of demo files needs the published prices of the agency (its fleet and plan may be seeded later).
+        if (await pricingQueries.GetPublishedPlanAsync(agency.Id, channel: null, cancellationToken) is null)
+        {
+            return null;
+        }
+
         var demoSettings = new DemoSettings(
             await settings.GetAsync(WellKnownSettings.BookingHoldDuration, agency.Id, cancellationToken),
             await settings.GetAsync(WellKnownSettings.PreparationBuffer, agency.Id, cancellationToken),
@@ -249,7 +329,7 @@ internal sealed partial class BookingsDemoSeeder(
             new CancellationPolicy(
                 await settings.GetAsync(BookingSettings.CancellationFreeUntilDays, agency.Id, cancellationToken),
                 await settings.GetAsync(BookingSettings.CancellationFeePercent, agency.Id, cancellationToken)));
-        var context = new DemoContext(agency, writer.Now(), demoSettings);
+        var context = new DemoContext(agency, office, writer.Now(), demoSettings);
 
         foreach (var location in await referential.GetLocationsAsync(agency.Id, cancellationToken))
         {
@@ -262,7 +342,8 @@ internal sealed partial class BookingsDemoSeeder(
             context.Vehicles[category.Id] = [.. (await fleet.GetVehiclesAsync(category.Id, cancellationToken)).OrderBy(v => v.PlateNumber, StringComparer.Ordinal)];
         }
 
-        foreach (var email in Emails)
+        // The persons of the agency only: this step works for the agency (another agency may hold a person with the same e-mail).
+        foreach (var email in emails)
         {
             var person = (await customers.SearchPersonsAsync(email, 5, cancellationToken))
                 .FirstOrDefault(p => string.Equals(p.Email, email, StringComparison.OrdinalIgnoreCase));
@@ -274,7 +355,7 @@ internal sealed partial class BookingsDemoSeeder(
 
         var companies = await customers.SearchCompaniesAsync(CompanyPayer, 5, cancellationToken);
         context.Company = companies.Count > 0 ? companies[0].Id : null;
-        return context.Locations.ContainsKey(DemoContext.Office) && context.Categories.Count > 0 && context.Persons.Count > 0 ? context : null;
+        return context.Locations.ContainsKey(office) && context.Categories.Count > 0 && context.Persons.Count > 0 ? context : null;
     }
 
     /// <summary>A file of the history: its life replayed on the aggregate with past instants, written through the guard.</summary>
@@ -328,7 +409,7 @@ internal sealed partial class BookingsDemoSeeder(
             async (touched, ct) =>
             {
                 var id = Entity.NewId();
-                var number = await writer.NextNumberAsync(file.CreatedAt, ct);
+                var number = await writer.NextNumberAsync(context.Agency.Id, file.CreatedAt, ct);
                 var quote = await quotes.AddVersionAsync(id, 1, QuoteOrigin.Initial, content, writer.Actor(file.Channel).Name, file.CreatedAt, ct);
                 if (quote.IsFailure)
                 {
@@ -727,17 +808,14 @@ internal sealed partial class BookingsDemoSeeder(
 
     private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) => left < right ? left : right;
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Demo agency {Agency} not found: no demo rental files.")]
-    private partial void LogNoAgency(string agency);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The demo locations, fleet or customers of {Agency} are missing: no demo rental files.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The demo locations, fleet, published plan or customers of {Agency} are missing: no demo rental files.")]
     private partial void LogIncomplete(string agency);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo rental file {File} skipped: {Code}.")]
     private partial void LogSkipped(string file, string code);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} demo rental files created.")]
-    private partial void LogSeeded(int count);
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} demo rental files created for {Agency}.")]
+    private partial void LogSeeded(int count, string agency);
 
     /// <summary>How a demo file is produced.</summary>
     private enum DemoFlow
@@ -810,21 +888,30 @@ internal sealed partial class BookingsDemoSeeder(
 
         public DemoAmendment Amendment { get; init; }
 
-        public string PickupPlace { get; init; } = DemoContext.Office;
+        /// <summary>Code of the pick-up place; <see langword="null"/> for the office of the agency.</summary>
+        public string? PickupPlace { get; init; }
 
-        public string ReturnPlace { get; init; } = DemoContext.Office;
+        /// <summary>Code of the return place; <see langword="null"/> for the office of the agency.</summary>
+        public string? ReturnPlace { get; init; }
 
         public bool IsReplayed => Flow < DemoFlow.Draft;
     }
 
     /// <summary>The demo agency, its places, fleet, persons and settings, and the schedule of its vehicles being laid out.</summary>
-    private sealed class DemoContext(AgencyInfo agency, DateTimeOffset now, DemoSettings timing)
+    private sealed class DemoContext(AgencyInfo agency, string office, DateTimeOffset now, DemoSettings timing)
     {
-        public const string Office = "AGC";
+        /// <summary>Code of the office of the main demo agency.</summary>
+        public const string MainOffice = "AGC";
+
+        /// <summary>Code of the office of the second demo agency.</summary>
+        public const string SecondOffice = "SOU";
 
         private readonly Dictionary<Guid, List<Period>> _busy = [];
 
         public AgencyInfo Agency { get; } = agency;
+
+        /// <summary>Code of the office of the agency: the place of the files that name none.</summary>
+        public string Office { get; } = office;
 
         public DateTimeOffset Now { get; } = now;
 
@@ -845,7 +932,7 @@ internal sealed partial class BookingsDemoSeeder(
         /// <summary>Tunis wall clock time <paramref name="day"/> days from today.</summary>
         public DateTimeOffset At(int day, int hour, int minute = 0) => TunisTime.FromLocal(Today.AddDays(day), new TimeOnly(hour, minute));
 
-        public Guid Location(string code) => Locations.TryGetValue(code, out var id) ? id : Locations[Office];
+        public Guid Location(string? code) => code is not null && Locations.TryGetValue(code, out var id) ? id : Locations[Office];
 
         public Guid? Person(string? email) => email is not null && Persons.TryGetValue(email, out var id) ? id : null;
 

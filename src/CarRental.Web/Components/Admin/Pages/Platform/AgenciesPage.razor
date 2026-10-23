@@ -1,0 +1,116 @@
+@page "/admin/platform"
+@attribute [HasPermission(Permissions.PlatformAgencies)]
+@using CarRental.Application.Referential.Platform
+@inject IOperationRunner Runner
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<AdminResources> L
+@inject IStringLocalizer<SharedResources> Shared
+
+@* The home of the support (ADR-0067): every agency of the platform, the way into the back office of each, its page, and
+   the registration of a new one. *@
+<PageTitle>@L["Platform.Agencies.Title"]</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && _agencies is not null ? "true" : "false")">@L["Platform.Agencies.Title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddBusiness" OnClick="RegisterAsync"
+               Disabled="@(_agencies is null)">@L["Platform.Agencies.Register"]</MudButton>
+</MudStack>
+<MudText Typo="Typo.body1" Class="mb-4">@L["Platform.Agencies.Intro"]</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_agencies is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="@L["Loading"]" />
+}
+else if (_agencies.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">@L["Platform.Agencies.Empty"]</MudAlert>
+}
+else
+{
+    <MudTable T="PlatformAgencyItem" Items="_agencies" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
+              TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Platform.Agencies.Title"].Value })">
+        <HeaderContent>
+            <MudTh>@L["Platform.Agencies.Name"]</MudTh>
+            <MudTh>@L["Platform.Agencies.City"]</MudTh>
+            <MudTh>@L["Platform.Agencies.Site"]</MudTh>
+            <MudTh>@L["Platform.Agencies.Modules"]</MudTh>
+            <MudTh>@L["Platform.Agencies.Status"]</MudTh>
+            <MudTh>@L["Platform.Agencies.Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Platform.Agencies.Name"]" data-agency-slug="@context.Slug">
+                <MudLink Href="@PlatformPaths.Agency(context.Id)" Underline="Underline.Always">@context.Name</MudLink>
+            </MudTd>
+            <MudTd DataLabel="@L["Platform.Agencies.City"]">@context.City</MudTd>
+            <MudTd DataLabel="@L["Platform.Agencies.Site"]">
+                <MudLink Href="@PlatformPaths.PublicSite(context.Slug)" Target="_blank" rel="noopener" Underline="Underline.Always"
+                         aria-label="@L["Platform.Agencies.SiteLink", context.Name, PlatformPaths.PublicSite(context.Slug)]"><code>@PlatformPaths.PublicSite(context.Slug)</code></MudLink>
+            </MudTd>
+            <MudTd DataLabel="@L["Platform.Agencies.Modules"]">
+                <AgencyModuleChips Modules="context.Modules" />
+            </MudTd>
+            <MudTd DataLabel="@L["Platform.Agencies.Status"]">
+                <AgencyStatusChip IsActive="context.IsActive" />
+            </MudTd>
+            <MudTd DataLabel="@L["Platform.Agencies.Actions"]">
+                <div class="d-flex flex-wrap gap-1">
+                    <form method="post" action="@PlatformPaths.Enter">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="agencyId" value="@context.Id.ToString("D")" />
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Login"
+                                   aria-label="@L["Platform.Agencies.EnterOne", context.Name]">@L["Platform.Agencies.Enter"]</MudButton>
+                    </form>
+                    <MudButton Href="@PlatformPaths.Agency(context.Id)" Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Info"
+                               aria-label="@L["Platform.Agencies.DetailsOne", context.Name]">@L["Platform.Agencies.Details"]</MudButton>
+                </div>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<PlatformAgencyItem>? _agencies;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<IReadOnlyList<PlatformAgencyItem>>>(
+            (service, ct) => service.ListAsync(ct));
+        if (result.IsSuccess)
+        {
+            _agencies = result.Value;
+            _error = null;
+        }
+        else
+        {
+            _error = ErrorMessages.For(Shared, result.Error);
+        }
+    }
+
+    private async Task RegisterAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<RegisterAgencyDialog>(
+            L["Platform.Agencies.Register"],
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialog.Result is { Canceled: false, Data: RegisteredAgency registered })
+        {
+            Snackbar.Add(L["Platform.Agencies.Registered", registered.Name], Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

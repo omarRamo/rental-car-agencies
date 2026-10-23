@@ -15,6 +15,7 @@ public sealed class ChannelRecordsTests
         var reminder = ChannelReplicationItem.ForRestriction(quota, ChannelReplicationKind.QuotaAdded, Stamp);
 
         reminder.QuotaId.ShouldBe(quota.Id);
+        reminder.AgencyId.ShouldBe(AgencyId, "the agency of the channel of the quota");
         reminder.Vehicles.ShouldBe(2);
         reminder.StartDate.ShouldBe(quota.StartDate);
         reminder.IsAcknowledged.ShouldBeFalse();
@@ -22,33 +23,40 @@ public sealed class ChannelRecordsTests
         reminder.Acknowledge(Stamp).ShouldBeFalse();
         reminder.AcknowledgedBy.ShouldBe("agent@demo.local");
         Should.Throw<ArgumentOutOfRangeException>(() => ChannelReplicationItem.ForRestriction(quota, ChannelReplicationKind.RatesPublished, Stamp));
-        ChannelReplicationItem.ForRates(quota.ChannelId, "Grille 2027 v3", Stamp).Detail.ShouldBe("Grille 2027 v3");
+        var rates = ChannelReplicationItem.ForRates(quota.ChannelId, AgencyId, "Grille 2027 v3", Stamp);
+        rates.Detail.ShouldBe("Grille 2027 v3");
+        rates.AgencyId.ShouldBe(AgencyId);
+        Should.Throw<ArgumentException>(() => ChannelReplicationItem.ForRates(quota.ChannelId, Guid.Empty, null, Stamp));
     }
 
     [Fact]
     public void A_payout_is_a_positive_tnd_amount_of_a_month()
     {
-        var channelId = Guid.CreateVersion7();
+        var channel = NewChannel();
 
-        var payout = ChannelPayout.Record(channelId, 2027, 7, Tnd(12_500.5m), " VIR-77 ", null, Stamp).Value;
-        ChannelPayout.Record(channelId, 2027, 13, Tnd(1m), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutMonthInvalid);
-        ChannelPayout.Record(channelId, 2027, 7, Tnd(-1m), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutAmountInvalid);
-        ChannelPayout.Record(channelId, 2027, 7, Money.Of(1m, Currency.Eur), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutAmountInvalid);
+        var payout = ChannelPayout.Record(channel, 2027, 7, Tnd(12_500.5m), " VIR-77 ", null, Stamp).Value;
+        ChannelPayout.Record(channel, 2027, 13, Tnd(1m), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutMonthInvalid);
+        ChannelPayout.Record(channel, 2027, 7, Tnd(-1m), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutAmountInvalid);
+        ChannelPayout.Record(channel, 2027, 7, Money.Of(1m, Currency.Eur), null, null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutAmountInvalid);
         payout.Change(Tnd(1m), new string('r', ChannelPayout.ReferenceMaxLength + 1), null, Stamp).Error.ShouldBe(ChannelsErrors.PayoutTextTooLong);
 
         payout.Reference.ShouldBe("VIR-77");
         payout.Amount.ShouldBe(Tnd(12_500.5m));
+        payout.ChannelId.ShouldBe(channel.Id);
+        payout.AgencyId.ShouldBe(channel.AgencyId);
     }
 
     [Fact]
     public void The_price_fingerprint_reports_a_change_but_not_the_first_observation()
     {
-        var state = ChannelSyncState.For(Guid.CreateVersion7());
+        var state = ChannelSyncState.For(Guid.CreateVersion7(), AgencyId);
 
         state.ObserveRates("plan:1", Now).ShouldBeFalse();
         state.ObserveRates("plan:1", Now).ShouldBeFalse();
         state.ObserveRates("plan:2", Now).ShouldBeTrue();
         state.RatesFingerprint.ShouldBe("plan:2");
+        state.AgencyId.ShouldBe(AgencyId);
+        Should.Throw<ArgumentException>(() => ChannelSyncState.For(Guid.CreateVersion7(), Guid.Empty));
     }
 
     [Fact]
@@ -82,6 +90,7 @@ public sealed class ChannelRecordsTests
     {
         var row = ChannelMessageLog.Record(new ChannelMessageRecord(
             null,
+            null,
             new string('c', 50),
             ChannelMessageDirection.Inbound,
             ChannelMessageOperation.Unknown,
@@ -98,6 +107,7 @@ public sealed class ChannelRecordsTests
         row.Excerpt.ShouldStartWith("line1 line2");
         row.DurationMilliseconds.ShouldBe(13);
         row.ChannelReference.ShouldBeNull();
+        row.AgencyId.ShouldBeNull("a message to no known channel is a record of the platform");
     }
 
     [Theory]

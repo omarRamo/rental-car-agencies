@@ -11,7 +11,7 @@
         <MudTextField T="string" @bind-Value="_displayName" Label="@L["Users.Field.DisplayName"]" Required="true"
                       RequiredError="@Shared["Validation.Required"]" MaxLength="UserAdministrationService.DisplayNameMaxLength" />
         <MudSelect T="string" @bind-Value="_role" Label="@L["Users.Field.Role"]" Required="true">
-            @foreach (var role in Roles.All)
+            @foreach (var role in Roles.AgencyRoles)
             {
                 <MudSelectItem T="string" Value="@role">@L[$"Role.{role}"]</MudSelectItem>
             }

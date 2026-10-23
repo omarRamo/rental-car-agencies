@@ -13,8 +13,8 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Web.Components.Admin.Fleet;
 
 /// <summary>
-/// Deadline alert e-mail, in French and English (the job runs without a user culture, like the invitation e-mail), with a
-/// link to the vehicle when <c>PublicSite:BaseUrl</c> is configured.
+/// Deadline alert e-mail, in French and English (the job runs without a user culture, like the invitation e-mail), named
+/// after the agency of the vehicle, with a link to the vehicle when <c>PublicSite:BaseUrl</c> is configured.
 /// </summary>
 internal sealed class DeadlineAlertEmailFactory(IOptions<PublicSiteOptions> site) : IDeadlineAlertEmailFactory
 {
@@ -63,7 +63,9 @@ internal sealed class DeadlineAlertEmailFactory(IOptions<PublicSiteOptions> site
             text.Append('\n');
         }
 
-        var subject = $"{site.Value.AgencyName} — {string.Join(" / ", subjects)}";
+        // The agency of the vehicle (ADR-0067): a manager of each agency only hears of their own fleet.
+        var agency = string.IsNullOrWhiteSpace(notice.AgencyName) ? site.Value.AgencyName : notice.AgencyName;
+        var subject = $"{agency} — {string.Join(" / ", subjects)}";
         return new EmailMessage(recipient.Email, subject, html.ToString(), text.ToString()) { ToName = recipient.DisplayName };
     }
 

@@ -1,10 +1,12 @@
 @page "/admin/whatsapp/knowledge"
 @attribute [HasPermission(Permissions.WhatsAppKnowledge)]
+@attribute [RequiresModule(AgencyModules.WhatsApp)]
 @* The knowledge base of the WhatsApp assistant (ADR-0056): the answers it may give on the agency, drafts until a
    manager validates them (audited); a change sends an answer back to draft, a deactivation withdraws it. Only the
    validated and active answers ever reach a customer. *@
 @using CarRental.Application.Common.Paging
 @using CarRental.Application.Messaging.Agent.Knowledge
+@using CarRental.Web.Components.Admin.WhatsApp
 @using CarRental.Web.Resources.Admin.WhatsApp
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
@@ -20,6 +22,7 @@
 </MudStack>
 <MudText Typo="Typo.body2" Class="mb-2">@L["Knowledge.Help"]</MudText>
 <MudLink Href="/admin/whatsapp" Typo="Typo.body2" Class="d-inline-block mb-3">@L["Link.Inbox"]</MudLink>
+<WhatsAppNumberNotice />
 
 <MudTable @ref="_table" T="KnowledgeEntryItem" ServerData="LoadAsync" RowsPerPage="25" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm"
           TableAttributes="@(new Dictionary<string, object> { ["aria-label"] = L["Knowledge.Table"].Value })" data-testid="knowledge">

@@ -69,18 +69,23 @@ public sealed class BookingAdministrationQueries
         _clock = clock;
     }
 
-    /// <summary>The agency the back office works on: the first active agency (one agency at launch, SPEC §2).</summary>
-    public async Task<Result<AgencyInfo>> GetDefaultAgencyAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The agency the back office works on: the agency of the session (of the staff member, or the agency the support
+    /// entered, ADR-0067); <c>booking.agency_required</c> outside any agency.
+    /// </summary>
+    public async Task<Result<AgencyInfo>> GetCurrentAgencyAsync(CancellationToken cancellationToken = default)
     {
         if (!_user.IsAuthenticated && !_user.IsSystem)
         {
             return BookingErrors.Forbidden;
         }
 
-        var agency = (await _referential.GetAgenciesAsync(cancellationToken))
-            .Where(a => a.IsActive)
-            .OrderBy(a => a.Name, StringComparer.Ordinal)
-            .FirstOrDefault();
+        if (_user.AgencyId is not { } agencyId)
+        {
+            return BookingErrors.AgencyRequired;
+        }
+
+        var agency = (await _referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Id == agencyId);
         return agency is null ? BookingErrors.AgencyRequired : agency;
     }
 

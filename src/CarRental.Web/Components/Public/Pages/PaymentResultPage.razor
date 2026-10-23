@@ -1,6 +1,7 @@
-@page "/{culture:length(2)}/paiement/{PaymentId:guid}"
-@page "/{culture:length(2)}/payment/{PaymentId:guid}"
+@page "/{agency}/{culture:length(2)}/paiement/{PaymentId:guid}"
+@page "/{agency}/{culture:length(2)}/payment/{PaymentId:guid}"
 @* Anonymous and read from the database at each request: under the public-search limit (security review, ADR-0062). *@
+@inherits PublicPageBase
 @attribute [EnableRateLimiting(PublicRateLimits.Search)]
 @using CarRental.Application.Payments.Contracts
 @inject IOnlinePayments Payments
@@ -8,7 +9,8 @@
 
 @* Outcome of an online payment after the payment page (payment links, development pages; the booking funnel and
    "Ma réservation" have their own pages). It only shows what the server confirmed: the status read server to server by
-   the return address, never the query of the gateway; amount and status only, no personal data. *@
+   the return address, never the query of the gateway; amount and status only, no personal data; payments of the agency of
+   the site only. *@
 
 <PageTitle>@L["Result.Title"]</PageTitle>
 <HeadContent>
@@ -35,14 +37,11 @@
             <dd>@_payment.OrderNumber[^8..].ToUpperInvariant()</dd>
         </dl>
     }
-    <p><a class="button button--secondary" href="@($"/{Culture}")">@L["Result.Home"]</a></p>
+    <p><a class="button button--secondary" href="@PublicRoutes.PathFor(Slug, PublicPage.Home, Lang)">@L["Result.Home"]</a></p>
 </section>
 
 @code {
     private OnlinePaymentInfo? _payment;
-
-    [Parameter]
-    public string Culture { get; set; } = CultureCatalog.Default;
 
     [Parameter]
     public Guid PaymentId { get; set; }
@@ -66,5 +65,9 @@
         _ => "warning",
     };
 
-    protected override async Task OnInitializedAsync() => _payment = await Payments.FindAsync(PaymentId);
+    protected override async Task OnInitializedAsync()
+    {
+        var payment = await Payments.FindAsync(PaymentId, Aborted);
+        _payment = payment?.AgencyId == SiteAgency.Id ? payment : null;
+    }
 }

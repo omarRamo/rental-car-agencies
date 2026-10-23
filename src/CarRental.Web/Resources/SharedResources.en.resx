@@ -603,6 +603,9 @@
   <data name="Error.payments.booking_required" xml:space="preserve">
     <value>A booking is required.</value>
   </data>
+  <data name="Error.payments.booking_not_found" xml:space="preserve">
+    <value>This rental file does not exist.</value>
+  </data>
   <data name="Error.payments.amount_invalid" xml:space="preserve">
     <value>The amount is positive, in dinars with at most 3 decimals (millimes), and at most 1,000,000 TND.</value>
   </data>
@@ -1199,6 +1202,9 @@
   </data>
   <data name="Error.messaging.disabled" xml:space="preserve">
     <value>WhatsApp is not configured on this platform: no message can be sent.</value>
+  </data>
+  <data name="Error.messaging.module_off" xml:space="preserve">
+    <value>WhatsApp is not open for the agency (module switched off or agency suspended): the message was not sent.</value>
   </data>
   <data name="Error.messaging.send.rejected" xml:space="preserve">
     <value>Meta refused the message.</value>
@@ -2030,5 +2036,80 @@
   </data>
   <data name="Error.accounting.export.format_unknown" xml:space="preserve">
     <value>Unknown export format.</value>
+  </data>
+  <data name="Error.referential.agency_slug_invalid" xml:space="preserve">
+    <value>The public site address has 3 to 60 characters: lower-case letters and digits separated by single hyphens.</value>
+  </data>
+  <data name="Error.referential.agency_slug_reserved" xml:space="preserve">
+    <value>This address is used by the platform itself: choose another one.</value>
+  </data>
+  <data name="Error.referential.agency_slug_taken" xml:space="preserve">
+    <value>Another agency already uses this address.</value>
+  </data>
+  <data name="Error.referential.agency_modules_invalid" xml:space="preserve">
+    <value>Unknown module.</value>
+  </data>
+  <data name="Error.referential.platform_value_forbidden" xml:space="preserve">
+    <value>Only the support changes the value shared by the whole platform; set the value of your agency instead.</value>
+  </data>
+  <data name="Error.referential.platform_forbidden" xml:space="preserve">
+    <value>Only the support manages the agencies of the platform.</value>
+  </data>
+  <data name="Error.referential.platform_leave_agency_first" xml:space="preserve">
+    <value>Leave the agency you opened to manage the agencies of the platform.</value>
+  </data>
+  <data name="Error.referential.platform_agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.referential.platform_concurrent_update" xml:space="preserve">
+    <value>The agency was changed meanwhile: reload it and try again.</value>
+  </data>
+  <data name="Error.identity.last_support" xml:space="preserve">
+    <value>The last active support account cannot be locked.</value>
+  </data>
+  <data name="Error.identity.agency_required" xml:space="preserve">
+    <value>Open an agency first: its users are managed from its back office.</value>
+  </data>
+  <data name="Error.identity.permission_not_for_agency" xml:space="preserve">
+    <value>A platform permission cannot be given to a member of an agency.</value>
+  </data>
+  <data name="Error.identity.agency_not_found" xml:space="preserve">
+    <value>This agency does not exist.</value>
+  </data>
+  <data name="Error.identity.platform_scope_required" xml:space="preserve">
+    <value>This operation is done from the platform pages, outside any agency.</value>
+  </data>
+  <data name="Error.identity.not_support_account" xml:space="preserve">
+    <value>Only a support account opens and leaves the agencies.</value>
+  </data>
+  <data name="Error.referential.location_forbidden" xml:space="preserve">
+    <value>You may not manage the locations of the agency.</value>
+  </data>
+  <data name="Error.referential.location_not_found" xml:space="preserve">
+    <value>This location does not exist.</value>
+  </data>
+  <data name="Error.referential.location_code_taken" xml:space="preserve">
+    <value>Another location of the agency already uses this code.</value>
+  </data>
+  <data name="Error.referential.location_last_active" xml:space="preserve">
+    <value>Keep at least one active location: without one, the agency can take no booking.</value>
+  </data>
+  <data name="Error.referential.location_concurrent_update" xml:space="preserve">
+    <value>The location was changed meanwhile: reload the page and try again.</value>
+  </data>
+  <data name="Error.reporting.funnel_event.agency_required" xml:space="preserve">
+    <value>A funnel step is measured for the agency of the public site being browsed.</value>
+  </data>
+  <data name="Error.cash.module_off" xml:space="preserve">
+    <value>The cash module is not enabled for this agency: no cash session takes cash. Choose another means of payment.</value>
+  </data>
+  <data name="Error.customers.agency_required" xml:space="preserve">
+    <value>Customers are registered for an agency: open the agency concerned first.</value>
+  </data>
+  <data name="Error.messaging.number_not_served" xml:space="preserve">
+    <value>The platform's WhatsApp number does not serve this agency (it serves another agency, or none): no message can be sent for it.</value>
+  </data>
+  <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
+    <value>The platform's WhatsApp number already serves another agency and can serve only one: with this module on here, it would serve neither of them. Designate the agency to serve first (setting WhatsApp__AgencyId), then switch the module on.</value>
   </data>
 </root>

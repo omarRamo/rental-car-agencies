@@ -87,6 +87,14 @@ public static class MessagingErrors
         "messaging.disabled",
         "WhatsApp is not configured on this platform (WhatsApp:Mode): messages cannot be sent.");
 
+    public static readonly Error ModuleOff = Error.Failure(
+        "messaging.module_off",
+        "WhatsApp is not open for the agency (module switched off or agency suspended): the message was not sent.");
+
+    public static readonly Error NumberNotServed = Error.Failure(
+        "messaging.number_not_served",
+        "The platform's WhatsApp number does not serve this agency (it serves another one, or none): no message can be sent for it.");
+
     public static readonly Error WebhookUnreadable = Error.Validation(
         "messaging.webhook.unreadable",
         "The webhook payload is not the JSON envelope of the WhatsApp Cloud API.");

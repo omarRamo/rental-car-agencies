@@ -84,6 +84,7 @@ internal static class MessagingMapping
         ArgumentNullException.ThrowIfNull(conversation);
         return new ConversationInfo(
             conversation.Id,
+            conversation.AgencyId,
             conversation.WhatsAppNumber,
             conversation.ProfileName,
             conversation.PersonId,

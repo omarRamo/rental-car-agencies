@@ -1,4 +1,5 @@
-@* Menu filtered by the permissions of the signed-in user (pages enforce them again). MudNavMenu renders the nav
+@* Menu filtered by the permissions of the signed-in user and by the modules of the agency of the session (ADR-0067;
+   pages enforce both again). The support outside any agency sees the platform pages only. MudNavMenu renders the nav
    landmark itself: it carries the accessible name (a wrapping nav would make two navigation landmarks). *@
 @inject IStringLocalizer<AdminResources> L
 
@@ -7,7 +8,14 @@
         <Authorized Context="auth">
             @foreach (var group in AdminNavigation.Groups)
             {
-                var items = group.Items.Where(i => i.Permission is null || auth.User.HasPermission(i.Permission)).ToList();
+                if (Agency is null && auth.User.IsSupport() && group.TitleKey != AdminNavigation.PlatformGroupKey)
+                {
+                    continue;
+                }
+
+                var items = group.Items
+                    .Where(i => (i.Permission is null || auth.User.HasPermission(i.Permission)) && CurrentAgency.Offers(Agency, i.Module))
+                    .ToList();
                 if (items.Count == 0)
                 {
                     continue;
@@ -23,3 +31,9 @@
         </Authorized>
     </AuthorizeView>
 </MudNavMenu>
+
+@code {
+    /// <summary>The agency of the session (cascaded by the layout), <see langword="null"/> for the support outside any agency.</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
+}

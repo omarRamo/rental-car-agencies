@@ -15,14 +15,15 @@ namespace CarRental.E2E.Tests.Scenarios;
 /// The high-season day in the browser (docs/scenarios/journee-haute-saison.md), compact but complete: a customer books
 /// on a phone (390 px) through the public funnel up to the simulated bank; the agent, on a 10-inch tablet (1280 × 800),
 /// validates the request, sells the last car of the category at the counter while a second tablet is refused, sees both
-/// files on the planning once the proposals are applied, hands a car over on the departure wizard, takes a late car back
-/// with its late day priced by the engine, and finds the day on the dashboard and the hand-overs screen. No serious or
-/// critical accessibility violation on any screen of the way.
+/// files on the planning once the proposals are applied, hands a car over on the departure wizard and finds it on the
+/// dashboard; an agent of another agency takes a late car back with its late day priced by the engine and finds the
+/// return closed on the hand-overs screen. No serious or critical accessibility violation on any screen of the way.
 /// </summary>
 /// <remarks>
 /// The public site and the back office serve the demo agency, shared by the browser tests: the scenario sells its own
 /// dates (a month ahead, in a category no other test books) and its own customers. The late car is the rental of an
-/// agency of its own: the demo agency keeps the single late return that other tests count. A whole day writes much
+/// agency of its own, taken back by one of its agents (an agency never sees another's files, ADR-0067): the demo agency
+/// keeps the single late return that other tests count. A whole day writes much
 /// in a few seconds (bookings, photos, payments, a deposit, the audit rows of all of it) and reads the shared screens
 /// of the day: it runs alone, once the other browser tests are done (<see cref="HighSeasonDayE2ECollection"/>).
 /// </remarks>
@@ -62,21 +63,26 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         var counter = await SellTheLastCarAtTheCounterAsync(day);
         await ThePlanningShowsBothFilesAsync(day, request, counter);
         await HandOverAsync(departure);
+        await TheDashboardTellsTheDayAsync(departure);
+
+        // The late car belongs to another agency (ADR-0067): one of its agents takes it back, on the same tablet.
+        await Context.ClearCookiesAsync();
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Agent, late.File.AgencyId), "/admin/handovers");
         await TakeTheLateCarBackAsync(late);
-        await TheDashboardTellsTheDayAsync(departure, late);
+        await TheHandOversOfTheLateAgencyShowTheReturnAsync(late);
     }
 
     /// <summary>Results, options, drivers, payment step, the page of the simulated bank, the confirmation: 390 px, no horizontal scroll.</summary>
     private async Task<string> BookOnAPhoneAsync(DateOnly day)
     {
         var suffix = HighSeasonDayE2EData.Unique();
-        await Page.GotoAsync($"/fr/reserver?lieu=TUN&depart={HighSeasonDayE2EData.Input(day)}&retour={HighSeasonDayE2EData.Input(day.AddDays(3))}");
+        await Page.GotoAsync($"/agence-demo-tunis/fr/reserver?lieu=TUN&depart={HighSeasonDayE2EData.Input(day)}&retour={HighSeasonDayE2EData.Input(day.AddDays(3))}");
         var offer = Page.Locator($"li.offer:has(.offer__code:text-is('{HighSeasonDayE2EData.Category}'))");
         await Expect(offer).ToBeVisibleAsync(Slow);
         await AccessibleOnAPhoneAsync();
         await offer.Locator("form.offer__choose button").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/[A-Za-z0-9_-]{43}/options$"));
         await AccessibleOnAPhoneAsync();
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Continuer vers les conducteurs" }).ClickAsync();
 
@@ -105,7 +111,7 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Expect(Page).ToHaveURLAsync(new Regex("/dev/clictopay/pay/"));
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Payer" }).ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
+        await Expect(Page).ToHaveURLAsync(new Regex("/agence-demo-tunis/fr/reserver/confirmation/LOC-[0-9]{4}-[0-9]{6}$"));
         await Expect(Heading).ToHaveTextAsync("Demande reçue");
         await Expect(Page.Locator("[data-testid='guarantee-state']")).ToHaveAttributeAsync("data-state", "Held");
         await AccessibleOnAPhoneAsync();
@@ -326,7 +332,7 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
 
         await Expect(Page.Locator("[data-step-panel=payment]")).ToBeVisibleAsync(Slow);
         await Expect(Page.Locator("[data-testid=return-balance]")).ToContainTextAsync("102,380", SlowContains);
-        (await HighSeasonDayE2EData.StatusAsync(Host, late.File.Number)).ShouldBe(BookingStatus.Returned);
+        (await HandoverE2EData.StatusAsync(Host, late.File.BookingId)).ShouldBe(BookingStatus.Returned);
         await HandoverE2EData.PayAsync(Host, late.File, 102.380m);
         await Page.GotoAsync($"/admin/handovers/{late.File.BookingId}/return?step=payment");
         await Expect(Step("payment")).ToHaveClassAsync(new Regex("handover-step--done"), SlowClass);
@@ -336,11 +342,11 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Page.Locator("[data-testid=return-close]").ClickAsync();
         await Expect(Page.Locator("[data-testid=return-closed]")).ToBeVisibleAsync(Slow);
         await AccessibleAsync();
-        (await HighSeasonDayE2EData.StatusAsync(Host, late.File.Number)).ShouldBe(BookingStatus.Closed);
+        (await HandoverE2EData.StatusAsync(Host, late.File.BookingId)).ShouldBe(BookingStatus.Closed);
     }
 
-    /// <summary>The dashboard of the day lists the departure done; the hand-overs of the late agency show its return closed.</summary>
-    private async Task TheDashboardTellsTheDayAsync(HighSeasonDayE2EData.Walkin departure, HighSeasonDayE2EData.Late late)
+    /// <summary>The dashboard of the day lists the departure done.</summary>
+    private async Task TheDashboardTellsTheDayAsync(HighSeasonDayE2EData.Walkin departure)
     {
         await Page.GotoAsync("/admin");
         await BackOfficeSession.WaitUntilInteractiveAsync(Page);
@@ -350,12 +356,13 @@ public sealed class HighSeasonDayE2ETests(E2EHost host) : BrowserTest(host)
         await Expect(departed).ToContainTextAsync("fait");
         await Expect(Page.GetByTestId("handovers-widget-counts")).ToBeVisibleAsync(Slow);
         await AccessibleAsync();
+    }
 
+    /// <summary>The hand-overs of the late agency, on the day the car was due: its return closed, no late return left.</summary>
+    private async Task TheHandOversOfTheLateAgencyShowTheReturnAsync(HighSeasonDayE2EData.Late late)
+    {
         await Page.GotoAsync($"/admin/handovers?day={late.PlannedReturnDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
         await Expect(Page.Locator("h1[data-ready=true]")).ToBeVisibleAsync(Slow);
-        await Page.GetByLabel("Agence").ClickAsync();
-        await BackOfficeSession.WaitForOpenPopoverAsync(Page);
-        await Page.Locator(".mud-popover-open .mud-list-item", new PageLocatorOptions { HasText = late.AgencyName }).ClickAsync();
         var returned = Page.Locator($"[data-testid=handover-returns] li[data-handover='{late.File.Number}']");
         await Expect(returned).ToContainTextAsync("Clôturée", SlowContains);
         await Expect(Page.Locator($"[data-testid=handover-late] li[data-handover='{late.File.Number}']")).ToHaveCountAsync(0);

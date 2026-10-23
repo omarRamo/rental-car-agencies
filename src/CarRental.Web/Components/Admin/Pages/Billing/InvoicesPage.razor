@@ -9,18 +9,7 @@
 <PageTitle>@L["Invoices.Title"]</PageTitle>
 <BillingStyles />
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-2">
-    <MudText Typo="Typo.h4" HtmlTag="h1" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Invoices.Title"]</MudText>
-    @if (_agencies.Count > 1)
-    {
-        <MudSelect T="Guid?" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]" Style="min-inline-size:14rem">
-            @foreach (var agency in _agencies)
-            {
-                <MudSelectItem T="Guid?" Value="@agency.Id">@agency.Name</MudSelectItem>
-            }
-        </MudSelect>
-    }
-</MudStack>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-2" data-ready="@(RendererInfo.IsInteractive && _loaded ? "true" : "false")">@L["Invoices.Title"]</MudText>
 <MudText Typo="Typo.body1" Class="mb-4">@L["Invoices.Intro"]</MudText>
 
 <MudTabs Elevation="1" Rounded="true" TabPanelsClass="pa-3" @bind-ActivePanelIndex="_tab" aria-label="@L["Invoices.Tabs"]">
@@ -159,7 +148,7 @@
             <Notice Kind="NoticeKind.Warning" Class="mb-3" Role="status">
                 @Shared[$"Error.{blocking}"]
                 <AuthorizeView Policy="@PermissionPolicy.For(Permissions.SettingsManage)">
-                    <MudLink Href="@($"/admin/agency?agency={_agencyId:D}")" Underline="Underline.Always" Class="ms-1">@L["ToInvoice.CompleteIdentity"]</MudLink>
+                    <MudLink Href="/admin/agency" Underline="Underline.Always" Class="ms-1">@L["ToInvoice.CompleteIdentity"]</MudLink>
                 </AuthorizeView>
             </Notice>
         }
@@ -266,7 +255,6 @@
 @code {
     private MudTable<InvoiceListItem>? _invoices;
     private MudTable<CreditNoteListItem>? _creditNotes;
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private IReadOnlyList<FileToInvoice> _toInvoice = [];
     private IReadOnlyList<EInvoiceQueueItem> _queue = [];
     private Guid? _agencyId;
@@ -285,12 +273,11 @@
     [SupplyParameterFromQuery(Name = "tab")]
     public string? TabQuery { get; set; }
 
-    /// <summary>The agency to show first (its id), otherwise the first one by name.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
+    /// <summary>The agency of the session (cascaded by the layout): the documents shown are its own (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override void OnInitialized() =>
         _tab = TabQuery switch
         {
             "credit-notes" => 1,
@@ -298,15 +285,24 @@
             "einvoice" => 3,
             _ => 0,
         };
-        var agencies = await Runner.RunAsync<BillingAdministrationQueries, Result<IReadOnlyList<AgencyInfo>>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        if (agencies.IsSuccess)
-        {
-            _agencies = agencies.Value;
-            _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id;
-        }
 
-        await LoadListsAsync();
-        _loaded = true;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Agency is { } agency && agency.Id != _agencyId)
+        {
+            // The tables load on their first render: they are reloaded only when the agency changes afterwards. A reload
+            // started before that first load is superseded (cancelled) by it and this method would end there, the page
+            // never marked loaded.
+            var reload = _agencyId is not null;
+            _agencyId = agency.Id;
+            await LoadListsAsync();
+            if (reload)
+            {
+                await ReloadInvoicesAsync();
+            }
+
+            _loaded = true;
+        }
     }
 
     private async Task LoadListsAsync()
@@ -357,13 +353,6 @@
         {
             await _creditNotes.ReloadServerData();
         }
-    }
-
-    private async Task AgencyChangedAsync(Guid? agencyId)
-    {
-        _agencyId = agencyId;
-        await LoadListsAsync();
-        await ReloadInvoicesAsync();
     }
 
     private Task FromChangedAsync(string? value)

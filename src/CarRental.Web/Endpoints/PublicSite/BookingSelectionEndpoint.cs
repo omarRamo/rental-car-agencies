@@ -16,7 +16,7 @@ namespace CarRental.Web.Endpoints.PublicSite;
 /// new quote priced and locked for 24 hours — and the browser goes to step 1 (options) of its token.
 /// </summary>
 /// <remarks>
-/// <para>Contract: <c>POST /{culture}/reserver/selection</c> (<see cref="PublicRoutes.SelectionRouteTemplate"/>), form
+/// <para>Contract: <c>POST /{agency}/{culture}/reserver/selection</c> (<see cref="PublicRoutes.SelectionRouteTemplate"/>), form
 /// fields named like the deep link (<see cref="SearchParameters"/>): <c>lieu</c>, <c>retour_lieu</c>, <c>depart</c>,
 /// <c>retour</c>, <c>cat</c>, <c>devis</c>, <c>src</c> and <c>utm_*</c>, plus <c>boite</c>, <c>places</c> and <c>tri</c>
 /// to come back to the same results, and the antiforgery field.</para>
@@ -51,9 +51,10 @@ public static partial class BookingSelectionEndpoint
         }
 
         var lang = culture.ToLowerInvariant();
+        var site = PublicSiteAgency.Require(context);
         var query = SearchQuery.Parse(form);
-        var results = PublicRoutes.PathFor(PublicPage.Results, lang);
-        var agency = await directory.GetAsync(context.RequestAborted);
+        var results = PublicRoutes.PathFor(site.Slug, PublicPage.Results, lang);
+        var agency = await directory.GetAsync(site, context.RequestAborted);
         if (agency is null)
         {
             return PublicForms.SeeOther(context, results);
@@ -95,7 +96,7 @@ public static partial class BookingSelectionEndpoint
             return PublicForms.SeeOther(context, ResultsWith(results, query, SearchQuery.UnavailableInfo));
         }
 
-        return PublicForms.SeeOther(context, BookingRoutes.Step(lang, started.Value.Token, FunnelStep.Options));
+        return PublicForms.SeeOther(context, BookingRoutes.Step(site.Slug, lang, started.Value.Token, FunnelStep.Options));
     }
 
     /// <summary>The source and UTM tags of the deep link, kept with the request (attribution of the booking).</summary>
@@ -110,9 +111,9 @@ public static partial class BookingSelectionEndpoint
         resultsPath + QueryString.Create(query.ToParameters().Append(new KeyValuePair<string, string?>(SearchParameters.Info, info))).ToUriComponent();
 
     /// <summary>The search a funnel session was opened from (its canonical query) with a notice.</summary>
-    internal static string SearchAgain(string culture, string? searchQuery, string info)
+    internal static string SearchAgain(string agency, string culture, string? searchQuery, string info)
     {
-        var results = PublicRoutes.PathFor(PublicPage.Results, culture);
+        var results = PublicRoutes.PathFor(agency, PublicPage.Results, culture);
         var query = string.IsNullOrEmpty(searchQuery) ? SearchQuery.Empty : SearchQuery.Parse(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(searchQuery));
         return query.IsEmpty
             ? results + QueryString.Create(SearchParameters.Info, info).ToUriComponent()
@@ -120,15 +121,15 @@ public static partial class BookingSelectionEndpoint
     }
 
     /// <summary>Where a funnel address that cannot be used leads: the search (with why), or the confirmation of its request.</summary>
-    internal static string Fallback(string culture, FunnelLookup lookup) => lookup.Failure switch
+    internal static string Fallback(string agency, string culture, FunnelLookup lookup) => lookup.Failure switch
     {
-        FunnelLookupFailure.Submitted when lookup.BookingNumber is { } number => BookingRoutes.Confirmation(culture, number),
-        FunnelLookupFailure.Expired => SearchAgain(culture, lookup.SearchQuery, SearchQuery.ExpiredInfo),
-        _ => SearchAgain(culture, null, SearchQuery.UnknownLinkInfo),
+        FunnelLookupFailure.Submitted when lookup.BookingNumber is { } number => BookingRoutes.Confirmation(agency, culture, number),
+        FunnelLookupFailure.Expired => SearchAgain(agency, culture, lookup.SearchQuery, SearchQuery.ExpiredInfo),
+        _ => SearchAgain(agency, culture, null, SearchQuery.UnknownLinkInfo),
     };
 
     /// <summary>Where a funnel action refused for its session leads (<see langword="null"/>: the error belongs to the page).</summary>
-    internal static async Task<string?> FallbackForAsync(string culture, string? token, string errorCode, FunnelService funnel, CancellationToken cancellationToken)
+    internal static async Task<string?> FallbackForAsync(string agency, string culture, string? token, string errorCode, FunnelService funnel, CancellationToken cancellationToken)
     {
         if (errorCode != FunnelErrors.SessionNotFound.Code && errorCode != FunnelErrors.SessionExpired.Code && errorCode != FunnelErrors.AlreadySubmitted.Code)
         {
@@ -136,7 +137,7 @@ public static partial class BookingSelectionEndpoint
         }
 
         var lookup = await funnel.OpenAsync(token, cancellationToken: cancellationToken);
-        return Fallback(culture, lookup.View is null ? lookup : FunnelLookup.NotFound);
+        return Fallback(agency, culture, lookup.View is null ? lookup : FunnelLookup.NotFound);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The funnel of category {Category} could not be opened ({ErrorCode}): back to the results.")]

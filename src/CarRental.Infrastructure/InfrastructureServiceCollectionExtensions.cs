@@ -174,7 +174,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<SignInRecorder>();
         services.AddDataSeeder<RolePresetSynchronizer>();
-        services.AddDataSeeder<InitialManagerSeeder>();
+        services.AddDataSeeder<InitialSupportSeeder>();
         services.AddDataSeeder<IdentityDemoSeeder>();
     }
 

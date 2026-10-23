@@ -198,20 +198,20 @@ internal sealed class RecordingNotifier(CallJournal journal) : IAvailabilityChan
     public void AllChanged() => journal.Add("notify all");
 }
 
-/// <summary>Gapless numbers per year, only inside a transaction (like the SQL generator).</summary>
+/// <summary>Gapless numbers per agency and year, only inside a transaction (like the SQL generator).</summary>
 internal sealed class FakeDocumentNumbers(IUnitOfWork unitOfWork, CallJournal journal) : IDocumentNumberGenerator
 {
-    private readonly Dictionary<(DocumentType, int), long> _counters = [];
+    private readonly Dictionary<(Guid, DocumentType, int), long> _counters = [];
 
-    public Task<DocumentNumber> NextAsync(DocumentType type, int fiscalYear, CancellationToken cancellationToken = default)
+    public Task<DocumentNumber> NextAsync(Guid agencyId, DocumentType type, int fiscalYear, CancellationToken cancellationToken = default)
     {
         if (!unitOfWork.HasActiveTransaction)
         {
             throw new InvalidOperationException("Numbering requires a transaction.");
         }
 
-        var next = _counters.GetValueOrDefault((type, fiscalYear)) + 1;
-        _counters[(type, fiscalYear)] = next;
+        var next = _counters.GetValueOrDefault((agencyId, type, fiscalYear)) + 1;
+        _counters[(agencyId, type, fiscalYear)] = next;
         journal.Add("number");
         return Task.FromResult(DocumentNumber.Create(type, fiscalYear, next).Value);
     }
@@ -474,7 +474,7 @@ internal sealed class FakeCustomers : ICustomersQueries, ICustomerRegistration
     public Task<IReadOnlyList<DriverSubmissionInfo>> GetDriverSubmissionsAsync(Guid personId, Guid? bookingId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<DriverSubmissionInfo>>([.. Submissions.Where(s => s.PersonId == personId && (bookingId == null || s.BookingId == bookingId))]);
 
-    public Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, CancellationToken cancellationToken = default) =>
+    public Task<Result<StagedDocumentImageInfo>> StageDocumentImageAsync(Stream content, Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
     public Task<Result<SubmittedDriverResult>> RegisterSubmittedDriverAsync(SubmittedDriverRequest request, CancellationToken cancellationToken = default) =>
@@ -525,7 +525,7 @@ internal sealed class FakeReferential(Guid agencyId, Guid officeId, Guid airport
             new LocationInfo(airportId, agencyId ?? Guid.Empty, "TUN", "Aéroport", LocationKindInfo.Airport, null),
         ]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) => Task.FromResult<LocationInfo?>(null);
 }
 
 /// <summary>Extras offered by the plan of the tests.</summary>
@@ -548,8 +548,14 @@ internal sealed class FakeManagers : IIdentityQueries, IEmailQueue
 
     public List<EmailMessage> Sent { get; } = [];
 
-    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(string role, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<UserContactInfo>>(role == Roles.Manager ? [.. Managers] : []);
+    /// <summary>The agencies whose managers were asked for (ADR-0067: each agency's managers hear of their agency only).</summary>
+    public List<Guid> AskedAgencies { get; } = [];
+
+    public Task<IReadOnlyList<UserContactInfo>> GetActiveUsersInRoleAsync(Guid agencyId, string role, CancellationToken cancellationToken = default)
+    {
+        AskedAgencies.Add(agencyId);
+        return Task.FromResult<IReadOnlyList<UserContactInfo>>(role == Roles.Manager ? [.. Managers] : []);
+    }
 
     public Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyDictionary<Guid, string>>(new Dictionary<Guid, string>());
@@ -571,7 +577,7 @@ internal sealed class FakeBookingsQueries : IBookingsQueries
 
     public Task<BookingSummaryInfo?> GetSummaryAsync(Guid bookingId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<BookingSummaryInfo?> FindByNumberAsync(string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<BookingSummaryInfo?> FindByNumberAsync(Guid? agencyId, string number, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<PersonBookingInfo>> GetBookingsOfPersonAsync(Guid personId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

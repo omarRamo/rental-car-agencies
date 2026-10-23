@@ -1,35 +1,71 @@
 using CarRental.Application.Bookings.Contracts;
+using CarRental.Application.Bookings.PublicAccess;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
+using CarRental.Application.Common.Security;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Payments.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Bookings;
 using CarRental.Domain.Bookings.Access;
 using CarRental.Domain.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CarRental.Application.Bookings.Payments;
 
 /// <summary>
+/// Runs a step of the payment handlers of the Bookings module in a DI scope of its own, as the system actor
+/// <see cref="ActorName"/> with the correlation id of the message, working for the agency of the booking only (ADR-0067):
+/// the agency filter then keeps the booking, its payments, links and reversals within that agency, whatever another
+/// agency recorded for the same booking id.
+/// </summary>
+internal sealed class BookingPaymentScopes(IServiceScopeFactory scopeFactory)
+{
+    public const string ActorName = "system:booking-payments";
+
+    public async Task<TResult> RunAsync<TService, TResult>(
+        Guid agencyId,
+        string? correlationId,
+        Func<TService, CancellationToken, Task<TResult>> step,
+        CancellationToken cancellationToken)
+        where TService : notnull
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ActorName, correlationId, agencyId));
+        return await step(scope.ServiceProvider.GetRequiredService<TService>(), cancellationToken);
+    }
+}
+
+/// <summary>
 /// The end of a request (refused, expired, cancelled — ADR-0051): its pre-authorizations and unpaid payment pages are
 /// released (<see cref="IOnlinePayments.ReverseBookingAsync"/>, idempotent: what cannot be confirmed now is completed
 /// by the catch-up job of the Payments module), and the driver submissions still waiting for an agent are discarded
-/// with their images (data minimization).
+/// with their images (data minimization). Works for the agency of the booking only: a payment another agency recorded
+/// for the same booking id is never released.
 /// </summary>
-internal sealed partial class BookingPaymentReleaseHandler(
-    IOnlinePayments payments,
-    ICustomerRegistration registration,
-    ILogger<BookingPaymentReleaseHandler> logger) : IOutboxHandler<BookingStatusChanged>
+internal sealed class BookingPaymentReleaseHandler(BookingPaymentScopes scopes) : IOutboxHandler<BookingStatusChanged>
 {
-    public async Task HandleAsync(BookingStatusChanged message, OutboxMessageContext context, CancellationToken cancellationToken)
+    public Task HandleAsync(BookingStatusChanged message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
-        if (message.Status is not (BookingStatusInfo.Refused or BookingStatusInfo.Expired or BookingStatusInfo.Cancelled))
-        {
-            return;
-        }
+        ArgumentNullException.ThrowIfNull(context);
+        return message.Status is BookingStatusInfo.Refused or BookingStatusInfo.Expired or BookingStatusInfo.Cancelled
+            ? scopes.RunAsync<BookingPaymentRelease, bool>(message.AgencyId, context.CorrelationId, (release, ct) => release.ReleaseAsync(message, ct), cancellationToken)
+            : Task.CompletedTask;
+    }
+}
 
+/// <summary>The work of <see cref="BookingPaymentReleaseHandler"/>, in a scope working for the agency of the booking.</summary>
+internal sealed partial class BookingPaymentRelease(
+    IOnlinePayments payments,
+    ICustomerRegistration registration,
+    ILogger<BookingPaymentRelease> logger)
+{
+    public async Task<bool> ReleaseAsync(BookingStatusChanged message, CancellationToken cancellationToken)
+    {
         if (payments.IsAvailable)
         {
             var released = await payments.ReverseBookingAsync(message.BookingId, cancellationToken);
@@ -45,6 +81,8 @@ internal sealed partial class BookingPaymentReleaseHandler(
         {
             LogDiscardFailed(message.Number, discarded.Error.Code);
         }
+
+        return true;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The pending driver submissions of booking {Number} could not be discarded ({ErrorCode}).")]
@@ -55,45 +93,66 @@ internal sealed partial class BookingPaymentReleaseHandler(
 /// The payment link mode (<c>bookings.validation_payment_mode</c> or a request validated without guarantee): when a
 /// request becomes <c>AwaitingPayment</c>, a payment link (<c>register.do</c>, valid until the payment deadline) is
 /// created for the balance and the customer is notified. A link still open for the booking is reused (message
-/// delivered again). Without online payment, nothing is sent: the agency collects the payment itself.
+/// delivered again). Without online payment, nothing is sent: the agency collects the payment itself. The balance, the
+/// link reused and the link created are those of the agency of the booking only; the notification is written with the
+/// processing of the message.
 /// </summary>
-internal sealed partial class BookingPaymentLinkHandler(
-    IAppDbContext db,
-    IOnlinePayments payments,
-    IPaymentsQueries paymentQueries,
-    IOutbox outbox,
-    TimeProvider clock,
-    ILogger<BookingPaymentLinkHandler> logger) : IOutboxHandler<BookingStatusChanged>
+internal sealed class BookingPaymentLinkHandler(BookingPaymentScopes scopes, IOutbox outbox) : IOutboxHandler<BookingStatusChanged>
 {
-    /// <summary>A link must leave the customer some time to pay.</summary>
-    private static readonly TimeSpan MinimumValidity = TimeSpan.FromMinutes(15);
-
     public async Task HandleAsync(BookingStatusChanged message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
+        ArgumentNullException.ThrowIfNull(context);
         if (message.Status != BookingStatusInfo.AwaitingPayment)
         {
             return;
         }
 
-        var booking = await db.Set<Booking>().AsNoTracking().FirstOrDefaultAsync(b => b.Id == message.BookingId, cancellationToken);
+        var notification = await scopes.RunAsync<BookingPaymentLinks, BookingCustomerNotification?>(
+            message.AgencyId,
+            context.CorrelationId,
+            (links, ct) => links.LinkAsync(message.BookingId, ct),
+            cancellationToken);
+        if (notification is not null)
+        {
+            outbox.Enqueue(notification);
+        }
+    }
+}
+
+/// <summary>The work of <see cref="BookingPaymentLinkHandler"/>, in a scope working for the agency of the booking.</summary>
+internal sealed partial class BookingPaymentLinks(
+    IAppDbContext db,
+    IOnlinePayments payments,
+    IPaymentsQueries paymentQueries,
+    IAgencyDirectory agencies,
+    TimeProvider clock,
+    ILogger<BookingPaymentLinks> logger)
+{
+    /// <summary>A link must leave the customer some time to pay.</summary>
+    private static readonly TimeSpan MinimumValidity = TimeSpan.FromMinutes(15);
+
+    /// <summary>The link of the booking (reused or created) and the notification telling it to the customer, if any.</summary>
+    public async Task<BookingCustomerNotification?> LinkAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var booking = await db.Set<Booking>().AsNoTracking().FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
         var now = clock.GetUtcNow();
         if (booking is not { Status: BookingStatus.AwaitingPayment, PaymentDueAt: { } due } || due - now < MinimumValidity)
         {
-            return;
+            return null;
         }
 
         if (!payments.IsAvailable)
         {
             LogNoGateway(booking.Number);
-            return;
+            return null;
         }
 
         var paid = (await paymentQueries.GetBookingSummaryAsync(booking.Id, cancellationToken)).Payments.NetPaid;
         var amount = booking.TotalInclVat - paid;
         if (!amount.IsPositive)
         {
-            return;
+            return null;
         }
 
         var profile = await db.Set<BookingCustomerProfile>().AsNoTracking().FirstOrDefaultAsync(p => p.BookingId == booking.Id, cancellationToken);
@@ -109,7 +168,7 @@ internal sealed partial class BookingPaymentLinkHandler(
         }
         else
         {
-            var path = PublicBookingPaths.PaymentResult(culture);
+            var path = PublicBookingPaths.PaymentResult(await agencies.SlugAsync(booking.AgencyId, cancellationToken), culture);
             var started = await payments.StartPaymentAsync(
                 new OnlinePaymentRequest(booking.Id, booking.AgencyId, amount.Amount, culture, path, path, booking.Number, IsLink: true, Validity: due - now),
                 cancellationToken);
@@ -123,23 +182,20 @@ internal sealed partial class BookingPaymentLinkHandler(
             expires = started.Value.ExpiresAtUtc;
         }
 
-        if (profile is null)
-        {
-            return;
-        }
-
-        outbox.Enqueue(new BookingCustomerNotification(
-            Guid.CreateVersion7(),
-            booking.Id,
-            booking.AgencyId,
-            booking.Number,
-            BookingNotificationKind.PaymentLink,
-            culture,
-            now,
-            ActionUrl: url,
-            ActionExpiresAtUtc: expires,
-            Amount: amount,
-            BaseUrl: profile.PublicBaseUrl));
+        return profile is null
+            ? null
+            : new BookingCustomerNotification(
+                Guid.CreateVersion7(),
+                booking.Id,
+                booking.AgencyId,
+                booking.Number,
+                BookingNotificationKind.PaymentLink,
+                culture,
+                now,
+                ActionUrl: url,
+                ActionExpiresAtUtc: expires,
+                Amount: amount,
+                BaseUrl: profile.PublicBaseUrl);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Booking {Number} waits for its payment but online payment is off: the agency collects it.")]
@@ -150,51 +206,37 @@ internal sealed partial class BookingPaymentLinkHandler(
 /// The confirmed changes of the online payments of a booking (contract message of the Payments module, ADR-0051):
 /// the payment state kept for the agent checklist and "Ma réservation" is recomputed from all its payments (so the
 /// order of delivery does not matter), a payment made after its expiry is flagged, and a captured link or balance
-/// confirms a booking waiting for its payment (<see cref="IBookingPaymentStatus.MarkPaidAsync"/>, idempotent).
+/// confirms a booking waiting for its payment (<see cref="IBookingPaymentStatus.MarkPaidAsync"/>, idempotent). A payment
+/// of another agency than the booking's is ignored (ADR-0067): it never confirms the booking nor counts in its state.
 /// </summary>
 internal sealed partial class BookingOnlinePaymentHandler(
     IAppDbContext db,
-    IOnlinePayments payments,
-    IBookingPaymentStatus paymentStatus,
-    TimeProvider clock,
+    BookingPaymentScopes scopes,
     ILogger<BookingOnlinePaymentHandler> logger) : IOutboxHandler<OnlinePaymentStatusChanged>
 {
     public async Task HandleAsync(OnlinePaymentStatusChanged message, OutboxMessageContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
-        var booking = await db.Set<Booking>()
+        ArgumentNullException.ThrowIfNull(context);
+
+        // The outbox works for every agency: the agency of the booking is read across agencies, then the work runs for it.
+        var agencyId = await db.Set<Booking>()
             .AsNoTracking()
             .Where(b => b.Id == message.BookingId)
-            .Select(b => new { b.Id, b.Number, b.Status })
+            .Select(b => (Guid?)b.AgencyId)
             .FirstOrDefaultAsync(cancellationToken);
-        if (booking is null)
+        if (agencyId is not { } bookingAgency)
         {
             return;
         }
 
-        var all = await payments.GetBookingOnlinePaymentsAsync(booking.Id, cancellationToken);
-        var (state, paymentId, amount) = Summarize(all);
-        var track = await db.Set<BookingPaymentTrack>().FirstOrDefaultAsync(t => t.BookingId == booking.Id, cancellationToken);
-        if (track is null)
+        if (bookingAgency != message.AgencyId)
         {
-            track = BookingPaymentTrack.Create(booking.Id, clock.GetUtcNow());
-            db.Set<BookingPaymentTrack>().Add(track);
+            LogAgencyMismatch(message.PaymentId, message.BookingId);
+            return;
         }
 
-        track.Apply(state, paymentId, amount, message.PaidLate, clock.GetUtcNow());
-        if (message.PaidLate)
-        {
-            LogPaidLate(booking.Number);
-        }
-
-        if (message.Status == PaymentStatusInfo.Captured && message.Flow == OnlinePaymentFlowInfo.OneStep && booking.Status == BookingStatus.AwaitingPayment)
-        {
-            var paid = await paymentStatus.MarkPaidAsync(booking.Id, message.PaymentId.ToString("N")[^8..].ToUpperInvariant(), cancellationToken);
-            if (paid.IsFailure)
-            {
-                LogMarkPaidFailed(booking.Number, paid.Error.Code);
-            }
-        }
+        await scopes.RunAsync<BookingOnlinePaymentTracker, bool>(bookingAgency, context.CorrelationId, (tracker, ct) => tracker.ApplyAsync(message, ct), cancellationToken);
     }
 
     /// <summary>
@@ -228,6 +270,58 @@ internal sealed partial class BookingOnlinePaymentHandler(
             { Status: PaymentStatusInfo.Cancelled, ExpiredAtUtc: not null } => (RequestPaymentState.Expired, latest.PaymentId, latest.Amount),
             _ => (RequestPaymentState.Released, latest.PaymentId, latest.Amount),
         };
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Online payment {PaymentId} belongs to another agency than its booking {BookingId}: ignored.")]
+    private partial void LogAgencyMismatch(Guid paymentId, Guid bookingId);
+}
+
+/// <summary>The work of <see cref="BookingOnlinePaymentHandler"/>, in a scope working for the agency of the booking.</summary>
+internal sealed partial class BookingOnlinePaymentTracker(
+    IAppDbContext db,
+    IOnlinePayments payments,
+    IBookingPaymentStatus paymentStatus,
+    TimeProvider clock,
+    ILogger<BookingOnlinePaymentTracker> logger)
+{
+    public async Task<bool> ApplyAsync(OnlinePaymentStatusChanged message, CancellationToken cancellationToken)
+    {
+        var booking = await db.Set<Booking>()
+            .AsNoTracking()
+            .Where(b => b.Id == message.BookingId)
+            .Select(b => new { b.Id, b.AgencyId, b.Number, b.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (booking is null)
+        {
+            return false;
+        }
+
+        var all = await payments.GetBookingOnlinePaymentsAsync(booking.Id, cancellationToken);
+        var (state, paymentId, amount) = BookingOnlinePaymentHandler.Summarize(all);
+        var track = await db.Set<BookingPaymentTrack>().FirstOrDefaultAsync(t => t.BookingId == booking.Id, cancellationToken);
+        if (track is null)
+        {
+            track = BookingPaymentTrack.Create(booking.AgencyId, booking.Id, clock.GetUtcNow());
+            db.Set<BookingPaymentTrack>().Add(track);
+        }
+
+        track.Apply(state, paymentId, amount, message.PaidLate, clock.GetUtcNow());
+        await db.SaveChangesAsync(cancellationToken);
+        if (message.PaidLate)
+        {
+            LogPaidLate(booking.Number);
+        }
+
+        if (message.Status == PaymentStatusInfo.Captured && message.Flow == OnlinePaymentFlowInfo.OneStep && booking.Status == BookingStatus.AwaitingPayment)
+        {
+            var paid = await paymentStatus.MarkPaidAsync(booking.Id, message.PaymentId.ToString("N")[^8..].ToUpperInvariant(), cancellationToken);
+            if (paid.IsFailure)
+            {
+                LogMarkPaidFailed(booking.Number, paid.Error.Code);
+            }
+        }
+
+        return true;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Booking {Number}: a payment was made after its attempt had expired (to check).")]

@@ -8,8 +8,8 @@ using Microsoft.Extensions.Options;
 namespace CarRental.Infrastructure.Identity;
 
 /// <summary>
-/// Creates the four roles and reconciles their permission claims with <see cref="RolePresets"/> at every start
-/// (all environments). Per-user extra permissions (user claims) are never touched.
+/// Creates the roles (the four agency roles and <see cref="Roles.Support"/>) and reconciles their permission claims with
+/// <see cref="RolePresets"/> at every start (all environments). Per-user extra permissions (user claims) are never touched.
 /// </summary>
 internal sealed partial class RolePresetSynchronizer(RoleManager<ApplicationRole> roleManager, ILogger<RolePresetSynchronizer> logger) : IDataSeeder
 {
@@ -67,18 +67,19 @@ public sealed class IdentityBootstrapOptions
     public const string SectionName = "Identity";
 
     /// <summary>
-    /// E-mail of the first manager, created (without password) at startup when no manager exists. The person then uses
-    /// "Forgot password" on the login page and enrolls an authenticator at first sign-in.
+    /// E-mail of the first support account (the platform operator, ADR-0067), created (without password) at startup when
+    /// no support account exists. The person then uses "Forgot password" on the login page, enrolls an authenticator at
+    /// first sign-in, registers the agencies and invites their managers.
     /// </summary>
-    public string? InitialManagerEmail { get; set; }
+    public string? InitialSupportEmail { get; set; }
 }
 
-/// <summary>Production bootstrap: the first manager account, when configured and no manager exists yet.</summary>
-internal sealed partial class InitialManagerSeeder(
+/// <summary>Production bootstrap: the first support account, when configured and no support account exists yet.</summary>
+internal sealed partial class InitialSupportSeeder(
     UserManager<ApplicationUser> userManager,
     IOptions<IdentityBootstrapOptions> options,
     TimeProvider timeProvider,
-    ILogger<InitialManagerSeeder> logger) : IDataSeeder
+    ILogger<InitialSupportSeeder> logger) : IDataSeeder
 {
     public SeedStage Stage => SeedStage.Reference;
 
@@ -86,8 +87,8 @@ internal sealed partial class InitialManagerSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var email = options.Value.InitialManagerEmail?.Trim();
-        if (string.IsNullOrEmpty(email) || (await userManager.GetUsersInRoleAsync(Roles.Manager)).Count > 0)
+        var email = options.Value.InitialSupportEmail?.Trim();
+        if (string.IsNullOrEmpty(email) || (await userManager.GetUsersInRoleAsync(Roles.Support)).Count > 0)
         {
             return;
         }
@@ -107,14 +108,18 @@ internal sealed partial class InitialManagerSeeder(
             var created = await userManager.CreateAsync(user);
             if (!created.Succeeded)
             {
-                throw new InvalidOperationException($"The initial manager could not be created: {string.Join(" ", created.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"The initial support account could not be created: {string.Join(" ", created.Errors.Select(e => e.Description))}");
             }
         }
+        else if (user.AgencyId is not null)
+        {
+            throw new InvalidOperationException("Identity:InitialSupportEmail belongs to a member of an agency: choose another e-mail for the support.");
+        }
 
-        await userManager.AddToRoleAsync(user, Roles.Manager);
-        LogInitialManager(email);
+        await userManager.AddToRoleAsync(user, Roles.Support);
+        LogInitialSupport(email);
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Initial manager {Email} created without password: use 'Forgot password' on /account/login to set it.")]
-    private partial void LogInitialManager(string email);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Initial support account {Email} created without password: use 'Forgot password' on /account/login to set it.")]
+    private partial void LogInitialSupport(string email);
 }

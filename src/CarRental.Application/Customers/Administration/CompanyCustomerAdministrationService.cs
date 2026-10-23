@@ -8,7 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Application.Customers.Administration;
 
-/// <summary>Company payers of the back office (permission <c>customers.manage</c>); a tax identifier is unique among companies.</summary>
+/// <summary>
+/// Company payers of the back office (permission <c>customers.manage</c>); a tax identifier is unique among the companies
+/// of an agency.
+/// </summary>
 public sealed class CompanyCustomerAdministrationService(
     IAppDbContext db,
     IUnitOfWork unitOfWork,
@@ -42,9 +45,11 @@ public sealed class CompanyCustomerAdministrationService(
                     return CustomersErrors.CustomerNotFound;
                 }
 
-                // Checked before the change: a failed operation leaves the tracked company untouched.
+                // Checked before the change: a failed operation leaves the tracked company untouched. The identifier is
+                // unique among the companies of the agency of the company.
                 var key = TaxIdentifiers.KeyOf(details.Value.TaxIdentifier);
-                if (await db.Set<Customer>().AnyAsync(c => c.Id != customerId && c.Kind == CustomerKind.Company && c.TaxIdentifierKey == key, ct))
+                var agencyId = company.AgencyId;
+                if (await db.Set<Customer>().AnyAsync(c => c.AgencyId == agencyId && c.Id != customerId && c.Kind == CustomerKind.Company && c.TaxIdentifierKey == key, ct))
                 {
                     return CustomersErrors.CompanyAlreadyExists;
                 }

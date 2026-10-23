@@ -3,6 +3,7 @@ using System.Resources;
 using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Bookings.Notifications;
 using CarRental.Application.Common.Email;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Web.Components.Public.Booking;
 using CarRental.Web.Hosting;
@@ -18,20 +19,25 @@ namespace CarRental.Web.Components.Emails;
 /// The e-mails to customers (ADR-0051), in the language of the customer: the texts of
 /// <c>Resources/Public/CustomerEmailResources</c> read for that language (the outbox handlers run without a request
 /// culture), rendered by <see cref="CustomerEmailTemplate"/> with the <see cref="HtmlRenderer"/>, with a plain text
-/// alternative. Links are absolute: <c>PublicSite:BaseUrl</c>, else the site address the customer used. Refusals and
-/// expiries never say why; nothing about the documents or the person on file is written.
+/// alternative. They come from the agency of the booking (ADR-0067): its name, and links to its own site
+/// (<c>/{agency}/{culture}/…</c>). Links are absolute: <c>PublicSite:BaseUrl</c>, else the site address the customer used.
+/// Refusals and expiries never say why; nothing about the documents or the person on file is written.
 /// </summary>
 internal sealed class CustomerEmailComposer(
     IServiceProvider services,
     ILoggerFactory loggerFactory,
+    IAgencyDirectory agencies,
     IOptions<PublicSiteOptions> site) : ICustomerEmailComposer
 {
     private static readonly ResourceManager Texts = new(typeof(CustomerEmailResources).FullName!, typeof(CustomerEmailResources).Assembly);
 
-    public Task<EmailMessage> ComposeNotificationAsync(BookingCustomerNotification notification, CustomerRecipient recipient, CancellationToken cancellationToken = default)
+    public async Task<EmailMessage> ComposeNotificationAsync(BookingCustomerNotification notification, CustomerRecipient recipient, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(notification);
         ArgumentNullException.ThrowIfNull(recipient);
+        var agency = await agencies.FindAsync(notification.AgencyId, cancellationToken)
+                     ?? throw new InvalidOperationException($"The agency {notification.AgencyId} of booking {notification.Number} does not exist.");
+        var brand = agency.Name;
         var culture = CultureOf(notification.Culture);
         var language = culture.TwoLetterISOLanguageName;
         var baseUrl = BaseUrl(notification.BaseUrl);
@@ -47,7 +53,7 @@ internal sealed class CustomerEmailComposer(
         {
             case BookingNotificationKind.RequestReceived:
                 paragraphs.Add(T("RequestReceived.Guarantee"));
-                action = new EmailAction(T("Action.Follow"), Absolute(baseUrl, BookingRoutes.MyBooking(language)));
+                action = new EmailAction(T("Action.Follow"), Absolute(baseUrl, BookingRoutes.MyBooking(agency.Slug, language)));
                 break;
             case BookingNotificationKind.InformationRequested:
                 if (!string.IsNullOrWhiteSpace(notification.Message))
@@ -56,22 +62,22 @@ internal sealed class CustomerEmailComposer(
                 }
 
                 paragraphs.Add(T("InformationRequested.How"));
-                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(language));
+                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(agency.Slug, language));
                 note = notification.ActionExpiresAtUtc is { } until ? T("Note.PersonalLink", Instant(until, culture)) : null;
                 break;
             case BookingNotificationKind.CompleteFileLink:
-                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(language));
+                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(agency.Slug, language));
                 note = notification.ActionExpiresAtUtc is { } expires ? T("Note.PersonalLink", Instant(expires, culture)) : null;
                 break;
             case BookingNotificationKind.Confirmed:
                 paragraphs.Add(T("Confirmed.Departure"));
-                action = new EmailAction(T("Action.View"), Absolute(baseUrl, BookingRoutes.MyBooking(language)));
+                action = new EmailAction(T("Action.View"), Absolute(baseUrl, BookingRoutes.MyBooking(agency.Slug, language)));
                 break;
             case BookingNotificationKind.Refused:
             case BookingNotificationKind.Expired:
                 paragraphs.Add(T("Released"));
                 paragraphs.Add(T("SearchAgain"));
-                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, $"/{language}"));
+                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(agency.Slug, language)));
                 break;
             case BookingNotificationKind.PaymentLink:
                 if (notification.Amount is { } due)
@@ -84,7 +90,7 @@ internal sealed class CustomerEmailComposer(
                     facts.Add(new EmailFact(T("Fact.PayBefore"), Instant(deadline, culture)));
                 }
 
-                action = ActionOf(notification, baseUrl, T("Action.Pay"), BookingRoutes.MyBooking(language));
+                action = ActionOf(notification, baseUrl, T("Action.Pay"), BookingRoutes.MyBooking(agency.Slug, language));
                 note = T("PaymentLink.Note");
                 break;
             case BookingNotificationKind.CancellationConfirmed:
@@ -97,13 +103,13 @@ internal sealed class CustomerEmailComposer(
                 }
 
                 paragraphs.Add(T($"Refund.{notification.Refund}", Amount(refund, culture)));
-                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, $"/{language}"));
+                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(agency.Slug, language)));
                 break;
         }
 
         var content = new CustomerEmailContent(
             language,
-            T("Subject.Format", site.Value.AgencyName, T($"{kind}.Subject", number)),
+            T("Subject.Format", brand, T($"{kind}.Subject", number)),
             T($"{kind}.Preheader", number),
             T($"{kind}.Heading", number),
             Greeting(culture, recipient),
@@ -113,22 +119,23 @@ internal sealed class CustomerEmailComposer(
             null,
             action,
             note,
-            T("Signature", site.Value.AgencyName),
+            T("Signature", brand),
             T("Footer", number));
-        return RenderAsync(content, recipient);
+        return await RenderAsync(content, recipient, brand);
     }
 
-    public Task<EmailMessage> ComposeAccessAsync(AccessEmail email, CustomerRecipient recipient, CancellationToken cancellationToken = default)
+    public async Task<EmailMessage> ComposeAccessAsync(AccessEmail email, CustomerRecipient recipient, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(recipient);
+        var brand = email.AgencyId is { } agencyId && await agencies.FindAsync(agencyId, cancellationToken) is { } agency ? agency.Name : site.Value.AgencyName;
         var culture = CultureOf(email.Culture);
         var baseUrl = BaseUrl(email.BaseUrl);
         string T(string key, params object?[] arguments) => Text(culture, key, arguments);
 
         var content = new CustomerEmailContent(
             culture.TwoLetterISOLanguageName,
-            T("Subject.Format", site.Value.AgencyName, T("Access.Subject", email.Number)),
+            T("Subject.Format", brand, T("Access.Subject", email.Number)),
             T("Access.Preheader", email.Number),
             T("Access.Heading", email.Number),
             Greeting(culture, recipient),
@@ -138,9 +145,9 @@ internal sealed class CustomerEmailComposer(
             email.Code,
             new EmailAction(T("Action.Open"), Absolute(baseUrl, email.LinkPath)),
             T("Access.Note", Instant(email.ExpiresAtUtc, culture)),
-            T("Signature", site.Value.AgencyName),
+            T("Signature", brand),
             T("Footer", email.Number));
-        return RenderAsync(content, recipient);
+        return await RenderAsync(content, recipient, brand);
     }
 
     /// <summary>The language of the customer among the cultures of the site (French otherwise).</summary>
@@ -189,7 +196,7 @@ internal sealed class CustomerEmailComposer(
         return uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");
     }
 
-    private async Task<EmailMessage> RenderAsync(CustomerEmailContent content, CustomerRecipient recipient)
+    private async Task<EmailMessage> RenderAsync(CustomerEmailContent content, CustomerRecipient recipient, string brand)
     {
         await using var renderer = new HtmlRenderer(services, loggerFactory);
         var html = await renderer.Dispatcher.InvokeAsync(async () =>
@@ -197,7 +204,7 @@ internal sealed class CustomerEmailComposer(
             var parameters = ParameterView.FromDictionary(new Dictionary<string, object?>
             {
                 [nameof(CustomerEmailTemplate.Content)] = content,
-                [nameof(CustomerEmailTemplate.Brand)] = site.Value.AgencyName,
+                [nameof(CustomerEmailTemplate.Brand)] = brand,
             });
             var output = await renderer.RenderComponentAsync<CustomerEmailTemplate>(parameters);
             return output.ToHtmlString();

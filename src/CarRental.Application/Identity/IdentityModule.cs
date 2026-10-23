@@ -12,6 +12,8 @@ public static class IdentityModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<UserAdministrationService>();
+        services.AddScoped<IAgencyManagerInvitations, AgencyManagerInvitations>();
+        services.AddScoped<SupportSessionService>();
         services.AddScoped<AuditLogQueries>();
         services.AddScoped<IIdentityQueries, IdentityQueries>();
         return services;

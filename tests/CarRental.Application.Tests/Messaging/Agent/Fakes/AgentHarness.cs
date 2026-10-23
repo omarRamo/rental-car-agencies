@@ -41,6 +41,8 @@ internal sealed class AgentHarness : IAsyncDisposable
     {
         Model = model ?? new ScriptedModel();
         Availability = new FakeAgentAvailability(World);
+        Agencies = new StaticAgencyDirectory(World.Agency.Id);
+        Site = CarRental.Domain.Messaging.Agent.BookingDeepLink.SiteOf(PublicSite, Agencies.Set(World.Agency.Id, CarRental.Domain.Common.AgencyModuleCatalog.Every).Slug).AbsoluteUri;
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(Clock);
@@ -54,6 +56,7 @@ internal sealed class AgentHarness : IAsyncDisposable
         services.AddSingleton<ICustomersQueries>(Customers);
         services.AddSingleton<IBookingsQueries>(Bookings);
         services.AddSingleton<IReferentialQueries>(new FakeAgentReferential(World));
+        services.AddSingleton<IAgencyDirectory>(Agencies);
         services.AddSingleton<IFleetQueries>(new FakeAgentFleet(World));
         services.AddSingleton<IAvailabilityQueries>(Availability);
         services.AddSingleton<IPricingService>(new FakeAgentPricing(World));
@@ -71,6 +74,12 @@ internal sealed class AgentHarness : IAsyncDisposable
     public FakeTimeProvider Clock { get; } = new(Start) { AutoAdvanceAmount = TimeSpan.FromMilliseconds(1) };
 
     public AgentWorld World { get; } = new();
+
+    /// <summary>The address of the site of the agency of the world (<c>https://www.example.tn/agence-…/</c>): the base of the bot's links (ADR-0067).</summary>
+    public string Site { get; }
+
+    /// <summary>The agencies of the platform: the agency of the world, with every module.</summary>
+    public StaticAgencyDirectory Agencies { get; }
 
     public ScriptedModel Model { get; }
 
@@ -111,8 +120,9 @@ internal sealed class AgentHarness : IAsyncDisposable
 
     public AgentConversation NewConversation(string number = "+21698123456") => new(this, number);
 
-    public static UserContextSnapshot Manager() =>
-        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", RolePresets.PermissionsOf(Roles.Manager));
+    /// <summary>A manager of <paramref name="agencyId"/>.</summary>
+    public static UserContextSnapshot Manager(Guid agencyId) =>
+        UserContextSnapshot.ForUser(Guid.CreateVersion7(), "gerant@demo.local", RolePresets.PermissionsOf(Roles.Manager)) with { AgencyId = agencyId };
 
     public ValueTask DisposeAsync() => Services.DisposeAsync();
 }
@@ -167,7 +177,7 @@ internal sealed class AgentConversation(AgentHarness harness, string number)
         }
 
         var turn = new ConversationTurn(
-            Id, messages[^1].Id, Number, "Client", null, null, BookingId, now, now.AddHours(24), Need, Usage, messages, [.. _history.TakeLast(ConversationTurn.MaxHistory)]);
+            Id, harness.World.Agency.Id, messages[^1].Id, Number, "Client", null, null, BookingId, now, now.AddHours(24), Need, Usage, messages, [.. _history.TakeLast(ConversationTurn.MaxHistory)]);
         var reply = await harness.RespondAsync(turn);
         Replies.Add(reply);
         _history.AddRange(messages);

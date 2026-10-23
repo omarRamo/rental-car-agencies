@@ -1,4 +1,5 @@
 using CarRental.Application.Accounting.Contracts;
+using CarRental.Application.Bookings.Contracts;
 using CarRental.Application.Cash.Contracts;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
@@ -14,7 +15,8 @@ namespace CarRental.Application.Payments;
 /// <summary>
 /// Counter payments and refunds (<see cref="ICounterPayments"/>). Cash goes into the open cash session of the acting
 /// user through <see cref="ICashDrawer"/>, in the same unit of work: the payment and its cash movement are saved together
-/// or not at all. The operation is replayed whole after a transient failure, so everything is loaded inside it.
+/// or not at all. The operation is replayed whole after a transient failure, so everything is loaded inside it. A payment
+/// is recorded for a rental file of its agency only (<see cref="PaymentBookings"/>, ADR-0067).
 /// </summary>
 internal sealed class CounterPayments(
     IAppDbContext db,
@@ -22,6 +24,7 @@ internal sealed class CounterPayments(
     IUserContext userContext,
     ICashDrawer cashDrawer,
     IReferentialQueries referential,
+    IBookingsQueries bookings,
     TimeProvider timeProvider,
     IAccountingPeriods periods) : ICounterPayments
 {
@@ -46,6 +49,12 @@ internal sealed class CounterPayments(
         if (!await referential.IsActiveAgencyAsync(request.AgencyId, cancellationToken))
         {
             return PaymentsErrors.AgencyNotFound;
+        }
+
+        var booking = await bookings.EnsureBookingOfAsync(request.BookingId, request.AgencyId, cancellationToken);
+        if (booking.IsFailure)
+        {
+            return booking.Error;
         }
 
         var method = request.Method.ToDomain();

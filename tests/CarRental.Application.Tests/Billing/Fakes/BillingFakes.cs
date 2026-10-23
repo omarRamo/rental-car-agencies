@@ -231,17 +231,18 @@ internal sealed class SerializingUnitOfWork(BillingDb db, FakeNumbers numbers) :
     }
 }
 
-/// <summary>Gapless counters per type and year, given back when the operation that took them fails.</summary>
+/// <summary>Gapless counters per agency, type and year, given back when the operation that took them fails.</summary>
 internal sealed class FakeNumbers : IDocumentNumberGenerator
 {
-    private readonly Dictionary<(DocumentType, int), long> _committed = [];
-    private Dictionary<(DocumentType, int), long>? _pending;
+    private readonly Dictionary<(Guid, DocumentType, int), long> _committed = [];
+    private Dictionary<(Guid, DocumentType, int), long>? _pending;
 
-    public Task<DocumentNumber> NextAsync(DocumentType type, int fiscalYear, CancellationToken cancellationToken = default)
+    public Task<DocumentNumber> NextAsync(Guid agencyId, DocumentType type, int fiscalYear, CancellationToken cancellationToken = default)
     {
         var counters = _pending ?? throw new InvalidOperationException("Document numbers are taken inside the unit of work.");
-        var next = (counters.TryGetValue((type, fiscalYear), out var pending) ? pending : _committed.GetValueOrDefault((type, fiscalYear))) + 1;
-        counters[(type, fiscalYear)] = next;
+        var key = (agencyId, type, fiscalYear);
+        var next = (counters.TryGetValue(key, out var pending) ? pending : _committed.GetValueOrDefault(key)) + 1;
+        counters[key] = next;
         return Task.FromResult(DocumentNumber.Create(type, fiscalYear, next).Value);
     }
 
@@ -298,7 +299,7 @@ internal sealed class FakeAgencyReferential(AgencyInfo agency) : IReferentialQue
     public Task<IReadOnlyList<LocationInfo>> GetLocationsAsync(Guid? agencyId = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<LocationInfo>>([]);
 
-    public Task<LocationInfo?> FindLocationByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+    public Task<LocationInfo?> FindLocationByCodeAsync(Guid agencyId, string code, CancellationToken cancellationToken = default) =>
         Task.FromResult<LocationInfo?>(null);
 }
 

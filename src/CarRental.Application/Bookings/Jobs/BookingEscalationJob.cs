@@ -69,36 +69,43 @@ internal sealed partial class BookingEscalationJob(
             return;
         }
 
-        var managers = await identity.GetActiveUsersInRoleAsync(Roles.Manager, cancellationToken);
+        // Each agency's managers hear of their own requests only (ADR-0067).
+        var managers = new Dictionary<Guid, IReadOnlyList<UserContactInfo>>();
+        foreach (var agencyId in candidates.Where(c => due.Contains(c.Id)).Select(c => c.AgencyId).Distinct())
+        {
+            managers[agencyId] = await identity.GetActiveUsersInRoleAsync(agencyId, Roles.Manager, cancellationToken);
+        }
+
         var escalated = await writer.RunAsync<IReadOnlyList<EscalatedRequestNotice>>(
             async (touched, ct) =>
             {
-                var notices = new List<EscalatedRequestNotice>();
+                var notices = new List<(Guid AgencyId, EscalatedRequestNotice Notice)>();
                 var bookings = await writer.Db.Set<Booking>().Where(b => due.Contains(b.Id)).OrderBy(b => b.PendingSinceUtc).ToListAsync(ct);
                 foreach (var booking in bookings)
                 {
                     var flagged = booking.MarkEscalated(writer.Actor(), now);
                     if (flagged is { IsSuccess: true, Value: true })
                     {
-                        notices.Add(new EscalatedRequestNotice(
+                        notices.Add((booking.AgencyId, new EscalatedRequestNotice(
                             booking.Id,
                             booking.Number,
                             booking.Channel,
                             booking.PendingSinceUtc ?? booking.CreatedAtUtc,
                             booking.HoldExpiresAt ?? now,
-                            booking.PickupAt));
+                            booking.PickupAt)));
                     }
                 }
 
-                if (notices.Count > 0)
+                foreach (var agency in notices.GroupBy(n => n.AgencyId))
                 {
-                    foreach (var manager in managers)
+                    var agencyNotices = agency.Select(n => n.Notice).ToList();
+                    foreach (var manager in managers.GetValueOrDefault(agency.Key) ?? [])
                     {
-                        await emailQueue.EnqueueAsync(emails.Create(notices, manager), ct);
+                        await emailQueue.EnqueueAsync(emails.Create(agencyNotices, manager), ct);
                     }
                 }
 
-                return notices;
+                return notices.Select(n => n.Notice).ToList();
             },
             cancellationToken);
 

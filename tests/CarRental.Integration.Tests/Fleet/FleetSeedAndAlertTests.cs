@@ -2,10 +2,13 @@ using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Fleet;
 using CarRental.Application.Fleet.Contracts;
+using CarRental.Application.Identity.Contracts;
+using CarRental.Application.Pricing.Contracts;
 using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Fleet;
 using CarRental.Infrastructure.Persistence;
+using CarRental.Integration.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -54,9 +57,42 @@ public sealed class FleetSeedAndAlertTests(IntegrationHost host)
     }
 
     [Fact]
+    public async Task The_second_demo_agency_has_a_small_fleet_and_a_published_plan_of_its_own()
+    {
+        Guid tunis, sousse;
+        await using (var scope = host.CreateScope())
+        {
+            var agencies = await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct);
+            (tunis, sousse) = (agencies.Single(a => a.Name == "Agence Démo Tunis").Id, agencies.Single(a => a.Name == "Agence Démo Sousse").Id);
+        }
+
+        await using var staff = host.CreateScope(CarRental.Testing.TestActors.Staff(sousse, Roles.Manager));
+        var fleet = staff.ServiceProvider.GetRequiredService<IFleetQueries>();
+        var categories = await fleet.GetCategoriesAsync(cancellationToken: Ct);
+        categories.Select(c => c.AcrissCode).ShouldBe(["ECMR", "CDMR"]);
+        categories.ShouldAllBe(c => c.AgencyId == sousse, "a manager of Sousse never sees the categories of Tunis");
+        var vehicles = new List<VehicleInfo>();
+        foreach (var category in categories)
+        {
+            vehicles.AddRange(await fleet.GetVehiclesAsync(category.Id, Ct));
+        }
+
+        vehicles.Count.ShouldBe(5);
+        vehicles.ShouldAllBe(
+            v => v.AgencyId == sousse && v.Status == VehicleStatusInfo.Active && v.CompliantUntil > DateTimeOffset.UtcNow.AddDays(290),
+            "its documents keep the vehicles rentable for about ten months, so that its site offers them months ahead");
+
+        var plan = await staff.ServiceProvider.GetRequiredService<IPricingQueries>().GetPublishedPlanAsync(sousse, cancellationToken: Ct);
+        plan.ShouldNotBeNull().Name.ShouldBe("Grille démo Sousse 2026-2028");
+        plan.CategoryRates.Select(r => r.CategoryId).ShouldBe(categories.Select(c => c.Id), ignoreOrder: true);
+        (await staff.ServiceProvider.GetRequiredService<IPricingQueries>().GetPublishedPlanAsync(tunis, cancellationToken: Ct)).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Deadline_alerts_are_e_mailed_to_the_managers_once_per_document_and_threshold()
     {
         var agencyId = await FleetData.NewAgencyAsync(host, Ct);
+        var (_, managerEmail) = await TestStaff.CreateAsync(host, Roles.Manager, twoFactor: false, agencyId: agencyId);
         var categoryId = await FleetData.NewCategoryAsync(host, agencyId, "ECMR", Ct);
         var plate = FleetData.NewPlate();
         var vehicleId = await FleetData.NewVehicleAsync(host, categoryId, Ct, plate: plate, documentsExpireOn: new DateOnly(2031, 1, 1));
@@ -75,13 +111,17 @@ public sealed class FleetSeedAndAlertTests(IntegrationHost host)
         var alert = alerts.ShouldHaveSingleItem();
         alert.Level.ShouldBe(DeadlineAlertLevel.Within7Days);
         alert.DocumentType.ShouldBe(VehicleDocumentType.Insurance);
-        alert.RecipientCount.ShouldBeGreaterThanOrEqualTo(1);
+        alert.AgencyId.ShouldBe(agencyId);
+        alert.RecipientCount.ShouldBe(1, "the only manager of the agency of the vehicle (ADR-0067)");
 
-        var email = await WaitForEmailAsync(plate, "gerant@demo.local");
+        var email = await WaitForEmailAsync(plate, managerEmail);
         email.ShouldContain("Assurance");
         email.ShouldContain("Insurance");
-        email.ShouldContain("gerant@demo.local");
+        email.ShouldContain(managerEmail);
         (await CountEmailsAsync(plate, alert.RecipientCount)).ShouldBe(alert.RecipientCount);
+        (await EmailsAsync()).ShouldNotContain(
+            content => Decode(content).Contains(plate, StringComparison.Ordinal) && content.Contains("gerant@demo.local", StringComparison.OrdinalIgnoreCase),
+            "the managers of another agency never hear of this vehicle");
     }
 
     /// <summary>Runs the job like the Hangfire runner does: resolved from its descriptor, as the system actor.</summary>

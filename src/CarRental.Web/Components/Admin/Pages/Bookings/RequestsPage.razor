@@ -187,7 +187,7 @@
             return;
         }
 
-        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetDefaultAgencyAsync(ct));
+        var agency = await Runner.RunAsync<BookingAdministrationQueries, Result<CarRental.Application.Referential.Contracts.AgencyInfo>>((queries, ct) => queries.GetCurrentAgencyAsync(ct));
         _agencyId = agency.IsSuccess ? agency.Value.Id : null;
         await LoadAsync();
         _timer = new Timer(_ => _ = InvokeAsync(RefreshAsync), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));

@@ -23,6 +23,12 @@ internal sealed class AgencyConfiguration : IEntityTypeConfiguration<Agency>
         builder.Property(a => a.Email).HasMaxLength(Agency.EmailMaxLength);
         builder.Property(a => a.Latitude).HasPrecision(9, Agency.CoordinateDecimals);
         builder.Property(a => a.Longitude).HasPrecision(9, Agency.CoordinateDecimals);
+        builder.Property(a => a.Slug).HasMaxLength(AgencySlug.MaxLength).IsUnicode(false).IsRequired();
+        builder.Property(a => a.Modules).HasConversion<int>();
+
+        // The address of the public site is unique on the whole platform, deleted agencies included (their links must
+        // never open another agency's site).
+        builder.HasIndex(a => a.Slug).IsUnique();
     }
 }
 

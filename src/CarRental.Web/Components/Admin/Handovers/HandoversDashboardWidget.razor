@@ -81,13 +81,9 @@
         var today = TunisTime.Today(Clock);
         var result = await Runner.RunAsync<HandoverQueries, Result<HandoverDay>>(async (queries, ct) =>
         {
-            var agencies = await queries.GetAgenciesAsync(ct);
-            if (agencies.IsFailure)
-            {
-                return agencies.Error;
-            }
-
-            return agencies.Value.Count == 0 ? BookingErrors.AgencyRequired : await queries.GetDayAsync(agencies.Value[0].Id, today, ct);
+            // The day of the agency of the session (ADR-0067).
+            var agency = await queries.GetCurrentAgencyAsync(ct);
+            return agency.IsFailure ? agency.Error : await queries.GetDayAsync(agency.Value.Id, today, ct);
         });
         _day = result.IsSuccess ? result.Value : null;
         _failed = result.IsFailure;

@@ -10,11 +10,12 @@ using Microsoft.Extensions.Logging;
 namespace CarRental.Application.Fleet.Seeding;
 
 /// <summary>
-/// Demo fleet of the demo agency (development and recette only): 5 ACRISS categories and 30 fictitious vehicles with
-/// documents, an oil change plan and economics. Dates are relative to the first seeding day: one insurance expires
+/// Demo fleets (development and recette only). The main demo agency gets 5 ACRISS categories and 30 fictitious vehicles
+/// with documents, an oil change plan and economics; dates are relative to the first seeding day: one insurance expires
 /// within 7 days, one road tax within 30 days, one technical inspection has expired (vehicle not compliant), one
-/// maintenance is planned next week, one oil change is due soon and one vehicle is out of service. Idempotent: missing
-/// categories and plates only.
+/// maintenance is planned next week, one oil change is due soon and one vehicle is out of service. The second demo
+/// agency gets a small fleet of its own (2 categories, 5 vehicles with documents valid for about ten months), so that its
+/// public site and back office are usable (ADR-0067). Idempotent: missing categories and plates only.
 /// </summary>
 internal sealed partial class FleetDemoSeeder(
     IAppDbContext db,
@@ -24,6 +25,9 @@ internal sealed partial class FleetDemoSeeder(
 {
     /// <summary>Name of the demo agency created by the Referential demo seeder (order 200).</summary>
     public const string DemoAgencyName = "Agence Démo Tunis";
+
+    /// <summary>Name of the second demo agency created by the Referential demo seeder.</summary>
+    public const string SecondDemoAgencyName = "Agence Démo Sousse";
 
     private const string Actor = "system:seed";
 
@@ -36,13 +40,20 @@ internal sealed partial class FleetDemoSeeder(
         new("IFMR", "SUV intermédiaire", "Dacia Duster", 5, 5, 2, 2, FuelType.Diesel, 1000m, 500m, 5, 98_000m, ["Dacia Duster", "Dacia Duster", "Dacia Duster", "Hyundai Tucson", "Hyundai Tucson"]),
     ];
 
+    /// <summary>The fleet of the second demo agency: the same codes as the main one, its own vehicles and deposits.</summary>
+    private static readonly CategorySeed[] SecondAgencyCategories =
+    [
+        new("ECMR", "Économique", "Peugeot 208", 5, 5, 1, 2, FuelType.Petrol, 550m, 275m, 1, 50_000m, ["Peugeot 208", "Peugeot 208", "Renault Clio"]),
+        new("CDMR", "Compacte", "Volkswagen Golf", 5, 5, 2, 2, FuelType.Diesel, 750m, 375m, 2, 80_000m, ["Volkswagen Golf", "Peugeot 308"]),
+    ];
+
     private static readonly string[] Colors = ["Blanc", "Gris", "Noir", "Rouge", "Bleu", "Argent"];
 
     public SeedStage Stage => SeedStage.Demo;
 
     public int Order => 400;
 
-    /// <summary>Index (0-29) of the vehicles with a particular situation.</summary>
+    /// <summary>Index (0-29) of the vehicles of the main demo agency with a particular situation.</summary>
     internal static class Special
     {
         public const int OilChangeDueSoon = 5;
@@ -55,43 +66,25 @@ internal sealed partial class FleetDemoSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var agency = (await referential.GetAgenciesAsync(cancellationToken)).FirstOrDefault(a => a.Name == DemoAgencyName);
-        if (agency is null)
-        {
-            LogNoAgency(DemoAgencyName);
-            return;
-        }
-
+        var agencies = await referential.GetAgenciesAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var stamp = new ChangeStamp(now, Actor);
         var today = TunisTime.DateOf(now);
 
-        var categories = await db.Set<VehicleCategory>().Where(c => c.AgencyId == agency.Id).ToListAsync(cancellationToken);
-        var plates = (await db.Set<Vehicle>().Where(v => v.AgencyId == agency.Id).Select(v => v.PlateNumber).ToListAsync(cancellationToken))
-            .ToHashSet(StringComparer.Ordinal);
-
-        var index = 0;
         var created = 0;
-        foreach (var seed in Categories)
+        foreach (var (name, seeds, plateOf, situations) in new (string, CategorySeed[], Func<int, string>, bool)[]
         {
-            var category = categories.FirstOrDefault(c => c.Code.Value == seed.Code);
-            if (category is null)
+            (DemoAgencyName, Categories, PlateOf, true),
+            (SecondDemoAgencyName, SecondAgencyCategories, SecondAgencyPlateOf, false),
+        })
+        {
+            if (agencies.FirstOrDefault(a => a.Name == name) is not { } agency)
             {
-                category = VehicleCategory.Create(agency.Id, seed.ToDetails()).Value;
-                db.Set<VehicleCategory>().Add(category);
+                LogNoAgency(name);
+                continue;
             }
 
-            foreach (var model in seed.Models)
-            {
-                var plate = PlateOf(index);
-                if (!plates.Contains(plate))
-                {
-                    db.Set<Vehicle>().Add(CreateVehicle(index, plate, model, seed, category, today, stamp));
-                    created++;
-                }
-
-                index++;
-            }
+            created += await AddFleetAsync(agency.Id, seeds, plateOf, situations, today, stamp, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -101,11 +94,67 @@ internal sealed partial class FleetDemoSeeder(
         }
     }
 
-    /// <summary>Fictitious Tunisian-style plate "2xx TU nnnn", unique per index.</summary>
+    /// <summary>Fictitious Tunisian-style plate "2xx TU nnnn" of the main demo agency, unique per index.</summary>
     internal static string PlateOf(int index) =>
         string.Create(CultureInfo.InvariantCulture, $"{201 + (index * 3)} TU {1000 + (index * 2731 % 9000):D4}");
 
-    private static Vehicle CreateVehicle(int index, string plate, string model, CategorySeed seed, VehicleCategory category, DateOnly today, ChangeStamp stamp)
+    /// <summary>Fictitious plate "1xx TU nnnn" of the second demo agency, unique per index.</summary>
+    internal static string SecondAgencyPlateOf(int index) =>
+        string.Create(CultureInfo.InvariantCulture, $"{150 + (index * 7)} TU {5000 + (index * 1373 % 4000):D4}");
+
+    /// <summary>
+    /// The missing categories and vehicles of an agency; <paramref name="situations"/> gives the vehicles their particular
+    /// cases (deadlines, maintenance, out of service), otherwise every document is valid for about ten months.
+    /// </summary>
+    private async Task<int> AddFleetAsync(
+        Guid agencyId,
+        CategorySeed[] seeds,
+        Func<int, string> plateOf,
+        bool situations,
+        DateOnly today,
+        ChangeStamp stamp,
+        CancellationToken cancellationToken)
+    {
+        var categories = await db.Set<VehicleCategory>().Where(c => c.AgencyId == agencyId).ToListAsync(cancellationToken);
+        var plates = (await db.Set<Vehicle>().Where(v => v.AgencyId == agencyId).Select(v => v.PlateNumber).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var index = 0;
+        var created = 0;
+        foreach (var seed in seeds)
+        {
+            var category = categories.FirstOrDefault(c => c.Code.Value == seed.Code);
+            if (category is null)
+            {
+                category = VehicleCategory.Create(agencyId, seed.ToDetails()).Value;
+                db.Set<VehicleCategory>().Add(category);
+            }
+
+            foreach (var model in seed.Models)
+            {
+                var plate = plateOf(index);
+                if (!plates.Contains(plate))
+                {
+                    db.Set<Vehicle>().Add(CreateVehicle(index, plate, model, seed, category, situations, today, stamp));
+                    created++;
+                }
+
+                index++;
+            }
+        }
+
+        return created;
+    }
+
+    private static Vehicle CreateVehicle(
+        int index,
+        string plate,
+        string model,
+        CategorySeed seed,
+        VehicleCategory category,
+        bool situations,
+        DateOnly today,
+        ChangeStamp stamp)
     {
         var inServiceOn = today.AddDays(-(150 + (index * 37)));
         var parts = model.Split(' ', 2);
@@ -125,9 +174,9 @@ internal sealed partial class FleetDemoSeeder(
         var mileage = 8_000 + (index * 9_137 % 87_000);
         var vehicle = Vehicle.Register(category.AgencyId, category.Id, details, mileage, stamp).Value;
 
-        var insuranceExpiry = index == Special.InsuranceWithin7Days ? today.AddDays(5) : today.AddDays(60 + (index * 11 % 250));
-        var roadTaxExpiry = index == Special.RoadTaxWithin30Days ? today.AddDays(20) : today.AddDays(90 + (index * 13 % 200));
-        var inspectionExpiry = index == Special.ExpiredTechnicalInspection ? today.AddDays(-3) : today.AddDays(100 + (index * 17 % 300));
+        // The particular case of the vehicle, when the fleet shows them (see Special).
+        int? situation = situations ? index : null;
+        var (insuranceExpiry, roadTaxExpiry, inspectionExpiry) = DocumentExpiries(index, situation, today);
         Record(vehicle, VehicleDocumentType.Insurance, $"POL-DEMO-{index + 1:D4}", insuranceExpiry, "Assureur démo", 1_100m + (index * 25), stamp);
         Record(vehicle, VehicleDocumentType.RoadTax, $"VIG-DEMO-{index + 1:D5}", roadTaxExpiry, null, 180m, stamp);
         Record(vehicle, VehicleDocumentType.TechnicalInspection, $"VT-DEMO-{index + 1:D6}", inspectionExpiry, "Centre de visite démo", 45m, stamp);
@@ -141,7 +190,7 @@ internal sealed partial class FleetDemoSeeder(
                 10_000,
                 12,
                 LastDoneOn: Max(today.AddDays(-(index * 11 % 300)), inServiceOn),
-                LastDoneMileage: index == Special.OilChangeDueSoon ? mileage - 9_600 : Math.Max(0, mileage - (index * 733 % 9_000)),
+                LastDoneMileage: situation == Special.OilChangeDueSoon ? mileage - 9_600 : Math.Max(0, mileage - (index * 733 % 9_000)),
                 Label: "Vidange"),
             stamp);
 
@@ -159,7 +208,7 @@ internal sealed partial class FleetDemoSeeder(
             vehicle.SetGuaranteedModelSupplement(Money.Tnd(model == "Hyundai Tucson" ? 25m : 15m), stamp);
         }
 
-        if (index == Special.MaintenanceNextWeek)
+        if (situation == Special.MaintenanceNextWeek)
         {
             var start = TunisTime.FromLocal(today.AddDays(7), new TimeOnly(8, 0));
             vehicle.ScheduleMaintenance(
@@ -167,13 +216,27 @@ internal sealed partial class FleetDemoSeeder(
                 stamp);
         }
 
-        if (index == Special.OutOfService)
+        if (situation == Special.OutOfService)
         {
             vehicle.ChangeStatus(VehicleStatus.OutOfService, "Accident : en attente de l'expertise de l'assureur", stamp);
         }
 
         return vehicle;
     }
+
+    /// <summary>
+    /// Expiry of the insurance, road tax and technical inspection of a vehicle. The main fleet spreads them by index over
+    /// the coming months (its particular cases aside). Without particular cases (the second fleet), the same spread would
+    /// end the compliance — hence the rentable windows — of all five vehicles within 60 to 104 days, and its public site
+    /// would find no car beyond: their documents were renewed in the last ten weeks and keep the vehicles compliant for
+    /// 300 to 344 days (each document starts a year before its expiry, so never in the future).
+    /// </summary>
+    private static (DateOnly Insurance, DateOnly RoadTax, DateOnly Inspection) DocumentExpiries(int index, int? situation, DateOnly today) =>
+        situation is null
+            ? (today.AddDays(330 + (index * 7)), today.AddDays(300 + (index * 11)), today.AddDays(320 + (index * 9)))
+            : (situation == Special.InsuranceWithin7Days ? today.AddDays(5) : today.AddDays(60 + (index * 11 % 250)),
+                situation == Special.RoadTaxWithin30Days ? today.AddDays(20) : today.AddDays(90 + (index * 13 % 200)),
+                situation == Special.ExpiredTechnicalInspection ? today.AddDays(-3) : today.AddDays(100 + (index * 17 % 300)));
 
     private static void Record(Vehicle vehicle, VehicleDocumentType type, string number, DateOnly expiresOn, string? provider, decimal cost, ChangeStamp stamp) =>
         vehicle.RecordDocument(

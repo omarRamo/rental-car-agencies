@@ -13,7 +13,7 @@ namespace CarRental.Application.Fleet.Photos;
 public sealed record PhotoDescriptor(string Path, string ContentType, string ContentHash);
 
 /// <summary>
-/// Photos of the categories (public) and of the vehicles (back office only), in the private fleet container (ADR-0022).
+/// Photos of the categories (public) and of the vehicles (the staff of their agency only), in the private fleet container (ADR-0022).
 /// An upload is read in memory (10 MB at most), its real type is checked from its signature, then it is stored before
 /// the database change; a replaced or removed file is deleted after the commit.
 /// </summary>
@@ -176,15 +176,20 @@ public sealed partial class FleetPhotoService(
         return Result.Success();
     }
 
-    /// <summary>The public photo of a category (anonymous access), or <see langword="null"/>.</summary>
+    /// <summary>
+    /// The public photo of a category (anonymous access), or <see langword="null"/>. Read across agencies on purpose: the
+    /// photo of a category is shown by the public site of its agency, whatever the agency of the request (ADR-0067), and
+    /// its address names the category, never a list.
+    /// </summary>
     public async Task<PhotoDescriptor?> FindCategoryPhotoAsync(Guid categoryId, CancellationToken cancellationToken = default) =>
         await db.Set<VehicleCategory>()
             .AsNoTracking()
+            .IgnoreQueryFilters([QueryFilters.Agency])
             .Where(c => c.Id == categoryId && c.PhotoPath != null)
             .Select(c => new PhotoDescriptor(c.PhotoPath!, c.PhotoContentType!, c.PhotoHash!))
             .FirstOrDefaultAsync(cancellationToken);
 
-    /// <summary>A photo of a vehicle, for back office users holding <c>fleet.read</c>.</summary>
+    /// <summary>A photo of a vehicle, for the staff of its agency holding <c>fleet.read</c> (another agency's: not found).</summary>
     public async Task<Result<PhotoDescriptor>> FindVehiclePhotoAsync(Guid vehicleId, Guid photoId, CancellationToken cancellationToken = default)
     {
         if (!userContext.HasPermission(Permissions.FleetRead))

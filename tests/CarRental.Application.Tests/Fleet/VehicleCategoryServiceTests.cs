@@ -32,7 +32,7 @@ public sealed class VehicleCategoryServiceTests
     }
 
     [Fact]
-    public async Task A_category_is_created_in_the_single_agency_with_its_deposits()
+    public async Task A_category_is_created_in_the_agency_of_the_operation_with_its_deposits()
     {
         var result = await _bed.Categories().CreateAsync(Form(" sdar "), Ct);
 
@@ -46,13 +46,27 @@ public sealed class VehicleCategoryServiceTests
     }
 
     [Fact]
-    public async Task The_agency_must_be_chosen_when_there_are_several()
+    public async Task A_staff_member_creates_the_categories_of_their_own_agency_only()
     {
-        _bed.Referential.Agencies.Add(new AgencyInfo(Guid.CreateVersion7(), "Agence Sousse", "Sousse", null, null, IsActive: true));
+        var sousse = Guid.CreateVersion7();
+        _bed.Referential.Agencies.Add(new AgencyInfo(sousse, "Agence Sousse", "Sousse", null, null, IsActive: true));
 
-        (await _bed.Categories().CreateAsync(Form(), Ct)).Error.ShouldBe(FleetErrors.AgencyRequired);
-        (await _bed.Categories().CreateAsync(Form() with { AgencyId = Guid.CreateVersion7() }, Ct)).Error.ShouldBe(FleetErrors.AgencyRequired);
+        (await _bed.Categories().CreateAsync(Form() with { AgencyId = sousse }, Ct)).Error.ShouldBe(FleetErrors.Forbidden);
         (await _bed.Categories().CreateAsync(Form() with { AgencyId = _bed.AgencyId }, Ct)).IsSuccess.ShouldBeTrue();
+        _bed.Db.Fake<VehicleCategory>().Items.ShouldAllBe(c => c.AgencyId == _bed.AgencyId);
+    }
+
+    [Fact]
+    public async Task The_support_outside_any_agency_names_the_agency_of_the_category()
+    {
+        var sousse = Guid.CreateVersion7();
+        _bed.Referential.Agencies.Add(new AgencyInfo(sousse, "Agence Sousse", "Sousse", null, null, IsActive: true));
+        var support = _bed.Categories(Roles.Support);
+
+        (await support.CreateAsync(Form(), Ct)).Error.ShouldBe(FleetErrors.AgencyRequired);
+        (await support.CreateAsync(Form() with { AgencyId = Guid.CreateVersion7() }, Ct)).Error.ShouldBe(FleetErrors.AgencyRequired);
+        (await support.CreateAsync(Form() with { AgencyId = sousse }, Ct)).IsSuccess.ShouldBeTrue();
+        _bed.Db.Fake<VehicleCategory>().Items.ShouldHaveSingleItem().AgencyId.ShouldBe(sousse);
     }
 
     [Fact]

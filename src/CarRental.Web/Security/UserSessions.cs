@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Identity.Users;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -83,13 +84,14 @@ internal sealed partial class CarRentalSecurityStampValidator(
     }
 
     /// <summary>
-    /// The stamp of the session still matches and the account is not locked out: an automatic lockout (failed attempts)
-    /// leaves the stamp unchanged, yet ends the sessions at their next validation, as it ends the circuits.
+    /// The stamp of the session still matches, the account is not locked out and its agency is not suspended: an automatic
+    /// lockout (failed attempts) or the suspension of the agency by the support (ADR-0067) leaves the stamp unchanged, yet
+    /// ends the sessions at their next validation, as it ends the circuits.
     /// </summary>
     protected override async Task<ApplicationUser?> VerifySecurityStamp(ClaimsPrincipal? principal)
     {
         var user = await base.VerifySecurityStamp(principal);
-        return user is not null && await SignInManager.UserManager.IsLockedOutAsync(user) ? null : user;
+        return user is not null && (await SignInManager.UserManager.IsLockedOutAsync(user) || !await SignInManager.CanSignInAsync(user)) ? null : user;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Session of user {UserId} ended at its revalidation (stamp changed or account locked).")]
@@ -125,22 +127,26 @@ internal static class SessionClaims
     }
 
     /// <summary>
-    /// Whether the session of <paramref name="principal"/> may go on: the user exists and is not locked out, the security
-    /// stamp is unchanged, and no permission of the session was revoked (granted ones appear at the next page load).
+    /// Whether the session of <paramref name="principal"/> may go on: the user exists and is not locked out, their agency is
+    /// not suspended (ADR-0067), the security stamp is unchanged, the session still works for the agency of the user — the
+    /// agency the support entered or left since may differ, without changing the stamp, which would end the support's
+    /// other sessions — and no permission of the session was revoked (granted ones appear at the next page load).
     /// </summary>
     public static async Task<bool> IsStillValidAsync(
         UserManager<ApplicationUser> userManager,
         IUserClaimsPrincipalFactory<ApplicationUser> claimsFactory,
         ClaimsPrincipal principal,
-        IdentityOptions options)
+        IdentityOptions options,
+        IAgencyDirectory agencies)
     {
         ArgumentNullException.ThrowIfNull(userManager);
         ArgumentNullException.ThrowIfNull(claimsFactory);
         ArgumentNullException.ThrowIfNull(principal);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(agencies);
 
         var user = await userManager.GetUserAsync(principal);
-        if (user is null || await userManager.IsLockedOutAsync(user))
+        if (user is null || await userManager.IsLockedOutAsync(user) || !await CarRentalSignInManager.IsAgencyOpenAsync(user, agencies))
         {
             return false;
         }
@@ -152,6 +158,13 @@ internal static class SessionClaims
             {
                 return false;
             }
+        }
+
+        // A circuit keeps the agency it opened with: once the support entered another agency (or left it), the circuit
+        // ends and the page reloads over HTTP with the renewed cookie, for the agency now chosen.
+        if (principal.GetAgencyId() != user.CurrentAgencyId)
+        {
+            return false;
         }
 
         var current = await claimsFactory.CreateAsync(user);

@@ -1,5 +1,6 @@
 @page "/admin/fines"
 @attribute [HasPermission(Permissions.FinesManage)]
+@attribute [RequiresModule(AgencyModules.ClaimsAndFines)]
 @inject IOperationRunner Runner
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
@@ -18,17 +19,6 @@
 <MudText Typo="Typo.body1" Class="mb-4">@L["Fines.Intro"]</MudText>
 
 <MudGrid Spacing="2" Class="mb-3">
-    @if (_agencies.Count > 1)
-    {
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="Guid?" Value="_agencyId" ValueChanged="AgencyChangedAsync" Label="@L["Field.Agency"]">
-                @foreach (var agency in _agencies)
-                {
-                    <MudSelectItem T="Guid?" Value="@agency.Id">@agency.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-    }
     <MudItem xs="12" sm="6" md="3">
         <MudSelect T="FineStatus?" Value="_status" ValueChanged="StatusChangedAsync" Label="@L["Filter.Status"]" ToStringFunc="@(s => s is { } status ? L[$"FineStatus.{status}"] : L["Filter.All"])">
             <MudSelectItem T="FineStatus?" Value="@((FineStatus?)null)">@L["Filter.All"]</MudSelectItem>
@@ -94,24 +84,21 @@
 
 @code {
     private MudTable<FineListItem>? _table;
-    private IReadOnlyList<AgencyInfo> _agencies = [];
     private Guid? _agencyId;
     private FineStatus? _status;
     private string? _search;
     private bool _onlyToAssign;
 
-    /// <summary>The agency to show first (its id), otherwise the first one by name.</summary>
-    [SupplyParameterFromQuery(Name = "agency")]
-    public Guid? AgencyQuery { get; set; }
+    /// <summary>The agency of the session (cascaded by the layout): the fines shown are its own (ADR-0067).</summary>
+    [CascadingParameter]
+    public AgencySummary? Agency { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        var agencies = await Runner.RunAsync<IReferentialQueries, IReadOnlyList<AgencyInfo>>((queries, ct) => queries.GetAgenciesAsync(ct));
-        _agencies = [.. agencies.Where(a => a.IsActive).OrderBy(a => a.Name, StringComparer.CurrentCulture)];
-        _agencyId = _agencies.FirstOrDefault(a => a.Id == AgencyQuery)?.Id ?? _agencies.FirstOrDefault()?.Id;
-        if (_table is not null)
+        if (Agency is { } agency && agency.Id != _agencyId)
         {
-            await _table.ReloadServerData();
+            _agencyId = agency.Id;
+            await ReloadAsync();
         }
     }
 
@@ -135,12 +122,6 @@
     }
 
     private Task ReloadAsync() => _table?.ReloadServerData() ?? Task.CompletedTask;
-
-    private Task AgencyChangedAsync(Guid? agencyId)
-    {
-        _agencyId = agencyId;
-        return ReloadAsync();
-    }
 
     private Task StatusChangedAsync(FineStatus? status)
     {

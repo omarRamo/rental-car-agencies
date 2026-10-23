@@ -5,8 +5,9 @@ namespace CarRental.Domain.Customers;
 /// <summary>
 /// A payer: either an individual, linked to a <see cref="Person"/> (name and address come from the person), or a company
 /// with its legal name, tax identifier (matricule fiscal) and billing address. Bookings and invoices reference it by id.
+/// A payer belongs to one agency (ADR-0067): an individual to the agency of its person.
 /// </summary>
-public sealed class Customer : AggregateRoot
+public sealed class Customer : AggregateRoot, IAgencyOwned
 {
     public const int LegalNameMaxLength = 200;
     public const int ContactNameMaxLength = 200;
@@ -15,13 +16,16 @@ public sealed class Customer : AggregateRoot
     {
     }
 
-    private Customer(Guid id, CustomerKind kind, DateTimeOffset now)
+    private Customer(Guid id, Guid agencyId, CustomerKind kind, DateTimeOffset now)
         : base(id)
     {
+        AgencyId = agencyId;
         Kind = kind;
         CreatedAtUtc = now;
         LastModifiedAtUtc = now;
     }
+
+    public Guid AgencyId { get; private set; }
 
     public CustomerKind Kind { get; private set; }
 
@@ -51,27 +55,38 @@ public sealed class Customer : AggregateRoot
 
     public DateTimeOffset LastModifiedAtUtc { get; private set; }
 
-    public static Result<Customer> ForPerson(Guid personId, DateTimeOffset now)
+    /// <summary>The individual payer of a person, in the agency of that person (<paramref name="agencyId"/>).</summary>
+    public static Result<Customer> ForPerson(Guid agencyId, Guid personId, DateTimeOffset now)
     {
+        if (agencyId == Guid.Empty)
+        {
+            return CustomersErrors.AgencyRequired;
+        }
+
         if (personId == Guid.Empty)
         {
             return CustomersErrors.PersonRequired;
         }
 
-        var customer = new Customer(NewId(), CustomerKind.Individual, now) { PersonId = personId };
+        var customer = new Customer(NewId(), agencyId, CustomerKind.Individual, now) { PersonId = personId };
         customer.Raise(new CustomerRegistered(customer.Id, CustomerKind.Individual));
         return customer;
     }
 
-    public static Result<Customer> ForCompany(CompanyDetails details, DateTimeOffset now)
+    public static Result<Customer> ForCompany(Guid agencyId, CompanyDetails details, DateTimeOffset now)
     {
+        if (agencyId == Guid.Empty)
+        {
+            return CustomersErrors.AgencyRequired;
+        }
+
         var facts = CompanyFacts.From(details);
         if (facts.IsFailure)
         {
             return facts.Error;
         }
 
-        var customer = new Customer(NewId(), CustomerKind.Company, now);
+        var customer = new Customer(NewId(), agencyId, CustomerKind.Company, now);
         customer.Apply(facts.Value);
         customer.Raise(new CustomerRegistered(customer.Id, CustomerKind.Company));
         return customer;
