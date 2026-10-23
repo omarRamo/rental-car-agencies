@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
+using CarRental.Application.Identity.Contracts;
 using CarRental.E2E.Tests.Support;
-using CarRental.Testing;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -18,7 +18,7 @@ public sealed class FleetBackOfficeTests(E2EHost host) : BrowserTest(host)
     public async Task A_manager_opens_the_fleet_registers_a_vehicle_and_finds_it_in_the_list()
     {
         var plate = $"{Random.Shared.Next(300, 999)} TU {Random.Shared.Next(1000, 9999)}";
-        await SignInAsync(FleetAccounts.Manager, "/admin/fleet");
+        await SignInAsync("/admin/fleet");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Flotte et échéances");
         await Expect(Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "201 TU 1000" })).ToBeVisibleAsync(Slow);
@@ -51,7 +51,7 @@ public sealed class FleetBackOfficeTests(E2EHost host) : BrowserTest(host)
     [Fact]
     public async Task The_deadlines_and_categories_screens_show_the_demo_fleet()
     {
-        await SignInAsync(FleetAccounts.Manager, "/admin/fleet/deadlines");
+        await SignInAsync("/admin/fleet/deadlines");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 })).ToHaveTextAsync("Échéances de la flotte");
         await Expect(Page.GetByText("Visite technique expirée").First).ToBeVisibleAsync(Slow);
@@ -74,15 +74,7 @@ public sealed class FleetBackOfficeTests(E2EHost host) : BrowserTest(host)
         blocking.ShouldBeEmpty();
     }
 
-    private async Task SignInAsync(string email, string returnUrl)
-    {
-        await FleetAccounts.EnsureAsync(Host.Factory.Services, email, CarRental.Application.Identity.Contracts.Roles.Manager);
-        await Page.GotoAsync($"/account/login?ReturnUrl={Uri.EscapeDataString(returnUrl)}");
-        await Page.Locator("#email").FillAsync(email);
-        await Page.Locator("#password").FillAsync(TestAccounts.Password);
-        await Page.Locator("button[type=submit]").ClickAsync();
-        await Page.Locator("#code").FillAsync(Totp.Compute(TestAccounts.AuthenticatorKey));
-        await Page.Locator("button[type=submit]").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(Regex.Escape(returnUrl) + "$"));
-    }
+    /// <summary>Signs in a manager of the demo agency, an account of the test's own (no concurrent sign-in of one account).</summary>
+    private async Task SignInAsync(string returnUrl) =>
+        await BackOfficeSession.SignInAsync(Page, await BackOfficeSession.NewStaffAsync(Host, Roles.Manager), returnUrl);
 }

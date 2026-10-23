@@ -39,8 +39,8 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         var file = await HandoverE2EData.ConfirmedAsync(Host);
         await IdentifyAsync(file.AgencyId);
         await CloseAsync(file.BookingId);
-        var accountant = await BackOfficeSession.NewStaffAsync(Host, Roles.Accountant);
-        await BackOfficeSession.SignInAsync(Page, accountant, $"/admin/invoices?agency={file.AgencyId}&tab=to-invoice");
+        var accountant = await BackOfficeSession.NewStaffAsync(Host, Roles.Accountant, file.AgencyId);
+        await BackOfficeSession.SignInAsync(Page, accountant, "/admin/invoices?tab=to-invoice");
         await WaitUntilReadyAsync();
 
         // The closed file waits in the "to invoice" tab of its agency (automatic issue turned off for it).
@@ -51,6 +51,7 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
 
         await Expect(Page).ToHaveURLAsync(InvoicePage());
         await Expect(Page.GetByTestId("invoice-number")).ToHaveTextAsync(InvoiceTitle());
+        var number = (await Page.GetByTestId("invoice-number").InnerTextAsync())["Facture ".Length..];
         await Expect(Page.GetByTestId("invoice-total-due")).ToHaveTextAsync(Amount(file.Total));
 
         // The PDF is prepared by the outbox: its link appears on the page once stored.
@@ -87,6 +88,11 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
         await Expect(note.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "PDF de AV-", Exact = false })).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
         await AssertAccessibleAsync();
 
+        // The invoices of the agency: the list loads itself on its first render and the page is marked ready.
+        await Page.GotoAsync("/admin/invoices");
+        await WaitUntilReadyAsync();
+        await Expect(Page.Locator("tr", new PageLocatorOptions { HasText = number }).First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
         await using var scope = Scope(null);
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var invoice = await db.Set<Invoice>().AsNoTracking().IgnoreAutoIncludes().SingleAsync(i => i.BookingId == file.BookingId, Ct);
@@ -105,8 +111,8 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
             plate = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().GetVehicleAsync(file.VehicleId, Ct)).ShouldNotBeNull().PlateNumber;
         }
 
-        var agent = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
-        await BackOfficeSession.SignInAsync(Page, agent, $"/admin/fines?agency={file.AgencyId}");
+        var agent = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent, file.AgencyId);
+        await BackOfficeSession.SignInAsync(Page, agent, "/admin/fines");
         await WaitUntilReadyAsync();
         await AssertAccessibleAsync();
 
@@ -169,8 +175,8 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
             plate = (await scope.ServiceProvider.GetRequiredService<IFleetQueries>().GetVehicleAsync(file.VehicleId, Ct)).ShouldNotBeNull().PlateNumber;
         }
 
-        var agent = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent);
-        await BackOfficeSession.SignInAsync(Page, agent, $"/admin/claims?agency={file.AgencyId}");
+        var agent = await BackOfficeSession.NewStaffAsync(Host, Roles.Agent, file.AgencyId);
+        await BackOfficeSession.SignInAsync(Page, agent, "/admin/claims");
         await WaitUntilReadyAsync();
         await AssertAccessibleAsync();
 
@@ -211,8 +217,8 @@ public sealed partial class BillingBackOfficeTests(E2EHost host) : BrowserTest(h
     public async Task A_manager_fills_in_the_seller_identity_of_an_agency()
     {
         var file = await HandoverE2EData.ConfirmedAsync(Host);
-        var manager = await BackOfficeSession.NewStaffAsync(Host, Roles.Manager);
-        await BackOfficeSession.SignInAsync(Page, manager, $"/admin/agency?agency={file.AgencyId}");
+        var manager = await BackOfficeSession.NewStaffAsync(Host, Roles.Manager, file.AgencyId);
+        await BackOfficeSession.SignInAsync(Page, manager, "/admin/agency");
         await WaitUntilReadyAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Identité incomplète" })).ToBeVisibleAsync();
         await AssertAccessibleAsync();

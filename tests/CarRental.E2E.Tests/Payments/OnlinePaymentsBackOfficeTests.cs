@@ -29,13 +29,19 @@ namespace CarRental.E2E.Tests.Payments;
 /// </summary>
 public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : BrowserTest(host)
 {
+    /// <summary>The agency of the payments and of the staff accounts of the tests (ADR-0067).</summary>
+    private const string DemoAgencyName = "Agence Démo Tunis";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task A_pre_authorization_paid_on_the_payment_page_is_seen_and_captured_in_the_back_office()
     {
-        // The customer, on a phone.
+        // The customer of a rental file of the demo agency, on a phone.
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host);
         await Page.GotoAsync("/dev/clictopay/start");
+        await Page.Locator("#start-agency").SelectOptionAsync(new SelectOptionValue { Label = DemoAgencyName });
+        await Page.Locator("#start-booking").FillAsync(bookingId.ToString());
         await Page.GetByLabel("Montant (TND)").FillAsync("150.000");
         await AssertAccessibleAsync(Page);
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Démarrer le paiement" }).ClickAsync();
@@ -96,7 +102,8 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
     public async Task An_agent_creates_a_payment_link_and_asks_for_a_refund_that_a_manager_approves()
     {
         await Page.SetViewportSizeAsync(1280, 800);
-        var bookingId = Guid.CreateVersion7();
+        // A file of the demo agency of 380 TND: 300 paid online, the balance of 80 asked by a payment link.
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host, 380m);
         var paymentId = await PaidOnlineAsync(bookingId, 300m);
         await SignInAsync(Page, await NewStaffAsync(Roles.Agent), $"/admin/payments/bookings/{bookingId}");
         var panel = Page.Locator("[data-testid=booking-payments][data-ready=true]");
@@ -193,11 +200,15 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
         await Expect(page).ToHaveURLAsync(new Regex(Regex.Escape(returnUrl) + "$"));
     }
 
-    /// <summary>A staff account of its own (no concurrent sign-in updating the shared demo users).</summary>
+    /// <summary>
+    /// A staff account of the demo agency of its own (no concurrent sign-in updating the shared demo users), with a short
+    /// e-mail: the tables of the payment show who asked for and approved a refund.
+    /// </summary>
     private async Task<string> NewStaffAsync(string role)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var email = $"{role.ToLowerInvariant()}-online-{suffix}@tests.local";
+        var agencyId = await DemoAgencyIdAsync();
         await using var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -209,6 +220,7 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
             DisplayName = $"{role} en ligne {suffix}",
             LockoutEnabled = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
+            AgencyId = agencyId,
         };
         (await users.CreateAsync(user, TestAccounts.Password)).Succeeded.ShouldBeTrue();
         (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
@@ -218,14 +230,26 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
         return email;
     }
 
-    /// <summary>A one-step online payment of the booking, paid on the simulated gateway and confirmed by the return.</summary>
-    private async Task<Guid> PaidOnlineAsync(Guid bookingId, decimal amount)
+    private async Task<Guid> DemoAgencyIdAsync()
     {
         await using var scope = Host.Factory.Services.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.Anonymous("198.51.100.40"));
-        var agencyId = (await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct)).First(a => a.IsActive).Id;
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
+        return (await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct)).Single(a => a.Name == DemoAgencyName).Id;
+    }
+
+    /// <summary>
+    /// A one-step online payment of the booking, started by a visitor of the demo agency's public site, paid on the
+    /// simulated gateway and confirmed by the return.
+    /// </summary>
+    private async Task<Guid> PaidOnlineAsync(Guid bookingId, decimal amount)
+    {
+        var agencyId = await DemoAgencyIdAsync();
+        await using var scope = Host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(TestActors.Visitor(agencyId));
         var online = scope.ServiceProvider.GetRequiredService<IOnlinePayments>();
-        var started = (await online.StartPaymentAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", "/fr/ok", "/fr/ko"), Ct)).Value;
+        var start = await online.StartPaymentAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", "/agence-demo-tunis/fr/ok", "/agence-demo-tunis/fr/ko"), Ct);
+        start.IsSuccess.ShouldBeTrue(start.IsFailure ? start.Error.ToString() : null);
+        var started = start.Value;
         var fake = Host.Factory.Services.GetRequiredService<FakeClicToPay>();
         fake.Pay(fake.FindOrderByNumber(started.OrderNumber)!.GatewayOrderId).IsSuccess.ShouldBeTrue();
         (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), Ct)).Value.Status.ShouldBe(PaymentStatusInfo.Captured);
@@ -235,6 +259,7 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
     private async Task<Payment> PaymentAsync(Guid paymentId)
     {
         await using var scope = Host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
         return await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<Payment>().AsNoTracking().SingleAsync(p => p.Id == paymentId, Ct);
     }
 }

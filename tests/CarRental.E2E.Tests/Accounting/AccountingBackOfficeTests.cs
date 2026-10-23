@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Security;
+using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Accounting;
 using CarRental.Domain.Cash;
@@ -38,8 +39,8 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
     {
         var month = AccountingMonth.Of(TunisTime.Today(TimeProvider.System)).Previous();
         var (agencyId, sessionId) = await AgencyWithLockedSessionAsync(month);
-        var accountant = await BackOfficeSession.NewStaffAsync(Host, Roles.Accountant);
-        await BackOfficeSession.SignInAsync(Page, accountant, $"/admin/expenses?agency={agencyId}");
+        var accountant = await BackOfficeSession.NewStaffAsync(Host, Roles.Accountant, agencyId);
+        await BackOfficeSession.SignInAsync(Page, accountant, "/admin/expenses");
         await Expect(Page.Locator("h1[data-ready=true]")).ToBeVisibleAsync(Slow);
 
         // An expense of today paid by transfer, with the photo of its receipt.
@@ -69,7 +70,7 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
 
         // Last month: the cash session counted 2,000 TND short, justified.
-        await Page.GotoAsync($"/admin/reconciliation?agency={agencyId}");
+        await Page.GotoAsync("/admin/reconciliation");
         await Expect(Page.Locator("h1[data-ready=true]")).ToBeVisibleAsync(Slow);
         var key = $"cash:variance:{sessionId:N}:revenue";
         var difference = Page.GetByTestId($"difference-{key}");
@@ -90,7 +91,7 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
 
         // Its cash journal, exported in the generic CSV.
-        await Page.GotoAsync($"/admin/accounting?agency={agencyId}");
+        await Page.GotoAsync("/admin/accounting");
         await Expect(Page.Locator("h1[data-ready=true]")).ToBeVisibleAsync(Slow);
         await Expect(Page.GetByTestId("journal-totals")).ToContainTextAsync("CA");
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
@@ -122,6 +123,7 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
         await BackOfficeSession.CloseSnackbarsAsync(Page);
         await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
         await using var scope = Host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e", agencyId: agencyId));
         var db = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
         var period = await db.Set<AccountingPeriod>().AsNoTracking().SingleAsync(p => p.AgencyId == agencyId, Ct);
         (period.Year, period.Month, period.Status, period.ClosedByName).ShouldBe((month.Year, month.Month, AccountingPeriodStatus.Closed, accountant));
@@ -133,7 +135,8 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
     private static partial Regex MinusTwo();
 
     /// <summary>
-    /// An agency of its own and a cash session of <paramref name="month"/> (the 10th) opened with 50,000 TND, counted 48,000 TND
+    /// An agency of its own, provisioned like an agency registered by the support (its chart of accounts and mappings,
+    /// ADR-0067), and a cash session of <paramref name="month"/> (the 10th) opened with 50,000 TND, counted 48,000 TND
     /// with the justification of the cashier and locked — written on the aggregate with its own instants, like the demo history.
     /// </summary>
     private async Task<(Guid AgencyId, Guid SessionId)> AgencyWithLockedSessionAsync(AccountingMonth month)
@@ -152,6 +155,7 @@ public sealed partial class AccountingBackOfficeTests(E2EHost host) : BrowserTes
         db.Set<Agency>().Add(agency);
         db.Set<CashSession>().Add(session);
         await db.SaveChangesAsync(Ct);
+        await scope.ServiceProvider.GetRequiredService<AgencyProvisioning>().ProvisionAsync(agency.Id, Ct);
         return (agency.Id, session.Id);
     }
 }

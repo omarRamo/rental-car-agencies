@@ -4,6 +4,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Cash;
 using CarRental.Domain.Common;
+using CarRental.Domain.Referential;
 using CarRental.E2E.Tests.Support;
 using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
@@ -40,8 +41,8 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
         await Expect(Page.GetByTestId("expected-revenue")).ToHaveTextAsync("100,000 TND", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await AssertAccessibleAsync();
 
-        // The payments panel of a booking (the booking page of package 1E embeds the same component).
-        await Page.GotoAsync($"/admin/payments/bookings/{Guid.CreateVersion7()}");
+        // The payments panel of a rental file of the agency (the booking page of package 1E embeds the same component).
+        await Page.GotoAsync($"/admin/payments/bookings/{await E2EBookings.NewOfDemoAgencyAsync(Host)}");
         await Expect(Page.Locator("[data-testid=booking-payments][data-ready=true]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Encaisser", Exact = true }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog);
@@ -124,7 +125,7 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
     public async Task An_agent_takes_a_card_imprint_and_retains_part_of_it_with_a_justification()
     {
         var agent = await NewStaffAsync(Roles.Agent);
-        var bookingId = Guid.CreateVersion7();
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host);
         await SignInAsync(agent.Email, $"/admin/payments/bookings/{bookingId}");
         var panel = Page.Locator("[data-testid=booking-payments][data-ready=true]");
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
@@ -224,13 +225,20 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
         await Expect(Page).ToHaveURLAsync(new Regex(Regex.Escape(returnUrl) + "$"));
     }
 
-    /// <summary>A staff account of its own (no concurrent sign-in updating the shared demo users, no seeded session).</summary>
+    /// <summary>
+    /// A staff account of the demo agency of its own (no concurrent sign-in updating the shared demo users, no seeded
+    /// session), with a name of its own (the list of every session shows it).
+    /// </summary>
     private async Task<Staff> NewStaffAsync(string role)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var email = $"{role.ToLowerInvariant()}-cash-{suffix}@tests.local";
         await using var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
+        var agencyId = await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<Agency>()
+            .Where(a => a.Name == DemoUsers.DemoAgencyName)
+            .Select(a => a.Id)
+            .SingleAsync(Ct);
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = new ApplicationUser
         {
@@ -240,13 +248,14 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
             DisplayName = $"{role} caisse {suffix}",
             LockoutEnabled = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
+            AgencyId = agencyId,
         };
         (await users.CreateAsync(user, TestAccounts.Password)).Succeeded.ShouldBeTrue();
         (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
         var keys = (IUserAuthenticatorKeyStore<ApplicationUser>)scope.ServiceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
         await keys.SetAuthenticatorKeyAsync(user, TestAccounts.AuthenticatorKey, Ct);
         (await users.SetTwoFactorEnabledAsync(user, true)).Succeeded.ShouldBeTrue();
-        return new Staff(user.Id, email, user.DisplayName, role);
+        return new Staff(user.Id, email, user.DisplayName, role, agencyId);
     }
 
     /// <summary>A session of <paramref name="agent"/> opened with 50.000 TND, closed with 48.000 TND counted.</summary>
@@ -254,11 +263,9 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
     {
         await using var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>()
-            .Initialize(UserContextSnapshot.ForUser(agent.Id, agent.Email, RolePresets.PermissionsOf(agent.Role)));
+            .Initialize(TestActors.Staff(agent.AgencyId, agent.Role, agent.Email, agent.Id));
         var sessions = scope.ServiceProvider.GetRequiredService<ICashSessions>();
-        var agencyId = (await scope.ServiceProvider.GetRequiredService<CarRental.Application.Referential.Contracts.IReferentialQueries>().GetAgenciesAsync(Ct))
-            .First(a => a.IsActive).Id;
-        var opened = await sessions.OpenAsync(new OpenCashSessionRequest(agencyId, 50m), Ct);
+        var opened = await sessions.OpenAsync(new OpenCashSessionRequest(agent.AgencyId, 50m), Ct);
         opened.IsSuccess.ShouldBeTrue(opened.IsFailure ? opened.Error.ToString() : null);
         var closed = await sessions.CloseAsync(opened.Value, new CloseCashSessionRequest(48m, 0m, "Pièce de 2 dinars égarée"), Ct);
         closed.IsSuccess.ShouldBeTrue(closed.IsFailure ? closed.Error.ToString() : null);
@@ -268,10 +275,11 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
     private async Task<CashSession> SessionOfAsync(Guid cashierId)
     {
         await using var scope = Host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
         return await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<CashSession>()
             .AsNoTracking()
             .SingleAsync(s => s.CashierId == cashierId, Ct);
     }
 
-    private sealed record Staff(Guid Id, string Email, string DisplayName, string Role);
+    private sealed record Staff(Guid Id, string Email, string DisplayName, string Role, Guid AgencyId);
 }

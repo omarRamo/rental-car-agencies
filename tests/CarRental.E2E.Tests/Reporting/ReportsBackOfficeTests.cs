@@ -6,6 +6,7 @@ using CarRental.Application.Reporting.Indicators;
 using CarRental.Domain.Common;
 using CarRental.Domain.Reporting;
 using CarRental.E2E.Tests.Support;
+using CarRental.Testing;
 using ClosedXML.Excel;
 using Deque.AxeCore.Playwright;
 using Microsoft.Extensions.DependencyInjection;
@@ -158,6 +159,7 @@ public sealed class ReportsBackOfficeTests(E2EHost host) : BrowserTest(host)
     private async Task<Guid> DemoAgencyIdAsync()
     {
         await using var scope = Host.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
         var agencies = await scope.ServiceProvider.GetRequiredService<IReferentialQueries>().GetAgenciesAsync(Ct);
         return agencies.Single(a => a.Name == DemoAgencyName).Id;
     }
@@ -168,7 +170,7 @@ public sealed class ReportsBackOfficeTests(E2EHost host) : BrowserTest(host)
         var period = ReportPeriod.DefaultFor(TunisTime.Today(TimeProvider.System));
         await using var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>()
-            .Initialize(UserContextSnapshot.ForUser(Guid.CreateVersion7(), "comptable-e2e@tests.local", RolePresets.PermissionsOf(Roles.Accountant)));
+            .Initialize(TestActors.Staff(agencyId, Roles.Accountant, "comptable-e2e@tests.local"));
         var report = await scope.ServiceProvider.GetRequiredService<ReportQueries>().GetDashboardAsync(new ReportRequest(agencyId, period.From, period.To), Ct);
         report.IsSuccess.ShouldBeTrue(report.IsFailure ? report.Error.ToString() : null);
         report.Value.Vehicles.ShouldNotBeEmpty("the demo seeding computes the snapshots of the last days");

@@ -4,11 +4,9 @@ using CarRental.Application.Identity.Contracts;
 using CarRental.Domain.Customers;
 using CarRental.Domain.Identity;
 using CarRental.E2E.Tests.Support;
-using CarRental.Infrastructure.Identity;
 using CarRental.Infrastructure.Persistence;
 using CarRental.Testing;
 using Deque.AxeCore.Playwright;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
@@ -134,33 +132,23 @@ public sealed partial class CustomersBackOfficeTests(E2EHost host) : BrowserTest
         await Expect(Page).ToHaveURLAsync(new Regex(Regex.Escape(returnUrl) + "$"));
     }
 
-    /// <summary>A staff account of its own (no concurrent sign-in updating the shared demo users).</summary>
-    private async Task<string> NewStaffAsync(string role)
+    /// <summary>
+    /// A staff account of its own (no concurrent sign-in updating the shared demo users), in the demo agency of the
+    /// reference customer.
+    /// </summary>
+    private Task<string> NewStaffAsync(string role) => BackOfficeSession.NewStaffAsync(Host, role);
+
+    /// <summary>A scope of the platform reading every agency (test checks only).</summary>
+    private AsyncServiceScope PlatformScope()
     {
-        var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@tests.local";
-        await using var scope = Host.Factory.Services.CreateAsyncScope();
+        var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System("system:e2e"));
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var user = new ApplicationUser
-        {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true,
-            DisplayName = $"{role} E2E",
-            LockoutEnabled = true,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
-        };
-        (await users.CreateAsync(user, TestAccounts.Password)).Succeeded.ShouldBeTrue();
-        (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
-        var keys = (IUserAuthenticatorKeyStore<ApplicationUser>)scope.ServiceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
-        await keys.SetAuthenticatorKeyAsync(user, TestAccounts.AuthenticatorKey, CancellationToken.None);
-        (await users.SetTwoFactorEnabledAsync(user, true)).Succeeded.ShouldBeTrue();
-        return email;
+        return scope;
     }
 
     private async Task<Guid> ReferenceNationalIdAsync()
     {
-        await using var scope = Host.Factory.Services.CreateAsyncScope();
+        await using var scope = PlatformScope();
         var person = await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<Person>()
             .AsNoTracking()
             .SingleAsync(p => p.Email == ReferencePersonEmail, Ct);
@@ -172,7 +160,7 @@ public sealed partial class CustomersBackOfficeTests(E2EHost host) : BrowserTest
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (true)
         {
-            await using (var scope = Host.Factory.Services.CreateAsyncScope())
+            await using (var scope = PlatformScope())
             {
                 var access = await scope.ServiceProvider.GetRequiredService<CarRentalDbContext>().Set<DocumentAccessLog>()
                     .Where(a => a.DocumentId == documentId && a.UserName == userName)
