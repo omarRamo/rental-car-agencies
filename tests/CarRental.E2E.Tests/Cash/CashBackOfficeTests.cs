@@ -41,8 +41,8 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
         await Expect(Page.GetByTestId("expected-revenue")).ToHaveTextAsync("100,000 TND", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await AssertAccessibleAsync();
 
-        // The payments panel of a booking (the booking page of package 1E embeds the same component).
-        await Page.GotoAsync($"/admin/payments/bookings/{Guid.CreateVersion7()}");
+        // The payments panel of a rental file of the agency (the booking page of package 1E embeds the same component).
+        await Page.GotoAsync($"/admin/payments/bookings/{await E2EBookings.NewOfDemoAgencyAsync(Host)}");
         await Expect(Page.Locator("[data-testid=booking-payments][data-ready=true]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Encaisser", Exact = true }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog);
@@ -125,7 +125,7 @@ public sealed partial class CashBackOfficeTests(E2EHost host) : BrowserTest(host
     public async Task An_agent_takes_a_card_imprint_and_retains_part_of_it_with_a_justification()
     {
         var agent = await NewStaffAsync(Roles.Agent);
-        var bookingId = Guid.CreateVersion7();
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host);
         await SignInAsync(agent.Email, $"/admin/payments/bookings/{bookingId}");
         var panel = Page.Locator("[data-testid=booking-payments][data-ready=true]");
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });

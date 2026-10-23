@@ -37,9 +37,11 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
     [Fact]
     public async Task A_pre_authorization_paid_on_the_payment_page_is_seen_and_captured_in_the_back_office()
     {
-        // The customer of the demo agency, on a phone.
+        // The customer of a rental file of the demo agency, on a phone.
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host);
         await Page.GotoAsync("/dev/clictopay/start");
         await Page.Locator("#start-agency").SelectOptionAsync(new SelectOptionValue { Label = DemoAgencyName });
+        await Page.Locator("#start-booking").FillAsync(bookingId.ToString());
         await Page.GetByLabel("Montant (TND)").FillAsync("150.000");
         await AssertAccessibleAsync(Page);
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Démarrer le paiement" }).ClickAsync();
@@ -100,7 +102,8 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
     public async Task An_agent_creates_a_payment_link_and_asks_for_a_refund_that_a_manager_approves()
     {
         await Page.SetViewportSizeAsync(1280, 800);
-        var bookingId = Guid.CreateVersion7();
+        // A file of the demo agency of 380 TND: 300 paid online, the balance of 80 asked by a payment link.
+        var bookingId = await E2EBookings.NewOfDemoAgencyAsync(Host, 380m);
         var paymentId = await PaidOnlineAsync(bookingId, 300m);
         await SignInAsync(Page, await NewStaffAsync(Roles.Agent), $"/admin/payments/bookings/{bookingId}");
         var panel = Page.Locator("[data-testid=booking-payments][data-ready=true]");
@@ -244,7 +247,9 @@ public sealed partial class OnlinePaymentsBackOfficeTests(E2EHost host) : Browse
         await using var scope = Host.Factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(TestActors.Visitor(agencyId));
         var online = scope.ServiceProvider.GetRequiredService<IOnlinePayments>();
-        var started = (await online.StartPaymentAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", "/fr/ok", "/fr/ko"), Ct)).Value;
+        var start = await online.StartPaymentAsync(new OnlinePaymentRequest(bookingId, agencyId, amount, "fr", "/agence-demo-tunis/fr/ok", "/agence-demo-tunis/fr/ko"), Ct);
+        start.IsSuccess.ShouldBeTrue(start.IsFailure ? start.Error.ToString() : null);
+        var started = start.Value;
         var fake = Host.Factory.Services.GetRequiredService<FakeClicToPay>();
         fake.Pay(fake.FindOrderByNumber(started.OrderNumber)!.GatewayOrderId).IsSuccess.ShouldBeTrue();
         (await online.HandleReturnAsync(new OnlinePaymentReturnRequest(started.OrderNumber, null, false), Ct)).Value.Status.ShouldBe(PaymentStatusInfo.Captured);

@@ -151,9 +151,9 @@ internal static class BackOfficeSession
             {
                 await close.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
             }
-            catch (PlaywrightException)
+            catch (Exception exception) when (exception is PlaywrightException or TimeoutException)
             {
-                // Gone by itself meanwhile (TimeoutException derives from PlaywrightException).
+                // Gone by itself meanwhile (a click that times out throws System.TimeoutException, not a PlaywrightException).
             }
         }
 
