@@ -112,15 +112,23 @@ public sealed class PaymentsPersistenceTests(IntegrationHost host)
 
         await using var check = host.CreateScope();
         var db = check.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-        var statuses = await db.Set<Payment>().TemporalAll().Where(p => p.Id == paymentId).Select(p => p.Status).ToListAsync(Ct);
-        statuses.ShouldBe([PaymentStatus.Pending, PaymentStatus.Captured], ignoreOrder: true);
+        // Read the history table itself: FOR SYSTEM_TIME ALL hides a version whose period has zero duration, which happens
+        // when the recording and the confirmation begin within the same tick of SQL Server's clock.
+        var current = await db.Set<Payment>().AsNoTracking().Where(p => p.Id == paymentId).Select(p => p.Status).SingleAsync(Ct);
+        var history = await db.Database
+            .SqlQuery<int>($"SELECT [Status] AS [Value] FROM [payments].[PaymentsHistory] WHERE [Id] = {paymentId}")
+            .ToListAsync(Ct);
+        current.ShouldBe(PaymentStatus.Captured);
+        history.Select(status => (PaymentStatus)status).ShouldBe([PaymentStatus.Pending]);
         var deposit = await db.Set<DepositHold>().AsNoTracking().SingleAsync(d => d.Id == depositId, Ct);
         deposit.Status.ShouldBe(DepositStatus.PartiallyRetained);
         deposit.RetainedAmount.ShouldBe(Money.Tnd(150.5m));
         deposit.RetentionJustification.ShouldBe("Rayure pare-chocs");
         deposit.AttachmentReference.ShouldBe("devis-42.pdf");
         deposit.SettledByUserId.ShouldBe(accountant.UserId);
-        (await db.Set<DepositHold>().TemporalAll().CountAsync(d => d.Id == depositId, Ct)).ShouldBe(2);
+        (await db.Database
+            .SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM [payments].[DepositHoldsHistory] WHERE [Id] = {depositId}")
+            .SingleAsync(Ct)).ShouldBe(1);
     }
 
     [Fact]
