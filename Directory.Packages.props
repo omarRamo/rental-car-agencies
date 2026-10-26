@@ -61,8 +61,8 @@
     the agent relies on the IChatClient adapter of this SDK release (cache control, usage, refusal, effort).
   -->
   <ItemGroup>
-    <PackageVersion Include="Anthropic" Version="12.60.0" />
-    <PackageVersion Include="Anthropic.Foundry" Version="0.8.0" />
+    <PackageVersion Include="Anthropic" Version="13.0.0" />
+    <PackageVersion Include="Anthropic.Foundry" Version="1.0.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.5.1" />
   </ItemGroup>
 
