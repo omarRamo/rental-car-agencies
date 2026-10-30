@@ -430,6 +430,8 @@ jobs:
           PublicSite__WhatsAppNumber: "21600000000"
           PublicSite__AllowIndexing: "true"
           DataProtection__KeysDirectory: ${{ runner.temp }}/keys
+          # The API of the applications signs its tokens (ADR-0070): a throwaway key, the Ci environment being neither Development nor Testing.
+          CustomerApi__Jwt__SigningKey: "lighthouse-ci-only-customer-api-signing-key-0123456789" # gitleaks:allow (throwaway key of a CI-only run)
         run: |
           cd "$RUNNER_TEMP/site"
           nohup dotnet CarRental.Web.dll > "$RUNNER_TEMP/site.log" 2>&1 &
