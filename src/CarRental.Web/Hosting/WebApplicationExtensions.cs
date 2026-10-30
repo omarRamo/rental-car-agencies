@@ -9,6 +9,7 @@ using CarRental.Web.Components.Admin.Platform;
 using CarRental.Web.Components.Admin.Reports;
 using CarRental.Web.Components.Public.Site;
 using CarRental.Web.Endpoints;
+using CarRental.Web.Endpoints.CustomerApi;
 using CarRental.Web.Endpoints.PublicSite;
 using CarRental.Web.Localization;
 using CarRental.Web.Security;
@@ -54,6 +55,8 @@ internal static class WebApplicationExtensions
         app.UseMiddleware<PublicCultureMiddleware>();
         app.UseMiddleware<PublicSiteAgencyMiddleware>();
         app.UseRateLimiter();
+        app.UseCors();
+        app.UseOutputCache();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseAntiforgery();
@@ -70,6 +73,8 @@ internal static class WebApplicationExtensions
         app.MapBillingEndpoints();
         app.MapAccountingEndpoints();
         app.MapPublicSite();
+        app.MapCustomerApi();
+        app.MapCustomerApiDocument();
         app.MapClicToPayEndpoints(app.Environment);
         app.MapChannelEndpoints();
         app.MapHangfireDashboardWithAuthorizationPolicy(

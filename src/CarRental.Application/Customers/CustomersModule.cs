@@ -1,6 +1,7 @@
 using CarRental.Application.Common.BackgroundJobs;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Customers.Accounts;
 using CarRental.Application.Customers.Administration;
 using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Customers.Documents;
@@ -36,6 +37,13 @@ public static class CustomersModule
         services.AddScoped<DocumentImageAccess>();
         services.AddScoped<PersonalDataService>();
         services.AddScoped<DriverSubmissionReviewService>();
+
+        // Customer accounts of the mobile application and of the storefronts (ADR-0070).
+        services.AddScoped<CustomerAccountService>();
+        services.AddScoped<CustomerAccountBookings>();
+        services.AddSettingDefinitions(CustomerAccountSettings.All);
+        services.AddOutboxHandler<CustomerAccountEmailRequested, CustomerAccountEmailHandler>();
+        services.AddRecurringJob<CustomerAccountPurgeJob>();
 
         // Internals.
         services.AddScoped<DriverEligibilityChecker>();

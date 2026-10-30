@@ -471,4 +471,37 @@
   <data name="Setting.billing.fine_management_fee.Help" xml:space="preserve">
     <value>Amount VAT included added when a fine is re-invoiced to the customer (0.000: no fee).</value>
   </data>
+  <data name="Group.customer_accounts" xml:space="preserve">
+    <value>Customer accounts and application</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_failures.Label" xml:space="preserve">
+    <value>Failed sign-ins before lockout</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_failures.Help" xml:space="preserve">
+    <value>Wrong passwords in a row that lock a customer account (5 by default).</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_duration.Label" xml:space="preserve">
+    <value>Lockout duration</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_duration.Help" xml:space="preserve">
+    <value>How long a locked customer account refuses every sign-in (15 minutes by default).</value>
+  </data>
+  <data name="Setting.customer_accounts.refresh_token_lifetime.Label" xml:space="preserve">
+    <value>Session length of the application</value>
+  </data>
+  <data name="Setting.customer_accounts.refresh_token_lifetime.Help" xml:space="preserve">
+    <value>How long the application stays signed in without the password being typed again (30 days by default).</value>
+  </data>
+  <data name="Setting.customer_accounts.code_validity.Label" xml:space="preserve">
+    <value>Validity of the e-mailed codes</value>
+  </data>
+  <data name="Setting.customer_accounts.code_validity.Help" xml:space="preserve">
+    <value>Validity of an address verification or password reset code (15 minutes by default).</value>
+  </data>
+  <data name="Setting.customer_accounts.require_verified_email_to_book.Label" xml:space="preserve">
+    <value>Verified e-mail address to book</value>
+  </data>
+  <data name="Setting.customer_accounts.require_verified_email_to_book.Help" xml:space="preserve">
+    <value>A customer of the application can only send a request once their e-mail address is verified (on by default).</value>
+  </data>
 </root>

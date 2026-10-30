@@ -216,4 +216,40 @@
   <data name="Access.Note" xml:space="preserve">
     <value>The link and the code are valid until {0} and work only once. If you did not ask for them, ignore this e-mail: nobody can open your booking without it.</value>
   </data>
+  <data name="Account.CodeLabel" xml:space="preserve">
+    <value>Your code</value>
+  </data>
+  <data name="Account.Footer" xml:space="preserve">
+    <value>You receive this e-mail because a customer account was opened or changed with this address in the application.</value>
+  </data>
+  <data name="Account.Verify.Subject" xml:space="preserve">
+    <value>Verify your e-mail address</value>
+  </data>
+  <data name="Account.Verify.Preheader" xml:space="preserve">
+    <value>Your verification code.</value>
+  </data>
+  <data name="Account.Verify.Heading" xml:space="preserve">
+    <value>Welcome!</value>
+  </data>
+  <data name="Account.Verify.Body" xml:space="preserve">
+    <value>Your customer account at {0} is open. Enter this code in the application to confirm your e-mail address and start booking.</value>
+  </data>
+  <data name="Account.Verify.Note" xml:space="preserve">
+    <value>This code is valid until {0} and works only once. If you did not open an account, ignore this e-mail.</value>
+  </data>
+  <data name="Account.Reset.Subject" xml:space="preserve">
+    <value>Reset your password</value>
+  </data>
+  <data name="Account.Reset.Preheader" xml:space="preserve">
+    <value>Your reset code.</value>
+  </data>
+  <data name="Account.Reset.Heading" xml:space="preserve">
+    <value>Choose a new password</value>
+  </data>
+  <data name="Account.Reset.Body" xml:space="preserve">
+    <value>You asked to change the password of your customer account at {0}. Enter this code in the application, then your new password.</value>
+  </data>
+  <data name="Account.Reset.Note" xml:space="preserve">
+    <value>This code is valid until {0} and works only once. If you did not ask for it, ignore this e-mail: your password stays unchanged.</value>
+  </data>
 </root>

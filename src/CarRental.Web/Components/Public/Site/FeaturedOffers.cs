@@ -35,7 +35,7 @@ public sealed partial class FeaturedOffers(
         }
 
         var weekend = await PriceAsync(agency, saturday, cancellationToken);
-        cache.Set(key, weekend, CacheDuration);
+        cache.Set(key, weekend, new MemoryCacheEntryOptions { Size = 1, AbsoluteExpirationRelativeToNow = CacheDuration });
         return weekend;
     }
 

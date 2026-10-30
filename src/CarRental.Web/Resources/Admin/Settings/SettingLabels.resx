@@ -471,4 +471,37 @@
   <data name="Setting.billing.fine_management_fee.Help" xml:space="preserve">
     <value>Montant TTC ajouté à la refacturation d'une amende au client (0,000 : aucun frais).</value>
   </data>
+  <data name="Group.customer_accounts" xml:space="preserve">
+    <value>Comptes clients et application</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_failures.Label" xml:space="preserve">
+    <value>Échecs de connexion avant blocage</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_failures.Help" xml:space="preserve">
+    <value>Mots de passe erronés d'affilée qui bloquent un compte client (5 par défaut).</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_duration.Label" xml:space="preserve">
+    <value>Durée du blocage</value>
+  </data>
+  <data name="Setting.customer_accounts.lockout_duration.Help" xml:space="preserve">
+    <value>Temps pendant lequel un compte client bloqué refuse toute connexion (15 minutes par défaut).</value>
+  </data>
+  <data name="Setting.customer_accounts.refresh_token_lifetime.Label" xml:space="preserve">
+    <value>Durée de la session de l'application</value>
+  </data>
+  <data name="Setting.customer_accounts.refresh_token_lifetime.Help" xml:space="preserve">
+    <value>Temps pendant lequel l'application reste connectée sans ressaisir le mot de passe (30 jours par défaut).</value>
+  </data>
+  <data name="Setting.customer_accounts.code_validity.Label" xml:space="preserve">
+    <value>Validité des codes envoyés par e-mail</value>
+  </data>
+  <data name="Setting.customer_accounts.code_validity.Help" xml:space="preserve">
+    <value>Durée de validité d'un code de vérification d'adresse ou de réinitialisation de mot de passe (15 minutes par défaut).</value>
+  </data>
+  <data name="Setting.customer_accounts.require_verified_email_to_book.Label" xml:space="preserve">
+    <value>Adresse e-mail vérifiée pour réserver</value>
+  </data>
+  <data name="Setting.customer_accounts.require_verified_email_to_book.Help" xml:space="preserve">
+    <value>Un client de l'application ne peut envoyer une demande qu'après avoir vérifié son adresse e-mail (activé par défaut).</value>
+  </data>
 </root>

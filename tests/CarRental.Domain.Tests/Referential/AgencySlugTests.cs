@@ -78,7 +78,7 @@ public sealed class AgencySlugTests
         AgencyModuleCatalog.Defaults.HasFlag(AgencyModules.Cash).ShouldBeTrue();
         AgencyModuleCatalog.Defaults.HasFlag(AgencyModules.WhatsApp).ShouldBeFalse();
         AgencyModuleCatalog.Defaults.HasFlag(AgencyModules.Channels).ShouldBeFalse();
-        ((int)AgencyModuleCatalog.Defaults).ShouldBe(121, "the value the migration gives to the existing agencies");
+        ((int)AgencyModuleCatalog.Defaults).ShouldBe(249, "121 given by the multi-agency migration, plus 128 (CustomerApi) added by the customer accounts migration");
         AgencyModuleCatalog.All.ShouldBe(Enum.GetValues<AgencyModules>().Where(m => m != AgencyModules.None), ignoreOrder: true);
     }
 

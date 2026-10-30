@@ -25,6 +25,9 @@ public static class PublicRateLimits
 
     /// <summary>Uploads of identity documents (40 per 10 minutes and per IP).</summary>
     public const string Upload = "public-upload";
+
+    /// <summary>Sign-ins, registrations, refreshes and codes of the customer accounts of the API (20 per 10 minutes and per IP, ADR-0070).</summary>
+    public const string CustomerAuth = "customer-auth";
 }
 
 /// <summary>Limits of the public policies (<c>RateLimiting:*</c>), per client IP address.</summary>
@@ -37,6 +40,8 @@ public sealed class PublicRateLimitOptions
     public WindowLimit Submit { get; set; } = new() { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), SegmentsPerWindow = 1 };
 
     public WindowLimit Upload { get; set; } = new() { PermitLimit = 40, Window = TimeSpan.FromMinutes(10), SegmentsPerWindow = 5 };
+
+    public WindowLimit CustomerAuth { get; set; } = new() { PermitLimit = 20, Window = TimeSpan.FromMinutes(10), SegmentsPerWindow = 2 };
 }
 
 /// <summary>A window limit: <see cref="SegmentsPerWindow"/> above 1 makes it sliding, 1 a fixed window.</summary>
@@ -69,6 +74,7 @@ public static partial class PublicRateLimiting
             options.AddPolicy(PublicRateLimits.Search, context => Partition(context, limits => limits.Search));
             options.AddPolicy(PublicRateLimits.Submit, context => Partition(context, limits => limits.Submit));
             options.AddPolicy(PublicRateLimits.Upload, context => Partition(context, limits => limits.Upload));
+            options.AddPolicy(PublicRateLimits.CustomerAuth, context => Partition(context, limits => limits.CustomerAuth));
         });
         return services;
     }

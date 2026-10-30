@@ -21,6 +21,12 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.13" />
   </ItemGroup>
 
+  <!-- API of the mobile application and of the storefronts (ADR-0070): JWT bearer authentication of the customers and the OpenAPI document. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+  </ItemGroup>
+
   <!-- Background jobs -->
   <ItemGroup>
     <PackageVersion Include="Hangfire.Core" Version="1.8.25" />

@@ -2112,4 +2112,49 @@
   <data name="Error.platform.whatsapp_number_serves_another_agency" xml:space="preserve">
     <value>Le numéro WhatsApp de la plateforme sert déjà une autre agence et ne peut en servir qu'une : avec ce module ouvert ici, il ne servirait plus aucune des deux. Désignez d'abord l'agence à servir (réglage WhatsApp__AgencyId), puis ouvrez le module.</value>
   </data>
+  <data name="Error.customers.account.agency_required" xml:space="preserve">
+    <value>Un compte client se crée depuis la vitrine ou l'application d'une agence.</value>
+  </data>
+  <data name="Error.customers.account.email_taken" xml:space="preserve">
+    <value>Un compte existe déjà avec cette adresse e-mail pour cette agence.</value>
+  </data>
+  <data name="Error.customers.account.password_weak" xml:space="preserve">
+    <value>Le mot de passe doit compter entre 10 et 128 caractères et ne pas être un mot de passe courant.</value>
+  </data>
+  <data name="Error.customers.account.credentials_invalid" xml:space="preserve">
+    <value>L'adresse e-mail ou le mot de passe est incorrect.</value>
+  </data>
+  <data name="Error.customers.account.locked" xml:space="preserve">
+    <value>Trop de tentatives de connexion : le compte est bloqué quelques minutes.</value>
+  </data>
+  <data name="Error.customers.account.not_found" xml:space="preserve">
+    <value>Ce compte client n'existe pas.</value>
+  </data>
+  <data name="Error.customers.account.closed" xml:space="preserve">
+    <value>Ce compte client a été fermé.</value>
+  </data>
+  <data name="Error.customers.account.email_not_verified" xml:space="preserve">
+    <value>Vérifiez d'abord votre adresse e-mail avec le code reçu.</value>
+  </data>
+  <data name="Error.customers.account.already_verified" xml:space="preserve">
+    <value>Cette adresse e-mail est déjà vérifiée.</value>
+  </data>
+  <data name="Error.customers.account.code_invalid" xml:space="preserve">
+    <value>Ce code n'est pas valide (ou plus) : demandez-en un nouveau.</value>
+  </data>
+  <data name="Error.customers.account.refresh_token_invalid" xml:space="preserve">
+    <value>La session a expiré : reconnectez-vous.</value>
+  </data>
+  <data name="Error.customers.account.name_invalid" xml:space="preserve">
+    <value>Le prénom et le nom sont obligatoires (lettres seulement, 100 caractères au plus).</value>
+  </data>
+  <data name="Error.customers.account.culture_invalid" xml:space="preserve">
+    <value>La langue doit être fr ou en.</value>
+  </data>
+  <data name="Error.customers.account.booking_not_found" xml:space="preserve">
+    <value>Cette réservation n'appartient pas à votre compte.</value>
+  </data>
+  <data name="Error.customers.account.terms_required" xml:space="preserve">
+    <value>Acceptez les conditions générales de location pour envoyer la demande.</value>
+  </data>
 </root>

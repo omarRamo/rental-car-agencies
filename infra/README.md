@@ -330,6 +330,9 @@ az keyvault secret set --vault-name "<keyVaultName>" --name "Ai--ApiKey" --file 
 # Facultatif (Foundry) : sans clé, l'identité managée de la Web App doit avoir accès aux modèles de la ressource
 az keyvault secret set --vault-name "<keyVaultName>" --name "Ai--Foundry--ApiKey" --file ./foundry-api-key.txt
 az keyvault secret set --vault-name "<keyVaultName>" --name "Turnstile--SecretKey" --file ./turnstile-secret.txt
+# Clé de signature des jetons de l'API des applications clientes (ADR-0070) : 32 octets aléatoires au moins, obligatoire hors développement
+openssl rand -base64 48 > ./customer-api-signing-key.txt
+az keyvault secret set --vault-name "<keyVaultName>" --name "CustomerApi--Jwt--SigningKey" --file ./customer-api-signing-key.txt
 ```
 
 `--file` évite de laisser le secret dans l'historique du terminal ; supprimer le fichier ensuite.

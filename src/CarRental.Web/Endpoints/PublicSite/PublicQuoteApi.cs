@@ -80,6 +80,22 @@ public static class PublicQuoteApi
             return Unauthorized();
         }
 
+        return await CreateCoreAsync(request, context, directory, timeProvider, site, cancellationToken);
+    }
+
+    /// <summary>
+    /// Prices and locks a quote without the API key: the API of the mobile application (ADR-0070), rate limited per
+    /// address like the "Choose" button of the site, whose work it does.
+    /// </summary>
+    internal static async Task<Results<Created<PublicQuoteResponse>, ValidationProblem, ProblemHttpResult>> CreateCoreAsync(
+        PublicQuoteRequest? request,
+        HttpContext context,
+        PublicAgencyDirectory directory,
+        TimeProvider timeProvider,
+        IOptions<PublicSiteOptions> site,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
         if (request is null)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["body"] = ["required"] }, title: "The request is invalid.");
@@ -152,6 +168,19 @@ public static class PublicQuoteApi
             return Unauthorized();
         }
 
+        return await GetCoreAsync(code, context, directory, requests, site, cancellationToken);
+    }
+
+    /// <summary>A locked quote of the site without the API key (API of the mobile application, ADR-0070).</summary>
+    internal static async Task<Results<Ok<PublicQuoteResponse>, NotFound, ProblemHttpResult>> GetCoreAsync(
+        string code,
+        HttpContext context,
+        PublicAgencyDirectory directory,
+        IBookingRequests requests,
+        IOptions<PublicSiteOptions> site,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
         var agency = await directory.GetAsync(PublicSiteAgency.Require(context), cancellationToken);
         var quote = agency is null ? null : await requests.GetLockedQuoteAsync(code, cancellationToken);
         if (agency is null || quote is null || quote.AgencyId != agency.Agency.Id)

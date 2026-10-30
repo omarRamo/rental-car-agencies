@@ -11,6 +11,7 @@ using CarRental.Application.Common.Numbering;
 using CarRental.Application.Common.Outbox;
 using CarRental.Application.Common.Persistence;
 using CarRental.Application.Common.Seeding;
+using CarRental.Application.Customers.Contracts;
 using CarRental.Application.Identity.Users;
 using CarRental.Infrastructure.Accounting;
 using CarRental.Infrastructure.BackgroundJobs;
@@ -172,6 +173,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddCarRentalIdentityCore();
         services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddSingleton<ICustomerPasswordHasher, CustomerPasswordHasher>();
         services.AddScoped<SignInRecorder>();
         services.AddDataSeeder<RolePresetSynchronizer>();
         services.AddDataSeeder<InitialSupportSeeder>();

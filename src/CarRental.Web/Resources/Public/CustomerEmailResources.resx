@@ -216,4 +216,40 @@
   <data name="Access.Note" xml:space="preserve">
     <value>Le lien et le code sont valables jusqu'au {0} et ne servent qu'une fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : personne ne peut ouvrir votre réservation sans lui.</value>
   </data>
+  <data name="Account.CodeLabel" xml:space="preserve">
+    <value>Votre code</value>
+  </data>
+  <data name="Account.Footer" xml:space="preserve">
+    <value>Vous recevez cet e-mail parce qu'un compte client a été créé ou modifié avec cette adresse dans l'application.</value>
+  </data>
+  <data name="Account.Verify.Subject" xml:space="preserve">
+    <value>Vérifiez votre adresse e-mail</value>
+  </data>
+  <data name="Account.Verify.Preheader" xml:space="preserve">
+    <value>Votre code de vérification.</value>
+  </data>
+  <data name="Account.Verify.Heading" xml:space="preserve">
+    <value>Bienvenue !</value>
+  </data>
+  <data name="Account.Verify.Body" xml:space="preserve">
+    <value>Votre compte client chez {0} est créé. Saisissez ce code dans l'application pour confirmer votre adresse e-mail et pouvoir réserver.</value>
+  </data>
+  <data name="Account.Verify.Note" xml:space="preserve">
+    <value>Ce code est valable jusqu'au {0} et ne sert qu'une fois. Si vous n'avez pas créé de compte, ignorez cet e-mail.</value>
+  </data>
+  <data name="Account.Reset.Subject" xml:space="preserve">
+    <value>Réinitialisation de votre mot de passe</value>
+  </data>
+  <data name="Account.Reset.Preheader" xml:space="preserve">
+    <value>Votre code de réinitialisation.</value>
+  </data>
+  <data name="Account.Reset.Heading" xml:space="preserve">
+    <value>Choisir un nouveau mot de passe</value>
+  </data>
+  <data name="Account.Reset.Body" xml:space="preserve">
+    <value>Vous avez demandé à changer le mot de passe de votre compte client chez {0}. Saisissez ce code dans l'application, puis votre nouveau mot de passe.</value>
+  </data>
+  <data name="Account.Reset.Note" xml:space="preserve">
+    <value>Ce code est valable jusqu'au {0} et ne sert qu'une fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.</value>
+  </data>
 </root>

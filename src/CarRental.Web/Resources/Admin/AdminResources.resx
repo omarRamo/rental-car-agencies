@@ -681,4 +681,10 @@
   <data name="Module.Reports" xml:space="preserve">
     <value>Rapports</value>
   </data>
+  <data name="Module.CustomerApi" xml:space="preserve">
+    <value>Application mobile et API</value>
+  </data>
+  <data name="Module.CustomerApi.Description" xml:space="preserve">
+    <value>Les comptes clients, l'application mobile et l'API des sites vitrines (/api/v1) : réservation, suivi et paiement en ligne.</value>
+  </data>
 </root>

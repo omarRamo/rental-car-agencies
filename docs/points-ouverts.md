@@ -115,6 +115,7 @@ Ouverts par le passage en service vendu à plusieurs agences ([ADR-0067](adr/006
 | Défense en profondeur | Sécurité au niveau des lignes de SQL Server (`SESSION_CONTEXT`) en plus du filtre EF Core et du garde d'écriture | Exploitant |
 | Données partagées entre agences | Liste noire commune des clients indélicats (déclaration INPDP, accord des agences) : aujourd'hui chaque agence a la sienne | Agences, INPDP |
 | Facturation du service | Abonnement des agences à la plateforme (modules facturés, période d'essai) : hors de la plateforme pour l'instant | Exploitant |
+| Application mobile ([ADR-0070](adr/0070-api-clients-comptes-clients-jwt.md)) | Une application par agence (marque blanche) ou une application de la plateforme qui choisit l'agence ; comptes développeur des magasins (Apple, Google) ; lien profond du retour de paiement vers l'application (aujourd'hui l'application surveille l'adresse de confirmation de la vitrine) ; secret `CustomerApi--Jwt--SigningKey` à créer dans le Key Vault avant la production | Exploitant, agences |
 
 ## Incohérences relevées dans la spec v1
 

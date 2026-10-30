@@ -32,6 +32,9 @@ public enum AgencyModules
 
     /// <summary>Dashboards and reports.</summary>
     Reports = 1 << 6,
+
+    /// <summary>Customer accounts and the API of the mobile application and of the storefronts (<c>/{slug}/api/v1</c>, ADR-0070).</summary>
+    CustomerApi = 1 << 7,
 }
 
 public static class AgencyModuleCatalog
@@ -46,6 +49,7 @@ public static class AgencyModuleCatalog
         AgencyModules.ClaimsAndFines,
         AgencyModules.Accounting,
         AgencyModules.Reports,
+        AgencyModules.CustomerApi,
     ];
 
     /// <summary>Every defined module flag.</summary>

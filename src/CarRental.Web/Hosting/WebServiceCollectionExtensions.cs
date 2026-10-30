@@ -7,6 +7,7 @@ using CarRental.Web.Components.Admin.Billing;
 using CarRental.Web.Components.Admin.Bookings;
 using CarRental.Web.Components.Admin.Handovers;
 using CarRental.Web.Endpoints;
+using CarRental.Web.Endpoints.CustomerApi;
 using CarRental.Web.Endpoints.PublicSite;
 using CarRental.Web.Localization;
 using CarRental.Web.Security;
@@ -96,6 +97,7 @@ internal static class WebServiceCollectionExtensions
 
         services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = 10 * 1024 * 1024);
         services.AddPublicSite(configuration, environment);
+        services.AddCustomerApi(configuration);
         services.AddWhatsAppWebhook(configuration);
         services.AddSecurityRateLimiting(configuration);
         return services;

@@ -30,6 +30,8 @@
 
   <ItemGroup>
     <PackageReference Include="MudBlazor" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="QRCoder" />
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="QuestPDF" />
