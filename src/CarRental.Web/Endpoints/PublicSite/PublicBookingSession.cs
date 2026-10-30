@@ -130,7 +130,7 @@ public sealed class PublicBookingCookies(IDataProtectionProvider dataProtection,
         HttpOnly = true,
         SameSite = SameSiteMode.Lax,
         Secure = context.Request.IsHttps || !(environment.IsDevelopment() || environment.IsEnvironment(WebEnvironments.Testing)),
-        Path = PublicSiteAgency.SiteOf(context) is { } site ? $"/{site.Slug}" : "/",
+        Path = PublicSiteAgency.LinkRootOf(context) is { Length: > 0 } root ? root : "/",
         Expires = expires,
         IsEssential = true,
     };

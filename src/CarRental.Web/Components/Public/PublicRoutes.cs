@@ -51,44 +51,58 @@ public static class PublicRoutes
         return IsEnglish(culture) ? english : french;
     }
 
-    /// <summary>App-relative path of a page of the site of <paramref name="agency"/>, e.g. <c>/agence-1/en/book</c>.</summary>
+    /// <summary>
+    /// The start of every address of the site of <paramref name="agency"/>: <c>/agence-1</c> on the platform host, nothing
+    /// (<see cref="string.Empty"/>) for a site served on its own host, written with an empty <paramref name="agency"/>
+    /// (ADR-0069, <see cref="Site.PublicSiteAgency.SlugOf"/>).
+    /// </summary>
+    public static string Root(string agency)
+    {
+        ArgumentNullException.ThrowIfNull(agency);
+        if (agency.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
+        return "/" + agency;
+    }
+
+    /// <summary>App-relative path of a page of the site of <paramref name="agency"/>, e.g. <c>/agence-1/en/book</c> (<c>/en/book</c> on its own host).</summary>
     public static string PathFor(string agency, PublicPage page, string culture)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
+        var root = Root(agency);
         var normalized = Normalize(culture);
         var slug = Slug(page, normalized);
-        return slug.Length == 0 ? $"/{agency}/{normalized}" : $"/{agency}/{normalized}/{slug}";
+        return slug.Length == 0 ? $"{root}/{normalized}" : $"{root}/{normalized}/{slug}";
     }
 
     /// <summary>
-    /// A link to an element of the current page (<c>/agence-1/fr/reserver?…#main</c>). The pages declare
-    /// <c>&lt;base href="/"&gt;</c>, against which a bare <c>#main</c> would resolve to the root and leave the page.
+    /// A link to an element of the current page (<c>/agence-1/fr/reserver?…#main</c>, <c>/fr/reserver?…#main</c> on the
+    /// agency's own host). The pages declare <c>&lt;base href="/"&gt;</c>, against which a bare <c>#main</c> would resolve
+    /// to the root and leave the page.
     /// </summary>
-    public static string InPage(Microsoft.AspNetCore.Components.NavigationManager navigation, string elementId)
+    public static string InPage(HttpContext context, string elementId)
     {
-        ArgumentNullException.ThrowIfNull(navigation);
-        var current = "/" + navigation.ToBaseRelativePath(navigation.Uri);
-        var fragmentStart = current.IndexOf('#', StringComparison.Ordinal);
-        return $"{(fragmentStart < 0 ? current : current[..fragmentStart])}#{elementId}";
+        ArgumentNullException.ThrowIfNull(context);
+        return $"{Site.PublicSiteAgency.VisiblePath(context)}{context.Request.QueryString}#{elementId}";
     }
 
     /// <summary>Address of the "Choose" action of the site of <paramref name="agency"/> in <paramref name="culture"/> (same slug in every language).</summary>
-    public static string SelectionPath(string agency, string culture)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(agency);
-        return $"/{agency}/{Normalize(culture)}/reserver/selection";
-    }
+    public static string SelectionPath(string agency, string culture) => $"{Root(agency)}/{Normalize(culture)}/reserver/selection";
 
     /// <summary>
-    /// Patterns of the booking funnel and of "Ma réservation" of every site in <paramref name="culture"/>, for robots.txt
-    /// (<c>/*/fr/reserver</c>: the first segment is the site, whichever it is).
+    /// Patterns of the booking funnel and of "Ma réservation" in <paramref name="culture"/>, for robots.txt: of every site
+    /// of the platform host (<c>/*/fr/reserver</c>: the first segment is the site, whichever it is), or of the one site
+    /// served on its own host (<c>/fr/reserver</c>, <paramref name="ownHost"/>).
     /// </summary>
-    public static IEnumerable<string> PrivatePrefixes(string culture)
+    public static IEnumerable<string> PrivatePrefixes(string culture, bool ownHost = false)
     {
         var normalized = Normalize(culture);
+        var root = ownHost ? string.Empty : "/*";
         return new[] { Slugs[PublicPage.Results].French, Slugs[PublicPage.Results].English, MyBookingSlugs.French, MyBookingSlugs.English }
             .Distinct(StringComparer.Ordinal)
-            .Select(slug => $"/*/{normalized}/{slug}");
+            .Select(slug => $"{root}/{normalized}/{slug}");
     }
 
     /// <summary>

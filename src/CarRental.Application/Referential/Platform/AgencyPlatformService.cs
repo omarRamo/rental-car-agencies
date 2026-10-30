@@ -5,6 +5,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Domain.Common;
 using CarRental.Domain.Referential;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,9 @@ public sealed record RegisterAgencyRequest(
 /// <summary>A registered agency: its id, the address of its public site and its first manager.</summary>
 public sealed record AgencyRegistration(Guid AgencyId, string Slug, Guid ManagerId);
 
+/// <summary>A host name of an agency's own site as the platform pages list it (ADR-0069).</summary>
+public sealed record PlatformAgencyDomain(Guid Id, string HostName, bool IsPrimary, DateTimeOffset CreatedAtUtc);
+
 /// <summary>
 /// The platform's single WhatsApp number seen from the page of an agency (ADR-0067): the agency it serves now
 /// (<see langword="null"/> when none), and what it would do for this agency with its WhatsApp module on.
@@ -56,7 +60,8 @@ public sealed record AgencyDetailsRequest(string Name, string City, string? Addr
 /// contact details or the address of its public site, switch its modules, suspend it or lift the suspension, invite
 /// another manager. Every change is audited in the journal of the agency concerned (row diff plus a readable event). The
 /// platform's single WhatsApp number is read from the Messaging module (<see cref="IWhatsAppNumber"/>): which agency it
-/// serves, and whether switching WhatsApp on for an agency would serve it.
+/// serves, and whether switching WhatsApp on for an agency would serve it. The host names of an agency's own site
+/// (ADR-0069) are attached, detached and chosen as primary here too.
 /// </summary>
 public sealed class AgencyPlatformService(
     IAppDbContext db,
@@ -65,7 +70,9 @@ public sealed class AgencyPlatformService(
     AgencyProvisioning provisioning,
     IAgencyManagerInvitations managers,
     IWhatsAppNumber whatsAppNumber,
-    IAuditTrail auditTrail)
+    IAuditTrail auditTrail,
+    IPlatformHosts platformHosts,
+    TimeProvider clock)
 {
     /// <summary>Every agency (active or suspended), by name.</summary>
     public async Task<Result<IReadOnlyList<PlatformAgencyItem>>> ListAsync(CancellationToken cancellationToken = default)
@@ -311,6 +318,176 @@ public sealed class AgencyPlatformService(
             async ct => await db.Set<Agency>().AnyAsync(a => a.Id == agencyId, ct)
                 ? await managers.InviteManagerAsync(agencyId, email, displayName, ct)
                 : Result.Failure<Guid>(PlatformErrors.AgencyNotFound),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>The host names of the agency's own site, the primary one first (ADR-0069).</summary>
+    public async Task<Result<IReadOnlyList<PlatformAgencyDomain>>> ListDomainsAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        if (Denied() is { } denied)
+        {
+            return denied;
+        }
+
+        if (!await db.Set<Agency>().AnyAsync(a => a.Id == agencyId, cancellationToken))
+        {
+            return PlatformErrors.AgencyNotFound;
+        }
+
+        var domains = await db.Set<AgencyDomain>()
+            .AsNoTracking()
+            .Where(d => d.AgencyId == agencyId)
+            .OrderByDescending(d => d.IsPrimary)
+            .ThenBy(d => d.CreatedAtUtc)
+            .Select(d => new PlatformAgencyDomain(d.Id, d.HostName, d.IsPrimary, d.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+        return Result.Success<IReadOnlyList<PlatformAgencyDomain>>(domains);
+    }
+
+    /// <summary>
+    /// Attaches a host name to the agency's own site (ADR-0069): validated and normalized (lower case, punycode), free on
+    /// the whole platform, never a host of the platform itself. The first host of an agency becomes its primary host. The
+    /// site answers on it as soon as the DNS and the certificate of the host point to the platform.
+    /// </summary>
+    public async Task<Result<Guid>> AddDomainAsync(Guid agencyId, string? hostName, CancellationToken cancellationToken = default)
+    {
+        if (Denied() is { } denied)
+        {
+            return denied;
+        }
+
+        // The platform's own names first (localhost, the App Service address…): refused whatever their shape.
+        if (hostName is { } typed && platformHosts.IsPlatformHost(typed.Trim().TrimEnd('.').ToLowerInvariant()))
+        {
+            return ReferentialErrors.AgencyDomainPlatformHost;
+        }
+
+        var normalized = AgencyHostName.Normalize(hostName);
+        if (normalized.IsFailure)
+        {
+            return normalized.Error;
+        }
+
+        if (platformHosts.IsPlatformHost(normalized.Value))
+        {
+            return ReferentialErrors.AgencyDomainPlatformHost;
+        }
+
+        try
+        {
+            return await unitOfWork.ExecuteAsync(
+                async ct =>
+                {
+                    var agency = await db.Set<Agency>().AsNoTracking().FirstOrDefaultAsync(a => a.Id == agencyId, ct);
+                    if (agency is null)
+                    {
+                        return Result.Failure<Guid>(PlatformErrors.AgencyNotFound);
+                    }
+
+                    // Across agencies: the host of any agency, deleted ones included (their links must never open another site).
+                    if (await db.Set<AgencyDomain>().IgnoreQueryFilters([QueryFilters.SoftDelete]).AnyAsync(d => d.HostName == normalized.Value, ct))
+                    {
+                        return Result.Failure<Guid>(ReferentialErrors.AgencyDomainTaken);
+                    }
+
+                    var isPrimary = !await db.Set<AgencyDomain>().AnyAsync(d => d.AgencyId == agencyId && d.IsPrimary, ct);
+                    var created = AgencyDomain.Create(agencyId, normalized.Value, isPrimary, clock.GetUtcNow());
+                    if (created.IsFailure)
+                    {
+                        return Result.Failure<Guid>(created.Error);
+                    }
+
+                    db.Set<AgencyDomain>().Add(created.Value);
+                    await db.SaveChangesAsync(ct);
+                    await AuditAsync(ReferentialAuditActions.AgencyDomainAdded, agency, isPrimary ? $"{created.Value.HostName} (primary)" : created.Value.HostName, ct);
+                    return Result.Success(created.Value.Id);
+                },
+                cancellationToken: cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The unique index on the host name: another agency took it meanwhile.
+            return ReferentialErrors.AgencyDomainTaken;
+        }
+    }
+
+    /// <summary>
+    /// Detaches a host name from the agency's site: the links that carry it stop working. When it was the primary host,
+    /// the oldest remaining host takes its place; without any host left, the site lives on the platform host again.
+    /// </summary>
+    public Task<Result> RemoveDomainAsync(Guid agencyId, Guid domainId, CancellationToken cancellationToken = default) =>
+        ChangeDomainsAsync(
+            agencyId,
+            async (agency, domains, ct) =>
+            {
+                var domain = domains.FirstOrDefault(d => d.Id == domainId);
+                if (domain is null)
+                {
+                    return ReferentialErrors.AgencyDomainNotFound;
+                }
+
+                db.Set<AgencyDomain>().Remove(domain);
+                var remaining = domains.Where(d => d.Id != domainId).OrderBy(d => d.CreatedAtUtc).ToList();
+                if (domain.IsPrimary && remaining.Count > 0)
+                {
+                    remaining[0].MakePrimary();
+                }
+
+                await db.SaveChangesAsync(ct);
+                return await AuditedAsync(ReferentialAuditActions.AgencyDomainRemoved, agency, domain.HostName, ct);
+            },
+            cancellationToken);
+
+    /// <summary>Makes <paramref name="domainId"/> the host the links of the agency's site carry; the other hosts redirect to it.</summary>
+    public Task<Result> SetPrimaryDomainAsync(Guid agencyId, Guid domainId, CancellationToken cancellationToken = default) =>
+        ChangeDomainsAsync(
+            agencyId,
+            async (agency, domains, ct) =>
+            {
+                var domain = domains.FirstOrDefault(d => d.Id == domainId);
+                if (domain is null)
+                {
+                    return ReferentialErrors.AgencyDomainNotFound;
+                }
+
+                if (domain.IsPrimary)
+                {
+                    return Result.Success();
+                }
+
+                foreach (var other in domains.Where(d => d.IsPrimary))
+                {
+                    other.MakeSecondary();
+                }
+
+                domain.MakePrimary();
+                await db.SaveChangesAsync(ct);
+                return await AuditedAsync(ReferentialAuditActions.AgencyPrimaryDomainChanged, agency, domain.HostName, ct);
+            },
+            cancellationToken);
+
+    private async Task<Result> ChangeDomainsAsync(
+        Guid agencyId,
+        Func<Agency, IReadOnlyList<AgencyDomain>, CancellationToken, Task<Result>> change,
+        CancellationToken cancellationToken)
+    {
+        if (Denied() is { } denied)
+        {
+            return denied;
+        }
+
+        return await unitOfWork.ExecuteAsync(
+            async ct =>
+            {
+                var agency = await db.Set<Agency>().AsNoTracking().FirstOrDefaultAsync(a => a.Id == agencyId, ct);
+                if (agency is null)
+                {
+                    return PlatformErrors.AgencyNotFound;
+                }
+
+                var domains = await db.Set<AgencyDomain>().Where(d => d.AgencyId == agencyId).OrderBy(d => d.CreatedAtUtc).ToListAsync(ct);
+                return await change(agency, domains, ct);
+            },
             cancellationToken: cancellationToken);
     }
 

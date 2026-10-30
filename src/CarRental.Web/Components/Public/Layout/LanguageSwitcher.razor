@@ -1,7 +1,7 @@
 @* Same page in each enabled culture: on a site, the culture segment and the localized slug are replaced
-   (/agence-1/fr/reserver?… → /agence-1/en/book?…), the query string is kept; outside any site (the page of the
-   platform), the choice is remembered by the culture cookie and the platform's page shown again. *@
-@inject NavigationManager Navigation
+   (/agence-1/fr/reserver?… → /agence-1/en/book?…, /fr/reserver?… → /en/book?… on the agency's own host), the query
+   string is kept; outside any site (the page of the platform), the choice is remembered by the culture cookie and the
+   platform's page shown again. *@
 @inject CultureCatalog Cultures
 
 <ul class="language-switcher">
@@ -29,14 +29,18 @@
     [Parameter]
     public AgencySummary? Site { get; set; }
 
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     protected override void OnParametersSet()
     {
         _current = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-        _relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        _relative = HttpContext is null ? "/" : $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
     }
 
+    /// <summary>The same page in <paramref name="culture"/>: localized on the rewritten address, then written for the host of the request.</summary>
     private string Address(string culture) =>
-        Site is null
+        Site is null || HttpContext is null
             ? $"{CultureEndpoints.SetCulturePath}?culture={culture}&returnUrl=%2F"
-            : PublicRoutes.Localize(_relative, culture);
+            : PublicSiteAgency.ForLinks(HttpContext, PublicRoutes.Localize(_relative, culture));
 }

@@ -40,7 +40,7 @@ internal sealed class CustomerEmailComposer(
         var brand = agency.Name;
         var culture = CultureOf(notification.Culture);
         var language = culture.TwoLetterISOLanguageName;
-        var baseUrl = BaseUrl(notification.BaseUrl);
+        var (baseUrl, slug) = SiteOf(agency, notification.BaseUrl);
         var kind = notification.Kind.ToString();
         var number = notification.Number;
         string T(string key, params object?[] arguments) => Text(culture, key, arguments);
@@ -53,7 +53,7 @@ internal sealed class CustomerEmailComposer(
         {
             case BookingNotificationKind.RequestReceived:
                 paragraphs.Add(T("RequestReceived.Guarantee"));
-                action = new EmailAction(T("Action.Follow"), Absolute(baseUrl, BookingRoutes.MyBooking(agency.Slug, language)));
+                action = new EmailAction(T("Action.Follow"), Absolute(baseUrl, BookingRoutes.MyBooking(slug, language)));
                 break;
             case BookingNotificationKind.InformationRequested:
                 if (!string.IsNullOrWhiteSpace(notification.Message))
@@ -62,22 +62,22 @@ internal sealed class CustomerEmailComposer(
                 }
 
                 paragraphs.Add(T("InformationRequested.How"));
-                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(agency.Slug, language));
+                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(slug, language));
                 note = notification.ActionExpiresAtUtc is { } until ? T("Note.PersonalLink", Instant(until, culture)) : null;
                 break;
             case BookingNotificationKind.CompleteFileLink:
-                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(agency.Slug, language));
+                action = ActionOf(notification, baseUrl, T("Action.CompleteFile"), BookingRoutes.MyBookingDocuments(slug, language));
                 note = notification.ActionExpiresAtUtc is { } expires ? T("Note.PersonalLink", Instant(expires, culture)) : null;
                 break;
             case BookingNotificationKind.Confirmed:
                 paragraphs.Add(T("Confirmed.Departure"));
-                action = new EmailAction(T("Action.View"), Absolute(baseUrl, BookingRoutes.MyBooking(agency.Slug, language)));
+                action = new EmailAction(T("Action.View"), Absolute(baseUrl, BookingRoutes.MyBooking(slug, language)));
                 break;
             case BookingNotificationKind.Refused:
             case BookingNotificationKind.Expired:
                 paragraphs.Add(T("Released"));
                 paragraphs.Add(T("SearchAgain"));
-                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(agency.Slug, language)));
+                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(slug, language)));
                 break;
             case BookingNotificationKind.PaymentLink:
                 if (notification.Amount is { } due)
@@ -90,7 +90,7 @@ internal sealed class CustomerEmailComposer(
                     facts.Add(new EmailFact(T("Fact.PayBefore"), Instant(deadline, culture)));
                 }
 
-                action = ActionOf(notification, baseUrl, T("Action.Pay"), BookingRoutes.MyBooking(agency.Slug, language));
+                action = ActionOf(notification, baseUrl, T("Action.Pay"), BookingRoutes.MyBooking(slug, language));
                 note = T("PaymentLink.Note");
                 break;
             case BookingNotificationKind.CancellationConfirmed:
@@ -103,7 +103,7 @@ internal sealed class CustomerEmailComposer(
                 }
 
                 paragraphs.Add(T($"Refund.{notification.Refund}", Amount(refund, culture)));
-                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(agency.Slug, language)));
+                action = new EmailAction(T("Action.Search"), Absolute(baseUrl, PublicBookingPaths.Site(slug, language)));
                 break;
         }
 
@@ -128,9 +128,10 @@ internal sealed class CustomerEmailComposer(
     {
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(recipient);
-        var brand = email.AgencyId is { } agencyId && await agencies.FindAsync(agencyId, cancellationToken) is { } agency ? agency.Name : site.Value.AgencyName;
+        var agency = email.AgencyId is { } agencyId ? await agencies.FindAsync(agencyId, cancellationToken) : null;
+        var brand = agency?.Name ?? site.Value.AgencyName;
         var culture = CultureOf(email.Culture);
-        var baseUrl = BaseUrl(email.BaseUrl);
+        var baseUrl = agency is null ? BaseUrl(email.BaseUrl) : SiteOf(agency, email.BaseUrl).BaseUrl;
         string T(string key, params object?[] arguments) => Text(culture, key, arguments);
 
         var content = new CustomerEmailContent(
@@ -183,6 +184,24 @@ internal sealed class CustomerEmailComposer(
 
     private static EmailAction ActionOf(BookingCustomerNotification notification, Uri? baseUrl, string label, string fallbackPath) =>
         new(label, Absolute(baseUrl, notification.ActionUrl ?? notification.ActionPath ?? fallbackPath));
+
+    /// <summary>
+    /// Where the links of the e-mails of <paramref name="agency"/> lead (ADR-0069): the agency's own site when it has one
+    /// (<c>https://www.agence.tn/</c>, or the address the customer used when it is one of the agency's hosts), its links
+    /// without any address segment; otherwise the platform (<see cref="BaseUrl"/>) and the address of the site.
+    /// </summary>
+    internal (Uri? BaseUrl, string Slug) SiteOf(AgencySummary agency, string? fromRequest)
+    {
+        if (agency.PrimaryHost is not { } host)
+        {
+            return (BaseUrl(fromRequest), agency.Slug);
+        }
+
+        var used = Uri.TryCreate(fromRequest, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) && agency.HoldsHost(uri.Host)
+            ? new Uri($"{uri.Scheme}://{uri.Authority}/")
+            : new Uri($"https://{host}/");
+        return (used, string.Empty);
+    }
 
     /// <summary><c>PublicSite:BaseUrl</c>, else the address the customer used (http or https only), with a trailing slash.</summary>
     private Uri? BaseUrl(string? fromRequest)

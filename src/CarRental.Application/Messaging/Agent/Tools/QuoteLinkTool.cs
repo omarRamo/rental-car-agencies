@@ -44,7 +44,8 @@ internal sealed class QuoteLinkTool(IBookingRequests requests, IOptions<AgentSit
             return AgentToolOutcome.Error("Le départ de cette option est passé : relance rechercher_disponibilites avec de nouvelles dates.");
         }
 
-        if (site.Value.PublicBaseUrl is not { IsAbsoluteUri: true } baseUrl)
+        // The agency's own site when it has one (ADR-0069), else its site under the platform's address.
+        if (context.Agency.SiteUri(site.Value.PublicBaseUrl) is not { } siteUri)
         {
             return AgentToolOutcome.Error("Le lien du site n'est pas configuré : propose de passer la main à un agent.");
         }
@@ -62,7 +63,7 @@ internal sealed class QuoteLinkTool(IBookingRequests requests, IOptions<AgentSit
         var locked = quote.Value;
         // The link leads to the site of the agency of the conversation (ADR-0067).
         var link = BookingDeepLink.Build(
-            BookingDeepLink.SiteOf(baseUrl, context.Agency.SiteSlug), context.Language, option.PickupLocationCode, option.ReturnLocationCode, option.PickupAt, option.ReturnAt, option.CategoryCode, locked.Code);
+            siteUri, context.Language, option.PickupLocationCode, option.ReturnLocationCode, option.PickupAt, option.ReturnAt, option.CategoryCode, locked.Code);
         context.Remember(locked.TotalInclVat, locked.Deposit);
         context.State.RecordQuoteLink(link.AbsoluteUri, context.Now);
         context.QuoteLinkCreated = true;

@@ -36,6 +36,22 @@ public static class ReferentialErrors
 
     public static readonly Error AgencyModulesInvalid = Error.Validation("referential.agency_modules_invalid", "Unknown module.");
 
+    public static readonly Error AgencyDomainInvalid = Error.Validation(
+        "referential.agency_domain_invalid",
+        $"A host name of an agency's site has at most {AgencyHostName.MaxLength} characters: labels of letters, digits and hyphens separated by dots (www.agence.tn), without scheme, port or path.");
+
+    public static readonly Error AgencyDomainTaken = Error.Conflict(
+        "referential.agency_domain_taken",
+        "This host name already serves the site of an agency.");
+
+    public static readonly Error AgencyDomainNotFound = Error.NotFound(
+        "referential.agency_domain_not_found",
+        "This host name is not attached to the agency.");
+
+    public static readonly Error AgencyDomainPlatformHost = Error.Validation(
+        "referential.agency_domain_platform_host",
+        "This host name is the platform's own: it cannot serve the site of an agency.");
+
     public static readonly Error LocationCodeInvalid = Error.Validation(
         "referential.location_code_invalid",
         $"A location code has {Location.CodeMinLength} to {Location.CodeMaxLength} characters: A-Z, 0-9 or '-'.");

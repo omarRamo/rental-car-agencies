@@ -579,6 +579,66 @@
   <data name="Platform.Agency.Status" xml:space="preserve">
     <value>État de l'agence</value>
   </data>
+  <data name="Platform.Agency.Domains" xml:space="preserve">
+    <value>Domaines du site</value>
+  </data>
+  <data name="Platform.Agency.Domains.Intro" xml:space="preserve">
+    <value>La vitrine de l'agence peut être servie sur ses propres noms de domaine (www.agence.tn) : ses adresses deviennent alors /fr/… sans le segment de l'agence, et les liens envoyés à ses clients portent son domaine principal. Les autres domaines redirigent vers le principal. Le DNS du domaine (CNAME vers la plateforme) et son certificat doivent être en place : voir le guide d'exploitation.</value>
+  </data>
+  <data name="Platform.Agency.Domains.Empty" xml:space="preserve">
+    <value>Aucun domaine : la vitrine est servie à l'adresse de la plateforme ({0}).</value>
+  </data>
+  <data name="Platform.Agency.Domains.New" xml:space="preserve">
+    <value>Nom de domaine à ajouter</value>
+  </data>
+  <data name="Platform.Agency.Domains.Add" xml:space="preserve">
+    <value>Ajouter le domaine</value>
+  </data>
+  <data name="Platform.Agency.Domains.Added" xml:space="preserve">
+    <value>Domaine ajouté.</value>
+  </data>
+  <data name="Platform.Agency.Domains.Column.Host" xml:space="preserve">
+    <value>Domaine</value>
+  </data>
+  <data name="Platform.Agency.Domains.Column.Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="Platform.Agency.Domains.Column.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Platform.Agency.Domains.Primary" xml:space="preserve">
+    <value>Principal</value>
+  </data>
+  <data name="Platform.Agency.Domains.Secondary" xml:space="preserve">
+    <value>Redirige vers le principal</value>
+  </data>
+  <data name="Platform.Agency.Domains.MakePrimary" xml:space="preserve">
+    <value>Rendre principal</value>
+  </data>
+  <data name="Platform.Agency.Domains.MakePrimaryOne" xml:space="preserve">
+    <value>Rendre {0} principal</value>
+  </data>
+  <data name="Platform.Agency.Domains.PrimaryChanged" xml:space="preserve">
+    <value>Domaine principal changé.</value>
+  </data>
+  <data name="Platform.Agency.Domains.Remove" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="Platform.Agency.Domains.RemoveOne" xml:space="preserve">
+    <value>Retirer {0}</value>
+  </data>
+  <data name="Platform.Agency.Domains.Remove.Confirm.Title" xml:space="preserve">
+    <value>Retirer un domaine</value>
+  </data>
+  <data name="Platform.Agency.Domains.Remove.Confirm.Message" xml:space="preserve">
+    <value>La vitrine ne répondra plus sur {0} et les liens qui le portent ne fonctionneront plus. Continuer ?</value>
+  </data>
+  <data name="Platform.Agency.Domains.Removed" xml:space="preserve">
+    <value>Domaine retiré.</value>
+  </data>
+  <data name="Platform.Agency.Domains.Link" xml:space="preserve">
+    <value>Ouvrir https://{0}/fr (nouvel onglet)</value>
+  </data>
   <data name="Platform.Agency.Active.Text" xml:space="preserve">
     <value>L'agence est active : sa vitrine est en ligne et son personnel peut se connecter.</value>
   </data>

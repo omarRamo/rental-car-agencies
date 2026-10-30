@@ -101,7 +101,40 @@ public static class ClicToPayEndpoints
         scope.ServiceProvider.GetRequiredService<ScopedUserContext>().Initialize(UserContextSnapshot.System(ReturnActor, CorrelationIds.Current(context)));
         var payments = scope.ServiceProvider.GetRequiredService<IOnlinePayments>();
         var handled = await payments.HandleReturnAsync(new OnlinePaymentReturnRequest(order, gatewayOrderId, failed), cancellationToken);
-        return Results.LocalRedirect(handled.IsSuccess && LocalUrls.IsLocal(handled.Value.RedirectPath) ? handled.Value.RedirectPath : "/");
+        if (!handled.IsSuccess || !LocalUrls.IsLocal(handled.Value.RedirectPath))
+        {
+            return Results.LocalRedirect("/");
+        }
+
+        // The recorded path names the site of the agency (/{agency}/fr/…); when that site is served on the agency's own
+        // host (ADR-0069), the browser goes back there, where its cookies of the funnel live, the address segment dropped.
+        var directory = scope.ServiceProvider.GetRequiredService<IAgencyDirectory>();
+        return await OwnHostAddressAsync(handled.Value.RedirectPath, context.Request.Scheme, directory, cancellationToken) is { } ownHostAddress
+            ? Results.Redirect(ownHostAddress)
+            : Results.LocalRedirect(handled.Value.RedirectPath);
+    }
+
+    /// <summary>
+    /// <paramref name="localPath"/> (<c>/{agency}/fr/…</c>) on the own host of the agency whose site it names, when that
+    /// agency has one: <c>https://www.agence.tn/fr/…</c>; <see langword="null"/> otherwise.
+    /// </summary>
+    internal static async Task<string?> OwnHostAddressAsync(string localPath, string scheme, IAgencyDirectory directory, CancellationToken cancellationToken)
+    {
+        var slash = localPath.IndexOf('/', 1);
+        var first = slash < 0 ? localPath[1..] : localPath[1..slash];
+        var query = first.IndexOf('?', StringComparison.Ordinal);
+        if (query >= 0)
+        {
+            first = first[..query];
+        }
+
+        if (first.Length == 0 || await directory.FindBySlugAsync(first, cancellationToken) is not { PrimaryHost: { } host })
+        {
+            return null;
+        }
+
+        var rest = localPath[(first.Length + 1)..];
+        return $"{scheme}://{host}{(rest.Length == 0 || rest[0] == '?' ? "/" + rest : rest)}";
     }
 
     /// <summary>

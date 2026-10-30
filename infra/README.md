@@ -415,6 +415,20 @@ Le plan F1 n'accepte pas de domaine personnalisé : la recette reste sur `*.azur
 
    **Durcissement complémentaire** : une fois le domaine en service, ajouter le paramètre d'application `HostFiltering__AllowedHosts` = `localhost` (il remplace la valeur `*.azurewebsites.net;localhost;127.0.0.1` d'`appsettings.json`) : l'application ne répondra plus qu'aux domaines de `customDomains` (les sondes `/health*` et le préchauffage d'App Service restent exemptés).
 
+## 8 bis. Domaine propre d'une agence
+
+Une agence peut avoir sa vitrine sur son propre domaine (`www.agence-tunis.tn` au lieu de `www.<domaine>/agence-tunis`, [ADR-0069](../docs/adr/0069-domaines-propres-par-agence.md)) : même application, même App Service, aucune instance de plus. Pour chaque domaine d'agence :
+
+1. **DNS de l'agence** (chez son registraire ou dans sa zone Cloudflare) : `CNAME www` → `<webAppHostName>` (ou vers `www.<domaine>` de la plateforme si la zone de la plateforme est chez Cloudflare et que l'on veut passer par son proxy) ; TXT `asuid.www` = sortie `customDomainVerificationId` pour prouver la propriété à App Service. Le domaine nu de l'agence redirige vers `www` (règle du registraire ou de Cloudflare).
+2. **Liaison à l'App Service** : `az webapp config hostname add --resource-group rg-carrental-prod --webapp-name <webAppName> --hostname www.agence-tunis.tn`, puis un certificat :
+   - domaine en « DNS seulement » (pas de proxy Cloudflare) : certificat géré gratuit d'App Service, `az webapp config ssl create --resource-group rg-carrental-prod --name <webAppName> --hostname www.agence-tunis.tn` puis `az webapp config ssl bind … --ssl-type SNI` ;
+   - domaine derrière le proxy Cloudflare de l'agence : certificat d'origine Cloudflare de **sa** zone, importé et lié comme à l'étape 3 de la section 8 ; avec `restrictToCloudflare`, les plages de Cloudflare sont les mêmes pour toutes les zones.
+3. **Turnstile** : ajouter le domaine à la liste des noms du widget (le serveur refuse un défi résolu sur un autre nom d'hôte, ADR-0066).
+4. **Dans l'application** : le support ajoute le domaine à la fiche de l'agence (`/admin/platform/agencies/{id}`, « Domaines du site ») ; le premier domaine devient principal, les autres redirigent vers lui. Aucune liste d'hôtes à compléter dans la configuration (`HostFiltering__CustomDomains` reste celle de la plateforme) : l'application accepte les domaines qu'elle connaît.
+5. **Vérifier** : `curl -sI https://www.agence-tunis.tn/fr` répond 200 avec `<link rel="canonical" href="https://www.agence-tunis.tn/fr">`, `https://www.agence-tunis.tn/sitemap.xml` ne liste que cette vitrine, `https://www.agence-tunis.tn/admin` renvoie à la connexion du back office de la plateforme.
+
+Le retour de Clic to Pay reste sur l'hôte de la plateforme (une seule boutique) : l'application renvoie ensuite le navigateur sur le domaine de l'agence.
+
 ## 9. Passer la base de Basic à S0
 
 Quand le pourcentage de DTU dépasse durablement 80 %, ou quand la base approche 2 Go (taille maximale en Basic) :

@@ -40,6 +40,14 @@ internal sealed class StaticAgencyDirectory : IAgencyDirectory
         }
     }
 
+    public Task<AgencySummary?> FindByHostAsync(string? host, CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_agencies.Values.FirstOrDefault(a => a.HoldsHost(host)));
+        }
+    }
+
     public Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
         lock (_gate)

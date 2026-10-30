@@ -26,21 +26,31 @@ internal sealed class HostFilteringMiddleware
         _suffixes = patterns.Where(p => p.StartsWith("*.", StringComparison.Ordinal)).Select(p => p[1..]).ToArray();
     }
 
-    public Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (_allowAll || IsExempt(context.Request.Path) || IsAllowed(context.Request.Host.Host))
+        if (_allowAll || IsExempt(context.Request.Path) || IsAllowed(context.Request.Host.Host) || await IsAgencyHostAsync(context))
         {
-            return _next(context);
+            await _next(context);
+            return;
         }
 
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-        return Task.CompletedTask;
     }
 
     internal static bool IsExempt(PathString path) =>
         path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/robots933456.txt", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The own host names of the agencies' sites (ADR-0069) are accepted without being listed: the cached directory knows
+    /// them. Without a directory (the middleware on its own in a test), only the configured names count.
+    /// </summary>
+    private static async Task<bool> IsAgencyHostAsync(HttpContext context)
+    {
+        var directory = context.RequestServices?.GetService<Application.Referential.Contracts.IAgencyDirectory>();
+        return directory is not null && await directory.FindByHostAsync(context.Request.Host.Host, context.RequestAborted) is not null;
+    }
 
     private bool IsAllowed(string host)
     {

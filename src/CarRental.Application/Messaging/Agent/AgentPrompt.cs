@@ -9,15 +9,27 @@ namespace CarRental.Application.Messaging.Agent;
 
 /// <summary>
 /// What the agent knows of its agency for a turn: the agency, its pick-up places, its opening hours and categories, and
-/// the address of its public site (<paramref name="SiteSlug"/>, the first segment of the links it sends, ADR-0067).
+/// the address of its public site (<paramref name="SiteSlug"/>, the first segment of the links it sends, ADR-0067), or
+/// the host name of its own site (<paramref name="SiteHost"/>, ADR-0069: its links then carry no address segment).
 /// </summary>
 internal sealed record AgentAgencyContext(
     AgencyInfo Agency,
     IReadOnlyList<LocationInfo> Locations,
     OpeningHours OpeningHours,
     IReadOnlyList<VehicleCategoryInfo> Categories,
-    string SiteSlug)
+    string SiteSlug,
+    string? SiteHost = null)
 {
+    /// <summary>
+    /// The base address of the links the agent sends: the agency's own site when it has one, else its site under the
+    /// platform's address <paramref name="platformBaseUrl"/> (<c>PublicSite:BaseUrl</c>); <see langword="null"/> when
+    /// neither is known.
+    /// </summary>
+    public Uri? SiteUri(Uri? platformBaseUrl) =>
+        SiteHost is { } host ? Domain.Messaging.Agent.BookingDeepLink.SiteOf(new Uri($"https://{host}/"), string.Empty)
+        : platformBaseUrl is { IsAbsoluteUri: true } ? Domain.Messaging.Agent.BookingDeepLink.SiteOf(platformBaseUrl, SiteSlug)
+        : null;
+
     /// <summary>The address given to customers: the agency's, else its office's, else its city.</summary>
     public string Address =>
         Agency.Address

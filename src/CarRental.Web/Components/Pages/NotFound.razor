@@ -15,7 +15,7 @@
     private HttpContext? HttpContext { get; set; }
 
     /// <summary>The home page of the site of the address (ADR-0067), else the page of the platform.</summary>
-    private string HomePath => HttpContext is not null && Public.Site.PublicSiteAgency.SiteOf(HttpContext) is { } site
-        ? Public.PublicRoutes.PathFor(site.Slug, Public.PublicPage.Home, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
+    private string HomePath => HttpContext is not null && Public.Site.PublicSiteAgency.LinkSlugOf(HttpContext) is { } site
+        ? Public.PublicRoutes.PathFor(site, Public.PublicPage.Home, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
         : "/";
 }

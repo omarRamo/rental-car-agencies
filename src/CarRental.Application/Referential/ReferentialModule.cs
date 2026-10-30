@@ -6,6 +6,7 @@ using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Referential.Platform;
 using CarRental.Application.Referential.Seeding;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CarRental.Application.Referential;
 
@@ -22,6 +23,7 @@ public static class ReferentialModule
         services.AddSingleton<AgencyDirectory>();
         services.AddSingleton<IAgencyDirectory>(serviceProvider => serviceProvider.GetRequiredService<AgencyDirectory>());
         services.AddSingleton<ICommittedChangesListener>(serviceProvider => serviceProvider.GetRequiredService<AgencyDirectory>());
+        services.TryAddSingleton<IPlatformHosts, NoPlatformHosts>();
         services.AddScoped<AgencyProvisioning>();
         services.AddScoped<AgencyPlatformService>();
         services.AddAgencyInitializer<ReferentialAgencyInitializer>();

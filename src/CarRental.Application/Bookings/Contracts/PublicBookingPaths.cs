@@ -4,8 +4,9 @@ namespace CarRental.Application.Bookings.Contracts;
 /// Local paths of the public booking pages that the application layer writes into links (e-mails, payment return
 /// addresses, notifications of the phase 4); the web host maps the same routes (checked by its tests). Every public
 /// address starts with the address of the agency's site (<c>Agency.Slug</c>, ADR-0067), then the culture: a link always
-/// carries the agency of its booking (<c>/agence-1/fr/ma-reservation</c>). French and English slugs, as everywhere on
-/// the public site.
+/// carries the agency of its booking (<c>/agence-1/fr/ma-reservation</c>). On the agency's own host (ADR-0069) the
+/// address segment is left out: an empty <c>agency</c> gives <c>/fr/ma-reservation</c>. French and English slugs, as
+/// everywhere on the public site.
 /// </summary>
 public static class PublicBookingPaths
 {
@@ -15,8 +16,18 @@ public static class PublicBookingPaths
     /// <summary>Placeholder of the payment id in a payment return path (replaced by the Payments module).</summary>
     public const string PaymentIdPlaceholder = "{paymentId}";
 
-    /// <summary>The home page of the site of <paramref name="agency"/> in <paramref name="culture"/>: <c>/agence-1/fr</c>.</summary>
-    public static string Site(string agency, string culture) => $"/{Slug(agency)}/{Normalize(culture)}";
+    /// <summary>
+    /// The start of every address of the site of <paramref name="agency"/>: <c>/agence-1</c> on the platform host, nothing
+    /// (<see cref="string.Empty"/>) for a site served on its own host (empty <paramref name="agency"/>, ADR-0069).
+    /// </summary>
+    public static string Root(string agency)
+    {
+        ArgumentNullException.ThrowIfNull(agency);
+        return agency.Length == 0 ? string.Empty : "/" + Slug(agency);
+    }
+
+    /// <summary>The home page of the site of <paramref name="agency"/> in <paramref name="culture"/>: <c>/agence-1/fr</c> (<c>/fr</c> on its own host).</summary>
+    public static string Site(string agency, string culture) => $"{Root(agency)}/{Normalize(culture)}";
 
     /// <summary>The access page of "Ma réservation": <c>/{agency}/fr/ma-reservation</c>, <c>/{agency}/en/my-booking</c>.</summary>
     public static string MyBooking(string agency, string culture) =>

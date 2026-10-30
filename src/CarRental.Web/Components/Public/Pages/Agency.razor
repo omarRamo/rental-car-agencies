@@ -67,7 +67,7 @@ else
             _structuredData = AgencyStructuredData.Build(
                 _agency,
                 SiteAgency.Name,
-                PublicUrls.Absolute(baseUri, $"/{Slug}/"),
+                PublicUrls.Absolute(baseUri, PublicRoutes.Root(Slug) + "/"),
                 PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(Slug, PublicPage.Home, Lang)),
                 PublicSiteAgency.WhatsAppNumber(HttpContext, Site.Value));
         }

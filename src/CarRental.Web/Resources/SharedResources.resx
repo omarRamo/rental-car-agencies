@@ -2046,6 +2046,18 @@
   <data name="Error.referential.agency_slug_taken" xml:space="preserve">
     <value>Une autre agence utilise déjà cette adresse.</value>
   </data>
+  <data name="Error.referential.agency_domain_invalid" xml:space="preserve">
+    <value>Le nom de domaine est invalide : indiquez un nom d'hôte complet (www.agence.tn), sans https://, sans port ni chemin.</value>
+  </data>
+  <data name="Error.referential.agency_domain_taken" xml:space="preserve">
+    <value>Ce nom de domaine sert déjà la vitrine d'une agence.</value>
+  </data>
+  <data name="Error.referential.agency_domain_not_found" xml:space="preserve">
+    <value>Ce nom de domaine n'est pas rattaché à l'agence.</value>
+  </data>
+  <data name="Error.referential.agency_domain_platform_host" xml:space="preserve">
+    <value>Ce nom de domaine est celui de la plateforme : il ne peut pas servir la vitrine d'une agence.</value>
+  </data>
   <data name="Error.referential.agency_modules_invalid" xml:space="preserve">
     <value>Module inconnu.</value>
   </data>

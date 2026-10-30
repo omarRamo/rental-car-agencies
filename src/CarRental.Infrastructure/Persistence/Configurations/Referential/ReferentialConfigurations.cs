@@ -32,6 +32,21 @@ internal sealed class AgencyConfiguration : IEntityTypeConfiguration<Agency>
     }
 }
 
+internal sealed class AgencyDomainConfiguration : IEntityTypeConfiguration<AgencyDomain>
+{
+    public void Configure(EntityTypeBuilder<AgencyDomain> builder)
+    {
+        builder.ToTable("AgencyDomains", Schemas.Referential);
+        builder.HasKey(d => d.Id);
+        builder.Property(d => d.HostName).HasMaxLength(AgencyHostName.MaxLength).IsUnicode(false).IsRequired();
+        builder.HasOne<Agency>().WithMany().HasForeignKey(d => d.AgencyId).OnDelete(DeleteBehavior.Cascade);
+
+        // A host name serves one site on the whole platform (a route key, like Agency.Slug, ADR-0069).
+        builder.HasIndex(d => d.HostName).IsUnique();
+        builder.HasIndex(d => new { d.AgencyId, d.IsPrimary });
+    }
+}
+
 internal sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
 {
     public void Configure(EntityTypeBuilder<Location> builder)

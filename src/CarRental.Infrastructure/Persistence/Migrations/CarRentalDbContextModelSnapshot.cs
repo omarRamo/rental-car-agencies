@@ -7574,6 +7574,36 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                             }));
                 });
 
+            modelBuilder.Entity("CarRental.Domain.Referential.AgencyDomain", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("HostName")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(253)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HostName")
+                        .IsUnique();
+
+                    b.HasIndex("AgencyId", "IsPrimary");
+
+                    b.ToTable("AgencyDomains", "referential");
+                });
+
             modelBuilder.Entity("CarRental.Domain.Referential.Location", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9101,6 +9131,15 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                     b.HasOne("CarRental.Domain.Pricing.RatePlan", null)
                         .WithMany("TierCategoryDiscounts")
                         .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarRental.Domain.Referential.AgencyDomain", b =>
+                {
+                    b.HasOne("CarRental.Domain.Referential.Agency", null)
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

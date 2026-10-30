@@ -34,19 +34,31 @@ public static class SeoEndpoints
         endpoints.MapGet("/sitemap.xml", async (HttpContext context, IOptions<PublicSiteOptions> site, CultureCatalog cultures, IAgencyDirectory agencies) =>
             {
                 context.Response.Headers.CacheControl = CacheControl;
-                var baseUri = PublicUrls.BaseUri(site.Value.BaseUrl, context.Request);
-                var sites = (await agencies.ListAsync(context.RequestAborted)).Where(a => a.HasOpenPublicSite).Select(a => a.Slug).Order(StringComparer.Ordinal).ToList();
-                return Results.Text(Sitemap(baseUri, sites, cultures.Enabled), "application/xml; charset=utf-8", Encoding.UTF8);
+                var platformBase = PublicUrls.BaseUri(site.Value.BaseUrl, context.Request);
+                var open = (await agencies.ListAsync(context.RequestAborted)).Where(a => a.HasOpenPublicSite);
+
+                // On the own host of an agency (ADR-0069), the sitemap of that site only; on the platform host, every
+                // open site, each at its canonical address (its own host when it has one).
+                var ownHost = context.Request.Host.Host.ToLowerInvariant();
+                var sites = (await agencies.FindByHostAsync(ownHost, context.RequestAborted) is { } owner
+                        ? open.Where(a => a.Id == owner.Id)
+                        : open.OrderBy(a => a.Slug, StringComparer.Ordinal))
+                    .Select(a => a.PrimaryHost is { } host
+                        ? new SitemapSite(PublicUrls.OwnHostBaseUri(host, context.Request), string.Empty)
+                        : new SitemapSite(platformBase, a.Slug))
+                    .ToList();
+                return Results.Text(Sitemap(sites, cultures.Enabled), "application/xml; charset=utf-8", Encoding.UTF8);
             })
             .AllowAnonymous()
             .ExcludeFromDescription();
 
-        endpoints.MapGet("/robots.txt", (HttpContext context, IOptions<PublicSiteOptions> site, CultureCatalog cultures, IHostEnvironment environment) =>
+        endpoints.MapGet("/robots.txt", async (HttpContext context, IOptions<PublicSiteOptions> site, CultureCatalog cultures, IHostEnvironment environment, IAgencyDirectory agencies) =>
             {
                 context.Response.Headers.CacheControl = CacheControl;
-                var baseUri = PublicUrls.BaseUri(site.Value.BaseUrl, context.Request);
+                var ownHost = await agencies.FindByHostAsync(context.Request.Host.Host, context.RequestAborted) is not null;
+                var baseUri = ownHost ? PublicUrls.OwnHostBaseUri(context.Request.Host.Host.ToLowerInvariant(), context.Request) : PublicUrls.BaseUri(site.Value.BaseUrl, context.Request);
                 var allowIndexing = site.Value.AllowIndexing ?? environment.IsProduction();
-                return Results.Text(Robots(baseUri, CultureCatalog.Prepared, allowIndexing), "text/plain; charset=utf-8", Encoding.UTF8);
+                return Results.Text(Robots(baseUri, CultureCatalog.Prepared, allowIndexing, ownHost), "text/plain; charset=utf-8", Encoding.UTF8);
             })
             .AllowAnonymous()
             .ExcludeFromDescription();
@@ -54,10 +66,19 @@ public static class SeoEndpoints
         return endpoints;
     }
 
-    /// <summary>The sitemap of the indexable pages of the sites <paramref name="sites"/> in <paramref name="cultures"/>, with absolute addresses.</summary>
+    /// <summary>A site of the sitemap: its base address and the first segment of its links (<c>agence-1</c>, or nothing on its own host).</summary>
+    public sealed record SitemapSite(Uri BaseUri, string Agency);
+
+    /// <summary>The sitemap of the indexable pages of the sites of the platform host at <paramref name="baseUri"/>, in <paramref name="cultures"/>.</summary>
     public static string Sitemap(Uri baseUri, IReadOnlyList<string> sites, IReadOnlyList<string> cultures)
     {
-        ArgumentNullException.ThrowIfNull(baseUri);
+        ArgumentNullException.ThrowIfNull(sites);
+        return Sitemap([.. sites.Select(agency => new SitemapSite(baseUri, agency))], cultures);
+    }
+
+    /// <summary>The sitemap of the indexable pages of <paramref name="sites"/> in <paramref name="cultures"/>, with absolute addresses.</summary>
+    public static string Sitemap(IReadOnlyList<SitemapSite> sites, IReadOnlyList<string> cultures)
+    {
         ArgumentNullException.ThrowIfNull(sites);
         ArgumentNullException.ThrowIfNull(cultures);
         var builder = new StringBuilder();
@@ -67,8 +88,9 @@ public static class SeoEndpoints
             writer.WriteStartDocument();
             writer.WriteStartElement("urlset", SitemapNamespace);
             writer.WriteAttributeString("xmlns", "xhtml", null, XhtmlNamespace);
-            foreach (var (agency, page) in sites.SelectMany(agency => PublicRoutes.Indexable.Select(page => (agency, page))))
+            foreach (var (site, page) in sites.SelectMany(site => PublicRoutes.Indexable.Select(page => (site, page))))
             {
+                var (baseUri, agency) = (site.BaseUri, site.Agency);
                 var alternates = PublicUrls.Alternates(agency, page, baseUri, cultures, CultureCatalog.Default);
                 foreach (var culture in cultures)
                 {
@@ -98,7 +120,7 @@ public static class SeoEndpoints
     /// robots.txt: private areas, then the booking funnel and "Ma réservation" of every site in every prepared culture
     /// (<c>/*/fr/reserver</c>: the first segment is the site), and the sitemap; or everything disallowed when indexing is off.
     /// </summary>
-    public static string Robots(Uri baseUri, IReadOnlyList<string> cultures, bool allowIndexing)
+    public static string Robots(Uri baseUri, IReadOnlyList<string> cultures, bool allowIndexing, bool ownHost = false)
     {
         ArgumentNullException.ThrowIfNull(baseUri);
         ArgumentNullException.ThrowIfNull(cultures);
@@ -110,7 +132,7 @@ public static class SeoEndpoints
             return builder.ToString();
         }
 
-        foreach (var path in PrivatePaths.Concat(cultures.SelectMany(PublicRoutes.PrivatePrefixes)))
+        foreach (var path in PrivatePaths.Concat(cultures.SelectMany(culture => PublicRoutes.PrivatePrefixes(culture, ownHost))))
         {
             builder.Append("Disallow: ").Append(path).Append('\n');
         }

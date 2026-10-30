@@ -103,7 +103,7 @@ public sealed partial class MyBookingService(
         if (booking is not null && booking.Status != BookingStatusInfo.Draft)
         {
             // The link leads to the site of the agency of the booking (read whether the address matches or not).
-            site = await agencies.SlugAsync(booking.AgencyId, cancellationToken);
+            site = await agencies.LinkSlugAsync(booking.AgencyId, cancellationToken);
             var matched = await MatchContactAsync(booking, typedEmail!, cancellationToken);
             var limit = await settings.GetAsync(PublicBookingSettings.AccessRequestsPerHour, cancellationToken: cancellationToken);
             var since = now - ThrottleWindow;

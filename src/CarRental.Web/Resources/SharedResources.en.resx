@@ -2046,6 +2046,18 @@
   <data name="Error.referential.agency_slug_taken" xml:space="preserve">
     <value>Another agency already uses this address.</value>
   </data>
+  <data name="Error.referential.agency_domain_invalid" xml:space="preserve">
+    <value>The domain name is invalid: enter a full host name (www.agency.tn), without https://, port or path.</value>
+  </data>
+  <data name="Error.referential.agency_domain_taken" xml:space="preserve">
+    <value>This domain name already serves the site of an agency.</value>
+  </data>
+  <data name="Error.referential.agency_domain_not_found" xml:space="preserve">
+    <value>This domain name is not attached to the agency.</value>
+  </data>
+  <data name="Error.referential.agency_domain_platform_host" xml:space="preserve">
+    <value>This domain name is the platform's own: it cannot serve the site of an agency.</value>
+  </data>
   <data name="Error.referential.agency_modules_invalid" xml:space="preserve">
     <value>Unknown module.</value>
   </data>
