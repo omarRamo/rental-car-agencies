@@ -34,8 +34,11 @@ internal sealed class AvailabilityCache : IAvailabilityChangeNotifier
     private readonly TimeProvider _timeProvider;
     private readonly AvailabilityCacheOptions _options;
     private readonly ILogger<AvailabilityCache> _logger;
+    private const int PruneEvery = 256;
+
     private long _snapshotLoads;
     private long _categoryListLoads;
+    private long _reads;
 
     public AvailabilityCache(
         IServiceScopeFactory scopeFactory,
@@ -64,6 +67,9 @@ internal sealed class AvailabilityCache : IAvailabilityChangeNotifier
 
     /// <summary>Snapshot loads started so far (diagnostics and tests).</summary>
     public long SnapshotLoads => Interlocked.Read(ref _snapshotLoads);
+
+    /// <summary>Snapshots kept in memory right now (diagnostics and tests).</summary>
+    public int SnapshotCount => _snapshots.Count;
 
     /// <summary>Category list loads started so far (diagnostics and tests).</summary>
     public long CategoryListLoads => Interlocked.Read(ref _categoryListLoads);
@@ -134,6 +140,7 @@ internal sealed class AvailabilityCache : IAvailabilityChangeNotifier
         Func<Guid, Task<T>> load,
         CancellationToken cancellationToken)
     {
+        PruneOccasionally(entries);
         while (true)
         {
             var now = _timeProvider.GetUtcNow();
@@ -148,6 +155,29 @@ internal sealed class AvailabilityCache : IAvailabilityChangeNotifier
             if (entries.TryUpdate(key, replacement, entry))
             {
                 return replacement.Value.WaitAsync(cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every <see cref="PruneEvery"/> reads, drops the entries nobody read again since they expired (a category removed or
+    /// idle for months would otherwise keep its 400-day snapshot for the life of the process). A read of a live entry
+    /// never waits for it: the sweep only touches entries already stale.
+    /// </summary>
+    private void PruneOccasionally<T>(ConcurrentDictionary<Guid, CacheEntry<T>> entries)
+    {
+        if (Interlocked.Increment(ref _reads) % PruneEvery != 0)
+        {
+            return;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+        foreach (var (key, entry) in entries)
+        {
+            // Twice the expiration: an entry a reader is about to refresh is left to that reader.
+            if (now - entry.CreatedAt >= _options.AbsoluteExpiration * 2)
+            {
+                entries.TryRemove(new KeyValuePair<Guid, CacheEntry<T>>(key, entry));
             }
         }
     }

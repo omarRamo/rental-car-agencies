@@ -31,8 +31,21 @@ internal static class WebServiceCollectionExtensions
         services.AddOptions<ReverseProxyOptions>().Bind(configuration.GetSection(ReverseProxyOptions.SectionName));
         services.AddOptions<LocalizationSettings>().Bind(configuration.GetSection(LocalizationSettings.SectionName));
 
+        services.AddOptions<InteractiveCircuitOptions>()
+            .Bind(configuration.GetSection(InteractiveCircuitOptions.SectionName))
+            .Validate(o => o.IsValid, "Blazor: DisconnectedCircuitMaxRetained and MaxBufferedUnacknowledgedRenderBatches must be positive, DisconnectedCircuitRetentionPeriod between zero and one hour.")
+            .ValidateOnStart();
+        var circuits = configuration.GetSection(InteractiveCircuitOptions.SectionName).Get<InteractiveCircuitOptions>() ?? new InteractiveCircuitOptions();
         services.AddRazorComponents()
-            .AddInteractiveServerComponents(options => options.DetailedErrors = environment.IsDevelopment());
+            .AddInteractiveServerComponents(options =>
+            {
+                options.DetailedErrors = environment.IsDevelopment();
+
+                // Bounded memory of the back office circuits on one small instance (ADR-0068).
+                options.DisconnectedCircuitMaxRetained = circuits.DisconnectedCircuitMaxRetained;
+                options.DisconnectedCircuitRetentionPeriod = circuits.DisconnectedCircuitRetentionPeriod;
+                options.MaxBufferedUnacknowledgedRenderBatches = circuits.MaxBufferedUnacknowledgedRenderBatches;
+            });
         services.AddMudServices(options =>
         {
             options.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;

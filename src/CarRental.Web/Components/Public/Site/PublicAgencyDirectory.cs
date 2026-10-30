@@ -42,7 +42,11 @@ public sealed partial class PublicAgencyDirectory(
         }
 
         var loaded = await LoadAsync(site, cancellationToken);
-        cache.Set(key, loaded, loaded is null ? TimeSpan.FromMinutes(1) : CacheDuration);
+        cache.Set(key, loaded, new MemoryCacheEntryOptions
+        {
+            Size = 1,
+            AbsoluteExpirationRelativeToNow = loaded is null ? TimeSpan.FromMinutes(1) : CacheDuration,
+        });
         return loaded;
     }
 

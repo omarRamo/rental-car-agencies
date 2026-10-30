@@ -73,6 +73,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0065](0065-plan-de-comptes-journaux-exports-et-cloture.md) | Plan de comptes, journaux, exports et clôture mensuelle | Acceptée (plan et format d'export à valider par l'expert-comptable) |
 | [0066](0066-revue-de-securite-passe-2.md) | Revue de sécurité, passe 2 : journaux sans jeton, Turnstile lié au site, documents jamais conservés, santé du bot | Acceptée |
 | [0067](0067-plateforme-multi-agences-cloisonnement-support-modules.md) | Plateforme multi-agences : cloisonnement par agence, rôle Support, vitrine par adresse et modules activables | Acceptée |
+| [0068](0068-empreinte-memoire-app-service-b1.md) | Empreinte mémoire sur une seule instance App Service B1 : GC station de travail, circuits Blazor bornés, corps de requête et caches limités | Acceptée |
 
 ## Modèle
 

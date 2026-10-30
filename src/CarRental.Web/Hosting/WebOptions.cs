@@ -62,3 +62,28 @@ public sealed class LocalizationSettings
     /// <summary>Arabic (right-to-left) is prepared but off until its resources are translated.</summary>
     public bool EnableArabic { get; set; }
 }
+
+/// <summary>
+/// Memory bounds of the interactive back office (<c>Blazor</c> section, ADR-0068). A disconnected circuit keeps its DI
+/// scope, its components and its MudBlazor state alive until it is evicted: on one instance with 1.75 GB, how many are
+/// kept and for how long decides the footprint of the staff that closed a tab or lost the network.
+/// </summary>
+public sealed class InteractiveCircuitOptions
+{
+    public const string SectionName = "Blazor";
+
+    /// <summary>Disconnected circuits kept for a reconnection (default 100 in the framework; 30 here: a few counters at a time).</summary>
+    public int DisconnectedCircuitMaxRetained { get; set; } = 30;
+
+    /// <summary>How long a disconnected circuit waits for its browser (default 3 minutes in the framework).</summary>
+    public TimeSpan DisconnectedCircuitRetentionPeriod { get; set; } = TimeSpan.FromMinutes(2);
+
+    /// <summary>Render batches kept in memory while the browser has not acknowledged them (framework default: 10).</summary>
+    public int MaxBufferedUnacknowledgedRenderBatches { get; set; } = 10;
+
+    public bool IsValid =>
+        DisconnectedCircuitMaxRetained >= 1
+        && DisconnectedCircuitRetentionPeriod > TimeSpan.Zero
+        && DisconnectedCircuitRetentionPeriod <= TimeSpan.FromHours(1)
+        && MaxBufferedUnacknowledgedRenderBatches >= 1;
+}

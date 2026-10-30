@@ -174,6 +174,30 @@ public sealed class AvailabilityCacheTests
     }
 
     [Fact]
+    public async Task Snapshots_nobody_reads_again_are_dropped_after_twice_the_expiration()
+    {
+        var world = new AvailabilityWorld();
+        var idle = world.Category(vehicles: 1);
+        var active = world.Category(vehicles: 1);
+        await using var services = world.Services();
+        var cache = services.GetRequiredService<AvailabilityCache>();
+        await ReadAsync(services, idle.Id, P(10, 20));
+        await ReadAsync(services, active.Id, P(10, 20));
+        cache.SnapshotCount.ShouldBe(2);
+
+        // The idle category is never read again; the sweep runs every 256 reads of the active one.
+        world.Clock.Advance(TimeSpan.FromMinutes(5));
+        for (var i = 0; i < 256; i++)
+        {
+            await ReadAsync(services, active.Id, P(10, 20));
+        }
+
+        cache.SnapshotCount.ShouldBe(1, "the idle snapshot was pruned, the active one refreshed");
+        (await ReadAsync(services, idle.Id, P(10, 20)))!.IsAvailable.ShouldBeTrue("a pruned category only costs a reload");
+        cache.SnapshotCount.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task A_failed_load_is_not_kept()
     {
         var world = new AvailabilityWorld();

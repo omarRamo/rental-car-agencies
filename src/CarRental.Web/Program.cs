@@ -6,7 +6,15 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+
+    // The largest body the platform ever reads is a document photo (PublicForms.UploadRequestLimit, 10 MB plus the
+    // multipart overhead); every other endpoint reads far less. The default (30 MB) would let a client hold three times
+    // that in memory per request on a 1.75 GB plan (ADR-0068).
+    options.Limits.MaxRequestBodySize = CarRental.Web.Endpoints.PublicSite.PublicForms.UploadRequestLimit;
+});
 builder.AddCarRentalConfiguration();
 builder.AddCarRentalObservability();
 

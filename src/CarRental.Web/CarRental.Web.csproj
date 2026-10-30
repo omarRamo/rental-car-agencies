@@ -11,6 +11,16 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <!-- Neutral resources (Resources/**/*.resx) are French; English (and later Arabic) are satellite assemblies. -->
     <NeutralLanguage>fr</NeutralLanguage>
+
+    <!--
+      Memory footprint (ADR-0068). The production plan is App Service B1: one core and 1.75 GB shared by Kestrel, the
+      Blazor Server circuits of the back office, Hangfire and the caches. Workstation concurrent GC keeps one small heap
+      and gives memory back quickly; server GC would be chosen by the Web SDK by default and only pays off with several
+      cores. runtimeconfig.template.json adds System.GC.ConserveMemory so that the GC compacts before the heap grows.
+    -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
   </PropertyGroup>
 
   <ItemGroup>
