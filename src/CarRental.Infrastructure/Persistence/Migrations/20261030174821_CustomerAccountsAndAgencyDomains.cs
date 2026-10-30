@@ -6,11 +6,37 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CarRental.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class CustomerAccounts : Migration
+    public partial class CustomerAccountsAndAgencyDomains : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Every existing agency gets the new module (CustomerApi = 128), on by default like the storefront (ADR-0070).
+            migrationBuilder.Sql("UPDATE [referential].[Agencies] SET [Modules] = [Modules] | 128 WHERE ([Modules] & 128) = 0;");
+
+            migrationBuilder.CreateTable(
+                name: "AgencyDomains",
+                schema: "referential",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AgencyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    HostName = table.Column<string>(type: "varchar(253)", unicode: false, maxLength: 253, nullable: false),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AgencyDomains", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AgencyDomains_Agencies_AgencyId",
+                        column: x => x.AgencyId,
+                        principalSchema: "referential",
+                        principalTable: "Agencies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateTable(
                 name: "CustomerAccounts",
                 schema: "customers",
@@ -159,6 +185,19 @@ namespace CarRental.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AgencyDomains_AgencyId_IsPrimary",
+                schema: "referential",
+                table: "AgencyDomains",
+                columns: new[] { "AgencyId", "IsPrimary" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AgencyDomains_HostName",
+                schema: "referential",
+                table: "AgencyDomains",
+                column: "HostName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CustomerAccountBookings_AccountId_BookingId",
                 schema: "customers",
                 table: "CustomerAccountBookings",
@@ -237,6 +276,12 @@ namespace CarRental.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("UPDATE [referential].[Agencies] SET [Modules] = [Modules] & ~128 WHERE ([Modules] & 128) = 128;");
+
+            migrationBuilder.DropTable(
+                name: "AgencyDomains",
+                schema: "referential");
+
             migrationBuilder.DropTable(
                 name: "CustomerAccountBookings",
                 schema: "customers");

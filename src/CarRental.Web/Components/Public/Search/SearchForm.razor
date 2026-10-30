@@ -3,9 +3,8 @@
    the fields and repeated next to each field, with or without JavaScript. "Return elsewhere" reveals the return
    location with CSS (:has); a small optional module keeps the return after the pick-up. Dates are Tunis time. *@
 @inject IStringLocalizer<PublicResources> L
-@inject NavigationManager Navigation
 
-<form class="search-form" method="get" action="@PublicRoutes.PathFor(Agency.Site.Slug, PublicPage.Results, Culture)" novalidate data-search-form
+<form class="search-form" method="get" action="@PublicRoutes.PathFor(PublicSiteAgency.SlugOf(HttpContext), PublicPage.Results, Culture)" novalidate data-search-form
       aria-labelledby="@(Heading is null ? null : $"{IdPrefix}-heading")">
     @if (Heading is not null)
     {
@@ -19,7 +18,7 @@
             <ul class="error-summary__list">
                 @foreach (var error in _errors)
                 {
-                    <li><a href="@PublicRoutes.InPage(Navigation, FieldId(error.Field))">@Message(error)</a></li>
+                    <li><a href="@PublicRoutes.InPage(HttpContext, FieldId(error.Field))">@Message(error)</a></li>
                 }
             </ul>
         </div>
@@ -98,6 +97,10 @@
 
     [Parameter, EditorRequired]
     public PublicAgency Agency { get; set; } = default!;
+
+    /// <summary>The request: the links of the form follow the host of the site (ADR-0069).</summary>
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     [Parameter, EditorRequired]
     public string Culture { get; set; } = CultureCatalog.Default;

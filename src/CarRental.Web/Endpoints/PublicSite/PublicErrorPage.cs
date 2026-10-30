@@ -22,9 +22,9 @@ public static class PublicErrorPage
         var culture = CultureInfo.CurrentUICulture;
         var language = culture.TwoLetterISOLanguageName;
         // The home page of the site of the request (ADR-0067), else the page of the platform.
-        var site = PublicSiteAgency.SiteOf(context);
+        var site = PublicSiteAgency.LinkSlugOf(context);
         var home = site is not null && context.RequestServices.GetRequiredService<CultureCatalog>().IsEnabled(language)
-            ? PublicRoutes.PathFor(site.Slug, PublicPage.Home, language)
+            ? PublicRoutes.PathFor(site, PublicPage.Home, language)
             : "/";
         var encoder = HtmlEncoder.Default;
         var title = encoder.Encode(localizer[titleKey]);

@@ -53,7 +53,8 @@ public static partial class BookingSelectionEndpoint
         var lang = culture.ToLowerInvariant();
         var site = PublicSiteAgency.Require(context);
         var query = SearchQuery.Parse(form);
-        var results = PublicRoutes.PathFor(site.Slug, PublicPage.Results, lang);
+        var slug = PublicSiteAgency.SlugOf(context);
+        var results = PublicRoutes.PathFor(slug, PublicPage.Results, lang);
         var agency = await directory.GetAsync(site, context.RequestAborted);
         if (agency is null)
         {
@@ -96,7 +97,7 @@ public static partial class BookingSelectionEndpoint
             return PublicForms.SeeOther(context, ResultsWith(results, query, SearchQuery.UnavailableInfo));
         }
 
-        return PublicForms.SeeOther(context, BookingRoutes.Step(site.Slug, lang, started.Value.Token, FunnelStep.Options));
+        return PublicForms.SeeOther(context, BookingRoutes.Step(slug, lang, started.Value.Token, FunnelStep.Options));
     }
 
     /// <summary>The source and UTM tags of the deep link, kept with the request (attribution of the booking).</summary>

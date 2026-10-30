@@ -46,6 +46,10 @@ internal static class WebApplicationExtensions
         }
 
         app.UseMiddleware<HostFilteringMiddleware>();
+
+        // The own host of an agency's site (ADR-0069): the path is rewritten to /{agency}/… before the culture and the
+        // routes read it; the status code pages re-execute the rewritten address too.
+        app.UseMiddleware<AgencyHostMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseHttpsRedirection();
         app.UseStatusCodePagesWithReExecute("/status/{0}", createScopeForStatusCodePages: true);

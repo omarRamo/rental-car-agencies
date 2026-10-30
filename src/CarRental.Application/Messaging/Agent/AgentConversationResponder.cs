@@ -416,10 +416,10 @@ internal sealed partial class AgentConversationResponder(
         return parts.Count == 0 ? null : string.Join(" ; ", parts);
     }
 
-    /// <summary>The funnel page of the site of the agency of the conversation (ADR-0067).</summary>
+    /// <summary>The funnel page of the site of the agency of the conversation (ADR-0067; its own host when it has one, ADR-0069).</summary>
     private Uri SecureLinkUri(AgentTurnContext context) =>
         BookingDeepLink.FunnelPage(
-            BookingDeepLink.SiteOf(site.Value.PublicBaseUrl is { IsAbsoluteUri: true } baseUrl ? baseUrl : new Uri("https://localhost/"), context.Agency.SiteSlug),
+            context.Agency.SiteUri(site.Value.PublicBaseUrl) ?? BookingDeepLink.SiteOf(new Uri("https://localhost/"), context.Agency.SiteSlug),
             context.Language);
 
     private string SecureLink(AgentTurnContext context) => SecureLinkUri(context).AbsoluteUri;

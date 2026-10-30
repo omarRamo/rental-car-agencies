@@ -37,6 +37,10 @@ public sealed class PublicBookingUnitTests
         PublicBookingPaths.AccessLink("Agence-2", "fr", Token).ShouldBe($"/agence-2/fr/ma-reservation/acces/{Token}");
         PublicBookingPaths.PaymentResult("agence-1", "en").ShouldBe("/agence-1/en/payment/{paymentId}");
         PublicBookingPaths.Site("agence-1", "xx-bad").ShouldBe("/agence-1/fr");
+        PublicBookingPaths.Site(string.Empty, "fr").ShouldBe("/fr", "the agency's own host carries no address segment (ADR-0069)");
+        PublicBookingPaths.AccessLink(string.Empty, "en", Token).ShouldBe($"/en/my-booking/access/{Token}");
+        BookingRoutes.Step(string.Empty, "fr", Token, FunnelStep.Options).ShouldBe($"/fr/reserver/{Token}/options");
+        BookingRoutes.MyBookingDocuments(string.Empty, "fr").ShouldBe("/fr/ma-reservation/dossier#pieces");
         Should.Throw<ArgumentException>(() => PublicBookingPaths.MyBooking(" ", "fr"));
         Should.Throw<ArgumentException>(() => PublicBookingPaths.MyBooking("agence/../admin", "fr"));
     }
@@ -142,6 +146,31 @@ public sealed class PublicBookingUnitTests
     }
 
     [Fact]
+    public async Task The_emails_of_an_agency_with_its_own_host_lead_to_that_host_without_the_address_segment()
+    {
+        var agency = SiteAgency with { PrimaryHost = "www.agence-cote.tn", Hosts = ["www.agence-cote.tn", "agence-cote.tn"] };
+        var services = new ServiceCollection().AddLogging().BuildServiceProvider();
+        var composer = new CustomerEmailComposer(services, NullLoggerFactory.Instance, new OneAgencyDirectory(agency), Options.Create(new PublicSiteOptions { BaseUrl = new Uri("https://rental.app") }));
+        var recipient = new CustomerRecipient("amel@example.test", "Amel");
+
+        var confirmed = await composer.ComposeNotificationAsync(Notification(BookingNotificationKind.Confirmed), recipient, TestContext.Current.CancellationToken);
+        var fromSecondaryHost = await composer.ComposeNotificationAsync(
+            Notification(BookingNotificationKind.Confirmed) with { BaseUrl = "http://agence-cote.tn/" },
+            recipient,
+            TestContext.Current.CancellationToken);
+        var access = await composer.ComposeAccessAsync(
+            new AccessEmail("LOC-2027-000123", "fr", PublicBookingPaths.AccessLink(agency.LinkSlug, "fr", Token), "042817", new DateTimeOffset(2027, 3, 1, 9, 30, 0, TimeSpan.Zero), "https://rental.app/", agency.Id),
+            recipient,
+            TestContext.Current.CancellationToken);
+
+        confirmed.TextBody.ShouldNotBeNull().ShouldContain("https://www.agence-cote.tn/fr/ma-reservation", customMessage: "the primary host, no address segment");
+        confirmed.TextBody.ShouldNotContain("rental.app");
+        fromSecondaryHost.TextBody.ShouldNotBeNull().ShouldContain("http://agence-cote.tn/fr/ma-reservation", customMessage: "the host the customer used, when it is one of the agency's");
+        access.TextBody.ShouldNotBeNull().ShouldContain($"https://www.agence-cote.tn/fr/ma-reservation/acces/{Token}");
+        access.TextBody.ShouldNotContain("/agence-1/");
+    }
+
+    [Fact]
     public async Task A_refusal_email_never_tells_the_reason_and_a_cancellation_tells_the_refund()
     {
         var composer = Composer(baseUrl: new Uri("https://www.agence.tn"));
@@ -184,6 +213,9 @@ public sealed class PublicBookingUnitTests
     {
         public Task<AgencySummary?> FindBySlugAsync(string? slug, CancellationToken cancellationToken = default) =>
             Task.FromResult(string.Equals(slug, agency.Slug, StringComparison.OrdinalIgnoreCase) ? agency : null);
+
+        public Task<AgencySummary?> FindByHostAsync(string? host, CancellationToken cancellationToken = default) =>
+            Task.FromResult(agency.HoldsHost(host) ? agency : null);
 
         public Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
             Task.FromResult(agencyId == agency.Id ? agency : null);

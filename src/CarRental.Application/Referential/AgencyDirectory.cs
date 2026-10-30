@@ -36,6 +36,17 @@ internal sealed class AgencyDirectory(IServiceScopeFactory scopeFactory, TimePro
         return snapshot.BySlug.GetValueOrDefault(slug.Trim().ToLowerInvariant());
     }
 
+    public async Task<AgencySummary?> FindByHostAsync(string? host, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(host) || host.Length > AgencyHostName.MaxLength + 1)
+        {
+            return null;
+        }
+
+        var snapshot = await GetAsync(cancellationToken);
+        return snapshot.ByHost.GetValueOrDefault(host.Trim().TrimEnd('.').ToLowerInvariant());
+    }
+
     public async Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
         var snapshot = await GetAsync(cancellationToken);
@@ -51,7 +62,7 @@ internal sealed class AgencyDirectory(IServiceScopeFactory scopeFactory, TimePro
     public void OnCommitted(IReadOnlySet<Type> changedEntityTypes)
     {
         ArgumentNullException.ThrowIfNull(changedEntityTypes);
-        if (changedEntityTypes.Contains(typeof(Agency)))
+        if (changedEntityTypes.Contains(typeof(Agency)) || changedEntityTypes.Contains(typeof(AgencyDomain)))
         {
             Invalidate();
         }
@@ -86,6 +97,7 @@ internal sealed class AgencyDirectory(IServiceScopeFactory scopeFactory, TimePro
                 agencies,
                 agencies.ToFrozenDictionary(a => a.Id),
                 agencies.ToFrozenDictionary(a => a.Slug, StringComparer.Ordinal),
+                agencies.SelectMany(a => a.Hosts.Select(host => (host, a))).ToFrozenDictionary(h => h.host, h => h.a, StringComparer.Ordinal),
                 timeProvider.GetUtcNow() + TimeToLive);
             if (Interlocked.Read(ref _version) == version)
             {
@@ -105,17 +117,38 @@ internal sealed class AgencyDirectory(IServiceScopeFactory scopeFactory, TimePro
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         scope.ServiceProvider.GetService<ScopedUserContext>()?.Initialize(UserContextSnapshot.System(ActorName));
-        return await scope.ServiceProvider.GetRequiredService<IAppDbContext>().Set<Agency>()
+        var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+        var agencies = await db.Set<Agency>()
             .AsNoTracking()
             .OrderBy(a => a.Name)
             .Select(a => new AgencySummary(a.Id, a.Name, a.Slug, a.City, a.IsActive, a.Modules))
             .ToListAsync(cancellationToken);
+
+        // The host names of the agencies' own sites (ADR-0069): a handful of rows, read with the agencies.
+        var domains = await db.Set<AgencyDomain>()
+            .AsNoTracking()
+            .OrderByDescending(d => d.IsPrimary)
+            .ThenBy(d => d.HostName)
+            .Select(d => new { d.AgencyId, d.HostName, d.IsPrimary })
+            .ToListAsync(cancellationToken);
+        var byAgency = domains.ToLookup(d => d.AgencyId);
+        return
+        [
+            .. agencies.Select(a =>
+            {
+                var hosts = byAgency[a.Id].ToList();
+                return hosts.Count == 0
+                    ? a
+                    : a with { PrimaryHost = hosts.FirstOrDefault(h => h.IsPrimary)?.HostName ?? hosts[0].HostName, Hosts = [.. hosts.Select(h => h.HostName)] };
+            }),
+        ];
     }
 
     private sealed record Snapshot(
         IReadOnlyList<AgencySummary> All,
         FrozenDictionary<Guid, AgencySummary> ById,
         FrozenDictionary<string, AgencySummary> BySlug,
+        FrozenDictionary<string, AgencySummary> ByHost,
         DateTimeOffset ExpiresAt)
     {
         public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;

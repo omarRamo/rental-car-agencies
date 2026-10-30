@@ -49,7 +49,7 @@ internal sealed class BookingNotificationPublisher(IAppDbContext db, IOutbox out
                 .Select(e => e.Reason)
                 .FirstOrDefaultAsync(cancellationToken);
             var link = await AccessGrants.IssueCompleteFileLinkAsync(db, settings, message.AgencyId, message.BookingId, profile.Culture, clock.GetUtcNow(), cancellationToken);
-            actionPath = PublicBookingPaths.AccessLink(await agencies.SlugAsync(message.AgencyId, cancellationToken), profile.Culture, link.Token, documents: true);
+            actionPath = PublicBookingPaths.AccessLink(await agencies.LinkSlugAsync(message.AgencyId, cancellationToken), profile.Culture, link.Token, documents: true);
             actionExpires = link.Grant.ExpiresAtUtc;
         }
 

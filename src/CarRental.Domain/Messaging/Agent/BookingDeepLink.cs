@@ -25,11 +25,18 @@ public static class BookingDeepLink
 
     /// <summary>
     /// The address of the site of an agency under the base address of the platform (ADR-0067):
-    /// <c>{base}/{agencySlug}/</c>, the base of the links of that agency's conversations.
+    /// <c>{base}/{agencySlug}/</c>, the base of the links of that agency's conversations. An empty
+    /// <paramref name="agencySlug"/> is the site served on its own host (ADR-0069): the base address itself.
     /// </summary>
     public static Uri SiteOf(Uri baseUrl, string agencySlug)
     {
         ArgumentNullException.ThrowIfNull(baseUrl);
+        ArgumentNullException.ThrowIfNull(agencySlug);
+        if (agencySlug.Length == 0)
+        {
+            return new Uri(Root(baseUrl));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(agencySlug);
         var slug = agencySlug.Trim().ToLowerInvariant();
         if (slug.Any(c => !(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-')))

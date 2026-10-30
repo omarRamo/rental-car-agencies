@@ -59,7 +59,7 @@ internal sealed class AgentAgencyLoader(IReferentialQueries referential, IFleetQ
         var locations = await referential.GetLocationsAsync(agency.Id, cancellationToken);
         var hours = await settings.GetAsync(PricingSettings.AgencyOpeningHours, agency.Id, cancellationToken);
         var categories = await fleet.GetCategoriesAsync(agency.Id, includeInactive: false, cancellationToken);
-        _loaded = new AgentAgencyContext(agency, locations, hours, categories, site.Slug);
+        _loaded = new AgentAgencyContext(agency, locations, hours, categories, site.Slug, site.PrimaryHost);
         return _loaded;
     }
 }

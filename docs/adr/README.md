@@ -74,6 +74,7 @@ Une décision ne se modifie pas : si elle change, on écrit un nouvel ADR qui la
 | [0066](0066-revue-de-securite-passe-2.md) | Revue de sécurité, passe 2 : journaux sans jeton, Turnstile lié au site, documents jamais conservés, santé du bot | Acceptée |
 | [0067](0067-plateforme-multi-agences-cloisonnement-support-modules.md) | Plateforme multi-agences : cloisonnement par agence, rôle Support, vitrine par adresse et modules activables | Acceptée |
 | [0068](0068-empreinte-memoire-app-service-b1.md) | Empreinte mémoire sur une seule instance App Service B1 : GC station de travail, circuits Blazor bornés, corps de requête et caches limités | Acceptée |
+| [0069](0069-domaines-propres-par-agence.md) | Vitrine de chaque agence sur son propre domaine : noms d'hôte rattachés à l'agence, réécriture avant le routage, liens sans segment d'agence | Acceptée |
 | [0070](0070-api-clients-comptes-clients-jwt.md) | API des applications clientes (`/{agence}/api/v1`) : comptes clients par agence, JWT court et jeton de rafraîchissement rotatif, module « Application mobile et API » | Acceptée |
 
 ## Modèle

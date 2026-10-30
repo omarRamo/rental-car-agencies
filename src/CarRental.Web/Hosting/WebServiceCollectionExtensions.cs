@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MudBlazor;
 using MudBlazor.Services;
 
@@ -66,6 +67,9 @@ internal static class WebServiceCollectionExtensions
         services.AddScoped<CircuitHandler, UserContextCircuitHandler>();
         services.AddScoped<RequestOrigin>();
         services.AddScoped<IOperationRunner, OperationRunner>();
+
+        // The platform's own host names (ADR-0069): never attached to an agency's site by the support.
+        services.Replace(ServiceDescriptor.Singleton<CarRental.Application.Referential.Contracts.IPlatformHosts, ConfiguredPlatformHosts>());
         services.AddScoped<CarRental.Web.Components.Admin.Shared.CurrentAgency>();
         services.AddScoped<AppUrls>();
         services.AddScoped<IUserInvitationSender, UserInvitationSender>();

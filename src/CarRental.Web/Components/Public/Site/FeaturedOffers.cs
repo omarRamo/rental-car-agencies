@@ -35,6 +35,9 @@ public sealed partial class FeaturedOffers(
         }
 
         var weekend = await PriceAsync(agency, saturday, cancellationToken);
+
+        // One entry per open site and weekend in the size-limited cache of the host (ADR-0068): without a size, the
+        // cache refuses the entry and the home page fails.
         cache.Set(key, weekend, new MemoryCacheEntryOptions { Size = 1, AbsoluteExpirationRelativeToNow = CacheDuration });
         return weekend;
     }

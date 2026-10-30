@@ -2,6 +2,7 @@ using CarRental.Application.Common.Security;
 using CarRental.Application.Common.Tenancy;
 using CarRental.Application.Identity.Contracts;
 using CarRental.Application.Messaging.Contracts;
+using CarRental.Application.Referential.Contracts;
 using CarRental.Application.Referential.Platform;
 using CarRental.Application.Tests.Customers.Fakes;
 using CarRental.Application.Tests.Fakes;
@@ -39,7 +40,7 @@ public sealed class AgencyPlatformServiceTests
     }
 
     private AgencyPlatformService ServiceFor(IUserContext context) =>
-        new(_db, new InlineUnitOfWork(), context, new AgencyProvisioning([], context), new NoManagerInvitations(), _whatsAppNumber, _audit);
+        new(_db, new InlineUnitOfWork(), context, new AgencyProvisioning([], context), new NoManagerInvitations(), _whatsAppNumber, _audit, new NoPlatformHosts(), TimeProvider.System);
 
     private AgencyPlatformService AsSupport() => ServiceFor(TestUsers.ContextFor(Guid.CreateVersion7(), "support@demo.local", Roles.Support));
 

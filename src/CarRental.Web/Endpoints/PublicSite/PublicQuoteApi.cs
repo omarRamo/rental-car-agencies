@@ -149,8 +149,8 @@ public static class PublicQuoteApi
                 extensions: new Dictionary<string, object?> { ["code"] = locked.Error.Code });
         }
 
-        var response = PublicQuoteResponse.From(locked.Value, agency, criteria.Query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request));
-        return TypedResults.Created(QuotePath(siteAgency.Slug, response.Code), response);
+        var response = PublicQuoteResponse.From(locked.Value, agency, criteria.Query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request), PublicSiteAgency.SlugOf(context));
+        return TypedResults.Created(QuotePath(PublicSiteAgency.SlugOf(context), response.Code), response);
     }
 
     internal static async Task<Results<Ok<PublicQuoteResponse>, NotFound, ProblemHttpResult>> GetAsync(
@@ -200,11 +200,11 @@ public static class PublicQuoteApi
             Category = category is null ? null : AcrissCode.Create(category.AcrissCode).Value,
             Traffic = quote.Channel == SalesChannel.WhatsApp ? new TrafficSource(TrafficSource.WhatsAppSource) : TrafficSource.Direct,
         };
-        return TypedResults.Ok(PublicQuoteResponse.From(quote, agency, query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request)));
+        return TypedResults.Ok(PublicQuoteResponse.From(quote, agency, query, PublicUrls.BaseUri(site.Value.BaseUrl, context.Request), PublicSiteAgency.SlugOf(context)));
     }
 
-    /// <summary>The address of a locked quote on the site of <paramref name="agency"/>: <c>/agence-1/api/public/quotes/{code}</c>.</summary>
-    public static string QuotePath(string agency, string code) => $"/{agency}/api/public/quotes/{code}";
+    /// <summary>The address of a locked quote on the site of <paramref name="agency"/>: <c>/agence-1/api/public/quotes/{code}</c> (<c>/api/public/quotes/{code}</c> on its own host).</summary>
+    public static string QuotePath(string agency, string code) => $"{PublicRoutes.Root(agency)}/api/public/quotes/{code}";
 
     /// <summary>Whether the request carries one of the configured keys (constant-time comparison of their hashes).</summary>
     internal static bool IsAuthorized(HttpRequest request, PublicApiOptions options)
@@ -292,12 +292,13 @@ public sealed record PublicQuoteResponse(
 {
     private static readonly string[] LinkCultures = ["fr", "en"];
 
-    internal static PublicQuoteResponse From(LockedQuoteInfo quote, PublicAgency agency, SearchQuery query, Uri baseUri)
+    /// <summary>The answer for <paramref name="quote"/>; <paramref name="linkSlug"/> is the first segment of the links of the site: its address, or nothing on its own host (<see cref="PublicSiteAgency.SlugOf"/>).</summary>
+    internal static PublicQuoteResponse From(LockedQuoteInfo quote, PublicAgency agency, SearchQuery query, Uri baseUri, string linkSlug)
     {
         var linkQuery = query with { QuoteCode = quote.Code, Info = null };
         var urls = LinkCultures.ToDictionary(
             culture => culture,
-            culture => PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(agency.Site.Slug, PublicPage.Results, culture) + linkQuery.ToQueryString()).AbsoluteUri);
+            culture => PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(linkSlug, PublicPage.Results, culture) + linkQuery.ToQueryString()).AbsoluteUri);
         return new PublicQuoteResponse(
             quote.Code,
             quote.ExpiresAtUtc,

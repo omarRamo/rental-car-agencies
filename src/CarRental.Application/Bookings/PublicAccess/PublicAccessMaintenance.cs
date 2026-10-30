@@ -150,7 +150,7 @@ public sealed class CustomerLinkService(
             BookingNotificationKind.CompleteFileLink,
             culture,
             now,
-            ActionPath: PublicBookingPaths.AccessLink(await agencies.SlugAsync(booking.AgencyId, cancellationToken), culture, link.Token, documents: true),
+            ActionPath: PublicBookingPaths.AccessLink(await agencies.LinkSlugAsync(booking.AgencyId, cancellationToken), culture, link.Token, documents: true),
             ActionExpiresAtUtc: link.Grant.ExpiresAtUtc,
             BaseUrl: profile.PublicBaseUrl));
         await db.SaveChangesAsync(cancellationToken);

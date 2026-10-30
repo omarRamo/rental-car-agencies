@@ -1,18 +1,18 @@
 @inherits LayoutComponentBase
 @inject IStringLocalizer<PublicResources> L
 @inject IOptions<PublicSiteOptions> Site
-@inject NavigationManager Navigation
 
-@* The site of an agency (ADR-0067): its name, menu and footer lead to its own pages (/{agency}/{culture}/…). Outside
-   any site (the page of the platform at /, a status page of an unknown address) only the platform's name and the staff
-   entrance are shown. In-page links carry the page address: with <base href="/"> a bare "#main" would lead to the root. *@
-<a class="skip-link" href="@PublicRoutes.InPage(Navigation, "main")">@L["SkipToContent"]</a>
+@* The site of an agency (ADR-0067): its name, menu and footer lead to its own pages (/{agency}/{culture}/…, or
+   /{culture}/… on the agency's own host, ADR-0069). Outside any site (the page of the platform at /, a status page of an
+   unknown address) only the platform's name and the staff entrance are shown. In-page links carry the page address:
+   with <base href="/"> a bare "#main" would lead to the root. *@
+<a class="skip-link" href="@(HttpContext is null ? "#main" : PublicRoutes.InPage(HttpContext, "main"))">@L["SkipToContent"]</a>
 
 <header class="site-header">
     <div class="container site-header__inner">
         @if (_site is { } site)
         {
-            <a class="site-brand" href="@PublicRoutes.PathFor(site.Slug, PublicPage.Home, _culture)">@site.Name</a>
+            <a class="site-brand" href="@PublicRoutes.PathFor(_slug, PublicPage.Home, _culture)">@site.Name</a>
         }
         else
         {
@@ -26,9 +26,9 @@
     {
         <nav class="site-menu" aria-label="@L["MainNav"]">
             <ul class="container site-menu__list">
-                <li><a href="@($"{PublicRoutes.PathFor(menuSite.Slug, PublicPage.Home, _culture)}#recherche")">@L["Nav.Book"]</a></li>
-                <li><a href="@PublicRoutes.PathFor(menuSite.Slug, PublicPage.Agency, _culture)" aria-current="@Current(PublicPage.Agency)">@L["Nav.Agency"]</a></li>
-                <li><a href="@PublicRoutes.PathFor(menuSite.Slug, PublicPage.Faq, _culture)" aria-current="@Current(PublicPage.Faq)">@L["Nav.Faq"]</a></li>
+                <li><a href="@($"{PublicRoutes.PathFor(_slug, PublicPage.Home, _culture)}#recherche")">@L["Nav.Book"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Agency, _culture)" aria-current="@Current(PublicPage.Agency)">@L["Nav.Agency"]</a></li>
+                <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Faq, _culture)" aria-current="@Current(PublicPage.Faq)">@L["Nav.Faq"]</a></li>
             </ul>
         </nav>
     }
@@ -44,10 +44,10 @@
             <ul class="site-footer__links">
                 @if (_site is { } footerSite)
                 {
-                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Agency, _culture)">@L["Nav.Agency"]</a></li>
-                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Faq, _culture)">@L["Nav.Faq"]</a></li>
-                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Terms, _culture)">@L["Footer.Terms"]</a></li>
-                    <li><a href="@PublicRoutes.PathFor(footerSite.Slug, PublicPage.Privacy, _culture)">@L["Footer.Privacy"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Agency, _culture)">@L["Nav.Agency"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Faq, _culture)">@L["Nav.Faq"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Terms, _culture)">@L["Footer.Terms"]</a></li>
+                    <li><a href="@PublicRoutes.PathFor(_slug, PublicPage.Privacy, _culture)">@L["Footer.Privacy"]</a></li>
                 }
                 <li><a href="/account/login">@L["StaffLogin"]</a></li>
             </ul>
@@ -66,6 +66,7 @@
     private string _culture = CultureCatalog.Default;
     private PublicPage? _page;
     private AgencySummary? _site;
+    private string _slug = string.Empty;
 
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
@@ -76,6 +77,7 @@
         if (HttpContext is not null)
         {
             _site = PublicSiteAgency.SiteOf(HttpContext);
+            _slug = PublicSiteAgency.LinkSlugOf(HttpContext) ?? string.Empty;
             _page = PublicRoutes.PageOf(HttpContext.Request.Path.Value);
             PublicPageCaching.Apply(HttpContext);
         }

@@ -27,6 +27,15 @@ public static class ReferentialAuditActions
     /// <summary>The support suspended an agency or lifted its suspension.</summary>
     public const string AgencyActivationChanged = "referential.agency_activation_changed";
 
+    /// <summary>The support attached a host name to an agency's site (ADR-0069).</summary>
+    public const string AgencyDomainAdded = "referential.agency_domain_added";
+
+    /// <summary>The support detached a host name from an agency's site.</summary>
+    public const string AgencyDomainRemoved = "referential.agency_domain_removed";
+
+    /// <summary>The support chose the host name the links of an agency's site carry.</summary>
+    public const string AgencyPrimaryDomainChanged = "referential.agency_primary_domain_changed";
+
     /// <summary>A pick-up / return location was added to an agency.</summary>
     public const string LocationCreated = "referential.location_created";
 

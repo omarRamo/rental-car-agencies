@@ -2157,4 +2157,16 @@
   <data name="Error.customers.account.terms_required" xml:space="preserve">
     <value>Acceptez les conditions générales de location pour envoyer la demande.</value>
   </data>
+  <data name="Error.referential.agency_domain_invalid" xml:space="preserve">
+    <value>Le nom de domaine est invalide : indiquez un nom d'hôte complet (www.agence.tn), sans https://, sans port ni chemin.</value>
+  </data>
+  <data name="Error.referential.agency_domain_taken" xml:space="preserve">
+    <value>Ce nom de domaine sert déjà la vitrine d'une agence.</value>
+  </data>
+  <data name="Error.referential.agency_domain_not_found" xml:space="preserve">
+    <value>Ce nom de domaine n'est pas rattaché à l'agence.</value>
+  </data>
+  <data name="Error.referential.agency_domain_platform_host" xml:space="preserve">
+    <value>Ce nom de domaine est celui de la plateforme : il ne peut pas servir la vitrine d'une agence.</value>
+  </data>
 </root>

@@ -95,6 +95,22 @@ public sealed partial class PlatformScreensTests(E2EHost host) : BrowserTest(hos
         await confirm.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Changer l'adresse" }).ClickAsync();
         await Expect(Page.GetByTestId("agency-site")).ToHaveTextAsync($"/{slug}/fr");
 
+        // A domain of the agency's own site (ADR-0069): added (the first one is primary), then removed after a confirmation.
+        var domain = $"www.{Guid.NewGuid().ToString("N")[..8]}.example.test";
+        await Expect(Page.GetByTestId("agency-domains-empty")).ToBeVisibleAsync();
+        await Page.GetByLabel("Nom de domaine à ajouter").FillAsync(domain);
+        await Page.GetByTestId("agency-domain-add").ClickAsync();
+        await Expect(Page.GetByText("Domaine ajouté.")).ToBeVisibleAsync();
+        var row = Page.Locator($"[data-agency-domain='{domain}']");
+        await Expect(row).ToBeVisibleAsync();
+        await Expect(row.GetByTestId("agency-domain-primary")).ToBeVisibleAsync();
+        await BackOfficeSession.CloseSnackbarsAsync(Page);
+        await BackOfficeSession.AssertNoSeriousAxeViolationAsync(Page);
+        await row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = $"Retirer {domain}" }).ClickAsync();
+        await confirm.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retirer" }).ClickAsync();
+        await Expect(Page.GetByText("Domaine retiré.")).ToBeVisibleAsync();
+        await Expect(Page.GetByTestId("agency-domains-empty")).ToBeVisibleAsync();
+
         // Suspended, then active again.
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Suspendre l'agence" }).ClickAsync();
         await confirm.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Suspendre l'agence" }).ClickAsync();

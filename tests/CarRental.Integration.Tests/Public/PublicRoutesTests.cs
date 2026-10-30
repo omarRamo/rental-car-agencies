@@ -70,6 +70,18 @@ public sealed class PublicRoutesTests
     }
 
     [Fact]
+    public void On_the_agency_s_own_host_the_addresses_carry_no_address_segment()
+    {
+        PublicRoutes.Root(string.Empty).ShouldBe(string.Empty);
+        PublicRoutes.Root("agence-1").ShouldBe("/agence-1");
+        PublicRoutes.PathFor(string.Empty, PublicPage.Home, "fr").ShouldBe("/fr");
+        PublicRoutes.PathFor(string.Empty, PublicPage.Results, "en").ShouldBe("/en/book");
+        PublicRoutes.SelectionPath(string.Empty, "fr").ShouldBe("/fr/reserver/selection");
+        PublicRoutes.PrivatePrefixes("fr", ownHost: true).ShouldBe(["/fr/reserver", "/fr/book", "/fr/ma-reservation", "/fr/my-booking"]);
+        Should.Throw<ArgumentException>(() => PublicRoutes.PathFor(" ", PublicPage.Home, "fr"));
+    }
+
+    [Fact]
     public void The_funnel_and_my_booking_of_every_site_are_private_in_every_culture()
     {
         PublicRoutes.PrivatePrefixes("en").ShouldBe(["/*/en/reserver", "/*/en/book", "/*/en/ma-reservation", "/*/en/my-booking"]);

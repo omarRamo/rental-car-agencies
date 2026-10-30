@@ -64,9 +64,13 @@
         var site = PublicSiteAgency.Require(HttpContext);
         _brand = site.Name;
         _title = L["Title.Format", Title, _brand];
-        var baseUri = PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request);
-        _canonical = PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(site.Slug, Page, _culture)).AbsoluteUri;
-        _alternates = PublicUrls.Alternates(site.Slug, Page, baseUri, Cultures.Enabled, CultureCatalog.Default);
+        // The canonical address of a site served on its own host is on that host, even when the page is read on the
+        // platform host (ADR-0069); otherwise the platform address with the address of the site.
+        var (baseUri, agency) = site.PrimaryHost is { } ownHost
+            ? (PublicUrls.OwnHostBaseUri(ownHost, HttpContext.Request), string.Empty)
+            : (PublicUrls.BaseUri(Site.Value.BaseUrl, HttpContext.Request), site.Slug);
+        _canonical = PublicUrls.Absolute(baseUri, PublicRoutes.PathFor(agency, Page, _culture)).AbsoluteUri;
+        _alternates = PublicUrls.Alternates(agency, Page, baseUri, Cultures.Enabled, CultureCatalog.Default);
     }
 
     private static string OpenGraphLocale(string culture) => culture switch

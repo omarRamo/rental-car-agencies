@@ -110,6 +110,70 @@ else
         </MudItem>
 
         <MudItem xs="12">
+            <section aria-labelledby="agency-domains">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-domains" GutterBottom="true">@L["Platform.Agency.Domains"]</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@L["Platform.Agency.Domains.Intro"]</MudText>
+                    @if (_domains.Count == 0)
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-3" data-testid="agency-domains-empty">@L["Platform.Agency.Domains.Empty", PlatformPaths.PublicSite(agency.Slug)]</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Class="mb-3" aria-labelledby="agency-domains" data-testid="agency-domains">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["Platform.Agency.Domains.Column.Host"]</th>
+                                    <th scope="col">@L["Platform.Agency.Domains.Column.Role"]</th>
+                                    <th scope="col">@L["Platform.Agency.Domains.Column.Actions"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var domain in _domains)
+                                {
+                                    <tr data-agency-domain="@domain.HostName">
+                                        <td>
+                                            <MudLink Href="@($"https://{domain.HostName}/fr")" Target="_blank" rel="noopener" Underline="Underline.Always"
+                                                     aria-label="@L["Platform.Agency.Domains.Link", domain.HostName]"><code>@domain.HostName</code></MudLink>
+                                        </td>
+                                        <td>
+                                            @if (domain.IsPrimary)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" data-testid="agency-domain-primary">@L["Platform.Agency.Domains.Primary"]</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.body2">@L["Platform.Agency.Domains.Secondary"]</MudText>
+                                            }
+                                        </td>
+                                        <td>
+                                            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                                @if (!domain.IsPrimary)
+                                                {
+                                                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" OnClick="() => MakePrimaryAsync(domain)" Disabled="_busy"
+                                                               aria-label="@L["Platform.Agency.Domains.MakePrimaryOne", domain.HostName]">@L["Platform.Agency.Domains.MakePrimary"]</MudButton>
+                                                }
+                                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="() => RemoveDomainAsync(domain)" Disabled="_busy"
+                                                           aria-label="@L["Platform.Agency.Domains.RemoveOne", domain.HostName]">@L["Platform.Agency.Domains.Remove"]</MudButton>
+                                            </MudStack>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Wrap="Wrap.Wrap">
+                        <MudTextField T="string" Value="_newDomain" ValueChanged="DomainChanged" Label="@L["Platform.Agency.Domains.New"]" Immediate="true"
+                                      MaxLength="AgencyHostName.MaxLength" Error="@(_domainError is not null)" ErrorText="@_domainError" autocomplete="off" spellcheck="false"
+                                      Placeholder="www.agence.tn" data-testid="agency-domain" Class="flex-grow-1" />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddDomainAsync"
+                                   Disabled="@(_busy || _domainError is not null || string.IsNullOrWhiteSpace(_newDomain))" data-testid="agency-domain-add">@L["Platform.Agency.Domains.Add"]</MudButton>
+                    </MudStack>
+                </MudPaper>
+            </section>
+        </MudItem>
+
+        <MudItem xs="12">
             <section aria-labelledby="agency-modules">
                 <MudPaper Elevation="1" Class="pa-4">
                     <MudText Typo="Typo.h6" HtmlTag="h2" id="agency-modules" GutterBottom="true">@L["Platform.Agencies.Modules"]</MudText>
@@ -196,6 +260,9 @@ else
     private string? _slugError;
     private AgencyModules _modules;
     private PlatformWhatsAppNumber? _whatsAppNumber;
+    private IReadOnlyList<PlatformAgencyDomain> _domains = [];
+    private string? _newDomain;
+    private string? _domainError;
 
     [Parameter]
     public Guid AgencyId { get; set; }
@@ -232,6 +299,60 @@ else
         _modules = agency.Modules;
         var number = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<PlatformWhatsAppNumber>>((service, ct) => service.GetWhatsAppNumberAsync(agencyId, ct));
         _whatsAppNumber = number.IsSuccess ? number.Value : null;
+        var domains = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<IReadOnlyList<PlatformAgencyDomain>>>((service, ct) => service.ListDomainsAsync(agencyId, ct));
+        _domains = domains.IsSuccess ? domains.Value : [];
+    }
+
+    private void DomainChanged(string? value)
+    {
+        _newDomain = value;
+        var normalized = AgencyHostName.Normalize(value);
+        _domainError = string.IsNullOrWhiteSpace(value) || normalized.IsSuccess ? null : ErrorMessages.For(Shared, normalized.Error);
+    }
+
+    private async Task AddDomainAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newDomain) || _domainError is not null)
+        {
+            return;
+        }
+
+        var host = _newDomain;
+        _busy = true;
+        try
+        {
+            var agencyId = AgencyId;
+            var added = await Runner.RunAcrossAgenciesAsync<AgencyPlatformService, Result<Guid>>((service, ct) => service.AddDomainAsync(agencyId, host, ct));
+            if (added.IsFailure)
+            {
+                Snackbar.Add(ErrorMessages.For(Shared, added.Error), Severity.Error);
+                return;
+            }
+
+            _newDomain = null;
+            Snackbar.Add(L["Platform.Agency.Domains.Added"], Severity.Success);
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task MakePrimaryAsync(PlatformAgencyDomain domain) =>
+        ChangeAsync((service, agencyId, ct) => service.SetPrimaryDomainAsync(agencyId, domain.Id, ct), L["Platform.Agency.Domains.PrimaryChanged"]);
+
+    private async Task RemoveDomainAsync(PlatformAgencyDomain domain)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            L["Platform.Agency.Domains.Remove.Confirm.Title"],
+            L["Platform.Agency.Domains.Remove.Confirm.Message", domain.HostName],
+            yesText: L["Platform.Agency.Domains.Remove"],
+            cancelText: Shared["Cancel"]);
+        if (confirmed == true)
+        {
+            await ChangeAsync((service, agencyId, ct) => service.RemoveDomainAsync(agencyId, domain.Id, ct), L["Platform.Agency.Domains.Removed"]);
+        }
     }
 
     private string WhatsAppNumberText(PlatformWhatsAppNumber number, PlatformAgencyItem agency) =>

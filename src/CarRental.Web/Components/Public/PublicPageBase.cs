@@ -29,8 +29,11 @@ public abstract class PublicPageBase : ComponentBase
     /// <summary>The agency whose site this page belongs to (active, public site module on).</summary>
     protected AgencySummary SiteAgency => PublicSiteAgency.Require(HttpContext);
 
-    /// <summary>The canonical address of the agency's site, for the links of the page (<c>agence-1</c>).</summary>
-    protected string Slug => SiteAgency.Slug;
+    /// <summary>
+    /// The first segment of the links of the page: the canonical address of the agency's site (<c>agence-1</c>) on the
+    /// platform host, nothing on the agency's own host (ADR-0069, <see cref="PublicSiteAgency.SlugOf"/>).
+    /// </summary>
+    protected string Slug => PublicSiteAgency.SlugOf(HttpContext);
 
     /// <summary>Lower-case culture of the page, for its links.</summary>
     protected string Lang => Culture.ToLowerInvariant();
@@ -46,7 +49,7 @@ public abstract class PublicPageBase : ComponentBase
     {
         var segments = (HttpContext.Request.Path.Value ?? string.Empty).Split('/', StringSplitOptions.RemoveEmptyEntries);
         var slug = segments.Length > 2 ? segments[2] : string.Empty;
-        if (string.Equals(Agency, Slug, StringComparison.Ordinal)
+        if (string.Equals(Agency, SiteAgency.Slug, StringComparison.Ordinal)
             && string.Equals(Culture, Lang, StringComparison.Ordinal)
             && PublicRoutes.IsCanonical(page, Lang, slug))
         {

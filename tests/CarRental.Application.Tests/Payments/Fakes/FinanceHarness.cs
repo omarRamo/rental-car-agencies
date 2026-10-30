@@ -123,6 +123,8 @@ internal sealed class FinanceAgencyDirectory(FakeReferentialQueries referential)
 {
     public Task<AgencySummary?> FindBySlugAsync(string? slug, CancellationToken cancellationToken = default) => Task.FromResult<AgencySummary?>(null);
 
+    public Task<AgencySummary?> FindByHostAsync(string? host, CancellationToken cancellationToken = default) => Task.FromResult<AgencySummary?>(null);
+
     public Task<AgencySummary?> FindAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
         Task.FromResult(referential.Agencies.Where(a => a.Id == agencyId).Select(Summary).FirstOrDefault());
 
