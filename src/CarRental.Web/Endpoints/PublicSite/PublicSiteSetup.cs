@@ -19,8 +19,9 @@ public static class PublicSiteSetup
         ArgumentNullException.ThrowIfNull(environment);
 
         services.AddSettingDefinitions(PublicSiteSettings.All);
-        // The only IMemoryCache of the host holds the public facts of the agencies (one entry per open site, Size = 1):
-        // the limit is a guard against a future unbounded key, not a working figure (ADR-0068).
+        // The only IMemoryCache of the host holds the public facts of the agencies and the featured weekend of each site
+        // (one entry per open site each, Size = 1): the limit is a guard against a future unbounded key, not a working
+        // figure (ADR-0068). Every entry must give a Size, or the cache refuses it.
         services.AddMemoryCache(options => options.SizeLimit = 1_000);
         services.AddScoped<PublicAgencyDirectory>();
         services.AddScoped<PublicSearchService>();
